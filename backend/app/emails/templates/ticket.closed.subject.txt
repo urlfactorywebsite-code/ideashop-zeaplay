@@ -1,0 +1,1 @@
+Ticket closed: $ticket_title

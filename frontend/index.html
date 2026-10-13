@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zea.play</title>
+  <link rel="icon" href="https://url-factory.com/wp-content/uploads/2025/11/ZEA-1.png">
+  <script src="/runtime-config.js"></script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/main.min.css" rel="stylesheet" />
+
+  <!-- Frappe Gantt CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+  
+
+  <!-- Theme Loader Script to prevent FOUC (Flash of Unstyled Content) -->
+  <script>
+    (function () {
+      const storageKey = 'zenith-task-theme';
+      const storedTheme = localStorage.getItem(storageKey) || 'dark';
+      const root = document.documentElement;
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+      root.classList.remove('dark');
+      root.classList.remove('theme-colorful');
+      root.classList.remove('theme-light');
+
+      const shouldUseColorful = storedTheme === 'colorful';
+      const shouldUseDark =
+        storedTheme === 'dark' ||
+        (storedTheme === 'system' && mediaQuery.matches) ||
+        (!storedTheme && mediaQuery.matches);
+
+      if (shouldUseColorful) {
+        root.classList.add('theme-colorful');
+        return;
+      }
+
+      if (shouldUseDark) {
+        root.classList.add('dark');
+      } else {
+        root.classList.add('theme-light');
+      }
+    })();
+  </script>
+
+  <!-- Custom Theme Styles -->
+  <style>
+    :root {
+      --color-bg-primary: #FFFFFF;
+      --color-bg-secondary: #FFFFFF;
+      --color-bg-tertiary: #FFFFFF;
+      --color-background: var(--color-bg-primary);
+      --color-surface: #FFFFFF;
+      --color-surface-secondary: #F8FAFD;
+      --color-border-color: #D9E2EF;
+      --color-border-strong: #B9C9DE;
+
+      --color-primary: #2563EB;
+      --color-primary-dark: #1D4ED8;
+      --color-secondary: #7C3AED;
+      --color-success: #16A34A;
+      --color-warning: #D97706;
+      --color-danger: #DC2626;
+      --color-info: #0891B2;
+
+      --color-text-primary: #0F172A;
+      --color-text-secondary: #334155;
+      --color-text-muted: #64748B;
+      --color-text-accent: #1D4ED8;
+      --color-text-inverted: #F8FAFC;
+      --color-text-warning: #B45309;
+      --color-text-success: #166534;
+
+      --color-stage-battle: #22D3EE;
+      --color-stage-case: #3B82F6;
+      --color-stage-progress: #8B5CF6;
+      --color-stage-boss: #EF4444;
+      --color-stage-tactical: #14B8A6;
+      --color-stage-hold: #F59E0B;
+      --color-stage-conquered: #22C55E;
+      --color-stage-fallen: #EC4899;
+      --color-stage-graveyard: #64748B;
+
+      --color-priority-low: #22C55E;
+      --color-priority-medium: #F59E0B;
+      --color-priority-high: #F97316;
+      --color-priority-urgent: #A855F7;
+    }
+    .dark {
+      --color-bg-primary: #050B18;
+      --color-bg-secondary: #081226;
+      --color-bg-tertiary: #0B1630;
+      --color-background: var(--color-bg-primary);
+      --color-surface: #0D1830;
+      --color-surface-secondary: #111D38;
+      --color-border-color: rgba(56, 189, 248, 0.24);
+      --color-border-strong: rgba(56, 189, 248, 0.45);
+
+      --color-primary: #38BDF8;
+      --color-primary-dark: #0EA5E9;
+      --color-secondary: #8B5CF6;
+      --color-success: #15803D;
+      --color-warning: #D97706;
+      --color-danger: #B91C1C;
+      --color-info: #0EA5E9;
+
+      --color-text-primary: #E2E8F0;
+      --color-text-secondary: #94A3B8;
+      --color-text-muted: #64748B;
+      --color-text-accent: #22D3EE;
+      --color-text-inverted: #030712;
+      --color-text-warning: #FBBF24;
+      --color-text-success: #4ADE80;
+
+      --color-stage-battle: #22D3EE;
+      --color-stage-case: #3B82F6;
+      --color-stage-progress: #A78BFA;
+      --color-stage-boss: #EF4444;
+      --color-stage-tactical: #2DD4BF;
+      --color-stage-hold: #F59E0B;
+      --color-stage-conquered: #22C55E;
+      --color-stage-fallen: #EC4899;
+      --color-stage-graveyard: #64748B;
+
+      --color-priority-low: #22C55E;
+      --color-priority-medium: #F59E0B;
+      --color-priority-high: #F97316;
+      --color-priority-urgent: #A855F7;
+    }
+    .theme-colorful {
+      --color-bg-primary: #050A1A;
+      --color-bg-secondary: #08122B;
+      --color-bg-tertiary: #0D1735;
+      --color-background: var(--color-bg-primary);
+      --color-surface: rgba(10, 21, 48, 0.86);
+      --color-surface-secondary: rgba(17, 29, 61, 0.92);
+      --color-border-color: rgba(59, 130, 246, 0.28);
+      --color-border-strong: rgba(125, 211, 252, 0.55);
+
+      --color-primary: #22D3EE;
+      --color-primary-dark: #06B6D4;
+      --color-secondary: #A855F7;
+      --color-success: #22C55E;
+      --color-warning: #F59E0B;
+      --color-danger: #F43F5E;
+      --color-info: #38BDF8;
+
+      --color-text-primary: #E5EEFF;
+      --color-text-secondary: #B8CAE8;
+      --color-text-muted: #8AA1C8;
+      --color-text-accent: #7DD3FC;
+      --color-text-inverted: #020617;
+      --color-text-warning: #FCD34D;
+      --color-text-success: #86EFAC;
+
+      --color-stage-battle: #22D3EE;
+      --color-stage-case: #3B82F6;
+      --color-stage-progress: #8B5CF6;
+      --color-stage-boss: #EF4444;
+      --color-stage-tactical: #14B8A6;
+      --color-stage-hold: #F59E0B;
+      --color-stage-conquered: #22C55E;
+      --color-stage-fallen: #EC4899;
+      --color-stage-graveyard: #64748B;
+
+      --color-priority-low: #22C55E;
+      --color-priority-medium: #F59E0B;
+      --color-priority-high: #F97316;
+      --color-priority-urgent: #A855F7;
+    }
+    body {
+      background:
+        radial-gradient(120% 120% at 0% 0%, rgba(37, 99, 235, 0.10) 0%, rgba(238, 243, 249, 0) 45%),
+        linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      transition: background 0.5s ease, color 0.3s ease;
+      position: relative;
+      overflow-x: hidden;
+    }
+    .dark body {
+      background:
+        radial-gradient(130% 130% at 18% 10%, rgba(56, 189, 248, 0.15) 0%, rgba(5, 11, 24, 0) 48%),
+        radial-gradient(120% 120% at 82% 0%, rgba(139, 92, 246, 0.12) 0%, rgba(5, 11, 24, 0) 42%),
+        linear-gradient(180deg, var(--color-bg-tertiary) 0%, var(--color-bg-primary) 100%);
+      color: var(--color-text-primary);
+    }
+    .theme-colorful body {
+      background:
+        radial-gradient(125% 125% at 15% 12%, rgba(139, 92, 246, 0.20) 0%, rgba(5, 10, 26, 0) 48%),
+        radial-gradient(120% 120% at 88% 5%, rgba(34, 211, 238, 0.16) 0%, rgba(5, 10, 26, 0) 44%),
+        linear-gradient(180deg, var(--color-bg-tertiary) 0%, var(--color-bg-primary) 100%);
+      color: var(--color-text-primary);
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      background:
+        radial-gradient(60% 80% at 20% 20%, rgba(124, 58, 237, 0.23) 0%, transparent 60%),
+        radial-gradient(40% 60% at 85% 20%, rgba(56, 189, 248, 0.25) 0%, transparent 60%),
+        radial-gradient(55% 65% at 50% 90%, rgba(236, 72, 153, 0.18) 0%, transparent 60%);
+      filter: blur(0px) saturate(130%);
+    }
+    .dark body::before {
+      background:
+        radial-gradient(55% 70% at 15% 15%, rgba(124, 58, 237, 0.45) 0%, transparent 60%),
+        radial-gradient(45% 60% at 85% 20%, rgba(20, 184, 166, 0.35) 0%, transparent 60%),
+        radial-gradient(60% 75% at 50% 95%, rgba(59, 130, 246, 0.32) 0%, transparent 65%);
+      filter: blur(0px) saturate(160%);
+    }
+    .theme-colorful body::before {
+      background:
+        radial-gradient(60% 80% at 20% 15%, rgba(236, 72, 153, 0.45) 0%, transparent 60%),
+        radial-gradient(55% 75% at 82% 10%, rgba(14, 165, 233, 0.35) 0%, transparent 62%),
+        radial-gradient(50% 65% at 50% 95%, rgba(249, 115, 22, 0.25) 0%, transparent 65%);
+      filter: blur(0px) saturate(150%);
+    }
+    .bg-background {
+      background-color: color-mix(in srgb, var(--color-background) 92%, transparent) !important;
+    }
+    .dark .bg-background {
+      background-color: color-mix(in srgb, var(--color-background) 94%, transparent) !important;
+    }
+    .bg-surface {
+      background-color: color-mix(in srgb, var(--color-surface) 95%, transparent) !important;
+      backdrop-filter: saturate(150%) blur(24px);
+      border-color: color-mix(in srgb, var(--color-border-color) 95%, transparent) !important;
+      box-shadow: 0 25px 45px rgba(79, 70, 229, 0.08);
+    }
+    .dark .bg-surface {
+      background-color: color-mix(in srgb, var(--color-surface) 97%, transparent) !important;
+      border-color: color-mix(in srgb, var(--color-border-color) 100%, transparent) !important;
+      box-shadow: 0 25px 55px rgba(2, 6, 23, 0.6);
+    }
+    .border-border-color {
+      border-color: color-mix(in srgb, var(--color-border-color) 100%, transparent) !important;
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: color-mix(in srgb, var(--color-background) 80%, transparent);
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border-color) 55%);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: var(--color-primary-dark);
+    }
+    .fc {
+        color: var(--color-text-primary);
+        --fc-border-color: color-mix(in srgb, var(--color-border-color) 90%, transparent);
+        --fc-daygrid-event-dot-width: 8px;
+        --fc-list-event-dot-width: 10px;
+    }
+    .fc .fc-toolbar-title {
+        color: var(--color-text-primary);
+    }
+    .fc .fc-button {
+        background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+        border-color: color-mix(in srgb, var(--color-border-color) 90%, transparent);
+        color: var(--color-text-primary);
+        transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
+    .fc .fc-button:hover, .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: var(--color-primary);
+        border-color: var(--color-primary-dark);
+        color: #ffffff;
+    }
+    .fc .fc-daygrid-day-number {
+        color: var(--color-text-secondary);
+    }
+    .fc-theme-standard .fc-list-day-cushion {
+      background-color: color-mix(in srgb, var(--color-surface) 95%, transparent);
+    }
+    .fc .fc-day-other .fc-daygrid-day-top {
+        opacity: 0.45;
+    }
+    .gantt .grid-background {
+        fill: var(--color-background);
+    }
+    .gantt .grid-header, .gantt .grid-row {
+        fill: color-mix(in srgb, var(--color-surface) 95%, transparent);
+    }
+    .gantt .grid-row:nth-child(even) {
+        fill: color-mix(in srgb, var(--color-background) 88%, transparent);
+    }
+    .gantt .tick, .gantt .month-name, .gantt .task-name {
+        fill: var(--color-text-secondary);
+    }
+    .gantt .bar-label {
+        fill: #ffffff;
+    }
+    .dark .gantt .bar-label {
+        fill: var(--color-text-primary);
+    }
+    .gantt .bar-progress {
+        fill: var(--color-primary);
+    }
+    .gantt .bar {
+        fill: color-mix(in srgb, var(--color-border-color) 85%, transparent);
+        stroke: color-mix(in srgb, var(--color-border-color) 95%, transparent);
+    }
+    .gantt .handle {
+        fill: var(--color-text-secondary);
+        opacity: 0.6;
+    }
+    .gantt .arrow {
+        fill: var(--color-primary);
+    }
+    .confetti-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 9999;
+    }
+    .confetti {
+        position: absolute;
+        width: 8px;
+        height: 16px;
+        background: #f43f5e;
+        top: -20px;
+        opacity: 0;
+        animation: confetti-fall 3s ease-out forwards;
+    }
+    @keyframes confetti-fall {
+        0% {
+            transform: translateY(0) rotateZ(0);
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(100vh) rotateZ(720deg);
+            opacity: 0;
+        }
+    }
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    .animate-shake {
+        animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+    }
+</style>
+  
+  <!-- Import Map -->
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.8.2",
+    "@fullcalendar/core": "https://aistudiocdn.com/@fullcalendar/core@^6.1.19",
+    "@fullcalendar/daygrid": "https://aistudiocdn.com/@fullcalendar/daygrid@^6.1.19",
+    "@fullcalendar/interaction": "https://aistudiocdn.com/@fullcalendar/interaction@^6.1.19",
+    "@fullcalendar/react": "https://aistudiocdn.com/@fullcalendar/react@^6.1.19",
+    "@fullcalendar/timegrid": "https://aistudiocdn.com/@fullcalendar/timegrid@^6.1.19",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.17.0",
+    "@prisma/client": "https://aistudiocdn.com/@prisma/client@^6.15.0",
+    "jsonwebtoken": "https://aistudiocdn.com/jsonwebtoken@^9.0.2",
+    "cors": "https://aistudiocdn.com/cors@^2.8.5",
+    "bcryptjs": "https://aistudiocdn.com/bcryptjs@^3.0.2",
+    "express": "https://aistudiocdn.com/express@^5.1.0",
+    "dotenv": "https://aistudiocdn.com/dotenv@^17.2.2"
+  }
+}
+</script>
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class', // Enable dark mode based on class
+      content: [
+        "./index.html",
+        "./src/**/*.{js,jsx,ts,tsx}",
+        "./components/**/*.{js,jsx,ts,tsx}",
+      ],
+      theme: {
+        extend: {
+          colors: {
+            'primary': 'var(--color-primary)',
+            'primary-dark': 'var(--color-primary-dark)',
+            'background': 'var(--color-background)',
+            'surface': 'var(--color-surface)',
+            'border-color': 'var(--color-border-color)',
+            'text-primary': 'var(--color-text-primary)',
+            'text-secondary': 'var(--color-text-secondary)',
+            'text-muted': 'var(--color-text-muted)',
+            'text-accent': 'var(--color-text-accent)',
+            'text-inverted': 'var(--color-text-inverted)',
+            'text-warning': 'var(--color-text-warning)',
+            'text-success': 'var(--color-text-success)',
+            'danger': 'var(--color-danger)',
+            dark: {
+              bg1: "#1e1b4b", // indigo-950
+              bg2: "#4c1d95", // purple-900
+              bg3: "#831843", // pink-900
+              accent: "#ec4899", // pink-500
+            },
+            light: {
+              bg1: "#fef3c7", // amber-100
+              bg2: "#fed7aa", // orange-200
+              text: "#78350f", // amber-900
+            },
+            colorful: {
+              bg1: "#d946ef", // fuchsia-500
+              bg2: "#38bdf8", // sky-400
+              bg3: "#8b5cf6", // violet-500
+              text: "#000000",
+            },
+            accent: {
+              teal: "#14b8a6",
+              orange: "#fb923c",
+              violet: "#8b5cf6",
+            },
+          }
+        }
+      },
+      plugins: [],
+    }
+  </script>
+<link rel="stylesheet" href="/index.css">
+
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- Frappe Gantt JS -->
+  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+  
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

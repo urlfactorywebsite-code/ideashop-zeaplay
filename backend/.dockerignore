@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.sqlite
+*.db
+.venv
+venv
+tests
+vee_task_manager.db
+*.log
+

@@ -1,0 +1,8 @@
+Hi $recipient_name,
+
+$actor_name mentioned you on "$ticket_title".
+
+Comment:
+$comment_body
+
+Ticket ID: $ticket_id

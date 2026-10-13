@@ -1,0 +1,5 @@
+Hi $recipient_name,
+
+You have been assigned to "$ticket_title".
+
+Ticket ID: $ticket_id

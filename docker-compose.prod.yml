@@ -1,0 +1,150 @@
+version: "3.8"
+
+x-common-env: &common_env
+  - .env.production
+
+x-common-restart: &common_restart
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: zea_copy_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    <<: *common_restart
+
+  redis:
+    image: redis:7-alpine
+    container_name: zea_copy_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    <<: *common_restart
+
+  backend:
+    image: hyperxalpha/zea-play-backend:v5.3.2
+    container_name: zea_copy_backend
+    env_file: *common_env
+    environment:
+      VEE_ENVIRONMENT: production
+      VEE_DATABASE_URL: ${VEE_DATABASE_URL}
+      VEE_REDIS_URL: ${VEE_REDIS_URL}
+      VEE_CACHE_REDIS_URL: ${VEE_CACHE_REDIS_URL}
+      VEE_JWT_SECRET_KEY: ${VEE_JWT_SECRET_KEY}
+      VEE_JWT_REFRESH_SECRET_KEY: ${VEE_JWT_REFRESH_SECRET_KEY}
+      VEE_TASK_LIST_CACHE_TTL_SECONDS: ${VEE_TASK_LIST_CACHE_TTL_SECONDS}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY}
+      GUNICORN_THREADS: ${GUNICORN_THREADS}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT}
+      GUNICORN_KEEPALIVE: ${GUNICORN_KEEPALIVE}
+      VEE_DB_POOL_SIZE: ${VEE_DB_POOL_SIZE}
+      VEE_DB_MAX_OVERFLOW: ${VEE_DB_MAX_OVERFLOW}
+      VEE_MAX_REQUEST_BODY_MB: ${VEE_MAX_REQUEST_BODY_MB}
+      VEE_CORS_ALLOW_ORIGINS: '${VEE_CORS_ALLOW_ORIGINS}'
+      VEE_MINIO_ENDPOINT: ${VEE_MINIO_ENDPOINT}
+      VEE_MINIO_ACCESS_KEY: ${VEE_MINIO_ACCESS_KEY}
+      VEE_MINIO_SECRET_KEY: ${VEE_MINIO_SECRET_KEY}
+      VEE_MINIO_BUCKET_ATTACHMENTS: ${VEE_MINIO_BUCKET_ATTACHMENTS}
+      VEE_MINIO_BUCKET_TICKET_ATTACHMENTS: ${VEE_MINIO_BUCKET_TICKET_ATTACHMENTS}
+      VEE_MINIO_PUBLIC_BASE: ${VEE_MINIO_PUBLIC_BASE}
+      VEE_MEDIA_PRESIGN_RATE_REDIS_URL: ${VEE_MEDIA_PRESIGN_RATE_REDIS_URL}
+      VEE_VAPID_PUBLIC_KEY: ${VEE_VAPID_PUBLIC_KEY}
+      VEE_VAPID_PRIVATE_KEY: ${VEE_VAPID_PRIVATE_KEY}
+      VEE_VAPID_SUBJECT: ${VEE_VAPID_SUBJECT}
+    ports:
+      - "6311:6211"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["gunicorn", "-c", "gunicorn_conf.py", "app.main:app"]
+    <<: *common_restart
+
+  frontend:
+    image: hyperxalpha/zea-play-frontend:v5.3.3
+    container_name: zea_copy_frontend
+    env_file: *common_env
+    environment:
+      API_URL: ${API_URL}
+      PRESENCE_URL: ${PRESENCE_URL}
+      WS_URL: ${WS_URL}
+      TICKET_CHAT_WS_URL: ${TICKET_CHAT_WS_URL}
+    ports:
+      - "6300:80"
+    depends_on:
+      - backend
+      - presence
+    <<: *common_restart
+
+  celery-worker:
+    image: hyperxalpha/zea-play-celery-worker:v5.3.2
+    container_name: zea_copy_celery_worker
+    env_file: *common_env
+    environment:
+      VEE_ENVIRONMENT: production
+      VEE_DATABASE_URL: ${VEE_DATABASE_URL}
+      VEE_REDIS_URL: ${VEE_REDIS_URL}
+      VEE_CACHE_REDIS_URL: ${VEE_CACHE_REDIS_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
+    <<: *common_restart
+
+  reporting-worker:
+    image: hyperxalpha/zea-play-reporting-worker:v5.3.2
+    container_name: zea_copy_reporting_worker
+    env_file: *common_env
+    environment:
+      VEE_ENVIRONMENT: production
+      VEE_DATABASE_URL: ${VEE_DATABASE_URL}
+      VEE_REDIS_URL: ${VEE_REDIS_URL}
+      VEE_CACHE_REDIS_URL: ${VEE_CACHE_REDIS_URL}
+      REPORTING_WORKER_INTERVAL: ${REPORTING_WORKER_INTERVAL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["python", "-m", "app.reporting.worker"]
+    <<: *common_restart
+
+  presence:
+    image: hyperxalpha/zea-play-presence:v5.3.2
+    container_name: zea_copy_presence
+    env_file: *common_env
+    environment:
+      PRESENCE_PORT: ${PRESENCE_PORT}
+      PRESENCE_REDIS_URL: ${PRESENCE_REDIS_URL}
+      PRESENCE_JWT_SECRET: ${PRESENCE_JWT_SECRET}
+      PRESENCE_JWT_ALGORITHM: ${PRESENCE_JWT_ALGORITHM}
+      PRESENCE_EVENTS_CHANNEL: ${PRESENCE_EVENTS_CHANNEL}
+      CORS_ORIGINS: ${PRESENCE_CORS_ORIGINS}
+    ports:
+      - "6312:6212"
+    depends_on:
+      redis:
+        condition: service_healthy
+    <<: *common_restart
+
+volumes:
+  postgres_data:
+  redis_data:

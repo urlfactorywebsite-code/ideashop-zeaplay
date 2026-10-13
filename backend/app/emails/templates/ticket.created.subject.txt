@@ -1,0 +1,1 @@
+Ticket created: $ticket_title

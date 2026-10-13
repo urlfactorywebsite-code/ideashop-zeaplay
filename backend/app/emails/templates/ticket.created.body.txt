@@ -1,0 +1,8 @@
+Hi $recipient_name,
+
+$actor_name created a ticket.
+
+Title: $ticket_title
+Status: $ticket_status
+Priority: $ticket_priority
+Ticket ID: $ticket_id

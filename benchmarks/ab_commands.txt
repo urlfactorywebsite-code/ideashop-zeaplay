@@ -1,0 +1,2 @@
+ab -n 1000 -c 50 -H "Authorization: Bearer YOUR_TOKEN" http://localhost:6311/tasks
+ab -n 1000 -c 50 -H "Authorization: Bearer YOUR_TOKEN" http://localhost:6311/tickets

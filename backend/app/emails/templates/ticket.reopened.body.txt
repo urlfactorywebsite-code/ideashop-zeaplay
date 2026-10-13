@@ -1,0 +1,5 @@
+Hi $recipient_name,
+
+$actor_name reopened the ticket "$ticket_title".
+
+Ticket ID: $ticket_id

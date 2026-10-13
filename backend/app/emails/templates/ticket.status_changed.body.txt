@@ -1,0 +1,7 @@
+Hi $recipient_name,
+
+$actor_name updated the status on "$ticket_title".
+
+From: $status_from
+To: $status_to
+Ticket ID: $ticket_id

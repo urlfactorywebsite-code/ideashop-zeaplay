@@ -1,0 +1,10 @@
+{
+  "name": "Nexus Connect Enterprise Chat & Meetings",
+  "description": "Full-featured enterprise communication suite with real-time direct messaging, channels, file sharing, audio/video calling, and meetings.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "display-capture"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
