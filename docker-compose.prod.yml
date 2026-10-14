@@ -1,7 +1,5 @@
-version: "3.8"
-
 x-common-env: &common_env
-  - .env.production
+  - ${ZEAPLAY_ENV_FILE:-.env.production}
 
 x-common-restart: &common_restart
   restart: unless-stopped
@@ -9,7 +7,7 @@ x-common-restart: &common_restart
 services:
   postgres:
     image: postgres:15
-    container_name: zea_copy_postgres
+    container_name: zeaplay_postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -25,7 +23,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: zea_copy_redis
+    container_name: zeaplay_redis
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -37,8 +35,9 @@ services:
     <<: *common_restart
 
   backend:
-    image: hyperxalpha/zea-play-backend:v5.3.2
-    container_name: zea_copy_backend
+    build:
+      context: ./backend
+    container_name: zeaplay_backend
     env_file: *common_env
     environment:
       VEE_ENVIRONMENT: production
@@ -67,19 +66,25 @@ services:
       VEE_VAPID_PRIVATE_KEY: ${VEE_VAPID_PRIVATE_KEY}
       VEE_VAPID_SUBJECT: ${VEE_VAPID_SUBJECT}
     ports:
-      - "6311:6211"
+      - "6311:6311"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: ["gunicorn", "-c", "gunicorn_conf.py", "app.main:app"]
     <<: *common_restart
 
   frontend:
-    image: hyperxalpha/zea-play-frontend:v5.3.3
-    container_name: zea_copy_frontend
-    env_file: *common_env
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_PRESENCE_URL: ${VITE_PRESENCE_URL}
+        VITE_WS_URL: ${VITE_WS_URL}
+        VITE_TICKET_CHAT_WS_URL: ${VITE_TICKET_CHAT_WS_URL}
+        VITE_CHAT_URL: ${VITE_CHAT_URL}
+    container_name: zeaplay_frontend
     environment:
       API_URL: ${API_URL}
       PRESENCE_URL: ${PRESENCE_URL}
@@ -92,45 +97,10 @@ services:
       - presence
     <<: *common_restart
 
-  celery-worker:
-    image: hyperxalpha/zea-play-celery-worker:v5.3.2
-    container_name: zea_copy_celery_worker
-    env_file: *common_env
-    environment:
-      VEE_ENVIRONMENT: production
-      VEE_DATABASE_URL: ${VEE_DATABASE_URL}
-      VEE_REDIS_URL: ${VEE_REDIS_URL}
-      VEE_CACHE_REDIS_URL: ${VEE_CACHE_REDIS_URL}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: ["celery", "-A", "app.workers.celery_app.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
-    <<: *common_restart
-
-  reporting-worker:
-    image: hyperxalpha/zea-play-reporting-worker:v5.3.2
-    container_name: zea_copy_reporting_worker
-    env_file: *common_env
-    environment:
-      VEE_ENVIRONMENT: production
-      VEE_DATABASE_URL: ${VEE_DATABASE_URL}
-      VEE_REDIS_URL: ${VEE_REDIS_URL}
-      VEE_CACHE_REDIS_URL: ${VEE_CACHE_REDIS_URL}
-      REPORTING_WORKER_INTERVAL: ${REPORTING_WORKER_INTERVAL}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: ["python", "-m", "app.reporting.worker"]
-    <<: *common_restart
-
   presence:
-    image: hyperxalpha/zea-play-presence:v5.3.2
-    container_name: zea_copy_presence
-    env_file: *common_env
+    build:
+      context: ./presence-server
+    container_name: zeaplay_presence
     environment:
       PRESENCE_PORT: ${PRESENCE_PORT}
       PRESENCE_REDIS_URL: ${PRESENCE_REDIS_URL}
@@ -139,7 +109,7 @@ services:
       PRESENCE_EVENTS_CHANNEL: ${PRESENCE_EVENTS_CHANNEL}
       CORS_ORIGINS: ${PRESENCE_CORS_ORIGINS}
     ports:
-      - "6312:6212"
+      - "6312:6312"
     depends_on:
       redis:
         condition: service_healthy

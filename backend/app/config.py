@@ -97,11 +97,11 @@ class Settings(BaseSettings):
             "http://127.0.0.1:3000",
             "http://localhost:6300",
             "http://127.0.0.1:6300",
-            "http://173.212.192.6:6300",
-            "http://173.212.192.6",
+            "http://167.86.108.178:6300",
+            "http://167.86.108.178",
             "https://playapi.zeacrm.com",
             "https://play.zeacrm.com",
-            "http://173.212.192.6:6311",
+            "http://167.86.108.178:6311",
         ]
     )
     cors_allow_credentials: bool = True

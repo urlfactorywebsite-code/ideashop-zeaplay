@@ -771,7 +771,7 @@ origins = [
     "http://127.0.0.1:3000",
     "http://localhost:3001",
     "https://play.zeacrm.com",
-    "http://173.212.192.6:6300",
+    "http://167.86.108.178:6300",
     "http://127.0.0.1:3001",
     # add your dev or prod origins here
 ]
