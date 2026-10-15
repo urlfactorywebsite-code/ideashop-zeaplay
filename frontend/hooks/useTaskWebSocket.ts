@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { getAccessToken } from '../services/tokenStorage';
+import { getWebSocketTicket, toWebSocketBaseUrl } from '../services/realtimeAuth';
+import { RealtimeReconnectController } from '../services/realtimeBackoff';
 
 type TaskSocketStatus = 'connected' | 'connecting' | 'offline';
 
@@ -10,9 +11,6 @@ type UseTaskWebSocketOptions = {
   enabled?: boolean;
   onEvent?: (payload: TaskSocketEvent) => void;
 };
-
-const MAX_RECONNECT_DELAY_MS = 15000;
-const BASE_RECONNECT_DELAY_MS = 1000;
 
 const resolveTasksSocketUrl = (): string | null => {
   const base =
@@ -24,24 +22,32 @@ const resolveTasksSocketUrl = (): string | null => {
     return null;
   }
 
-  const normalized = base.replace(/\/$/, '');
-  const protocol = normalized.startsWith('https') ? 'wss' : 'ws';
-  const wsBase = normalized.replace(/^https?/, protocol);
-  return `${wsBase}/ws/tasks`;
+  return `${toWebSocketBaseUrl(base)}/ws/tasks`;
 };
 
 export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOptions) => {
   const [status, setStatus] = useState<TaskSocketStatus>('offline');
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectRef = useRef<number | null>(null);
-  const retryCountRef = useRef(0);
+  const onEventRef = useRef(onEvent);
+  const reconnectControllerRef = useRef(new RealtimeReconnectController({ minDelayMs: 1000, maxDelayMs: 15000 }));
+  const connectAttemptRef = useRef(0);
+  const mountedRef = useRef(false);
+  const connectingRef = useRef(false);
+  const hasOpenedRef = useRef(false);
+
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
 
   const cleanup = useCallback(() => {
-    if (reconnectRef.current) {
-      window.clearTimeout(reconnectRef.current);
-      reconnectRef.current = null;
-    }
+    connectAttemptRef.current += 1;
+    reconnectControllerRef.current.cancel();
+    connectingRef.current = false;
     if (socketRef.current) {
+      socketRef.current.onopen = null;
+      socketRef.current.onmessage = null;
+      socketRef.current.onclose = null;
+      socketRef.current.onerror = null;
       socketRef.current.close();
       socketRef.current = null;
     }
@@ -51,57 +57,71 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
     if (!enabled) {
       return;
     }
-    const token = getAccessToken();
-    const wsUrl = resolveTasksSocketUrl();
-    if (!token || !wsUrl) {
-      setStatus('offline');
+    if (!mountedRef.current || connectingRef.current) {
       return;
     }
-
-    const url = `${wsUrl}?token=${encodeURIComponent(token)}`;
-    setStatus('connecting');
-    const socket = new WebSocket(url);
-    socketRef.current = socket;
-
-    socket.addEventListener('open', () => {
-      retryCountRef.current = 0;
-      setStatus('connected');
-    });
-
-    socket.addEventListener('message', (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload?.type === 'ping') {
-          socket.send(JSON.stringify({ type: 'pong' }));
-          return;
-        }
-        onEvent?.(payload);
-      } catch {
-        // ignore malformed payload
-      }
-    });
-
-    socket.addEventListener('close', () => {
-      setStatus('offline');
-      if (!enabled) {
+    void (async () => {
+      const attempt = ++connectAttemptRef.current;
+      connectingRef.current = true;
+      const token = await getWebSocketTicket('tasks');
+      const wsUrl = resolveTasksSocketUrl();
+      connectingRef.current = false;
+      if (attempt !== connectAttemptRef.current) return;
+      if (!mountedRef.current) return;
+      if (!token || !wsUrl) {
+        setStatus('offline');
         return;
       }
-      const retryDelay = Math.min(
-        BASE_RECONNECT_DELAY_MS * 2 ** retryCountRef.current,
-        MAX_RECONNECT_DELAY_MS,
-      );
-      retryCountRef.current += 1;
-      reconnectRef.current = window.setTimeout(() => {
-        connect();
-      }, retryDelay);
-    });
 
-    socket.addEventListener('error', () => {
-      socket.close();
-    });
-  }, [enabled, onEvent]);
+      const url = `${wsUrl}?token=${encodeURIComponent(token)}`;
+      setStatus('connecting');
+      const socket = new WebSocket(url);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        if (socketRef.current !== socket || !mountedRef.current) return;
+        reconnectControllerRef.current.reset();
+        setStatus('connected');
+        if (hasOpenedRef.current) {
+          onEventRef.current?.({ type: 'realtime:reconnected' });
+        }
+        hasOpenedRef.current = true;
+      };
+
+      socket.onmessage = (event) => {
+        if (!mountedRef.current) return;
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload?.type === 'ping') {
+            socket.send(JSON.stringify({ type: 'pong' }));
+            return;
+          }
+          onEventRef.current?.(payload);
+        } catch {
+          // ignore malformed payload
+        }
+      };
+
+      socket.onclose = (event) => {
+        if (socketRef.current === socket) {
+          socketRef.current = null;
+        }
+        setStatus('offline');
+        if (!mountedRef.current || !enabled || event.code === 1008) {
+          return;
+        }
+        reconnectControllerRef.current.schedule(connect);
+      };
+
+      socket.onerror = () => {
+        socket.close();
+      };
+    })();
+  }, [enabled]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    reconnectControllerRef.current.activate();
     if (!enabled) {
       cleanup();
       setStatus('offline');
@@ -109,6 +129,7 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
     }
     connect();
     return () => {
+      mountedRef.current = false;
       cleanup();
     };
   }, [cleanup, connect, enabled]);

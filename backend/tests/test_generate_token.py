@@ -99,3 +99,20 @@ def test_generate_token_allows_access():
     assert me_response.status_code == 200
     me_data = me_response.json()
     assert me_data["email"] == "docs-owner@example.com"
+
+
+def test_websocket_ticket_is_short_lived_and_scoped():
+    _register_owner()
+    admin_access_token = _login_owner()
+
+    response = client.get(
+        "/auth/websocket-ticket",
+        params={"scope": "chat"},
+        headers={"Authorization": f"Bearer {admin_access_token}"},
+    )
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["token_type"] == "bearer"
+    assert data["scopes"] == ["websocket", "websocket:chat"]
+    assert data["access_token"]

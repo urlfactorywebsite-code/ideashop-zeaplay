@@ -1,5 +1,6 @@
 import uuid
 import sys
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,6 +10,7 @@ from fastapi.testclient import TestClient
 from jose import jwt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from starlette.websockets import WebSocketDisconnect
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -102,6 +104,25 @@ def make_token(user_id: str, tenant_id=TENANT_ID) -> str:
             "tenant_id": str(tenant_id),
             "token_type": "access",
             "roles": ["user"],
+        },
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+
+
+def make_websocket_ticket(user_id: str, tenant_id=TENANT_ID, scope: str = "chat", expired: bool = False) -> str:
+    settings = get_settings()
+    expires_at = datetime.now(timezone.utc) + (-timedelta(minutes=1) if expired else timedelta(minutes=2))
+    return jwt.encode(
+        {
+            "sub": user_id,
+            "user_id": user_id,
+            "tenant_id": str(tenant_id),
+            "token_type": "access",
+            "purpose": "websocket",
+            "scopes": ["websocket", f"websocket:{scope}"],
+            "roles": ["user"],
+            "exp": expires_at,
         },
         settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm,
@@ -661,3 +682,84 @@ def test_models_exist_for_phase1_schema():
     assert ChatConversation.__tablename__ == "chat_conversations"
     assert ChatParticipant.__tablename__ == "chat_participants"
     assert ChatMessage.__tablename__ == "chat_messages"
+
+
+def test_websocket_origin_allowlist_allows_trusted_origin(client, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "websocket_require_origin", True)
+    monkeypatch.setattr(settings, "websocket_trusted_origins", ["https://trusted.example"])
+    token = make_websocket_ticket("user-b")
+
+    with client.websocket_connect(
+        f"/api/ws/chat?token={token}",
+        headers={"origin": "https://trusted.example"},
+    ) as ws:
+        event = receive_until(ws, "presence:changed")
+        assert event["type"] == "presence:changed"
+
+
+def test_websocket_origin_allowlist_rejects_untrusted_origin(client, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "websocket_require_origin", True)
+    monkeypatch.setattr(settings, "websocket_trusted_origins", ["https://trusted.example"])
+    token = make_websocket_ticket("user-b")
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(
+            f"/api/ws/chat?token={token}",
+            headers={"origin": "https://evil.example"},
+        ) as ws:
+            ws.receive_json()
+
+
+def test_websocket_origin_allowlist_rejects_missing_origin_when_required(client, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "websocket_require_origin", True)
+    monkeypatch.setattr(settings, "websocket_trusted_origins", ["https://trusted.example"])
+    token = make_websocket_ticket("user-b")
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(f"/api/ws/chat?token={token}") as ws:
+            ws.receive_json()
+
+
+def test_websocket_requires_short_lived_ticket_when_enabled(client, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "websocket_require_ticket", True)
+    access_token = make_token("user-b")
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(f"/api/ws/chat?token={access_token}") as ws:
+            ws.receive_json()
+
+    ticket = make_websocket_ticket("user-b")
+    with client.websocket_connect(f"/api/ws/chat?token={ticket}") as ws:
+        event = receive_until(ws, "presence:changed")
+        assert event["type"] == "presence:changed"
+
+
+def test_websocket_rejects_ticket_for_wrong_scope_when_enabled(client, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "websocket_require_ticket", True)
+    ticket = make_websocket_ticket("user-b", scope="tasks")
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(f"/api/ws/chat?token={ticket}") as ws:
+            ws.receive_json()
+
+
+def test_websocket_rejects_expired_ticket(client, monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "websocket_require_ticket", True)
+    ticket = make_websocket_ticket("user-b", expired=True)
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(f"/api/ws/chat?token={ticket}") as ws:
+            ws.receive_json()
+
+
+def test_websocket_connection_cleanup_after_disconnect(client):
+    token = make_websocket_ticket("user-b")
+    with client.websocket_connect(f"/api/ws/chat?token={token}") as ws:
+        receive_until(ws, "presence:changed")
+    assert chat_ws.manager.snapshot()["sockets"] == 0

@@ -319,3 +319,35 @@ def issue_presence_token(
         subject=current_user.id,
         label="Presence socket",
     )
+
+
+@router.get("/websocket-ticket", response_model=schemas.TokenMintResponse)
+def issue_websocket_ticket(
+    scope: str = "realtime",
+    current_user: models.User = Depends(get_current_active_user),
+) -> schemas.TokenMintResponse:
+    """Issue a short-lived token for browser WebSocket query-string auth."""
+    normalized_scope = scope.strip().lower() or "realtime"
+    allowed_scopes = {"chat", "tasks", "tickets", "presence", "calls", "realtime"}
+    if normalized_scope not in allowed_scopes:
+        normalized_scope = "realtime"
+    expires_minutes = max(1, min(settings.websocket_ticket_expire_minutes, 15))
+    extra_claims = _build_token_claims(current_user)
+    extra_claims["purpose"] = "websocket"
+    access_token = create_access_token(
+        current_user.id,
+        expires_minutes=expires_minutes,
+        scopes=["websocket", f"websocket:{normalized_scope}"],
+        extra_claims=extra_claims,
+    )
+    issued_at = datetime.now(timezone.utc)
+    expires_at = issued_at + timedelta(minutes=expires_minutes)
+    return schemas.TokenMintResponse(
+        access_token=access_token,
+        token_type="bearer",
+        scopes=["websocket", f"websocket:{normalized_scope}"],
+        issued_at=issued_at,
+        expires_at=expires_at,
+        subject=current_user.id,
+        label=f"WebSocket {normalized_scope}",
+    )

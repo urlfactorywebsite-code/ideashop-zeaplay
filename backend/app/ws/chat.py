@@ -1,48 +1,36 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections import defaultdict
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, WebSocket, status
+from fastapi import APIRouter, WebSocket
 from sqlalchemy import select
 from starlette.websockets import WebSocketDisconnect
 
 from .. import models, schemas
+from ..config import get_settings
 from ..database import SessionLocal
-from ..dependencies import _decode_access_token
 from ..rate_limit import check_rate_limit
 from ..chat.permissions import ChatPermissionService
 from ..chat.repositories import ConversationRepository
 from ..chat.realtime import INSTANCE_ID, build_event, publish_chat_event
 from ..chat.serializers import serialize_conversation, serialize_message
 from ..chat.services import MemberService, MessageService, ReactionService
+from .security import (
+    WEBSOCKET_MESSAGE_TOO_BIG,
+    close_policy_violation,
+    decode_websocket_token,
+    extract_websocket_token,
+    validate_websocket_message_size,
+    validate_websocket_origin,
+)
 
 router = APIRouter()
 logger = logging.getLogger("zeaplay.chat.ws")
-
-
-def _extract_token(websocket: WebSocket) -> str | None:
-    token = websocket.query_params.get("token")
-    if token:
-        return token
-    auth_header = websocket.headers.get("authorization")
-    if auth_header:
-        parts = auth_header.split()
-        if len(parts) == 2 and parts[0].lower() == "bearer":
-            return parts[1]
-    return None
-
-
-async def _reject_websocket(websocket: WebSocket) -> None:
-    try:
-        await websocket.accept()
-    except RuntimeError:
-        pass
-    await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-
 
 class ChatConnectionManager:
     def __init__(self) -> None:
@@ -62,6 +50,10 @@ class ChatConnectionManager:
             "tenants": len(self._tenants),
             "conversation_rooms": len(self._conversations),
         }
+
+    async def user_connection_count(self, user_id: str) -> int:
+        async with self._lock:
+            return len(self._users.get(user_id, set()))
 
     async def connect(self, websocket: WebSocket, user: models.User) -> None:
         await websocket.accept()
@@ -282,31 +274,48 @@ async def _broadcast_unread(conversation_id: str) -> None:
 
 @router.websocket("/ws/chat")
 async def chat_ws(websocket: WebSocket) -> None:
-    token = _extract_token(websocket)
+    if not validate_websocket_origin(websocket):
+        await close_policy_violation(websocket)
+        return
+
+    token = extract_websocket_token(websocket)
     if not token:
-        await _reject_websocket(websocket)
+        await close_policy_violation(websocket)
         return
     try:
-        payload = _decode_access_token(token)
+        payload = decode_websocket_token(token, required_scope="chat")
         user_id = str(payload.get("user_id") or payload.get("sub"))
     except Exception:
-        await _reject_websocket(websocket)
+        await close_policy_violation(websocket)
         return
 
     with SessionLocal() as db:
         user = db.execute(select(models.User).where(models.User.id == user_id)).scalar_one_or_none()
         if not user or user.status != models.UserStatusEnum.ACTIVE:
-            await _reject_websocket(websocket)
+            await close_policy_violation(websocket)
             return
         token_tenant_id = str(payload.get("tenant_id") or "")
         if token_tenant_id and token_tenant_id != str(user.tenant_id):
-            await _reject_websocket(websocket)
+            await close_policy_violation(websocket)
             return
+
+    max_connections = get_settings().websocket_max_connections_per_user
+    if max_connections > 0 and await manager.user_connection_count(user.id) >= max_connections:
+        await close_policy_violation(websocket)
+        return
 
     await manager.connect(websocket, user)
     try:
         while True:
-            raw = await websocket.receive_json()
+            raw_text = await websocket.receive_text()
+            if not validate_websocket_message_size(raw_text):
+                await websocket.close(code=WEBSOCKET_MESSAGE_TOO_BIG)
+                break
+            try:
+                raw = json.loads(raw_text)
+            except json.JSONDecodeError:
+                await websocket.send_json(_socket_error("invalid_payload", "Expected a JSON object"))
+                continue
             if not isinstance(raw, dict):
                 await websocket.send_json(_socket_error("invalid_payload", "Expected a JSON object"))
                 continue

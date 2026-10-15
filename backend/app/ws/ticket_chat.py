@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
 import re
 import uuid
 from datetime import datetime
@@ -9,8 +11,8 @@ from typing import Any, Iterable
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import select
 
+from ..config import get_settings
 from ..database import SessionLocal
-from ..dependencies import _decode_access_token
 from ..events.bus import emit_ticket_event
 from ..models import User, UserStatusEnum
 from ..tickets.models import (
@@ -20,9 +22,18 @@ from ..tickets.models import (
     TicketParticipant,
     TicketParticipantRoleEnum,
 )
+from .security import (
+    WEBSOCKET_MESSAGE_TOO_BIG,
+    close_policy_violation,
+    decode_websocket_token,
+    extract_websocket_token,
+    validate_websocket_message_size,
+    validate_websocket_origin,
+)
 
 
 router = APIRouter()
+logger = logging.getLogger("zeaplay.tickets.ws")
 
 MENTION_ID_PATTERN = re.compile(r"@([A-Za-z0-9_-]{3,64})")
 
@@ -30,21 +41,36 @@ MENTION_ID_PATTERN = re.compile(r"@([A-Za-z0-9_-]{3,64})")
 class TicketConnectionManager:
     def __init__(self) -> None:
         self._connections: dict[uuid.UUID, set[WebSocket]] = {}
+        self._socket_users: dict[WebSocket, str] = {}
         self._lock = asyncio.Lock()
 
-    async def connect(self, ticket_id: uuid.UUID, websocket: WebSocket) -> None:
+    def snapshot(self) -> dict[str, int]:
+        return {
+            "sockets": len(self._socket_users),
+            "tickets": len(self._connections),
+        }
+
+    async def user_connection_count(self, user_id: str) -> int:
+        async with self._lock:
+            return sum(1 for socket_user_id in self._socket_users.values() if socket_user_id == user_id)
+
+    async def connect(self, ticket_id: uuid.UUID, user_id: str, websocket: WebSocket) -> None:
         await websocket.accept()
         async with self._lock:
             self._connections.setdefault(ticket_id, set()).add(websocket)
+            self._socket_users[websocket] = user_id
+        logger.info("tickets.ws.connected user_id=%s ticket_id=%s active=%s", user_id, ticket_id, self.snapshot())
 
     async def disconnect(self, ticket_id: uuid.UUID, websocket: WebSocket) -> None:
         async with self._lock:
+            self._socket_users.pop(websocket, None)
             connections = self._connections.get(ticket_id)
             if not connections:
                 return
             connections.discard(websocket)
             if not connections:
                 self._connections.pop(ticket_id, None)
+        logger.info("tickets.ws.disconnected ticket_id=%s active=%s", ticket_id, self.snapshot())
 
     async def broadcast(self, ticket_id: uuid.UUID, message: dict[str, Any]) -> None:
         async with self._lock:
@@ -57,18 +83,6 @@ class TicketConnectionManager:
 
 
 manager = TicketConnectionManager()
-
-
-def _extract_token(websocket: WebSocket) -> str | None:
-    token = websocket.query_params.get("token")
-    if token:
-        return token
-    auth_header = websocket.headers.get("authorization")
-    if auth_header:
-        parts = auth_header.split()
-        if len(parts) == 2 and parts[0].lower() == "bearer":
-            return parts[1]
-    return None
 
 
 def _extract_user_id(payload: dict[str, Any]) -> str:
@@ -151,13 +165,17 @@ def _comment_payload(comment: TicketComment, mention_ids: list[str]) -> dict[str
 
 @router.websocket("/ws/tickets/{ticket_id}")
 async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
-    token = _extract_token(websocket)
+    if not validate_websocket_origin(websocket):
+        await close_policy_violation(websocket)
+        return
+
+    token = extract_websocket_token(websocket)
     if not token:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
     try:
-        payload = _decode_access_token(token)
+        payload = decode_websocket_token(token, required_scope="tickets")
         user_id = _extract_user_id(payload)
         tenant_id = _extract_tenant_id(payload)
         roles = _normalize_roles(payload.get("roles"))
@@ -170,6 +188,9 @@ async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
     try:
         user = db.get(User, str(user_id))
         if not user or user.status != UserStatusEnum.ACTIVE:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+        if not user.tenant_id or user.tenant_id != tenant_id:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
 
@@ -198,11 +219,27 @@ async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
     finally:
         db.close()
 
-    await manager.connect(ticket_uuid, websocket)
+    max_connections = get_settings().websocket_max_connections_per_user
+    if max_connections > 0 and await manager.user_connection_count(str(user_id)) >= max_connections:
+        await close_policy_violation(websocket)
+        return
+
+    await manager.connect(ticket_uuid, str(user_id), websocket)
 
     try:
         while True:
-            message = await websocket.receive_json()
+            raw_text = await websocket.receive_text()
+            if not validate_websocket_message_size(raw_text):
+                await websocket.close(code=WEBSOCKET_MESSAGE_TOO_BIG)
+                break
+            try:
+                message = json.loads(raw_text)
+            except json.JSONDecodeError:
+                await websocket.send_json({"type": "error", "message": "Unsupported message type"})
+                continue
+            if not isinstance(message, dict):
+                await websocket.send_json({"type": "error", "message": "Unsupported message type"})
+                continue
             message_type = message.get("type")
             body = message.get("body") if isinstance(message, dict) else None
 
@@ -289,4 +326,6 @@ async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
                 {"type": "comment", "comment": _comment_payload(comment, mentions)},
             )
     except WebSocketDisconnect:
+        pass
+    finally:
         await manager.disconnect(ticket_uuid, websocket)

@@ -14,6 +14,10 @@ const config = {
   jwtAlgorithm: process.env.PRESENCE_JWT_ALGORITHM || 'HS256',
   eventsChannel: process.env.PRESENCE_EVENTS_CHANNEL || 'presence:events',
   corsOrigins: parseOrigins(process.env.PRESENCE_CORS_ORIGINS),
+  requireOrigin: parseBool(process.env.PRESENCE_REQUIRE_ORIGIN, false),
+  allowLocalhostOrigins: parseBool(process.env.PRESENCE_ALLOW_LOCALHOST_ORIGINS, true),
+  maxConnectionsPerUser: Number.parseInt(process.env.PRESENCE_MAX_CONNECTIONS_PER_USER || '12', 10),
+  maxTotalConnections: Number.parseInt(process.env.PRESENCE_MAX_TOTAL_CONNECTIONS || '10000', 10),
   chatHistoryLimit: Number.parseInt(process.env.PRESENCE_CHAT_HISTORY_LIMIT || '200', 10),
 };
 
@@ -54,19 +58,54 @@ function parseOrigins(value) {
     .filter(Boolean);
 }
 
+function parseBool(value, fallback) {
+  if (typeof value !== 'string' || !value.trim()) {
+    return fallback;
+  }
+  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+}
+
+function normalizeOrigin(origin) {
+  try {
+    const url = new URL(origin.trim());
+    const protocol = url.protocol.toLowerCase();
+    if (protocol !== 'http:' && protocol !== 'https:') {
+      return '';
+    }
+    const defaultPort =
+      (protocol === 'http:' && url.port === '80') ||
+      (protocol === 'https:' && url.port === '443');
+    const port = url.port && !defaultPort ? `:${url.port}` : '';
+    return `${protocol}//${url.hostname.toLowerCase()}${port}`;
+  } catch {
+    return '';
+  }
+}
+
 function isAllowedOrigin(origin) {
   if (!origin) {
+    return !config.requireOrigin;
+  }
+  if (config.corsOrigins.includes('*')) {
     return true;
   }
-  if (config.corsOrigins.includes('*') || config.corsOrigins.includes(origin)) {
-    return true;
-  }
-  try {
-    const url = new URL(origin);
-    return ['localhost', '127.0.0.1'].includes(url.hostname);
-  } catch {
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (!normalizedOrigin) {
     return false;
   }
+  const allowedOrigins = new Set(config.corsOrigins.map(normalizeOrigin).filter(Boolean));
+  if (allowedOrigins.has(normalizedOrigin)) {
+    return true;
+  }
+  if (config.allowLocalhostOrigins) {
+    try {
+      const url = new URL(normalizedOrigin);
+      return ['localhost', '127.0.0.1'].includes(url.hostname);
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 function onlineKey(tenantId) {
@@ -81,16 +120,24 @@ function chatHistoryKey(tenantId, spaceId) {
   return `chat:tenant:${tenantId}:space:${spaceId}:history`;
 }
 
-function buildUserRoom(userId) {
-  return `user:${userId}`;
+function userSocketKey(profile) {
+  return `${profile.tenantId}:${profile.id}`;
 }
 
-function buildChatRoom(spaceId) {
-  return `chat:${spaceId}`;
+function buildUserRoom(tenantId, userId) {
+  return `tenant:${tenantId}:user:${userId}`;
 }
 
-function buildMeetingRoom(meetingId) {
-  return `meeting:${meetingId}`;
+function buildChatRoom(tenantId, spaceId) {
+  return `tenant:${tenantId}:chat:${spaceId}`;
+}
+
+function meetingRoomKey(tenantId, meetingId) {
+  return `${tenantId}:${meetingId}`;
+}
+
+function buildMeetingRoom(tenantId, meetingId) {
+  return `tenant:${tenantId}:meeting:${meetingId}`;
 }
 
 function extractToken(socket) {
@@ -174,12 +221,13 @@ async function markOnline(socket) {
   const tenantOnlineKey = onlineKey(profile.tenantId);
   const tenantUserSocketsKey = userSocketsKey(profile.tenantId, profile.id);
 
-  socket.join(buildUserRoom(profile.id));
+  socket.join(buildUserRoom(profile.tenantId, profile.id));
 
-  const localSockets = localUserSockets.get(profile.id) || new Set();
+  const localKey = userSocketKey(profile);
+  const localSockets = localUserSockets.get(localKey) || new Set();
   const wasLocalOffline = localSockets.size === 0;
   localSockets.add(socket.id);
-  localUserSockets.set(profile.id, localSockets);
+  localUserSockets.set(localKey, localSockets);
   socketProfiles.set(socket.id, profile);
 
   const socketCount = await redis.sAdd(tenantUserSocketsKey, socket.id);
@@ -190,7 +238,7 @@ async function markOnline(socket) {
     emitPresenceToTenant('online', profile);
     await publishPresenceEvent('online', profile);
   } else if (wasLocalOffline) {
-    io.to(buildUserRoom(profile.id)).emit('presence:online', { userId: profile.id });
+    io.to(buildUserRoom(profile.tenantId, profile.id)).emit('presence:online', { userId: profile.id });
   }
 }
 
@@ -200,11 +248,12 @@ async function markOffline(socket) {
     return;
   }
 
-  const localSockets = localUserSockets.get(profile.id);
+  const localKey = userSocketKey(profile);
+  const localSockets = localUserSockets.get(localKey);
   if (localSockets) {
     localSockets.delete(socket.id);
     if (localSockets.size === 0) {
-      localUserSockets.delete(profile.id);
+      localUserSockets.delete(localKey);
     }
   }
   socketProfiles.delete(socket.id);
@@ -314,32 +363,49 @@ function normalizeParticipant(socket, payload = {}) {
   };
 }
 
-function emitMeetingParticipants(meetingId) {
-  const participants = Array.from((meetingRooms.get(meetingId) || new Map()).values());
-  io.to(buildMeetingRoom(meetingId)).emit('meeting:participants', { meetingId, participants });
+function emitMeetingParticipants(tenantId, meetingId) {
+  const participants = Array.from((meetingRooms.get(meetingRoomKey(tenantId, meetingId)) || new Map()).values());
+  io.to(buildMeetingRoom(tenantId, meetingId)).emit('meeting:participants', { meetingId, participants });
+}
+
+function exceedsConnectionLimits(profile) {
+  const localUserCount = localUserSockets.get(userSocketKey(profile))?.size || 0;
+  if (config.maxConnectionsPerUser > 0 && localUserCount >= config.maxConnectionsPerUser) {
+    console.warn(`[presence] user connection limit user=${profile.id} active=${localUserCount} limit=${config.maxConnectionsPerUser}`);
+    return true;
+  }
+  const totalConnections = io.engine.clientsCount || 0;
+  if (config.maxTotalConnections > 0 && totalConnections > config.maxTotalConnections) {
+    console.warn(`[presence] total connection limit active=${totalConnections} limit=${config.maxTotalConnections}`);
+    return true;
+  }
+  return false;
 }
 
 function leaveMeetingRoom(socket, meetingId) {
-  const room = meetingRooms.get(meetingId);
+  const profile = socket.data.user;
+  const roomKey = meetingRoomKey(profile.tenantId, meetingId);
+  const roomName = buildMeetingRoom(profile.tenantId, meetingId);
+  const room = meetingRooms.get(roomKey);
   if (!room) {
-    socket.leave(buildMeetingRoom(meetingId));
+    socket.leave(roomName);
     return;
   }
   const participant = room.get(socket.id);
   room.delete(socket.id);
-  socket.leave(buildMeetingRoom(meetingId));
+  socket.leave(roomName);
   getSocketMeetings(socket).delete(meetingId);
   if (participant) {
-    socket.to(buildMeetingRoom(meetingId)).emit('meeting:participant_left', {
+    socket.to(roomName).emit('meeting:participant_left', {
       meetingId,
       socketId: socket.id,
       userId: participant.userId,
     });
   }
   if (room.size === 0) {
-    meetingRooms.delete(meetingId);
+    meetingRooms.delete(roomKey);
   } else {
-    emitMeetingParticipants(meetingId);
+    emitMeetingParticipants(profile.tenantId, meetingId);
   }
 }
 
@@ -377,7 +443,12 @@ app.get('/health', async (_req, res) => {
 
 io.on('connection', async (socket) => {
   const profile = socket.data.user;
-  console.log(`[presence] socket connected user=${profile.id} tenant=${profile.tenantId}`);
+  if (exceedsConnectionLimits(profile)) {
+    socket.emit('presence:error', { code: 'connection_limit' });
+    socket.disconnect(true);
+    return;
+  }
+  console.log(`[presence] socket connected user=${profile.id} tenant=${profile.tenantId} active=${io.engine.clientsCount}`);
 
   socket.on('presence:get', async (ack) => {
     try {
@@ -405,7 +476,7 @@ io.on('connection', async (socket) => {
         ack?.({ ok: false, error: 'spaceId is required' });
         return;
       }
-      socket.join(buildChatRoom(spaceId));
+      socket.join(buildChatRoom(profile.tenantId, spaceId));
       const history = await getChatHistory(profile.tenantId, spaceId);
       ack?.({ ok: true, history });
     } catch (error) {
@@ -417,7 +488,7 @@ io.on('connection', async (socket) => {
   socket.on('chat:leave', (payload) => {
     const spaceId = typeof payload?.spaceId === 'string' ? payload.spaceId.trim() : '';
     if (spaceId) {
-      socket.leave(buildChatRoom(spaceId));
+      socket.leave(buildChatRoom(profile.tenantId, spaceId));
     }
   });
 
@@ -432,9 +503,9 @@ io.on('connection', async (socket) => {
         message.space.memberIds.forEach((memberId) => recipients.add(memberId));
       }
 
-      io.to(buildChatRoom(message.spaceId)).emit('chat:message', message);
+      io.to(buildChatRoom(profile.tenantId, message.spaceId)).emit('chat:message', message);
       for (const memberId of recipients) {
-        io.to(buildUserRoom(memberId)).emit('chat:message', message);
+        io.to(buildUserRoom(profile.tenantId, memberId)).emit('chat:message', message);
       }
 
       ack?.({ ok: true, message });
@@ -449,7 +520,7 @@ io.on('connection', async (socket) => {
     if (!spaceId) {
       return;
     }
-    socket.to(buildChatRoom(spaceId)).emit('chat:typing', {
+    socket.to(buildChatRoom(profile.tenantId, spaceId)).emit('chat:typing', {
       spaceId,
       userId: profile.id,
       isTyping: Boolean(payload.isTyping),
@@ -466,7 +537,7 @@ io.on('connection', async (socket) => {
       return;
     }
     const event = { spaceId, messageId, reaction, userId: profile.id };
-    io.to(buildChatRoom(spaceId)).emit('chat:reaction', event);
+    io.to(buildChatRoom(profile.tenantId, spaceId)).emit('chat:reaction', event);
     ack?.({ ok: true });
   });
 
@@ -479,10 +550,10 @@ io.on('connection', async (socket) => {
       ...space,
       memberIds: space.memberIds.length > 0 ? space.memberIds : [profile.id],
     };
-    socket.join(buildChatRoom(event.id));
-    io.to(buildChatRoom(event.id)).emit('chat:space', event);
+    socket.join(buildChatRoom(profile.tenantId, event.id));
+    io.to(buildChatRoom(profile.tenantId, event.id)).emit('chat:space', event);
     event.memberIds.forEach((memberId) => {
-      io.to(buildUserRoom(memberId)).emit('chat:space', event);
+      io.to(buildUserRoom(profile.tenantId, memberId)).emit('chat:space', event);
     });
   });
 
@@ -492,7 +563,7 @@ io.on('connection', async (socket) => {
       ack?.({ ok: false, error: 'recipientId is required' });
       return;
     }
-    io.to(buildUserRoom(recipientId)).emit('call:incoming', {
+    io.to(buildUserRoom(profile.tenantId, recipientId)).emit('call:incoming', {
       callerId: profile.id,
       callerName: typeof payload?.callerName === 'string' ? payload.callerName : profile.id,
       callerAvatar: typeof payload?.callerAvatar === 'string' ? payload.callerAvatar : undefined,
@@ -510,7 +581,7 @@ io.on('connection', async (socket) => {
       ack?.({ ok: false, error: 'callerId is required' });
       return;
     }
-    io.to(buildUserRoom(callerId)).emit('call:answered', {
+    io.to(buildUserRoom(profile.tenantId, callerId)).emit('call:answered', {
       responderId: profile.id,
       signalData: payload?.signalData,
     });
@@ -522,7 +593,7 @@ io.on('connection', async (socket) => {
     if (!targetUserId) {
       return;
     }
-    io.to(buildUserRoom(targetUserId)).emit('call:candidate', {
+    io.to(buildUserRoom(profile.tenantId, targetUserId)).emit('call:candidate', {
       fromUserId: profile.id,
       candidate: payload?.candidate,
     });
@@ -531,14 +602,14 @@ io.on('connection', async (socket) => {
   socket.on('call:reject', (payload) => {
     const callerId = typeof payload?.callerId === 'string' ? payload.callerId.trim() : '';
     if (callerId) {
-      io.to(buildUserRoom(callerId)).emit('call:rejected', { responderId: profile.id });
+      io.to(buildUserRoom(profile.tenantId, callerId)).emit('call:rejected', { responderId: profile.id });
     }
   });
 
   socket.on('call:end', (payload) => {
     const targetUserId = typeof payload?.targetUserId === 'string' ? payload.targetUserId.trim() : '';
     if (targetUserId) {
-      io.to(buildUserRoom(targetUserId)).emit('call:ended', { fromUserId: profile.id });
+      io.to(buildUserRoom(profile.tenantId, targetUserId)).emit('call:ended', { fromUserId: profile.id });
     }
   });
 
@@ -549,19 +620,20 @@ io.on('connection', async (socket) => {
       return;
     }
     const participant = normalizeParticipant(socket, payload?.userInfo || payload);
-    const room = meetingRooms.get(meetingId) || new Map();
+    const roomKey = meetingRoomKey(profile.tenantId, meetingId);
+    const room = meetingRooms.get(roomKey) || new Map();
     room.set(socket.id, participant);
-    meetingRooms.set(meetingId, room);
+    meetingRooms.set(roomKey, room);
     getSocketMeetings(socket).add(meetingId);
-    socket.join(buildMeetingRoom(meetingId));
-    socket.to(buildMeetingRoom(meetingId)).emit('meeting:participant_joined', { meetingId, participant });
-    emitMeetingParticipants(meetingId);
+    socket.join(buildMeetingRoom(profile.tenantId, meetingId));
+    socket.to(buildMeetingRoom(profile.tenantId, meetingId)).emit('meeting:participant_joined', { meetingId, participant });
+    emitMeetingParticipants(profile.tenantId, meetingId);
     ack?.({ ok: true, participants: Array.from(room.values()) });
   });
 
   socket.on('meeting:media_state', (payload) => {
     const meetingId = typeof payload?.meetingId === 'string' ? payload.meetingId.trim() : '';
-    const room = meetingId ? meetingRooms.get(meetingId) : null;
+    const room = meetingId ? meetingRooms.get(meetingRoomKey(profile.tenantId, meetingId)) : null;
     const participant = room?.get(socket.id);
     if (!room || !participant) {
       return;
@@ -572,7 +644,7 @@ io.on('connection', async (socket) => {
       videoEnabled: payload?.videoEnabled !== false,
       screenSharing: Boolean(payload?.screenSharing),
     });
-    emitMeetingParticipants(meetingId);
+    emitMeetingParticipants(profile.tenantId, meetingId);
   });
 
   socket.on('meeting:leave', (payload) => {
@@ -583,7 +655,7 @@ io.on('connection', async (socket) => {
   });
 
   socket.on('disconnect', async (reason) => {
-    console.log(`[presence] socket disconnected user=${profile.id} reason=${reason}`);
+    console.log(`[presence] socket disconnected user=${profile.id} reason=${reason} active=${io.engine.clientsCount}`);
     try {
       for (const meetingId of Array.from(getSocketMeetings(socket))) {
         leaveMeetingRoom(socket, meetingId);

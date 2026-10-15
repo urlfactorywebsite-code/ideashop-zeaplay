@@ -479,6 +479,7 @@ const Tasks: React.FC = () => {
     const [isTemplateModalOpen, setTemplateModalOpen] = useState(false);
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const prefetchedTaskIdsRef = useRef<Set<string>>(new Set());
+    const realtimeRefreshTimerRef = useRef<number | null>(null);
 
     // New state for selected tasks for bulk actions
     const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -801,11 +802,25 @@ const Tasks: React.FC = () => {
         kanbanParams,
     });
 
-    const handleTaskEvent = useCallback(() => {
+    const flushRealtimeTaskRefresh = useCallback(() => {
+        realtimeRefreshTimerRef.current = null;
         invalidateTaskCaches();
         setKanbanRefreshTick((prev) => prev + 1);
         refreshTasks();
     }, [refreshTasks]);
+
+    const handleTaskEvent = useCallback(() => {
+        if (realtimeRefreshTimerRef.current !== null) {
+            window.clearTimeout(realtimeRefreshTimerRef.current);
+        }
+        realtimeRefreshTimerRef.current = window.setTimeout(flushRealtimeTaskRefresh, 250);
+    }, [flushRealtimeTaskRefresh]);
+
+    useEffect(() => () => {
+        if (realtimeRefreshTimerRef.current !== null) {
+            window.clearTimeout(realtimeRefreshTimerRef.current);
+        }
+    }, []);
 
     useTaskWebSocket({
         enabled: Boolean(user),

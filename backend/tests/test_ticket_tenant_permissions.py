@@ -6,12 +6,14 @@ from fastapi.testclient import TestClient
 from jose import jwt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from starlette.websockets import WebSocketDisconnect
 
 from backend.app.auth import hash_password
 from backend.app.config import get_settings
 from backend.app.database import Base, get_db
 from backend.app.main import app
 from backend.app import models
+from backend.app.ws import ticket_chat
 from backend.app.models import RoleEnum, User, UserStatusEnum
 from backend.app.tickets.models import Ticket, TicketParticipant, TicketParticipantRoleEnum, TicketPriorityEnum, TicketStatusEnum
 
@@ -123,6 +125,26 @@ def test_ticket_tenant_isolation():
 
     get_b = client.get(f"/api/tickets/{ticket.id}", headers={"Authorization": f"Bearer {token_b}"})
     assert get_b.status_code == 404
+
+
+def test_ticket_websocket_rejects_cross_tenant_access(monkeypatch):
+    monkeypatch.setattr(ticket_chat, "SessionLocal", TestingSessionLocal)
+    tenant_a = uuid.uuid4()
+    tenant_b = uuid.uuid4()
+    user_a = str(uuid.uuid4())
+    user_b = str(uuid.uuid4())
+
+    db = TestingSessionLocal()
+    _create_user(db, user_a, "socket-a@example.com", tenant_a)
+    _create_user(db, user_b, "socket-b@example.com", tenant_b)
+    ticket = _create_ticket(db, tenant_a, created_by=user_a, owner_id=user_a)
+    db.close()
+
+    token_b = _make_token(user_b, tenant_b, roles=["user"])
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(f"/api/ws/tickets/{ticket.id}?token={token_b}") as ws:
+            ws.receive_json()
 
 
 def test_ticket_permissions_close_reopen_delete():

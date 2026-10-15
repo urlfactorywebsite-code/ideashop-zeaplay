@@ -52,8 +52,6 @@ Open the required ports.
 ```bash
 ufw allow OpenSSH
 ufw allow 6300/tcp
-ufw allow 6311/tcp
-ufw allow 6312/tcp
 ufw --force enable
 ufw status
 ```
@@ -82,6 +80,10 @@ VEE_DATABASE_URL=postgresql+psycopg://vee_user:change-this@postgres:5432/vee_tas
 VEE_JWT_SECRET_KEY=change-this-to-a-long-random-secret
 VEE_JWT_REFRESH_SECRET_KEY=change-this-to-a-different-long-random-secret
 PRESENCE_JWT_SECRET=change-this-to-a-long-random-secret
+PRESENCE_REQUIRE_ORIGIN=true
+PRESENCE_ALLOW_LOCALHOST_ORIGINS=false
+PRESENCE_MAX_CONNECTIONS_PER_USER=12
+PRESENCE_MAX_TOTAL_CONNECTIONS=10000
 VEE_MINIO_ENDPOINT=...
 VEE_MINIO_ACCESS_KEY=...
 VEE_MINIO_SECRET_KEY=...
@@ -111,7 +113,8 @@ Smoke test the deployment.
 ```bash
 curl -I http://167.86.108.178:6300
 curl http://167.86.108.178:6300/api/health
-curl http://167.86.108.178:6311/health
+curl http://127.0.0.1:6311/health
+curl http://127.0.0.1:6312/health
 ```
 
 Expected URLs:
@@ -119,8 +122,8 @@ Expected URLs:
 ```text
 Frontend: http://167.86.108.178:6300
 API through frontend proxy: http://167.86.108.178:6300/api
-Direct API: http://167.86.108.178:6311
-Presence service: http://167.86.108.178:6312
+Direct API on the VPS host only: http://127.0.0.1:6311
+Presence service on the VPS host only: http://127.0.0.1:6312
 ```
 
 ## Update Deployment
@@ -136,6 +139,8 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d --bui
 docker compose --env-file .env.production -f docker-compose.prod.yml ps
 curl -I http://167.86.108.178:6300
 curl http://167.86.108.178:6300/api/health
+curl http://127.0.0.1:6311/health
+curl http://127.0.0.1:6312/health
 ```
 
 ## Database Backup
@@ -176,4 +181,5 @@ git pull origin main
 - The Compose file uses `.env.production` by default. For local syntax checks against the sample file, run `ZEAPLAY_ENV_FILE=.env.production.example docker compose --env-file .env.production.example -f docker-compose.prod.yml config`.
 - `docker-compose.prod.yml` builds images from the pulled Git checkout, so server updates follow `git pull`.
 - The old production worker images were removed from this Compose file because this checkout does not include matching Celery/reporting worker modules.
+- Backend `6311` and presence `6312` are bound to `127.0.0.1` in production Compose. Public browser traffic should go through frontend/reverse-proxy routes on `6300`, including `/api/ws/` and `/socket.io/`.
 - If you later add a domain and HTTPS, update `.env.production`, `VEE_CORS_ALLOW_ORIGINS`, `PRESENCE_CORS_ORIGINS`, and reverse-proxy rules together.

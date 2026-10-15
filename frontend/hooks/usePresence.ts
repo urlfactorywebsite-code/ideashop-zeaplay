@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
 
 import { useAuth } from './useAuth';
 import { getAccessToken } from '../services/tokenStorage';
+import { acquireSharedPresenceSocket, SharedSocketIoLease } from '../services/sharedSocketIo';
 
 type PresenceState = {
     onlineUserIds: Set<string>;
@@ -13,69 +13,37 @@ type PresenceState = {
 const PRESENCE_PING_INTERVAL_MS = 15000;
 const RECONNECT_COOLDOWN_MS = 5000;
 
-const readRuntimePresenceUrl = (): string => {
-    if (typeof window === 'undefined') {
-        return '';
-    }
-    const runtimeConfig = (window as typeof window & {
-        __RUNTIME_CONFIG__?: { PRESENCE_URL?: string };
-    }).__RUNTIME_CONFIG__;
-    if (!runtimeConfig?.PRESENCE_URL || typeof runtimeConfig.PRESENCE_URL !== 'string') {
-        return '';
-    }
-    return runtimeConfig.PRESENCE_URL.trim();
-};
-
-const resolvePresenceUrl = (): string | null => {
-    const runtimeUrl = readRuntimePresenceUrl();
-    if (runtimeUrl) {
-        return runtimeUrl;
-    }
-    const envUrl = import.meta.env.VITE_PRESENCE_URL;
-    if (envUrl && typeof envUrl === 'string') {
-        return envUrl;
-    }
-    if (typeof window === 'undefined') {
-        return null;
-    }
-    const host = window.location.hostname;
-    const isLocalhost = host === 'localhost' || host === '127.0.0.1';
-    return isLocalhost ? 'http://localhost:6312' : null;
-};
-
 export const usePresence = (): PresenceState => {
     const { user } = useAuth();
     const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
     const [status, setStatus] = useState<PresenceState['status']>('offline');
     const [error, setError] = useState<string | undefined>(undefined);
-    const socketRef = useRef<Socket | null>(null);
+    const socketRef = useRef<SharedSocketIoLease | null>(null);
     const pingTimerRef = useRef<number | null>(null);
     const reconnectCooldownRef = useRef(0);
+    const connectAttemptRef = useRef(0);
+    const listenerCleanupRef = useRef<Array<() => void>>([]);
 
     const disconnectSocket = useCallback(() => {
+        connectAttemptRef.current += 1;
+        listenerCleanupRef.current.forEach((unsubscribe) => unsubscribe());
+        listenerCleanupRef.current = [];
         if (pingTimerRef.current) {
             window.clearInterval(pingTimerRef.current);
             pingTimerRef.current = null;
         }
         if (socketRef.current) {
-            socketRef.current.disconnect();
+            socketRef.current.release();
             socketRef.current = null;
         }
         setOnlineUserIds(new Set());
     }, []);
 
     const connectSocket = useCallback(() => {
-        const token = getAccessToken();
-        if (!user || !token) {
+        const accessToken = getAccessToken();
+        if (!user?.id || !accessToken) {
             setStatus('offline');
             setError(undefined);
-            disconnectSocket();
-            return;
-        }
-        const presenceUrl = resolvePresenceUrl();
-        if (!presenceUrl) {
-            setStatus('offline');
-            setError('Presence not configured');
             disconnectSocket();
             return;
         }
@@ -83,65 +51,64 @@ export const usePresence = (): PresenceState => {
         setStatus('connecting');
         setError(undefined);
         disconnectSocket();
+        const attempt = ++connectAttemptRef.current;
+        const lease = acquireSharedPresenceSocket(user.id);
+        if (!lease) {
+            setStatus('offline');
+            setError('Presence not configured');
+            return;
+        }
+        socketRef.current = lease;
 
-        const socket = io(presenceUrl, {
-            auth: { token },
-            transports: ['websocket', 'polling'],
-            reconnection: false,
-            timeout: 10000,
-        });
-
-        socketRef.current = socket;
-
-        socket.on('connect', () => {
-            setStatus('connected');
-            setError(undefined);
-            socket.emit('presence:get', (payload: { ok: boolean; users?: string[] }) => {
+        const syncPresence = () => {
+            lease.emit('presence:get', (payload: { ok: boolean; users?: string[] }) => {
                 if (!payload?.ok) {
                     return;
                 }
                 setOnlineUserIds(new Set(payload.users ?? []));
             });
-            socket.emit('presence:ping');
-        });
+            lease.emit('presence:ping');
+        };
 
-        socket.on('disconnect', () => {
-            setStatus('offline');
-            setError('Presence offline');
-            setOnlineUserIds(new Set());
-        });
-
-        socket.on('connect_error', (err) => {
-            setStatus('offline');
-            setError(err?.message || 'Presence offline');
-            setOnlineUserIds(new Set());
-        });
-
-        socket.on('presence:online', (payload: { userId: string }) => {
-            setOnlineUserIds((prev) => {
-                const next = new Set(prev);
-                next.add(payload.userId);
-                return next;
-            });
-        });
-
-        socket.on('presence:offline', (payload: { userId: string }) => {
-            setOnlineUserIds((prev) => {
-                const next = new Set(prev);
-                next.delete(payload.userId);
-                return next;
-            });
-        });
+        listenerCleanupRef.current = [
+            lease.subscribeStatus((nextStatus, nextError) => {
+                if (attempt !== connectAttemptRef.current) return;
+                setStatus(nextStatus);
+                setError(nextStatus === 'offline' ? nextError : undefined);
+                if (nextStatus === 'connected') {
+                    syncPresence();
+                }
+            }),
+            lease.on('disconnect', () => {
+                if (attempt !== connectAttemptRef.current) return;
+                setOnlineUserIds(new Set());
+            }),
+            lease.on('presence:online', (payload: { userId: string }) => {
+                if (attempt !== connectAttemptRef.current) return;
+                setOnlineUserIds((prev) => {
+                    const next = new Set(prev);
+                    next.add(payload.userId);
+                    return next;
+                });
+            }),
+            lease.on('presence:offline', (payload: { userId: string }) => {
+                if (attempt !== connectAttemptRef.current) return;
+                setOnlineUserIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(payload.userId);
+                    return next;
+                });
+            }),
+        ];
 
         if (pingTimerRef.current) {
             window.clearInterval(pingTimerRef.current);
         }
         pingTimerRef.current = window.setInterval(() => {
-            if (socket.connected) {
-                socket.emit('presence:ping');
-            }
+            lease.emit('presence:ping');
         }, PRESENCE_PING_INTERVAL_MS);
-    }, [disconnectSocket, user]);
+
+    }, [disconnectSocket, user?.id]);
 
     useEffect(() => {
         connectSocket();
@@ -167,7 +134,7 @@ export const usePresence = (): PresenceState => {
                 return;
             }
             reconnectCooldownRef.current = now;
-            connectSocket();
+            socketRef.current?.reconnect();
         };
 
         const handleFocus = () => {

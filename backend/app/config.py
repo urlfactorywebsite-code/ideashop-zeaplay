@@ -107,6 +107,12 @@ class Settings(BaseSettings):
     cors_allow_credentials: bool = True
     cors_allow_methods: List[str] = Field(default_factory=lambda: ["*"])
     cors_allow_headers: List[str] = Field(default_factory=lambda: ["*"])
+    websocket_trusted_origins: List[str] = Field(default_factory=list)
+    websocket_require_origin: bool = False
+    websocket_require_ticket: bool = False
+    websocket_ticket_expire_minutes: int = 2
+    websocket_max_message_bytes: int = 64 * 1024
+    websocket_max_connections_per_user: int = 6
 
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.local"),

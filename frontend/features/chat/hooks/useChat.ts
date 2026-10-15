@@ -31,6 +31,7 @@ export const useChat = (initialConversationId?: string | null) => {
   const messageRequestSeqRef = useRef(0);
   const messageCursorInFlightRef = useRef<Set<string>>(new Set());
   const pendingSendTimersRef = useRef<Record<string, number>>({});
+  const reconcileAfterReconnectRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     selectedConversationIdRef.current = selectedConversationId;
@@ -159,6 +160,10 @@ export const useChat = (initialConversationId?: string | null) => {
 
   const handleRealtimeEvent = useCallback((event: ChatRealtimeEvent) => {
     const payload = event.payload || {};
+    if (event.type === 'realtime:reconnected') {
+      reconcileAfterReconnectRef.current();
+      return;
+    }
     if (event.type === 'message:new' && payload.message) {
       const message = normalizeMessage(payload.message, {
         clientId: payload.client_id ?? payload.clientId ?? null,
@@ -249,6 +254,16 @@ export const useChat = (initialConversationId?: string | null) => {
       setLoadingMessages(false);
     }
   }, [markReadSafely]);
+
+  useEffect(() => {
+    reconcileAfterReconnectRef.current = () => {
+      void loadConversations();
+      const activeConversationId = selectedConversationIdRef.current;
+      if (activeConversationId) {
+        void loadMessages(activeConversationId);
+      }
+    };
+  }, [loadConversations, loadMessages]);
 
   useEffect(() => {
     void loadConversations();

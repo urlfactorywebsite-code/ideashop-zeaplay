@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { User } from '../../../types';
 import { getAccessToken } from '../../../services/tokenStorage';
+import { acquireSharedPresenceSocket, SharedSocketIoLease } from '../../../services/sharedSocketIo';
 
 export type NexusCallType = 'audio' | 'video';
 export type NexusCallState = 'outgoing' | 'incoming' | 'connected';
@@ -42,22 +42,6 @@ const RTC_CONFIG: RTCConfiguration = {
   ],
 };
 
-const readRuntimePresenceUrl = (): string => {
-  if (typeof window === 'undefined') return '';
-  const runtimeConfig = (window as typeof window & { __RUNTIME_CONFIG__?: { PRESENCE_URL?: string } }).__RUNTIME_CONFIG__;
-  return typeof runtimeConfig?.PRESENCE_URL === 'string' ? runtimeConfig.PRESENCE_URL.trim() : '';
-};
-
-const resolvePresenceUrl = (): string | null => {
-  const runtimeUrl = readRuntimePresenceUrl();
-  if (runtimeUrl) return runtimeUrl;
-  const envUrl = import.meta.env.VITE_PRESENCE_URL;
-  if (envUrl && typeof envUrl === 'string') return envUrl;
-  if (typeof window === 'undefined') return null;
-  const host = window.location.hostname;
-  return host === 'localhost' || host === '127.0.0.1' ? 'http://localhost:6312' : null;
-};
-
 export const useNexusCalls = (currentUser?: User | null) => {
   const [connected, setConnected] = useState(false);
   const [activeCall, setActiveCall] = useState<NexusActiveCall | null>(null);
@@ -71,26 +55,55 @@ export const useNexusCalls = (currentUser?: User | null) => {
   const [activeMeetingTitle, setActiveMeetingTitle] = useState<string | null>(null);
   const [meetingParticipants, setMeetingParticipants] = useState<NexusMeetingParticipant[]>([]);
 
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<SharedSocketIoLease | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
   const incomingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
   const callTimerRef = useRef<number | null>(null);
   const activeCallRef = useRef<NexusActiveCall | null>(null);
+  const activeMeetingIdRef = useRef<string | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     activeCallRef.current = activeCall;
   }, [activeCall]);
 
+  useEffect(() => {
+    activeMeetingIdRef.current = activeMeetingId;
+  }, [activeMeetingId]);
+
+  useEffect(() => {
+    localStreamRef.current = localStream;
+  }, [localStream]);
+
+  useEffect(() => {
+    remoteStreamRef.current = remoteStream;
+  }, [remoteStream]);
+
+  const stopMediaTracks = useCallback(() => {
+    const streams = [localStreamRef.current, remoteStreamRef.current];
+    streams.forEach((stream) => {
+      stream?.getTracks().forEach((track) => track.stop());
+    });
+    localStreamRef.current = null;
+    remoteStreamRef.current = null;
+  }, []);
+
   const stopStreams = useCallback(() => {
-    setLocalStream((stream) => {
-      stream?.getTracks().forEach((track) => track.stop());
-      return null;
-    });
-    setRemoteStream((stream) => {
-      stream?.getTracks().forEach((track) => track.stop());
-      return null;
-    });
+    stopMediaTracks();
+    setLocalStream(null);
+    setRemoteStream(null);
+  }, [stopMediaTracks]);
+
+  const setLocalMediaStream = useCallback((stream: MediaStream | null) => {
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+  }, []);
+
+  const setRemoteMediaStream = useCallback((stream: MediaStream | null) => {
+    remoteStreamRef.current = stream;
+    setRemoteStream(stream);
   }, []);
 
   const getMediaStream = useCallback(async (type: NexusCallType): Promise<MediaStream> => {
@@ -144,18 +157,26 @@ export const useNexusCalls = (currentUser?: User | null) => {
       }
     };
     pc.ontrack = (event) => {
-      setRemoteStream(event.streams?.[0] ?? new MediaStream([event.track]));
+      setRemoteMediaStream(event.streams?.[0] ?? new MediaStream([event.track]));
     };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected') {
-        setActiveCall((call) => (call ? { ...call, state: 'connected', startedAt: call.startedAt ?? Date.now() } : null));
+        setActiveCall((call) => {
+          const next = call ? { ...call, state: 'connected' as const, startedAt: call.startedAt ?? Date.now() } : null;
+          activeCallRef.current = next;
+          return next;
+        });
       }
       if (['closed', 'failed', 'disconnected'].includes(pc.connectionState)) {
-        setActiveCall((call) => (call?.state === 'connected' ? call : null));
+        setActiveCall((call) => {
+          const next = call?.state === 'connected' ? call : null;
+          activeCallRef.current = next;
+          return next;
+        });
       }
     };
     return pc;
-  }, []);
+  }, [setRemoteMediaStream]);
 
   const endCall = useCallback((notify = true) => {
     const targetUserId = activeCallRef.current?.remoteUserId;
@@ -167,6 +188,7 @@ export const useNexusCalls = (currentUser?: User | null) => {
     incomingOfferRef.current = null;
     pendingCandidatesRef.current = [];
     stopStreams();
+    activeCallRef.current = null;
     setActiveCall(null);
     setMuted(false);
     setVideoOff(false);
@@ -175,74 +197,104 @@ export const useNexusCalls = (currentUser?: User | null) => {
   }, [stopStreams]);
 
   useEffect(() => {
-    const token = getAccessToken();
-    const presenceUrl = resolvePresenceUrl();
-    if (!currentUser || !token || !presenceUrl) {
+    const accessToken = getAccessToken();
+    if (!currentUser?.id || !accessToken) {
       setConnected(false);
+      activeCallRef.current = null;
+      activeMeetingIdRef.current = null;
+      stopStreams();
+      setActiveCall(null);
+      setActiveMeetingId(null);
+      setMeetingParticipants([]);
       return undefined;
     }
 
-    const socket = io(presenceUrl, {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      timeout: 10000,
-    });
-    socketRef.current = socket;
+    const lease = acquireSharedPresenceSocket(currentUser.id);
+    if (!lease) {
+      setConnected(false);
+      return undefined;
+    }
+    socketRef.current = lease;
 
-    socket.on('connect', () => setConnected(true));
-    socket.on('disconnect', () => setConnected(false));
-    socket.on('connect_error', () => setConnected(false));
-    socket.on('call:incoming', (payload: {
-      callerId: string;
-      callerName?: string;
-      callerAvatar?: string;
-      callerTitle?: string;
-      callType?: NexusCallType;
-      conversationId?: string;
-      signalData?: RTCSessionDescriptionInit;
-    }) => {
-      incomingOfferRef.current = payload.signalData ?? null;
-      setActiveCall({
-        state: 'incoming',
-        callType: payload.callType === 'video' ? 'video' : 'audio',
-        remoteUserId: payload.callerId,
-        remoteUserName: payload.callerName || 'Colleague',
-        remoteUserAvatar: payload.callerAvatar,
-        remoteUserTitle: payload.callerTitle,
-        conversationId: payload.conversationId,
-        isInitiator: false,
-      });
-    });
-    socket.on('call:answered', async (payload: { responderId: string; signalData?: RTCSessionDescriptionInit }) => {
-      if (!peerConnectionRef.current || !payload.signalData) return;
-      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(payload.signalData));
-      while (pendingCandidatesRef.current.length > 0) {
-        const candidate = pendingCandidatesRef.current.shift();
-        if (candidate) await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-      }
-      setActiveCall((call) => (call ? { ...call, state: 'connected', startedAt: Date.now() } : null));
-    });
-    socket.on('call:candidate', async (payload: { candidate?: RTCIceCandidateInit }) => {
-      if (!payload.candidate) return;
-      const pc = peerConnectionRef.current;
-      if (pc?.remoteDescription) {
-        await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
-      } else {
-        pendingCandidatesRef.current.push(payload.candidate);
-      }
-    });
-    socket.on('call:rejected', () => endCall(false));
-    socket.on('call:ended', () => endCall(false));
-    socket.on('meeting:participants', (payload: { participants?: NexusMeetingParticipant[] }) => {
-      setMeetingParticipants(payload.participants ?? []);
-    });
+    const unsubscribers = [
+      lease.subscribeStatus((status) => setConnected(status === 'connected')),
+      lease.on('call:incoming', (payload: {
+        callerId: string;
+        callerName?: string;
+        callerAvatar?: string;
+        callerTitle?: string;
+        callType?: NexusCallType;
+        conversationId?: string;
+        signalData?: RTCSessionDescriptionInit;
+      }) => {
+        incomingOfferRef.current = payload.signalData ?? null;
+        const nextCall: NexusActiveCall = {
+          state: 'incoming',
+          callType: payload.callType === 'video' ? 'video' : 'audio',
+          remoteUserId: payload.callerId,
+          remoteUserName: payload.callerName || 'Colleague',
+          remoteUserAvatar: payload.callerAvatar,
+          remoteUserTitle: payload.callerTitle,
+          conversationId: payload.conversationId,
+          isInitiator: false,
+        };
+        activeCallRef.current = nextCall;
+        setActiveCall(nextCall);
+      }),
+      lease.on('call:answered', async (payload: { responderId: string; signalData?: RTCSessionDescriptionInit }) => {
+        if (!peerConnectionRef.current || !payload.signalData) return;
+        await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(payload.signalData));
+        while (pendingCandidatesRef.current.length > 0) {
+          const candidate = pendingCandidatesRef.current.shift();
+          if (candidate) await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+        setActiveCall((call) => {
+          const next = call ? { ...call, state: 'connected' as const, startedAt: Date.now() } : null;
+          activeCallRef.current = next;
+          return next;
+        });
+      }),
+      lease.on('call:candidate', async (payload: { candidate?: RTCIceCandidateInit }) => {
+        if (!payload.candidate) return;
+        const pc = peerConnectionRef.current;
+        if (pc?.remoteDescription) {
+          await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+        } else {
+          pendingCandidatesRef.current.push(payload.candidate);
+        }
+      }),
+      lease.on('call:rejected', () => endCall(false)),
+      lease.on('call:ended', () => endCall(false)),
+      lease.on('meeting:participants', (payload: { participants?: NexusMeetingParticipant[] }) => {
+        setMeetingParticipants(payload.participants ?? []);
+      }),
+    ];
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      const activeCallSnapshot = activeCallRef.current;
+      if (activeCallSnapshot?.remoteUserId) {
+        lease.emit('call:end', { targetUserId: activeCallSnapshot.remoteUserId });
+      }
+      const activeMeetingSnapshot = activeMeetingIdRef.current;
+      if (activeMeetingSnapshot) {
+        lease.emit('meeting:leave', { meetingId: activeMeetingSnapshot });
+      }
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+      peerConnectionRef.current?.close();
+      peerConnectionRef.current = null;
+      incomingOfferRef.current = null;
+      pendingCandidatesRef.current = [];
+      if (callTimerRef.current) {
+        window.clearInterval(callTimerRef.current);
+        callTimerRef.current = null;
+      }
+      stopMediaTracks();
+      lease.release();
+      if (socketRef.current === lease) {
+        socketRef.current = null;
+      }
     };
-  }, [currentUser, endCall]);
+  }, [currentUser?.id, endCall, stopMediaTracks, stopStreams]);
 
   useEffect(() => {
     if (activeCall?.state !== 'connected') {
@@ -262,7 +314,7 @@ export const useNexusCalls = (currentUser?: User | null) => {
 
   const initiateCall = useCallback(async (recipient: NexusCallPeer, type: NexusCallType, conversationId?: string | null) => {
     const stream = await getMediaStream(type);
-    setLocalStream(stream);
+    setLocalMediaStream(stream);
     const pc = createPeerConnection(recipient.id);
     stream.getTracks().forEach((track) => pc.addTrack(track, stream));
     const offer = await pc.createOffer();
@@ -276,7 +328,7 @@ export const useNexusCalls = (currentUser?: User | null) => {
       callerAvatar: currentUser?.avatarUrl || currentUser?.profileImageUrl,
       callerTitle: currentUser?.title,
     });
-    setActiveCall({
+    const nextCall: NexusActiveCall = {
       state: 'outgoing',
       callType: type,
       remoteUserId: recipient.id,
@@ -285,14 +337,16 @@ export const useNexusCalls = (currentUser?: User | null) => {
       remoteUserTitle: recipient.title,
       conversationId,
       isInitiator: true,
-    });
-  }, [createPeerConnection, currentUser?.avatarUrl, currentUser?.name, currentUser?.profileImageUrl, currentUser?.title, getMediaStream]);
+    };
+    activeCallRef.current = nextCall;
+    setActiveCall(nextCall);
+  }, [createPeerConnection, currentUser?.avatarUrl, currentUser?.name, currentUser?.profileImageUrl, currentUser?.title, getMediaStream, setLocalMediaStream]);
 
   const acceptCall = useCallback(async (type?: NexusCallType) => {
     if (!activeCall) return;
     const resolvedType = type ?? activeCall.callType;
     const stream = await getMediaStream(resolvedType);
-    setLocalStream(stream);
+    setLocalMediaStream(stream);
     const pc = createPeerConnection(activeCall.remoteUserId);
     stream.getTracks().forEach((track) => pc.addTrack(track, stream));
     if (incomingOfferRef.current) {
@@ -305,8 +359,12 @@ export const useNexusCalls = (currentUser?: User | null) => {
       const candidate = pendingCandidatesRef.current.shift();
       if (candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
     }
-    setActiveCall((call) => (call ? { ...call, callType: resolvedType, state: 'connected', startedAt: Date.now() } : null));
-  }, [activeCall, createPeerConnection, getMediaStream]);
+    setActiveCall((call) => {
+      const next = call ? { ...call, callType: resolvedType, state: 'connected' as const, startedAt: Date.now() } : null;
+      activeCallRef.current = next;
+      return next;
+    });
+  }, [activeCall, createPeerConnection, getMediaStream, setLocalMediaStream]);
 
   const declineCall = useCallback(() => {
     if (activeCall?.remoteUserId) {
@@ -350,8 +408,9 @@ export const useNexusCalls = (currentUser?: User | null) => {
 
   const joinMeeting = useCallback(async (meetingId: string, title?: string, conversationId?: string | null) => {
     const stream = await getMediaStream('video');
-    setLocalStream(stream);
+    setLocalMediaStream(stream);
     setActiveMeetingId(meetingId);
+    activeMeetingIdRef.current = meetingId;
     setActiveMeetingTitle(title || `Meeting ${meetingId}`);
     socketRef.current?.emit('meeting:join', {
       meetingId,
@@ -364,7 +423,7 @@ export const useNexusCalls = (currentUser?: User | null) => {
         videoEnabled: true,
       },
     });
-  }, [currentUser?.avatarUrl, currentUser?.id, currentUser?.name, currentUser?.profileImageUrl, getMediaStream]);
+  }, [currentUser?.avatarUrl, currentUser?.id, currentUser?.name, currentUser?.profileImageUrl, getMediaStream, setLocalMediaStream]);
 
   const startMeeting = useCallback(async (title?: string, conversationId?: string | null) => {
     const meetingId = `meet_${Date.now().toString(36)}`;
@@ -376,6 +435,7 @@ export const useNexusCalls = (currentUser?: User | null) => {
       socketRef.current?.emit('meeting:leave', { meetingId: activeMeetingId });
     }
     stopStreams();
+    activeMeetingIdRef.current = null;
     setActiveMeetingId(null);
     setActiveMeetingTitle(null);
     setMeetingParticipants([]);
