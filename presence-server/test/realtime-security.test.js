@@ -23,8 +23,9 @@ test('socket.io origin policy rejects missing and malformed origins when configu
 });
 
 test('call signaling events remain registered', () => {
+  assert.match(source, /const on = instrument\(socket\)/);
   for (const eventName of ['call:initiate', 'call:answer', 'call:candidate', 'call:reject', 'call:end']) {
-    assert.match(source, new RegExp(`socket\\.on\\('${eventName}'`));
+    assert.match(source, new RegExp(`on\\('${eventName}'`));
   }
 });
 

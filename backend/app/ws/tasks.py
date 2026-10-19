@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from ..observability import FANOUT_FAILURES
 import json
 import logging
 from typing import Any, Optional
@@ -9,6 +10,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import select
 
 from ..config import get_settings
+from ..auth import credentials_match
 from ..database import SessionLocal
 from ..models import User, UserStatusEnum
 from .security import (
@@ -30,6 +32,18 @@ class TaskConnectionManager:
         self._connections: dict[str, set[WebSocket]] = {}
         self._socket_users: dict[WebSocket, str] = {}
         self._lock = asyncio.Lock()
+
+    async def close_all(self):
+        async with self._lock:
+            sockets = list(self._socket_users)
+            self._socket_users.clear()
+            self._connections.clear()
+        async def close(socket):
+            try:
+                await asyncio.wait_for(socket.close(code=1013), timeout=get_settings().realtime_send_timeout)
+            except Exception:
+                pass
+        await asyncio.gather(*(close(socket) for socket in sockets))
 
     def snapshot(self) -> dict[str, int]:
         return {
@@ -60,6 +74,8 @@ class TaskConnectionManager:
         logger.info("tasks.ws.disconnected tenant_id=%s active=%s", tenant_id, self.snapshot())
 
     async def broadcast(self, tenant_id: Optional[str], message: dict[str, Any]) -> None:
+        if not tenant_id:
+            return
         async with self._lock:
             if tenant_id:
                 recipients = list(self._connections.get(tenant_id, set()))
@@ -67,10 +83,28 @@ class TaskConnectionManager:
                 recipients = [socket for sockets in self._connections.values() for socket in sockets]
         for socket in recipients:
             try:
-                await socket.send_json(message)
-            except Exception:
-                if tenant_id:
-                    await self.disconnect(tenant_id, socket)
+                outgoing = message
+                with SessionLocal() as db:
+                    user = db.get(User, self._socket_users.get(socket))
+                    if not user or user.status != UserStatusEnum.ACTIVE or str(user.tenant_id) != str(tenant_id) or not credentials_match(user, getattr(socket, "scope", {})):
+                        await self.disconnect(tenant_id, socket)
+                        await socket.close(code=1008)
+                        continue
+                    if message.get("task_id"):
+                        from ..routers.tasks import _ensure_task_access, _fetch_task_or_404
+                        try:
+                            _ensure_task_access(_fetch_task_or_404(db, message["task_id"]), user)
+                        except Exception:
+                            # A deletion or revoked assignment must also clear stale lists without disclosing resource data.
+                            outgoing = {"type": "task.changed", "tenant_id": str(tenant_id), "action": "invalidate", "event_id": message.get("event_id")}
+                await asyncio.wait_for(socket.send_json(outgoing), timeout=get_settings().realtime_send_timeout)
+            except Exception as exc:
+                FANOUT_FAILURES.labels("tasks", "timeout" if isinstance(exc, TimeoutError) else "error").inc()
+                await self.disconnect(tenant_id, socket)
+                try:
+                    await socket.close(code=1013)
+                except Exception:
+                    pass
 
 
 manager = TaskConnectionManager()
@@ -113,7 +147,7 @@ async def tasks_ws(websocket: WebSocket) -> None:
 
     with SessionLocal() as db:
         user = db.execute(select(User).where(User.id == str(user_id))).scalar_one_or_none()
-        if not user or user.status != UserStatusEnum.ACTIVE:
+        if not user or user.status != UserStatusEnum.ACTIVE or not credentials_match(user, payload):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
         token_tenant_id = str(payload.get("tenant_id") or "")
@@ -127,9 +161,11 @@ async def tasks_ws(websocket: WebSocket) -> None:
         await close_policy_violation(websocket)
         return
 
+    websocket.scope["credentials_version"] = payload.get("credentials_version", 0)
     await manager.connect(tenant_id, str(user_id), websocket)
     heartbeat_task = asyncio.create_task(_heartbeat(websocket))
     try:
+        await websocket.send_json({"type": "realtime:ready"})
         while True:
             raw_text = await websocket.receive_text()
             if not validate_websocket_message_size(raw_text):
@@ -141,6 +177,11 @@ async def tasks_ws(websocket: WebSocket) -> None:
                 continue
             if not isinstance(message, dict):
                 continue
+            with SessionLocal() as db:
+                live_user = db.get(User, str(user_id))
+                if not live_user or live_user.status != UserStatusEnum.ACTIVE or str(live_user.tenant_id) != tenant_id or not credentials_match(live_user, websocket.scope):
+                    await websocket.close(code=1008)
+                    break
             if message.get("type") == "pong":
                 continue
     except WebSocketDisconnect:

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="4" time="10.078" timestamp="2026-10-19T12:06:20.687380+05:30" hostname="DESKTOP-3QGSJ16"><testcase classname="backend.tests.test_task_lifecycle_review" name="test_start_rechecks_status_after_a_concurrent_transition[sqlite-task]" time="2.517" /><testcase classname="backend.tests.test_task_lifecycle_review" name="test_start_rechecks_status_after_a_concurrent_transition[sqlite-subtask]" time="1.981" /><testcase classname="backend.tests.test_task_lifecycle_review" name="test_start_rechecks_status_after_a_concurrent_transition[postgresql-task]" time="1.396"><failure message="AssertionError: Start bypassed the in-flight workflow transition&#10;assert not True&#10; +  where True = done()&#10; +    where done = &lt;Future at 0x26f546f2660 state=finished returned int&gt;.done">backend\tests\test_task_lifecycle_review.py:364: in test_start_rechecks_status_after_a_concurrent_transition
+    assert not future.done(), "Start bypassed the in-flight workflow transition"
+E   AssertionError: Start bypassed the in-flight workflow transition
+E   assert not True
+E    +  where True = done()
+E    +    where done = &lt;Future at 0x26f546f2660 state=finished returned int&gt;.done</failure></testcase><testcase classname="backend.tests.test_task_lifecycle_review" name="test_start_rechecks_status_after_a_concurrent_transition[postgresql-subtask]" time="1.356"><failure message="AssertionError: Start bypassed the in-flight workflow transition&#10;assert not True&#10; +  where True = done()&#10; +    where done = &lt;Future at 0x26f54d13ed0 state=finished returned int&gt;.done">backend\tests\test_task_lifecycle_review.py:364: in test_start_rechecks_status_after_a_concurrent_transition
+    assert not future.done(), "Start bypassed the in-flight workflow transition"
+E   AssertionError: Start bypassed the in-flight workflow transition
+E   assert not True
+E    +  where True = done()
+E    +    where done = &lt;Future at 0x26f54d13ed0 state=finished returned int&gt;.done</failure></testcase></testsuite></testsuites>

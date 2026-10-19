@@ -9,4 +9,12 @@ venv
 tests
 vee_task_manager.db
 *.log
+.env
+.env.*
+media
+uploads
+*.pem
+*.key
+credentials*.json
+service-account*.json
 

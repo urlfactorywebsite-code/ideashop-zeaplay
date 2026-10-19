@@ -7,10 +7,11 @@ from fastapi import Depends, HTTPException, status
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
-from .auth import oauth2_scheme
+from .auth import credentials_match, oauth2_scheme
 from .config import get_settings
 from .database import get_db
 from .models import RoleEnum, User, UserStatusEnum
+from .lifecycle.context import bind_actor
 
 settings = get_settings()
 
@@ -66,6 +67,8 @@ async def get_current_user(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if not credentials_match(user, payload):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credentials changed. Please sign in again.")
 
     token_tenant = payload.get("tenant_id")
     if not token_tenant:
@@ -77,6 +80,7 @@ async def get_current_user(
     if not user.tenant_id or user.tenant_id != token_tenant_uuid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tenant mismatch")
 
+    bind_actor(db, user)
     return user
 
 

@@ -52,7 +52,8 @@ def _ensure_task_group_column() -> None:
         pass
 
 
-_ensure_task_group_column()
+if settings.bootstrap_schema:
+    _ensure_task_group_column()
 
 
 def _ensure_task_followers_table() -> None:
@@ -105,7 +106,8 @@ def _ensure_task_followers_table() -> None:
         pass
 
 
-_ensure_task_followers_table()
+if settings.bootstrap_schema:
+    _ensure_task_followers_table()
 
 
 def _ensure_user_profile_columns() -> None:
@@ -118,6 +120,7 @@ def _ensure_user_profile_columns() -> None:
             return
         columns = {col["name"] for col in inspector.get_columns("users")}
         desired = {
+            "credentials_version": "INTEGER NOT NULL DEFAULT 0",
             "manager_email": "VARCHAR(255)",
             "shift_name": "VARCHAR(255)",
             "shift_start": "VARCHAR(16)",
@@ -140,7 +143,8 @@ def _ensure_user_profile_columns() -> None:
         pass
 
 
-_ensure_user_profile_columns()
+if settings.bootstrap_schema:
+    _ensure_user_profile_columns()
 
 
 def get_db() -> Generator:

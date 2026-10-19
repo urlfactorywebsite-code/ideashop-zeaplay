@@ -1,0 +1,131 @@
+groups:
+  - name: zeaplay-realtime
+    rules:
+      - alert: RealtimeServiceDown
+        expr: up{job=~"fastapi|presence|redis|postgres|host|containers|realtime-relay"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: Service or exporter scrape unavailable
+          impact: Realtime delivery or monitoring is unavailable.
+          response: Check container health, exporter authentication and dependency reachability before restarting anything.
+      - alert: RealtimeDependencyDown
+        expr: zea_dependency_up == 0 or redis_up == 0 or pg_up == 0 or zea_io_redis_up == 0 or zea_rt_subscriber_up == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: Dependency or subscriber unavailable
+          impact: Cross-worker delivery or durable writes may fail.
+          response: Inspect Redis, PostgreSQL and subscription recovery; preserve pending outbox records.
+      - alert: RealtimeProbeStale
+        expr: (time() - zea_dependency_sample_timestamp_seconds > 120) or (up{job="fastapi"} == 1 unless on(job,instance) zea_dependency_sample_timestamp_seconds)
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: Dependency sampler is stale
+          impact: Green dependency gauges may no longer be trustworthy.
+          response: Inspect event-loop lag, DB pool waits and worker logs.
+      - alert: WebSocketPolicySpike
+        expr: sum by(job,instance)(rate(zea_ws_handshakes_total{result=~"failed|policy"}[5m])) > 1
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: WebSocket failures or policy rejections elevated
+          impact: Users may be failing to reconnect; hostile traffic is also possible.
+          response: Check Origin allowlist, ticket expiry and connection limits without logging credentials.
+      - alert: RealtimeFanoutErrors
+        expr: sum(rate(zea_rt_events_total{outcome=~"publish_error|processing_error|reconciliation_error|queue_overflow|handoff_overflow"}[5m])) > 0.1
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: Delivery errors or queue drops persist
+          impact: Clients may require snapshot recovery.
+          response: Inspect queue depth, slow recipients, Redis and durable outbox heads.
+      - alert: RealtimeHandlerLatency
+        expr: histogram_quantile(0.95, sum by (le,job,instance,category) (rate(zea_rt_handler_seconds_bucket[5m]))) > 1
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: Local fanout p95 exceeds one second
+          impact: Event updates may lag; this is not end-to-end latency.
+          response: Correlate recipient count, SQL load and slow-client disconnections.
+      - alert: RealtimeLoopLag
+        expr: zea_event_loop_lag_seconds > 0.2 or zea_node_nodejs_eventloop_lag_p99_seconds > 0.2
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: Sustained event-loop delay
+          impact: Heartbeats and signaling may time out.
+          response: Profile synchronous work and CPU saturation before increasing workers.
+      - alert: RealtimeOutboxStuck
+        expr: zea_outbox_records{status="PENDING"} > 1000 or zea_outbox_records{status="DEAD"} > 0 or zea_outbox_oldest_seconds > 60
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: Durable delivery backlog requires attention
+          impact: Notifications may be delayed; DEAD heads block their own aggregates.
+          response: Check independent relay status and Redis; investigate failures before explicit retry-dead.
+      - alert: RedisPingSlow
+        expr: histogram_quantile(0.95, sum by (le,job,instance) (rate(zea_redis_ping_seconds_bucket[10m]))) > 0.05
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: Redis ping p95 exceeds 50ms
+          impact: Pub/Sub and presence may slow down.
+          response: Inspect Redis CPU, connected clients, evictions and network; tune after baseline.
+      - alert: HostCPUSaturation
+        expr: 1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) > 0.85
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: Host CPU above 85 percent
+          impact: Limited capacity headroom.
+          response: Correlate per-container CPU and traffic before sizing or scaling.
+      - alert: HostMemoryPressure
+        expr: 1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes > 0.90
+        for: 10m
+        labels: {severity: critical}
+        annotations:
+          summary: Host available memory below 10 percent
+          impact: OOM or paging can interrupt connections.
+          response: Inspect RSS trends, cgroup ceilings and leaks; reduce authorized test traffic.
+      - alert: ContainerOOM
+        expr: increase(container_oom_events_total[10m]) > 0
+        for: 1m
+        labels: {severity: critical}
+        annotations:
+          summary: Container OOM observed
+          impact: Connections and in-process work may be lost.
+          response: Inspect kernel logs and memory growth; verify snapshot recovery and outbox backlog.
+      - alert: PresenceProcessRestart
+        expr: changes(zea_node_process_start_time_seconds[15m]) > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: Presence process restarted
+          impact: Calls may require re-establishment; adapter is not replayable.
+          response: Inspect deployment history, OOM and process exit logs.
+      - alert: DiskSpaceLow
+        expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes < 0.15
+        for: 10m
+        labels: {severity: critical}
+        annotations:
+          summary: Disk free space below 15 percent
+          impact: Database, outbox or monitoring retention may exhaust storage.
+          response: Inspect growth and approved retention policies; never delete business tables or pending events.
+      - alert: MonitoringTargetMissing
+        expr: absent(up{job="fastapi"}) or absent(up{job="presence"}) or absent(up{job="redis"}) or absent(up{job="postgres"}) or absent(up{job="host"}) or absent(up{job="containers"})
+        for: 3m
+        labels: {severity: warning}
+        annotations:
+          summary: An expected monitoring job has no target series
+          impact: Monitoring coverage may be silently incomplete.
+          response: Restore the approved scrape configuration; do not replace absent data with zero.
+      - alert: MonitoringMetricMissing
+        expr: (up{job="presence"} == 1 unless on(job,instance) zea_io_clients) or (up{job="redis"} == 1 unless on(job,instance) redis_up) or (up{job="postgres"} == 1 unless on(job,instance) pg_up) or (up{job="host"} == 1 unless on(job,instance) node_memory_MemTotal_bytes) or (zea_outbox_enabled == 1 unless on(job,instance) zea_outbox_oldest_seconds)
+        for: 3m
+        labels: {severity: warning}
+        annotations:
+          summary: A healthy scrape lacks a required metric
+          impact: An exporter contract or application collector may be broken.
+          response: Verify collector configuration and sample freshness before trusting dashboard values.

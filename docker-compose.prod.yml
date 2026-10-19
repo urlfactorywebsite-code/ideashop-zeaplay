@@ -38,6 +38,7 @@ services:
     build:
       context: ./backend
     container_name: zeaplay_backend
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "6311", "--workers", "${VEE_API_WORKERS:-1}", "--ws-max-size", "${VEE_WEBSOCKET_MAX_MESSAGE_BYTES:-65536}", "--ws-max-queue", "${UVICORN_WS_MAX_QUEUE:-16}"]
     env_file: *common_env
     environment:
       VEE_ENVIRONMENT: production
@@ -102,6 +103,7 @@ services:
       context: ./presence-server
     container_name: zeaplay_presence
     environment:
+      NODE_ENV: production
       PRESENCE_PORT: ${PRESENCE_PORT}
       PRESENCE_REDIS_URL: ${PRESENCE_REDIS_URL}
       PRESENCE_JWT_SECRET: ${PRESENCE_JWT_SECRET}
@@ -116,6 +118,19 @@ services:
     ports:
       - "127.0.0.1:6312:6312"
     depends_on:
+      redis:
+        condition: service_healthy
+    <<: *common_restart
+
+  realtime-relay:
+    profiles: ["realtime-outbox"]
+    build:
+      context: ./backend
+    env_file: *common_env
+    command: ["python", "-m", "app.realtime.relay"]
+    depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     <<: *common_restart

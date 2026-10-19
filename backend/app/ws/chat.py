@@ -13,8 +13,11 @@ from starlette.websockets import WebSocketDisconnect
 
 from .. import models, schemas
 from ..config import get_settings
+from ..auth import credentials_match
 from ..database import SessionLocal
 from ..rate_limit import check_rate_limit
+from ..realtime.contracts import Event, durable_enabled
+from ..observability import FANOUT_FAILURES
 from ..chat.permissions import ChatPermissionService
 from ..chat.repositories import ConversationRepository
 from ..chat.realtime import INSTANCE_ID, build_event, publish_chat_event
@@ -42,6 +45,26 @@ class ChatConnectionManager:
         self._presence: dict[str, dict[str, Any]] = {}
         self._typing: dict[str, dict[str, asyncio.Task]] = defaultdict(dict)
         self._lock = asyncio.Lock()
+
+    async def close_all(self):
+        async with self._lock:
+            sockets = list(self._socket_meta)
+            for timers in self._typing.values():
+                for timer in timers.values():
+                    timer.cancel()
+            self._typing.clear()
+            self._socket_meta.clear()
+            self._socket_conversations.clear()
+            self._users.clear()
+            self._tenants.clear()
+            self._conversations.clear()
+            self._presence.clear()
+        async def close(socket):
+            try:
+                await asyncio.wait_for(socket.close(code=1013), timeout=get_settings().realtime_send_timeout)
+            except Exception:
+                pass
+        await asyncio.gather(*(close(socket) for socket in sockets))
 
     def snapshot(self) -> dict[str, int]:
         return {
@@ -99,14 +122,13 @@ class ChatConnectionManager:
                 if conversation_id in self._typing and not self._typing[conversation_id]:
                     self._typing.pop(conversation_id, None)
             if not user_still_connected:
-                self._presence[user_id] = {
-                    **self._presence.get(user_id, {}),
+                presence = {
+                    **self._presence.pop(user_id, {}),
                     "user_id": user_id,
                     "tenant_id": tenant_id,
                     "status": "OFFLINE",
                     "last_seen": datetime.utcnow().isoformat(),
                 }
-                presence = dict(self._presence[user_id])
             else:
                 presence = None
         if presence:
@@ -148,12 +170,31 @@ class ChatConnectionManager:
             )
 
     async def _send_many(self, recipients: list[WebSocket], event_type: str, payload: dict[str, Any], publish: bool) -> None:
+        if publish and durable_enabled("chat") and event_type in {"message:new", "message:updated", "message:deleted"}:
+            return
+        payload = dict(payload)
+        event_id = payload.pop("_event_id", None)
         event = build_event(event_type, payload)
+        if event_id:
+            event["event_id"] = event_id
         for socket in recipients:
             try:
-                await socket.send_json(event)
-            except Exception:
+                with SessionLocal() as db:
+                    user = db.get(models.User, self._socket_meta.get(socket, {}).get("user_id"))
+                    if (not user or user.status != models.UserStatusEnum.ACTIVE
+                            or str(user.tenant_id) != self._socket_meta.get(socket, {}).get("tenant_id")
+                            or not credentials_match(user, getattr(socket, "scope", {}))):
+                        await self.disconnect(socket)
+                        await socket.close(code=1008)
+                        continue
+                await asyncio.wait_for(socket.send_json(event), timeout=get_settings().realtime_send_timeout)
+            except Exception as exc:
+                FANOUT_FAILURES.labels("chat", "timeout" if isinstance(exc, TimeoutError) else "error").inc()
                 await self.disconnect(socket)
+                try:
+                    await socket.close(code=1013)
+                except Exception:
+                    pass
         if publish:
             publish_chat_event(event_type, payload)
 
@@ -166,6 +207,9 @@ class ChatConnectionManager:
         publish: bool = True,
     ) -> None:
         with SessionLocal() as db:
+            conversation = db.get(models.ChatConversation, conversation_id)
+            if not conversation or conversation.is_archived:
+                return
             allowed_user_ids = set(
                 db.execute(
                     select(models.ChatParticipant.user_id).where(models.ChatParticipant.conversation_id == conversation_id)
@@ -192,7 +236,20 @@ class ChatConnectionManager:
             recipients = list(self._tenants.get(tenant_id, set()))
         await self._send_many(recipients, event_type, payload, publish)
 
-    async def dispatch_remote_event(self, event: dict[str, Any]) -> None:
+    async def dispatch_remote_event(self, event: dict[str, Any] | Event) -> None:
+        if isinstance(event, Event):
+            if event.payload.get("origin") == INSTANCE_ID:
+                return
+            with SessionLocal() as db:
+                conversation = db.get(models.ChatConversation, event.resource_id)
+                message = db.get(models.ChatMessage, event.payload.get("message_id"))
+                if not conversation or str(conversation.tenant_id) != event.tenant_id or not message or message.conversation_id != conversation.id:
+                    return
+                payload = _message_payload(serialize_message(message), message.client_id)
+                payload["_event_id"] = event.event_id
+            await self.broadcast_conversation(event.resource_id, event.event_type, payload, publish=False)
+            await _broadcast_unread(event.resource_id, publish=False)
+            return
         if event.get("origin") == INSTANCE_ID:
             return
         event_type = event.get("type")
@@ -202,7 +259,16 @@ class ChatConnectionManager:
         conversation_id = payload.get("conversation_id")
         user_id = payload.get("user_id")
         tenant_id = payload.get("tenant_id")
-        if conversation_id:
+        with SessionLocal() as db:
+            conversation = db.get(models.ChatConversation, conversation_id) if conversation_id else None
+            target_user = db.get(models.User, user_id) if user_id else None
+            expected_tenant = str(conversation.tenant_id) if conversation else str(target_user.tenant_id) if target_user else str(tenant_id or "")
+            if expected_tenant != event.get("trusted_tenant_id"):
+                return
+        payload = {**payload, "_event_id": event.get("event_id")}
+        if event_type == "unread:updated" and user_id:
+            await self.broadcast_user(str(user_id), event_type, payload, publish=False)
+        elif conversation_id:
             await self.broadcast_conversation(str(conversation_id), event_type, payload, publish=False)
         elif user_id:
             await self.broadcast_user(str(user_id), event_type, payload, publish=False)
@@ -258,7 +324,7 @@ def _message_payload(message: schemas.ChatMessageRead, client_id: str | None = N
     return payload
 
 
-async def _broadcast_unread(conversation_id: str) -> None:
+async def _broadcast_unread(conversation_id: str, *, publish: bool = True) -> None:
     with SessionLocal() as db:
         conversation = db.get(models.ChatConversation, conversation_id)
         if not conversation:
@@ -269,6 +335,7 @@ async def _broadcast_unread(conversation_id: str) -> None:
                 user_id,
                 "unread:updated",
                 {"conversation_id": conversation_id, "user_id": user_id, "unread_count": count},
+                publish=publish,
             )
 
 
@@ -291,7 +358,7 @@ async def chat_ws(websocket: WebSocket) -> None:
 
     with SessionLocal() as db:
         user = db.execute(select(models.User).where(models.User.id == user_id)).scalar_one_or_none()
-        if not user or user.status != models.UserStatusEnum.ACTIVE:
+        if not user or user.status != models.UserStatusEnum.ACTIVE or not credentials_match(user, payload):
             await close_policy_violation(websocket)
             return
         token_tenant_id = str(payload.get("tenant_id") or "")
@@ -304,6 +371,7 @@ async def chat_ws(websocket: WebSocket) -> None:
         await close_policy_violation(websocket)
         return
 
+    websocket.scope["credentials_version"] = payload.get("credentials_version", 0)
     await manager.connect(websocket, user)
     try:
         while True:
@@ -326,12 +394,21 @@ async def chat_ws(websocket: WebSocket) -> None:
                 continue
             conversation_id = str(data.get("conversation_id") or "")
 
+            with SessionLocal() as db:
+                live_user = db.get(models.User, user.id)
+                if (not live_user or live_user.status != models.UserStatusEnum.ACTIVE
+                        or live_user.tenant_id != user.tenant_id or not credentials_match(live_user, websocket.scope)):
+                    await websocket.close(code=1008)
+                    break
+                user = live_user
+
             try:
                 if event_type == "chat:join":
                     with SessionLocal() as db:
                         db_user = db.get(models.User, user.id)
                         conversation = ChatPermissionService(db).get_conversation(conversation_id, db_user)
                         ChatPermissionService(db).require_member(conversation, db_user)
+                        db.commit()
                     await manager.join_conversation(websocket, conversation_id)
                     await websocket.send_json(build_event("chat:joined", {"conversation_id": conversation_id}))
                     continue
@@ -346,6 +423,7 @@ async def chat_ws(websocket: WebSocket) -> None:
                         db_user = db.get(models.User, user.id)
                         conversation = ChatPermissionService(db).get_conversation(conversation_id, db_user)
                         ChatPermissionService(db).require_member(conversation, db_user)
+                        db.commit()
                     await manager.typing(conversation_id, user, event_type == "typing:start")
                     continue
 
@@ -451,8 +529,8 @@ async def chat_ws(websocket: WebSocket) -> None:
 
                 await websocket.send_json(_socket_error("unsupported_event", "Unsupported chat event"))
             except Exception as exc:
-                logger.exception("chat.ws.event_failed event=%s user_id=%s", event_type, user.id)
-                await websocket.send_json(_socket_error("event_failed", str(exc)))
+                logger.warning("chat.ws.event_failed event=%s error=%s", event_type, type(exc).__name__)
+                await websocket.send_json(_socket_error("event_failed", "Unable to process chat event"))
     except BaseException as exc:
         disconnect_name = exc.__class__.__name__ == "WebSocketDisconnect"
         disconnected_runtime = isinstance(exc, RuntimeError) and "WebSocket is not connected" in str(exc)

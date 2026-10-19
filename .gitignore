@@ -74,3 +74,8 @@ frontend/rmdir
 frontend/test.txt
 frontend/components/icons/temp.txt
 test_script.py
+
+# Local load approvals, credentials and potentially sensitive test output
+benchmarks/realtime/*.local.json
+benchmarks/realtime/results/
+realtime-summary.json

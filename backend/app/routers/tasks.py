@@ -7,9 +7,10 @@ from typing import Any, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status, UploadFile, File, Form, Query
 from fastapi.responses import FileResponse
+from ..realtime import capture as realtime_capture
 from sqlalchemy import and_, case, func, inspect, or_, select, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.orm.attributes import set_committed_value
 import os
 import shutil
@@ -35,8 +36,14 @@ from ..services.gamification import (
 from ..services import notification_outbox, security_audit, subtask_completion, subtask_notifications, subtask_workflow
 from ..services.badge_engine import BadgeEvent, process_badge_event
 from ..services.points_table import get_task_creation_points
+from ..services.task_access import (
+    task_belongs_to_user_tenant as _task_belongs_to_user_tenant,
+    task_tenant_predicate as _task_tenant_predicate,
+)
+from .task_lifecycle import router as task_lifecycle_router
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
+router.include_router(task_lifecycle_router)
 settings = get_settings()
 _completion_review_locks: dict[str, Lock] = {}
 _completion_review_locks_guard = Lock()
@@ -52,11 +59,17 @@ def _completion_review_lock(submission_id: str) -> Lock:
 
 
 def _task_query() -> select:
+    # UserRead computes claimed/overall XP from claims; batch these for every
+    # serialized assignee instead of issuing one query per subtask user.
+    user_details = (
+        selectinload(models.User.reward_claims).selectinload(models.RewardClaim.reward),
+        joinedload(models.User.department), joinedload(models.User.avatar_asset),
+    )
     return (
         select(models.Task)
         .options(
             selectinload(models.Task.subtasks),
-            selectinload(models.Task.subtasks).selectinload(models.Subtask.assigned_user),
+            selectinload(models.Task.subtasks).selectinload(models.Subtask.assigned_user).options(*user_details),
             selectinload(models.Task.subtasks).selectinload(models.Subtask.dependency_edges),
             selectinload(models.Task.subtasks).selectinload(models.Subtask.dependent_edges),
             selectinload(models.Task.subtasks).selectinload(models.Subtask.time_entries),
@@ -64,8 +77,8 @@ def _task_query() -> select:
             .selectinload(models.Subtask.completion_submissions)
             .selectinload(models.CompletionSubmission.attachments),
             selectinload(models.Task.time_entries),
-            selectinload(models.Task.assignee),
-            selectinload(models.Task.creator),
+            selectinload(models.Task.assignee).options(*user_details),
+            selectinload(models.Task.creator).options(*user_details),
             selectinload(models.Task.followers),
             selectinload(models.Task.dependencies),
             selectinload(models.Task.project).selectinload(models.Project.client),
@@ -128,11 +141,15 @@ def _serialize_subtask(
     task: models.Task,
     subtask: models.Subtask,
     subtasks_by_id: dict[str, models.Subtask],
+    viewer: Optional[models.User] = None,
 ) -> schemas.SubtaskRead:
     dependencies = sorted(subtask.dependency_edges, key=lambda edge: edge.dependency_order)
     total_tracked_seconds = sum(entry.duration_seconds or 0 for entry in subtask.time_entries)
-    submissions = sorted(subtask.completion_submissions, key=lambda submission: submission.created_at)
-    serialized_submissions = [schemas.CompletionSubmissionRead.model_validate(submission) for submission in submissions]
+    tenant = task.project.tenant_id if task.project else task.creator.tenant_id if task.creator else None
+    submissions = sorted((row for row in subtask.completion_submissions
+        if row.tenant_id == tenant and row.task_id == task.id and row.subtask_id == subtask.id),
+        key=lambda row: (row.created_at, row.id))
+    serialized_submissions = [_serialize_completion_submission(task, subtask, row, viewer) for row in submissions]
     latest_submission = serialized_submissions[-1] if serialized_submissions else None
     return schemas.SubtaskRead(
         id=subtask.id,
@@ -153,10 +170,10 @@ def _serialize_subtask(
     )
 
 
-def _serialize_subtasks(task: models.Task) -> list[schemas.SubtaskRead]:
+def _serialize_subtasks(task: models.Task, viewer: Optional[models.User] = None) -> list[schemas.SubtaskRead]:
     sorted_subtasks = sorted(task.subtasks, key=lambda subtask: (subtask.sort_order or 0, subtask.id))
     subtasks_by_id = {subtask.id: subtask for subtask in sorted_subtasks}
-    return [_serialize_subtask(task, subtask, subtasks_by_id) for subtask in sorted_subtasks]
+    return [_serialize_subtask(task, subtask, subtasks_by_id, viewer) for subtask in sorted_subtasks]
 
 
 def _stabilize_subtasks_for_serialization(task: models.Task) -> None:
@@ -165,7 +182,7 @@ def _stabilize_subtasks_for_serialization(task: models.Task) -> None:
             set_committed_value(subtask, "sort_order", index)
 
 
-def _serialize_task(task: models.Task, status_title_map: dict[str, str]) -> schemas.TaskRead:
+def _serialize_task(task: models.Task, status_title_map: dict[str, str], viewer: Optional[models.User] = None) -> schemas.TaskRead:
     if task.attachments is None:
         task.attachments = []
     if task.tags is None:
@@ -182,13 +199,13 @@ def _serialize_task(task: models.Task, status_title_map: dict[str, str]) -> sche
         "status_title": _resolve_status_title(task.status, status_title_map),
         "follower_ids": [follower.id for follower in task.followers],
         "project": _serialize_task_project(task.project),
-        "subtasks": _serialize_subtasks(task),
+        "subtasks": _serialize_subtasks(task, viewer),
         "total_tracked_seconds": total_tracked_seconds,
     })
 
 
-def _serialize_tasks(tasks: List[models.Task], status_title_map: dict[str, str]) -> List[schemas.TaskRead]:
-    return [_serialize_task(task, status_title_map) for task in tasks]
+def _serialize_tasks(tasks: List[models.Task], status_title_map: dict[str, str], viewer: Optional[models.User] = None) -> List[schemas.TaskRead]:
+    return [_serialize_task(task, status_title_map, viewer) for task in tasks]
 
 
 def _serialize_task_list_item(task: models.Task) -> schemas.TaskListItem:
@@ -274,9 +291,13 @@ def _invalidate_task_cache(
         payload["task_id"] = task_id
     if task_ids:
         payload["task_ids"] = task_ids
-    invalidate_prefix(f"{settings.cache_prefix}:tasks:list:tenant:{tenant_id}:")
-    invalidate_prefix(f"{settings.cache_prefix}:tasks:kanban:tenant:{tenant_id}:")
-    invalidate_prefix(f"{settings.cache_prefix}:tasks:calendar:tenant:{tenant_id}:")
+    try:
+        invalidate_prefix(f"{settings.cache_prefix}:tasks:list:tenant:{tenant_id}:")
+        invalidate_prefix(f"{settings.cache_prefix}:tasks:kanban:tenant:{tenant_id}:")
+        invalidate_prefix(f"{settings.cache_prefix}:tasks:calendar:tenant:{tenant_id}:")
+    except Exception:
+        # Caches have bounded TTLs; Redis failure must not undo a committed task write.
+        pass
     task_events.publish_task_event(payload)
 
 
@@ -311,24 +332,6 @@ def _is_admin_or_owner(user: models.User) -> bool:
 
 def _same_tenant(left: object, right: object) -> bool:
     return str(left) == str(right)
-
-
-def _task_tenant_predicate(user: models.User):
-    return or_(
-        models.Task.project.has(models.Project.tenant_id == user.tenant_id),
-        and_(
-            models.Task.project_id.is_(None),
-            models.Task.creator.has(models.User.tenant_id == user.tenant_id),
-        ),
-    )
-
-
-def _task_belongs_to_user_tenant(task: models.Task, user: models.User) -> bool:
-    if task.project:
-        return _same_tenant(task.project.tenant_id, user.tenant_id)
-    if task.creator:
-        return _same_tenant(task.creator.tenant_id, user.tenant_id)
-    return False
 
 
 def _project_member_ids(project: models.Project) -> set[str]:
@@ -803,7 +806,7 @@ def list_tasks(
             tenant_id=tenant_id,
             user_id=str(current_user.id),
             path=request.url.path,
-            params=request.query_params.multi_items(),
+            params=[*request.query_params.multi_items(), ("completion_metadata_policy", "2")],
         )
         cached_payload = get_cached_json(cache_key)
         if cached_payload is not None:
@@ -905,7 +908,7 @@ def list_tasks(
     if manager_notifications_created:
         get_notifier().send_webex_message("Task overdue escalation detected.")
     status_title_map = _status_title_map(db)
-    serialized = _serialize_tasks(tasks, status_title_map)
+    serialized = _serialize_tasks(tasks, status_title_map, viewer=current_user)
     if cache_key:
         set_cached_json(
             cache_key,
@@ -1564,7 +1567,7 @@ def get_calendar_tasks(
     tasks = db.execute(stmt).unique().scalars().all()
     status_title_map = _status_title_map(db)
     _log_slow_endpoint("tasks.calendar.tasks", started_at)
-    return _serialize_tasks(tasks, status_title_map)
+    return _serialize_tasks(tasks, status_title_map, viewer=current_user)
 
 
 @router.get("/{task_id}/summary", response_model=schemas.TaskSummaryResponse)
@@ -1952,7 +1955,7 @@ def create_task(
     ordered_records = [created_map[task_id] for task_id in created_ids if task_id in created_map]
 
     status_title_map = _status_title_map(db)
-    serialized_records = _serialize_tasks(ordered_records, status_title_map)
+    serialized_records = _serialize_tasks(ordered_records, status_title_map, viewer=current_user)
     for created_task in serialized_records:
         background_tasks.add_task(
             trigger_n8n_event,
@@ -2363,7 +2366,7 @@ def assign_task_template(
     tasks = db.execute(_task_query().where(models.Task.id.in_(task_ids))).unique().scalars().all()
 
     status_title_map = _status_title_map(db)
-    serialized_tasks = _serialize_tasks(tasks, status_title_map)
+    serialized_tasks = _serialize_tasks(tasks, status_title_map, viewer=current_user)
     for task in serialized_tasks:
         background_tasks.add_task(
             trigger_n8n_event,
@@ -2383,7 +2386,7 @@ def get_task(
     task = _fetch_task_or_404(db, task_id)
     _ensure_task_access(task, current_user)
     status_title_map = _status_title_map(db)
-    return _serialize_task(task, status_title_map)
+    return _serialize_task(task, status_title_map, viewer=current_user)
 
 
 @router.get("/{task_id}/group", response_model=List[schemas.TaskRead])
@@ -2405,7 +2408,7 @@ def get_task_group(
             continue
         visible_group_tasks.append(group_task)
     status_title_map = _status_title_map(db)
-    return _serialize_tasks(visible_group_tasks, status_title_map)
+    return _serialize_tasks(visible_group_tasks, status_title_map, viewer=current_user)
 
 
 @router.patch("/{task_id}", response_model=schemas.TaskRead)
@@ -2830,7 +2833,7 @@ def update_task(
 
     updated_task = _fetch_task_or_404(db, task_id)
     status_title_map = _status_title_map(db)
-    serialized_task = _serialize_task(updated_task, status_title_map)
+    serialized_task = _serialize_task(updated_task, status_title_map, viewer=current_user)
 
     background_tasks.add_task(
         trigger_n8n_event,
@@ -2939,7 +2942,7 @@ def complete_task(
 
     updated_task = _fetch_task_or_404(db, task_id)
     status_title_map = _status_title_map(db)
-    serialized_task = _serialize_task(updated_task, status_title_map)
+    serialized_task = _serialize_task(updated_task, status_title_map, viewer=current_user)
 
     if completion_points_awarded:
         background_tasks.add_task(
@@ -3026,7 +3029,7 @@ def approve_task(
 
     updated_task = _fetch_task_or_404(db, task_id)
     status_title_map = _status_title_map(db)
-    return _serialize_task(updated_task, status_title_map)
+    return _serialize_task(updated_task, status_title_map, viewer=current_user)
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -3040,7 +3043,7 @@ def delete_task(
     task = _fetch_task_or_404(db, task_id)
     _ensure_task_access(task, current_user)
     status_title_map = _status_title_map(db)
-    serialized_task = _serialize_task(task, status_title_map)
+    serialized_task = _serialize_task(task, status_title_map, viewer=current_user)
 
     process_badge_event(
         db,
@@ -3453,7 +3456,7 @@ def update_subtask(
 
     updated_task = _fetch_task_or_404(db, task_id)
     status_title_map = _status_title_map(db)
-    serialized_task = _serialize_task(updated_task, status_title_map)
+    serialized_task = _serialize_task(updated_task, status_title_map, viewer=current_user)
     background_tasks.add_task(
         trigger_n8n_event,
         "task.subtask_updated",
@@ -3492,6 +3495,21 @@ def _ensure_completion_attachment_access(task: models.Task, subtask: models.Subt
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Completion attachment access is no longer available")
 
 
+def _serialize_completion_submission(task, subtask, submission, viewer):
+    payload = schemas.CompletionSubmissionRead.model_validate(submission)
+    allowed = False
+    if viewer is not None:
+        try:
+            _ensure_completion_attachment_access(task, subtask, viewer)
+            allowed = _task_belongs_to_user_tenant(task, viewer)
+        except HTTPException as error:
+            if error.status_code != 403:
+                raise
+    attachments = [schemas.CompletionAttachmentRead.model_validate(row) for row in submission.attachments
+                   if allowed and row.tenant_id == viewer.tenant_id and row.submission_id == submission.id]
+    return payload.model_copy(update={"attachments": attachments})
+
+
 def _fetch_completion_submission_or_404(
     db: Session,
     *,
@@ -3527,19 +3545,20 @@ def list_subtask_completion_submissions(
 ) -> List[schemas.CompletionSubmissionRead]:
     task = _fetch_task_or_404(db, task_id)
     _ensure_task_access(task, current_user)
-    _fetch_task_subtask_or_404(task, subtask_id)
+    subtask = _fetch_task_subtask_or_404(task, subtask_id)
     submissions = (
         db.execute(
             select(models.CompletionSubmission)
             .options(selectinload(models.CompletionSubmission.attachments))
             .where(models.CompletionSubmission.task_id == task.id)
             .where(models.CompletionSubmission.subtask_id == subtask_id)
+            .where(models.CompletionSubmission.tenant_id == current_user.tenant_id)
             .order_by(models.CompletionSubmission.created_at.asc())
         )
         .scalars()
         .all()
     )
-    return [schemas.CompletionSubmissionRead.model_validate(submission) for submission in submissions]
+    return [_serialize_completion_submission(task, subtask, submission, current_user) for submission in submissions]
 
 
 @router.post("/{task_id}/subtasks/{subtask_id}/completion-submissions", response_model=schemas.TaskRead)
@@ -3644,7 +3663,7 @@ def submit_subtask_completion(
 
     updated_task = _fetch_task_or_404(db, task.id)
     status_title_map = _status_title_map(db)
-    serialized_task = _serialize_task(updated_task, status_title_map)
+    serialized_task = _serialize_task(updated_task, status_title_map, viewer=current_user)
     background_tasks.add_task(
         trigger_n8n_event,
         "task.subtask_completion_submitted",
@@ -3719,7 +3738,7 @@ def approve_subtask_completion(
     _schedule_notification_outbox_delivery(background_tasks)
 
     updated_task = _fetch_task_or_404(db, task.id)
-    serialized_task = _serialize_task(updated_task, _status_title_map(db))
+    serialized_task = _serialize_task(updated_task, _status_title_map(db), viewer=current_user)
     background_tasks.add_task(
         trigger_n8n_event,
         "task.subtask_completion_approved",
@@ -3791,7 +3810,7 @@ def reject_subtask_completion(
     _schedule_notification_outbox_delivery(background_tasks)
 
     updated_task = _fetch_task_or_404(db, task.id)
-    serialized_task = _serialize_task(updated_task, _status_title_map(db))
+    serialized_task = _serialize_task(updated_task, _status_title_map(db), viewer=current_user)
     background_tasks.add_task(
         trigger_n8n_event,
         "task.subtask_completion_rejected",
@@ -3817,13 +3836,15 @@ def download_subtask_completion_attachment(
     _ensure_completion_attachment_access(task, subtask, current_user)
     submission = _fetch_completion_submission_or_404(db, task_id=task.id, subtask_id=subtask_id, submission_id=submission_id)
     attachment = next((item for item in submission.attachments if item.id == attachment_id), None)
-    if not attachment:
+    if (submission.tenant_id != current_user.tenant_id or not attachment
+            or attachment.tenant_id != current_user.tenant_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
     path = subtask_completion.resolve_storage_path(attachment.storage_key)
-    if not path.exists():
+    if not path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
     return FileResponse(
         path,
         media_type=attachment.mime_type,
         filename=attachment.original_filename,
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
     )

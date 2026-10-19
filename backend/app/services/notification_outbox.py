@@ -204,13 +204,19 @@ def _attempt_email_delivery(db: Session, outbox_id: str) -> int:
     now = _now()
     attempts = (outbox.attempts or 0) + 1
     try:
+        body = payload["body"]
+        if outbox.event_type == "password_reset":
+            from .password_recovery import delivery_body
+            body = delivery_body(db, outbox)
         email_utils.send_notification_email(
             db=db,
             notification_type=payload.get("notification_type") or outbox.event_type,
             to_address=payload["to_address"],
             subject=payload["subject"],
-            body=payload["body"],
+            body=body,
         )
+        if outbox.event_type == "password_reset":
+            outbox.payload = {key: value for key, value in payload.items() if key != "encrypted_recovery"}
         outbox.status = models.NotificationOutboxStatusEnum.SENT
         outbox.attempts = attempts
         outbox.sent_at = now
@@ -228,6 +234,12 @@ def _attempt_email_delivery(db: Session, outbox_id: str) -> int:
         )
     except Exception as exc:  # pragma: no cover - SMTP integration point
         safe_error = _sanitize_delivery_error(exc)
+        if outbox.event_type == "password_reset":
+            from .password_recovery import UndeliverableReset
+            safe_error = "Password recovery delivery failed"
+            if isinstance(exc, UndeliverableReset):
+                outbox.max_attempts = attempts
+                outbox.payload = {key: value for key, value in payload.items() if key != "encrypted_recovery"}
         outbox.attempts = attempts
         outbox.last_error = safe_error
         outbox.status = models.NotificationOutboxStatusEnum.FAILED

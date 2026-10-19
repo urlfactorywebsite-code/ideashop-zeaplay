@@ -52,7 +52,7 @@ export const usePresence = (): PresenceState => {
         setError(undefined);
         disconnectSocket();
         const attempt = ++connectAttemptRef.current;
-        const lease = acquireSharedPresenceSocket(user.id);
+        const lease = acquireSharedPresenceSocket(user.id, user.tenantId);
         if (!lease) {
             setStatus('offline');
             setError('Presence not configured');
@@ -62,7 +62,7 @@ export const usePresence = (): PresenceState => {
 
         const syncPresence = () => {
             lease.emit('presence:get', (payload: { ok: boolean; users?: string[] }) => {
-                if (!payload?.ok) {
+                if (attempt !== connectAttemptRef.current || !payload?.ok) {
                     return;
                 }
                 setOnlineUserIds(new Set(payload.users ?? []));
@@ -108,7 +108,7 @@ export const usePresence = (): PresenceState => {
             lease.emit('presence:ping');
         }, PRESENCE_PING_INTERVAL_MS);
 
-    }, [disconnectSocket, user?.id]);
+    }, [disconnectSocket, user?.id, user?.tenantId]);
 
     useEffect(() => {
         connectSocket();

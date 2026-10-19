@@ -22,6 +22,9 @@ def test_production_compose_keeps_internal_services_on_loopback():
     assert '      - "6300:80"' in compose
     assert '      - "127.0.0.1:6311:6311"' in compose
     assert '      - "127.0.0.1:6312:6312"' in compose
+    assert '"--ws-max-size", "${VEE_WEBSOCKET_MAX_MESSAGE_BYTES:-65536}"' in compose
+    assert '"--ws-max-queue", "${UVICORN_WS_MAX_QUEUE:-16}"' in compose
+    assert "      NODE_ENV: production" in compose
     assert "      PRESENCE_CORS_ORIGINS: ${PRESENCE_CORS_ORIGINS}" in compose
     assert "      PRESENCE_REQUIRE_ORIGIN: ${PRESENCE_REQUIRE_ORIGIN}" in compose
     assert "      PRESENCE_ALLOW_LOCALHOST_ORIGINS: ${PRESENCE_ALLOW_LOCALHOST_ORIGINS}" in compose

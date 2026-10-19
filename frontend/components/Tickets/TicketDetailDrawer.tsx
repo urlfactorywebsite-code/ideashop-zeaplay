@@ -64,7 +64,7 @@ const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   onTicketUpdated,
 }) => {
   const ticketId = ticket?.id;
-  const { ticket: liveTicket, loading, transferTicket, closeTicket, reopenTicket } = useTicket(ticketId);
+  const { ticket: liveTicket, loading, transferTicket, closeTicket, reopenTicket, refetch } = useTicket(ticketId);
   const activeTicket = liveTicket ?? ticket;
   const { user } = useAuth();
   const tasksState = useTicketTasks(ticketId);
@@ -84,7 +84,7 @@ const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
   const [duplicateLoading, setDuplicateLoading] = useState(false);
   const [duplicateTicketId, setDuplicateTicketId] = useState<string | null>(null);
 
-  const { connected, messages, sendComment, sendTyping } = useTicketChat(ticketId);
+  const { connected, messages, sendComment, sendTyping } = useTicketChat(ticketId, refetch);
   const approvalsState = useTicketApprovals(ticketId);
 
   useEffect(() => {

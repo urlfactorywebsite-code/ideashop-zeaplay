@@ -1,0 +1,12 @@
+{
+  "environment": "local",
+  "target": "http://127.0.0.1:6300",
+  "presenceTarget": "http://127.0.0.1:6300",
+  "origin": "http://127.0.0.1:6300",
+  "approvedBy": "REPLACE_WITH_TEST_OWNER",
+  "expiresAt": "2000-01-01T00:00:00Z",
+  "runId": "REPLACE_WITH_UNIQUE_RUN",
+  "isolationNonce": "REPLACE_WITH_OWNED_SANDBOX_NONCE_32_CHARS",
+  "profiles": ["smoke"],
+  "weights": {"idle": 50, "tasks": 20, "chat": 15, "tickets": 10, "presence": 4, "calls": 1}
+}

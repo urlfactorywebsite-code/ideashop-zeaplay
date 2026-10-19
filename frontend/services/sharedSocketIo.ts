@@ -19,6 +19,7 @@ type SharedSocketEntry = {
   key: string;
   url: string;
   userId: string;
+  accessToken: string;
   refs: number;
   socket: Socket | null;
   status: SharedSocketStatus;
@@ -74,10 +75,18 @@ const isAuthSocketError = (message?: string) => /auth|token|jwt|expired|unauthor
 
 const ensureConnected = async (entry: SharedSocketEntry): Promise<void> => {
   if (entry.disposed || entry.connecting || entry.socket) return;
+  if (entry.accessToken !== getAccessToken()) {
+    disposeEntry(entry);
+    return;
+  }
   entry.connecting = true;
   setStatus(entry, 'connecting');
   const token = await getPresenceSocketToken();
   entry.connecting = false;
+  if (entry.accessToken !== getAccessToken()) {
+    disposeEntry(entry);
+    return;
+  }
   if (entry.disposed || !token) {
     setStatus(entry, 'offline', token ? undefined : 'Missing realtime token');
     return;
@@ -95,7 +104,10 @@ const ensureConnected = async (entry: SharedSocketEntry): Promise<void> => {
   entry.socket = socket;
   attachStoredListeners(entry, socket);
 
-  socket.on('connect', () => setStatus(entry, 'connected'));
+  socket.on('connect', () => {
+    if (entry.accessToken !== getAccessToken()) disposeEntry(entry);
+    else setStatus(entry, 'connected');
+  });
   socket.on('disconnect', (reason) => setStatus(entry, 'offline', reason));
   socket.on('connect_error', (error) => {
     const message = error instanceof Error ? error.message : 'Connection failed';
@@ -115,25 +127,30 @@ const disposeEntry = (entry: SharedSocketEntry) => {
   closeSocket(entry);
   entry.listeners.clear();
   entry.statusListeners.clear();
-  sharedSockets.delete(entry.key);
+  if (sharedSockets.get(entry.key) === entry) sharedSockets.delete(entry.key);
 };
 
-export const buildSharedSocketKey = (url: string, userId: string): string => {
+export const buildSharedSocketKey = (url: string, userId: string, tenantId?: string | null): string => {
   const token = getAccessToken();
-  return `${url}|${userId}|${tokenFingerprint(token)}`;
+  return `${url}|${userId}|${tenantId || ''}|${tokenFingerprint(token)}`;
 };
 
-export const acquireSharedPresenceSocket = (userId: string): SharedSocketIoLease | null => {
+export const acquireSharedPresenceSocket = (userId: string, tenantId?: string | null): SharedSocketIoLease | null => {
   const url = resolvePresenceSocketUrl();
   const accessToken = getAccessToken();
   if (!url || !accessToken || !userId) return null;
-  const key = buildSharedSocketKey(url, userId);
+  const key = buildSharedSocketKey(url, userId, tenantId);
   let entry = sharedSockets.get(key);
+  if (entry && entry.accessToken !== accessToken) {
+    disposeEntry(entry);
+    entry = undefined;
+  }
   if (!entry) {
     entry = {
       key,
       url,
       userId,
+      accessToken,
       refs: 0,
       socket: null,
       status: 'offline',
@@ -156,21 +173,34 @@ export const acquireSharedPresenceSocket = (userId: string): SharedSocketIoLease
   return {
     key,
     on(eventName, handler) {
+      const guardedHandler = (...args: any[]) => {
+        if (entry.accessToken !== getAccessToken()) {
+          disposeEntry(entry);
+          return;
+        }
+        handler(...args);
+      };
       const handlers = entry.listeners.get(eventName) ?? new Set<EventHandler>();
-      handlers.add(handler);
+      handlers.add(guardedHandler);
       entry.listeners.set(eventName, handlers);
-      entry.socket?.on(eventName, handler);
+      entry.socket?.on(eventName, guardedHandler);
       return () => {
-        handlers.delete(handler);
-        entry.socket?.off(eventName, handler);
+        handlers.delete(guardedHandler);
+        entry.socket?.off(eventName, guardedHandler);
         if (handlers.size === 0) {
           entry.listeners.delete(eventName);
         }
       };
     },
     emit(eventName, ...args) {
+      if (entry.accessToken !== getAccessToken()) {
+        disposeEntry(entry);
+        return false;
+      }
       if (!entry.socket?.connected) return false;
-      entry.socket.emit(eventName, ...args);
+      entry.socket.emit(eventName, ...args.map(arg => typeof arg === 'function' ? (...values: any[]) => {
+        if (!entry.disposed && entry.accessToken === getAccessToken()) arg(...values);
+      } : arg));
       return true;
     },
     subscribeStatus(handler) {

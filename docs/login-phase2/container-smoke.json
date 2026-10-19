@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "url": "http://localhost:6300/#/login",
+  "checks": [
+    "HTTP 200",
+    "compiled neon/glass/bubble UI",
+    "three local images",
+    "sound opt-in/mute",
+    "motion pause",
+    "no uncaught page errors"
+  ],
+  "scope": "Rebuilt local frontend container. APIs and external CDNs intercepted; no real login or email."
+}

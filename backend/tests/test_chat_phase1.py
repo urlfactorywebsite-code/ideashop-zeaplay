@@ -158,12 +158,15 @@ def db():
 
 @pytest.fixture()
 def client(db, monkeypatch):
+    from backend.app import database
     def current_user():
         return db.get(User, "user-a")
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_active_user] = current_user
     monkeypatch.setattr(chat_ws, "SessionLocal", TestingSessionLocal)
+    # Phase 3 publisher resolves the tenant through database.SessionLocal too.
+    monkeypatch.setattr(database, "SessionLocal", TestingSessionLocal)
     monkeypatch.setattr(chat_ws, "manager", chat_ws.ChatConnectionManager())
     with TestClient(app) as test_client:
         yield test_client

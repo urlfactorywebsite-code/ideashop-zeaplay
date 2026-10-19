@@ -6,6 +6,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { CHAT_UNREAD_REFRESH_EVENT } from '../../../utils/appEvents';
 import { Role } from '../../../types';
 import { normalizeMessage } from '../utils/normalizeMessage';
+import { mergeRecoveredMessages } from '../../../services/realtimeRecovery';
 
 const emitChatUnreadRefresh = () => {
   if (typeof window !== 'undefined') {
@@ -29,9 +30,40 @@ export const useChat = (initialConversationId?: string | null) => {
   const [presenceByUserId, setPresenceByUserId] = useState<Record<string, 'ONLINE' | 'AWAY' | 'OFFLINE'>>({});
   const selectedConversationIdRef = useRef<string | null>(selectedConversationId);
   const messageRequestSeqRef = useRef(0);
+  const conversationRequestSeqRef = useRef(0);
+  const directoryRequestSeqRef = useRef(0);
+  const userIdRef = useRef(`${user?.id}:${user?.tenantId}`);
+  userIdRef.current = `${user?.id}:${user?.tenantId}`;
   const messageCursorInFlightRef = useRef<Set<string>>(new Set());
   const pendingSendTimersRef = useRef<Record<string, number>>({});
   const reconcileAfterReconnectRef = useRef<() => void>(() => {});
+  const refreshConversationsRef = useRef<() => void>(() => {});
+  const conversationRefreshTimerRef = useRef<number | null>(null);
+  const recoveryEventsRef = useRef<Map<string, ChatMessage> | null>(null);
+  const recoveryOverflowRef = useRef(false);
+  const bufferRecoveryMessage = useCallback((message: ChatMessage) => {
+    const buffer = recoveryEventsRef.current;
+    if (!buffer) return;
+    buffer.set(message.clientId || message.id, message);
+    if (buffer.size > 2000) {
+      buffer.delete(buffer.keys().next().value!);
+      recoveryOverflowRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    messageRequestSeqRef.current += 1;
+    recoveryEventsRef.current = null;
+    setMessages([]);
+    setNextCursor(null);
+    setHasMore(false);
+    messageCursorInFlightRef.current.clear();
+    setConversations([]);
+    setDirectoryUsers([]);
+    setSelectedConversationId(null);
+    setTypingByConversation({});
+    setPresenceByUserId({});
+  }, [user?.id, user?.tenantId]);
 
   useEffect(() => {
     selectedConversationIdRef.current = selectedConversationId;
@@ -49,10 +81,13 @@ export const useChat = (initialConversationId?: string | null) => {
   }, [initialConversationId]);
 
   const loadConversations = useCallback(async () => {
+    const requestedUserId = userIdRef.current;
+    const requestSeq = ++conversationRequestSeqRef.current;
     setLoadingConversations(true);
     setError(null);
     try {
       const data = await chatService.listConversations();
+      if (userIdRef.current !== requestedUserId || requestSeq !== conversationRequestSeqRef.current) return;
       setConversations(data);
       setDirectoryUsers((current) => {
         const byUserId = new Map(current.map((item) => [item.id, item]));
@@ -89,33 +124,45 @@ export const useChat = (initialConversationId?: string | null) => {
         return data[0]?.id ?? null;
       });
     } catch (err) {
+      if (userIdRef.current !== requestedUserId || requestSeq !== conversationRequestSeqRef.current) return;
       setError(err instanceof Error ? err.message : 'Unable to load conversations');
     } finally {
-      setLoadingConversations(false);
+      if (userIdRef.current === requestedUserId && requestSeq === conversationRequestSeqRef.current) setLoadingConversations(false);
     }
-  }, [initialConversationId, user?.id]);
+  }, [initialConversationId, user?.id, user?.tenantId]);
+
+  useEffect(() => {
+    refreshConversationsRef.current = () => { void loadConversations(); };
+    return () => {
+      if (conversationRefreshTimerRef.current !== null) window.clearTimeout(conversationRefreshTimerRef.current);
+    };
+  }, [loadConversations]);
 
   const loadDirectoryUsers = useCallback(async (search?: string) => {
+    const requestedUserId = userIdRef.current;
+    const requestSeq = ++directoryRequestSeqRef.current;
     setLoadingDirectory(true);
     try {
       const page = await chatService.listUsers({ search, limit: 100 });
+      if (userIdRef.current !== requestedUserId || requestSeq !== directoryRequestSeqRef.current) return;
       setDirectoryUsers(page.items.filter((directoryUser) => directoryUser.id !== user?.id));
     } catch (err) {
+      if (userIdRef.current !== requestedUserId || requestSeq !== directoryRequestSeqRef.current) return;
       setError(err instanceof Error ? err.message : 'Unable to load chat users');
     } finally {
-      setLoadingDirectory(false);
+      if (userIdRef.current === requestedUserId && requestSeq === directoryRequestSeqRef.current) setLoadingDirectory(false);
     }
-  }, [user?.id]);
+  }, [user?.id, user?.tenantId]);
 
   const markReadSafely = useCallback(async (conversationId: string, lastReadMessageId?: string | null) => {
     try {
       await chatService.markRead(conversationId, lastReadMessageId);
     } catch (err) {
-      console.warn('chat.markRead.failed', err);
+      console.warn('chat.markRead.failed');
     }
   }, []);
 
-  const applyConversationPreview = useCallback((message: ChatMessage, unreadDelta = 0) => {
+  const applyConversationPreview = useCallback((message: ChatMessage) => {
     setConversations((current) => current.map((conversation) => {
       if (conversation.id !== message.conversationId) return conversation;
       return {
@@ -123,7 +170,7 @@ export const useChat = (initialConversationId?: string | null) => {
         lastMessage: message,
         lastMessageAt: message.createdAt,
         updatedAt: message.updatedAt,
-        unreadCount: selectedConversationIdRef.current === message.conversationId ? 0 : Math.max(0, conversation.unreadCount + unreadDelta),
+        unreadCount: selectedConversationIdRef.current === message.conversationId ? 0 : conversation.unreadCount,
       };
     }));
     setDirectoryUsers((current) => current.map((directoryUser) => {
@@ -133,7 +180,7 @@ export const useChat = (initialConversationId?: string | null) => {
         ...directoryUser,
         latestMessagePreview: message.content,
         lastMessageAt: message.createdAt,
-        unreadCount: selectedConversationIdRef.current === message.conversationId ? 0 : Math.max(0, directoryUser.unreadCount + unreadDelta),
+        unreadCount: selectedConversationIdRef.current === message.conversationId ? 0 : directoryUser.unreadCount,
       };
     }));
   }, []);
@@ -144,6 +191,8 @@ export const useChat = (initialConversationId?: string | null) => {
       clientId: clientId ?? fallback.clientId ?? null,
       deliveryStatus: fallback.deliveryStatus ?? 'sent',
     });
+    if (normalizedMessage.conversationId !== selectedConversationIdRef.current) return;
+    bufferRecoveryMessage(normalizedMessage);
     setMessages((current) => {
       const existingIndex = current.findIndex((item) => item.id === normalizedMessage.id || (clientId && item.clientId === clientId));
       const nextMessage = { ...normalizedMessage, clientId: clientId ?? normalizedMessage.clientId ?? null, deliveryStatus: 'sent' as const };
@@ -151,12 +200,12 @@ export const useChat = (initialConversationId?: string | null) => {
         window.clearTimeout(pendingSendTimersRef.current[nextMessage.clientId]);
         delete pendingSendTimersRef.current[nextMessage.clientId];
       }
-      if (existingIndex === -1) return [...current, nextMessage];
+      if (existingIndex === -1) return mergeRecoveredMessages(current, [nextMessage]);
       const next = [...current];
       next[existingIndex] = nextMessage;
-      return next;
+      return mergeRecoveredMessages(next, []);
     });
-  }, []);
+  }, [bufferRecoveryMessage]);
 
   const handleRealtimeEvent = useCallback((event: ChatRealtimeEvent) => {
     const payload = event.payload || {};
@@ -172,10 +221,11 @@ export const useChat = (initialConversationId?: string | null) => {
       });
       const active = message.conversationId === selectedConversationIdRef.current;
       if (active) {
+        bufferRecoveryMessage(message);
         mergeMessage(message, message.clientId);
         void markReadSafely(message.conversationId, message.id);
       }
-      applyConversationPreview(message, active ? 0 : 1);
+      applyConversationPreview(message);
       emitChatUnreadRefresh();
       return;
     }
@@ -184,6 +234,7 @@ export const useChat = (initialConversationId?: string | null) => {
         conversationId: payload.conversation_id ?? payload.conversationId ?? '',
       });
       if (message.conversationId === selectedConversationIdRef.current) {
+        bufferRecoveryMessage(message);
         setMessages((current) => current.map((item) => (item.id === message.id ? { ...message, deliveryStatus: item.deliveryStatus } : item)));
       }
       applyConversationPreview(message);
@@ -212,34 +263,39 @@ export const useChat = (initialConversationId?: string | null) => {
       return;
     }
     if (event.type === 'unread:updated') {
-      setConversations((current) => current.map((conversation) => (
-        conversation.id === payload.conversation_id ? { ...conversation, unreadCount: payload.unread_count } : conversation
-      )));
+      // Read authoritative counts so late duplicates and out-of-order hints cannot regress them.
+      if (conversationRefreshTimerRef.current !== null) window.clearTimeout(conversationRefreshTimerRef.current);
+      conversationRefreshTimerRef.current = window.setTimeout(() => refreshConversationsRef.current(), 250);
       emitChatUnreadRefresh();
     }
-  }, [applyConversationPreview, markReadSafely, mergeMessage]);
+  }, [applyConversationPreview, bufferRecoveryMessage, markReadSafely, mergeMessage]);
 
   const { connected: realtimeConnected, send: sendRealtime, join: joinRealtime, leave: leaveRealtime } = useChatRealtime(handleRealtimeEvent);
 
-  const loadMessages = useCallback(async (conversationId: string, cursor?: string | null) => {
+  const loadMessages = useCallback(async (conversationId: string, cursor?: string | null, force = false) => {
+    const requestedUserId = userIdRef.current;
     const cursorKey = cursor ?? '__latest__';
-    if (messageCursorInFlightRef.current.has(`${conversationId}:${cursorKey}`)) return;
+    if (!force && messageCursorInFlightRef.current.has(`${conversationId}:${cursorKey}`)) return;
     messageCursorInFlightRef.current.add(`${conversationId}:${cursorKey}`);
-    const requestSeq = ++messageRequestSeqRef.current;
+    const requestSeq = cursor ? messageRequestSeqRef.current : ++messageRequestSeqRef.current;
+    if (!cursor) {
+      recoveryEventsRef.current = new Map();
+      recoveryOverflowRef.current = false;
+    }
     setLoadingMessages(true);
     setError(null);
     try {
       const page = await chatService.listMessages(conversationId, cursor);
+      if (requestedUserId !== userIdRef.current) return;
       if (selectedConversationIdRef.current !== conversationId) return;
       if (!cursor && requestSeq !== messageRequestSeqRef.current) return;
+      const bufferedMessages = [...(recoveryEventsRef.current?.values() || [])];
       setMessages((current) => {
-        const merged = cursor ? [...page.items, ...current] : page.items;
-        const byId = new Map<string, ChatMessage>();
-        for (const message of merged) {
-          const key = message.clientId || message.id;
-          byId.set(key, { ...byId.get(key), ...message });
+        if (!cursor) {
+          return mergeRecoveredMessages(page.items, bufferedMessages,
+            current.filter((message) => message.conversationId === conversationId && ['sending', 'failed'].includes(message.deliveryStatus || '')));
         }
-        return Array.from(byId.values()).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        return mergeRecoveredMessages(page.items, current);
       });
       setNextCursor(page.nextCursor ?? null);
       setHasMore(page.hasMore);
@@ -250,6 +306,11 @@ export const useChat = (initialConversationId?: string | null) => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load messages');
     } finally {
+      if (requestSeq === messageRequestSeqRef.current && !cursor) recoveryEventsRef.current = null;
+      if (requestSeq === messageRequestSeqRef.current && recoveryOverflowRef.current) {
+        recoveryOverflowRef.current = false;
+        reconcileAfterReconnectRef.current();
+      }
       messageCursorInFlightRef.current.delete(`${conversationId}:${cursorKey}`);
       setLoadingMessages(false);
     }
@@ -260,7 +321,7 @@ export const useChat = (initialConversationId?: string | null) => {
       void loadConversations();
       const activeConversationId = selectedConversationIdRef.current;
       if (activeConversationId) {
-        void loadMessages(activeConversationId);
+        void loadMessages(activeConversationId, null, true);
       }
     };
   }, [loadConversations, loadMessages]);
@@ -281,6 +342,7 @@ export const useChat = (initialConversationId?: string | null) => {
   }, [joinRealtime, leaveRealtime, loadMessages, selectedConversationId]);
 
   const sendMessage = useCallback(async (content: string, options?: { replyToMessageId?: string | null; attachments?: ChatAttachment[] }) => {
+    const requestedUserId = userIdRef.current;
     const attachments = options?.attachments ?? [];
     if (!selectedConversationId || (!content.trim() && attachments.length === 0)) return;
     setError(null);
@@ -313,11 +375,15 @@ export const useChat = (initialConversationId?: string | null) => {
         replyToMessageId: options?.replyToMessageId ?? null,
         attachments: payloadAttachments,
       });
+      if (requestedUserId !== userIdRef.current) return;
       const sentMessage = normalizeMessage(message, { conversationId: selectedConversationId, clientId, deliveryStatus: 'sent' });
-      mergeMessage(sentMessage, clientId, { conversationId: selectedConversationId });
+      if (selectedConversationIdRef.current === selectedConversationId) {
+        mergeMessage(sentMessage, clientId, { conversationId: selectedConversationId });
+      }
       applyConversationPreview(sentMessage);
       void markReadSafely(selectedConversationId, sentMessage.id);
     } catch (err) {
+      if (requestedUserId !== userIdRef.current) return;
       setMessages((current) => current.map((message) => (message.clientId === clientId ? { ...message, deliveryStatus: 'failed' } : message)));
       setError(err instanceof Error ? err.message : 'Unable to send message');
     }

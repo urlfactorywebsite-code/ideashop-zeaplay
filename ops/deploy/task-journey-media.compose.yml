@@ -1,0 +1,12 @@
+# Opt-in only after copying and verifying the running container's existing media.
+# Pass alongside docker-compose.prod.yml for every subsequent up/run operation.
+services:
+  backend:
+    environment:
+      VEE_MEDIA_ROOT: /app/media
+    volumes:
+      - type: bind
+        source: ${ZEAPLAY_MEDIA_HOST_PATH:?Set ZEAPLAY_MEDIA_HOST_PATH to the verified existing media directory}
+        target: /app/media
+        bind:
+          create_host_path: false

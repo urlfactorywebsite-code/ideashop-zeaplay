@@ -1160,6 +1160,7 @@ export interface AvatarAsset {
 
 export interface User {
   id: string;
+  tenantId?: string | null;
   name: string;
   email: string;
   employerId?: string;
@@ -1569,6 +1570,9 @@ export interface TimeEntry {
   correctionReason?: string | null;
   correctedById?: string | null;
   correctedAt?: string | null;
+  continuedFromId?: string | null;
+  startKind?: string | null;
+  stopReason?: string | null;
 }
 
 export interface TaskTransferPayload {

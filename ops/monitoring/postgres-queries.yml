@@ -1,0 +1,18 @@
+# Read-only statistics; never export query text, usernames, database names or PIDs.
+zea_pg_activity:
+  query: |
+    SELECT count(*) FILTER (WHERE state='active') AS active,
+      count(*) FILTER (WHERE wait_event_type='Lock') AS lock_waiters,
+      count(*) FILTER (WHERE state='active' AND query_start < now()-interval '30 seconds') AS long_running
+    FROM pg_stat_activity WHERE datname=current_database()
+  metrics:
+    - active: {usage: GAUGE, description: Active sessions}
+    - lock_waiters: {usage: GAUGE, description: Sessions waiting on locks}
+    - long_running: {usage: GAUGE, description: Active queries older than 30 seconds}
+zea_pg_transactions:
+  query: |
+    SELECT xact_commit, xact_rollback, deadlocks FROM pg_stat_database WHERE datname=current_database()
+  metrics:
+    - xact_commit: {usage: COUNTER, description: Committed transactions}
+    - xact_rollback: {usage: COUNTER, description: Rolled back transactions}
+    - deadlocks: {usage: COUNTER, description: Database deadlocks}

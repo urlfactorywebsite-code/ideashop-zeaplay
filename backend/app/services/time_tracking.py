@@ -4,11 +4,13 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, text, update
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, load_only, selectinload
 
 from .. import models, schemas
+from ..lifecycle.context import bind_actor
+from .task_access import task_belongs_to_user_tenant, task_tenant_predicate
 
 
 TERMINAL_TASK_STATUSES = {
@@ -46,24 +48,27 @@ def _task_query() -> select:
     return (
         select(models.Task)
         .options(
+            load_only(models.Task.id, models.Task.created_by_id, models.Task.assigned_to_id,
+                      models.Task.project_id, models.Task.status, models.Task.created_at),
             selectinload(models.Task.project).selectinload(models.Project.members),
-            selectinload(models.Task.subtasks).selectinload(models.Subtask.assigned_user),
-            selectinload(models.Task.followers),
-            selectinload(models.Task.assignee),
-            selectinload(models.Task.creator),
+            selectinload(models.Task.subtasks).load_only(
+                models.Subtask.id, models.Subtask.task_id, models.Subtask.status, models.Subtask.assigned_to_id),
+            selectinload(models.Task.followers).load_only(models.User.id),
+            selectinload(models.Task.assignee).load_only(models.User.id, models.User.department_id),
+            selectinload(models.Task.creator).load_only(models.User.id, models.User.tenant_id),
         )
     )
 
 
-def _get_task(db: Session, task_id: str) -> models.Task:
-    task = db.execute(_task_query().where(models.Task.id == task_id)).unique().scalars().first()
+def _get_task(db: Session, task_id: str, *, actor: models.User, lock: bool = False) -> models.Task:
+    query = _task_query().where(models.Task.id == task_id, task_tenant_predicate(actor))
+    if lock:
+        db.flush()
+        query = query.with_for_update(read=True, of=models.Task).execution_options(populate_existing=True)
+    task = db.execute(query).unique().scalars().first()
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     return task
-
-
-def _same_tenant(left: object, right: object) -> bool:
-    return str(left) == str(right)
 
 
 def _is_admin_or_owner(user: models.User) -> bool:
@@ -83,9 +88,7 @@ def _project_manager_ids(project: models.Project) -> set[str]:
 
 
 def ensure_task_visible(task: models.Task, user: models.User) -> None:
-    if task.project and not _same_tenant(task.project.tenant_id, user.tenant_id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
-    if not task.project and task.creator and not _same_tenant(task.creator.tenant_id, user.tenant_id):
+    if not task_belongs_to_user_tenant(task, user):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     if _is_admin_or_owner(user):
         return
@@ -126,12 +129,13 @@ def _active_entry(db: Session, user: models.User) -> Optional[models.TimeEntry]:
     )
 
 
-def _entry_for_update(db: Session, entry_id: str) -> Optional[models.TimeEntry]:
+def _entry_for_update(db: Session, entry_id: str, tenant_id) -> Optional[models.TimeEntry]:
     return (
         db.execute(
             select(models.TimeEntry)
-            .where(models.TimeEntry.id == entry_id)
+            .where(models.TimeEntry.id == entry_id, models.TimeEntry.tenant_id == tenant_id)
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         .scalars()
         .first()
@@ -140,6 +144,34 @@ def _entry_for_update(db: Session, entry_id: str) -> Optional[models.TimeEntry]:
 
 def get_active_timer(db: Session, user: models.User) -> Optional[models.TimeEntry]:
     return _active_entry(db, user)
+
+
+def _lock_timer_user(db: Session, tenant_id, user_id: str) -> None:
+    # A timer-only lock avoids inversion with task completion's task -> XP-user locks.
+    if db.get_bind().dialect.name == "sqlite":
+        # SQLite has no row locks. Acquire its writer lock without changing user metadata.
+        db.execute(text("UPDATE users SET id=id WHERE id=:id"), {"id": user_id})
+    else:
+        db.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
+                   {"key": f"zeaplay:timer:{user_id}"})
+    found = db.scalar(select(models.User.id).where(
+        models.User.id == user_id, models.User.tenant_id == tenant_id))
+    if found is None:
+        raise HTTPException(status_code=404, detail="Timer user not found")
+    other_tenant_timer = db.scalar(select(models.TimeEntry.id).where(
+        models.TimeEntry.user_id == user_id, models.TimeEntry.tenant_id != tenant_id,
+        models.TimeEntry.stopped_at.is_(None)).limit(1))
+    if other_tenant_timer is not None:
+        raise HTTPException(status_code=409, detail="A timer from a previous tenant must be resolved before tracking work")
+
+
+def _continuation(db: Session, actor: models.User, source_id: str, *, task_id, subtask_id) -> Optional[models.TimeEntry]:
+    entry = db.scalar(select(models.TimeEntry).where(
+        models.TimeEntry.continued_from_id == source_id,
+        models.TimeEntry.tenant_id == actor.tenant_id, models.TimeEntry.user_id == actor.id))
+    if entry and not _target_matches(entry, task_id=task_id, subtask_id=subtask_id):
+        raise HTTPException(status_code=409, detail="Invalid timer continuation")
+    return entry
 
 
 def _resolve_target(
@@ -153,22 +185,22 @@ def _resolve_target(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Exactly one timer target is required")
 
     if task_id:
-        task = _get_task(db, task_id)
+        task = _get_task(db, task_id, actor=actor, lock=True)
         ensure_task_visible(task, actor)
         if task.status in TERMINAL_TASK_STATUSES:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cannot start a timer for a terminal task")
         return task, None
 
-    subtask = db.execute(
-        select(models.Subtask)
-        .options(selectinload(models.Subtask.task).selectinload(models.Task.project).selectinload(models.Project.members))
-        .options(selectinload(models.Subtask.task).selectinload(models.Task.followers))
-        .options(selectinload(models.Subtask.task).selectinload(models.Task.subtasks))
-        .where(models.Subtask.id == subtask_id)
-    ).scalars().first()
-    if not subtask:
+    root_id = db.scalar(select(models.Subtask.task_id).join(models.Task, models.Task.id == models.Subtask.task_id)
+        .where(models.Subtask.id == subtask_id, task_tenant_predicate(actor)))
+    if root_id is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
-    task = _get_task(db, subtask.task_id)
+    task = _get_task(db, root_id, actor=actor, lock=True)
+    subtask = db.scalar(select(models.Subtask).where(
+        models.Subtask.id == subtask_id, models.Subtask.task_id == task.id)
+        .with_for_update(read=True).execution_options(populate_existing=True))
+    if subtask is None:
+        raise HTTPException(status_code=404, detail="Subtask not found")
     ensure_task_visible(task, actor)
     if subtask.status not in ACTIONABLE_SUBTASK_STATUSES:
         raise HTTPException(
@@ -183,10 +215,10 @@ def _resolve_target(
 def _entry_root_task_id(db: Session, entry: models.TimeEntry) -> str:
     if entry.task_id:
         return entry.task_id
-    subtask = db.get(models.Subtask, entry.subtask_id)
-    if not subtask:
+    task_id = db.scalar(select(models.Subtask.task_id).where(models.Subtask.id == entry.subtask_id))
+    if task_id is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
-    return subtask.task_id
+    return task_id
 
 
 def _overlapping_entry_exists(
@@ -194,20 +226,16 @@ def _overlapping_entry_exists(
     *,
     user_id: str,
     tenant_id: object,
-    root_task_id: str,
     started_at: datetime,
     stopped_at: datetime,
     exclude_entry_id: Optional[str] = None,
 ) -> bool:
-    task_subtask_ids = [row[0] for row in db.execute(select(models.Subtask.id).where(models.Subtask.task_id == root_task_id)).all()]
     stmt = (
         select(models.TimeEntry.id)
         .where(models.TimeEntry.tenant_id == tenant_id)
         .where(models.TimeEntry.user_id == user_id)
-        .where(models.TimeEntry.stopped_at.is_not(None))
         .where(models.TimeEntry.started_at < stopped_at)
-        .where(models.TimeEntry.stopped_at > started_at)
-        .where(or_(models.TimeEntry.task_id == root_task_id, models.TimeEntry.subtask_id.in_(task_subtask_ids or ["__none__"])))
+        .where(or_(models.TimeEntry.stopped_at.is_(None), models.TimeEntry.stopped_at > started_at))
     )
     if exclude_entry_id:
         stmt = stmt.where(models.TimeEntry.id != exclude_entry_id)
@@ -218,13 +246,22 @@ def start_timer(
     db: Session,
     actor: models.User,
     payload: schemas.TimeEntryStart,
+    *,
+    continued_from_id: Optional[str] = None,
+    start_kind: Optional[str] = None,
 ) -> models.TimeEntry:
+    bind_actor(db, actor)
+    _lock_timer_user(db, actor.tenant_id, actor.id)
     task, subtask = _resolve_target(db, actor, task_id=payload.task_id, subtask_id=payload.subtask_id)
+    if continued_from_id:
+        previous = _continuation(db, actor, continued_from_id, task_id=payload.task_id, subtask_id=payload.subtask_id)
+        if previous:
+            return previous
     active = _active_entry(db, actor)
     target_task_id = task.id if subtask is None else None
     target_subtask_id = subtask.id if subtask is not None else None
     if active:
-        if _target_matches(active, task_id=target_task_id, subtask_id=target_subtask_id):
+        if not continued_from_id and _target_matches(active, task_id=target_task_id, subtask_id=target_subtask_id):
             return active
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already has an active timer")
 
@@ -236,14 +273,20 @@ def start_timer(
         started_at=_as_utc(utc_now()),
         status=models.TimeEntryStatusEnum.ACTIVE,
         note=payload.note,
+        continued_from_id=continued_from_id,
+        start_kind=start_kind,
     )
     db.add(entry)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
+        if continued_from_id:
+            previous = _continuation(db, actor, continued_from_id, task_id=payload.task_id, subtask_id=payload.subtask_id)
+            if previous:
+                return previous
         active = _active_entry(db, actor)
-        if active and _target_matches(active, task_id=target_task_id, subtask_id=target_subtask_id):
+        if not continued_from_id and active and _target_matches(active, task_id=target_task_id, subtask_id=target_subtask_id):
             return active
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already has an active timer")
     db.refresh(entry)
@@ -255,8 +298,12 @@ def stop_timer(
     actor: models.User,
     *,
     entry_id: Optional[str] = None,
+    reason: str = "stopped",
+    commit: bool = True,
 ) -> Optional[models.TimeEntry]:
-    entry = _entry_for_update(db, entry_id) if entry_id else _active_entry(db, actor)
+    bind_actor(db, actor)
+    _lock_timer_user(db, actor.tenant_id, actor.id)
+    entry = _entry_for_update(db, entry_id, actor.tenant_id) if entry_id else _active_entry(db, actor)
     if not entry:
         if entry_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found")
@@ -268,23 +315,52 @@ def stop_timer(
     if entry.stopped_at is not None:
         return entry
     stopped_at = _as_utc(utc_now())
-    entry.stopped_at = stopped_at
-    entry.duration_seconds = _duration_seconds(entry.started_at, stopped_at)
-    entry.status = models.TimeEntryStatusEnum.STOPPED
-    db.commit()
+    # Conditional write also makes concurrent SQLite/retry stops a single event.
+    result = db.execute(update(models.TimeEntry).where(models.TimeEntry.id == entry.id)
+        .where(models.TimeEntry.stopped_at.is_(None)).values(
+            stopped_at=stopped_at,
+            duration_seconds=_duration_seconds(entry.started_at, stopped_at),
+            status=models.TimeEntryStatusEnum.STOPPED, stop_reason=reason,
+        ).execution_options(synchronize_session=False))
+    db.refresh(entry)
+    # A conditional Core write bypasses after_flush; retain the existing task outbox contract.
+    from ..realtime.contracts import durable_enabled
+    if result.rowcount and durable_enabled("task"):
+        from ..realtime.capture import describe
+        from ..realtime.outbox import enqueue
+        envelope = describe(db, entry, db.connection())
+        if envelope:
+            enqueue(db.connection(), envelope)
+    if commit:
+        db.commit()
     db.refresh(entry)
     return entry
 
 
-def resume_timer(db: Session, actor: models.User, entry_id: str) -> models.TimeEntry:
-    source = db.get(models.TimeEntry, entry_id)
+def resume_timer(db: Session, actor: models.User, entry_id: str, *, restart: bool = False) -> models.TimeEntry:
+    bind_actor(db, actor)
+    _lock_timer_user(db, actor.tenant_id, actor.id)
+    source = db.scalar(select(models.TimeEntry).where(models.TimeEntry.id == entry_id, models.TimeEntry.tenant_id == actor.tenant_id))
     if not source:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found")
     if source.tenant_id != actor.tenant_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found")
     if source.user_id != actor.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot resume another user's timer")
-    return start_timer(db, actor, schemas.TimeEntryStart(task_id=source.task_id, subtask_id=source.subtask_id, note=source.note))
+    _resolve_target(db, actor, task_id=source.task_id, subtask_id=source.subtask_id)
+    source = _entry_for_update(db, entry_id, actor.tenant_id)
+    if source is None:
+        raise HTTPException(status_code=404, detail="Time entry not found")
+    previous = _continuation(db, actor, source.id, task_id=source.task_id, subtask_id=source.subtask_id)
+    if previous:
+        return previous
+    if source.stopped_at is None:
+        if not restart:
+            return source
+        stop_timer(db, actor, entry_id=source.id, reason="restarted", commit=False)
+    return start_timer(db, actor,
+        schemas.TimeEntryStart(task_id=source.task_id, subtask_id=source.subtask_id, note=source.note),
+        continued_from_id=source.id, start_kind="restarted" if restart else "resumed")
 
 
 def correct_time_entry(
@@ -293,17 +369,22 @@ def correct_time_entry(
     entry_id: str,
     payload: schemas.TimeEntryCorrection,
 ) -> models.TimeEntry:
-    entry = db.get(models.TimeEntry, entry_id)
+    bind_actor(db, actor)
+    entry = db.scalar(select(models.TimeEntry).where(models.TimeEntry.id == entry_id, models.TimeEntry.tenant_id == actor.tenant_id))
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found")
     if entry.tenant_id != actor.tenant_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found")
-    if entry.stopped_at is None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Stop the timer before correcting it")
-    root_task = _get_task(db, _entry_root_task_id(db, entry))
+    root_task = _get_task(db, _entry_root_task_id(db, entry), actor=actor)
     ensure_task_visible(root_task, actor)
     if not can_manage_timer_corrections(root_task, actor):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Timer correction requires manager access")
+    _lock_timer_user(db, entry.tenant_id, entry.user_id)
+    entry = _entry_for_update(db, entry_id, actor.tenant_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Time entry not found")
+    if entry.stopped_at is None:
+        raise HTTPException(status_code=409, detail="Stop the timer before correcting it")
     corrected_started_at = _as_utc(payload.started_at)
     corrected_stopped_at = _as_utc(payload.stopped_at)
     if corrected_stopped_at <= corrected_started_at:
@@ -312,12 +393,13 @@ def correct_time_entry(
         db,
         user_id=entry.user_id,
         tenant_id=entry.tenant_id,
-        root_task_id=root_task.id,
         started_at=corrected_started_at,
         stopped_at=corrected_stopped_at,
         exclude_entry_id=entry.id,
     ):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Corrected timer overlaps existing task work")
+    if corrected_stopped_at > _as_utc(utc_now()):
+        raise HTTPException(status_code=422, detail="Correction cannot record work in the future")
 
     if entry.original_started_at is None:
         entry.original_started_at = entry.started_at

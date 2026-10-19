@@ -1,0 +1,79 @@
+rule_files: [alerts.yml]
+evaluation_interval: 1m
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'up{job="fastapi",instance="api:test"}'
+        values: '0+0x3 1+0x10'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: RealtimeServiceDown
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: RealtimeServiceDown
+        exp_alerts:
+          - exp_labels: {job: fastapi, instance: 'api:test', severity: critical}
+            exp_annotations:
+              summary: Service or exporter scrape unavailable
+              impact: Realtime delivery or monitoring is unavailable.
+              response: Check container health, exporter authentication and dependency reachability before restarting anything.
+      - eval_time: 11m
+        alertname: RealtimeServiceDown
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'zea_outbox_records{status="DEAD"}'
+        values: '1+0x10'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: RealtimeOutboxStuck
+        exp_alerts:
+          - exp_labels: {status: DEAD, severity: critical}
+            exp_annotations:
+              summary: Durable delivery backlog requires attention
+              impact: Notifications may be delayed; DEAD heads block their own aggregates.
+              response: Check independent relay status and Redis; investigate failures before explicit retry-dead.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="fastapi",instance="api:test"}'
+        values: '1+0x10'
+      - series: 'zea_dependency_sample_timestamp_seconds{job="fastapi",instance="api:test"}'
+        values: '_ _ _ 180+60x8'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: RealtimeProbeStale
+        exp_alerts:
+          - exp_labels: {job: fastapi, instance: 'api:test', severity: warning}
+            exp_annotations:
+              summary: Dependency sampler is stale
+              impact: Green dependency gauges may no longer be trustworthy.
+              response: Inspect event-loop lag, DB pool waits and worker logs.
+      - eval_time: 4m
+        alertname: RealtimeProbeStale
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'up{job="presence",instance="io:test"}'
+        values: '1+0x10'
+      - series: 'zea_io_clients{job="presence",instance="io:test"}'
+        values: '_ _ _ _ 0+0x8'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: MonitoringMetricMissing
+        exp_alerts:
+          - exp_labels: {job: presence, instance: 'io:test', severity: warning}
+            exp_annotations:
+              summary: A healthy scrape lacks a required metric
+              impact: An exporter contract or application collector may be broken.
+              response: Verify collector configuration and sample freshness before trusting dashboard values.
+      - eval_time: 5m
+        alertname: MonitoringMetricMissing
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'zea_outbox_enabled{job="fastapi",instance="api:test"}'
+        values: '0+0x10'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: MonitoringMetricMissing
+        exp_alerts: []

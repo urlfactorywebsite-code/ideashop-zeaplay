@@ -62,3 +62,21 @@ def correct_time_entry(
     current_user: models.User = Depends(get_current_active_user),
 ) -> models.TimeEntry:
     return time_tracking.correct_time_entry(db, current_user, entry_id, payload)
+
+
+@router.post("/{entry_id}/pause", response_model=schemas.TimeEntryRead)
+def pause_time_entry(
+    entry_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+) -> schemas.TimeEntryRead:
+    return time_tracking.stop_timer(db, current_user, entry_id=entry_id, reason="paused")
+
+
+@router.post("/{entry_id}/restart", response_model=schemas.TimeEntryRead, status_code=status.HTTP_201_CREATED)
+def restart_time_entry(
+    entry_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+) -> schemas.TimeEntryRead:
+    return time_tracking.resume_timer(db, current_user, entry_id, restart=True)

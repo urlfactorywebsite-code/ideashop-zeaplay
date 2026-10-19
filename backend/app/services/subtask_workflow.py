@@ -11,6 +11,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
 from .. import models
+from ..lifecycle.context import bind_actor
 
 
 VALID_USER_TRANSITIONS: dict[models.SubtaskStatusEnum, set[models.SubtaskStatusEnum]] = {
@@ -241,7 +242,7 @@ def _record_workflow_event(
         "reason": reason,
         "blocked_predecessor_ids": blocked,
         "payload": payload or {},
-        "created_at": datetime.utcnow(),
+        "created_at": models.utc_now(),
     }
     if event_key:
         existing = db.execute(
@@ -298,6 +299,8 @@ def activate_ready_subtasks(
     actor: Optional[models.User] = None,
     locked_rows: Optional[tuple[list[models.Subtask], list[models.SubtaskDependency]]] = None,
 ) -> WorkflowResult:
+    if actor:
+        bind_actor(db, actor)
     subtasks, dependencies = locked_rows or _lock_workflow_rows(db, task.id)
     subtasks_by_id = {subtask.id: subtask for subtask in subtasks}
     result = WorkflowResult()
@@ -314,6 +317,7 @@ def activate_ready_subtasks(
         previous = subtask.status
         subtask.status = models.SubtaskStatusEnum.TODO
         subtask.completed = False
+        db.flush()
         event = _record_workflow_event(
             db,
             task_id=task.id,
@@ -342,6 +346,7 @@ def transition_subtask(
     force_start_reason: Optional[str] = None,
     can_override: bool = False,
 ) -> WorkflowResult:
+    bind_actor(db, actor)
     subtasks, dependencies = _lock_workflow_rows(db, task.id)
     subtasks_by_id = {subtask.id: subtask for subtask in subtasks}
     subtask = subtasks_by_id.get(subtask_id)
@@ -400,6 +405,7 @@ def transition_subtask(
         if event:
             result.domain_events.append(event)
         result.changed = True
+        db.flush()
         return result
 
     if current_status == models.SubtaskStatusEnum.WAITING and not blocked_predecessors:
@@ -430,6 +436,8 @@ def transition_subtask(
         result.domain_events.append(event)
     result.changed = True
 
+    # Persist the predecessor observation before recording successor activation/review.
+    db.flush()
     if target_status == models.SubtaskStatusEnum.DONE:
         result.extend(activate_ready_subtasks(db, task, actor=actor, locked_rows=(subtasks, dependencies)))
     elif previous_status == models.SubtaskStatusEnum.DONE:
@@ -456,6 +464,7 @@ def transition_subtask(
                 result.domain_events.append(downstream_event)
             result.changed = True
 
+    db.flush()
     return result
 
 

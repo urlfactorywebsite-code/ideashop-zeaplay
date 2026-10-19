@@ -1,5 +1,7 @@
 ﻿ import axios, { AxiosInstance, AxiosHeaders } from 'axios';
 import { TaskCategory } from '../types';
+import type { TaskJourney, TaskAnalytics, TaskExecutionSessions } from '../types/taskLifecycle';
+import type { EvidenceSource, ExecutionReport, ReportCompletion, ReportEvidence, ReportPage } from '../types/taskReport';
 import type { PointsConfig } from '../utils/pointsConfigStorage';
 import { normalizeMessage } from '../features/chat/utils/normalizeMessage';
 import {
@@ -375,6 +377,7 @@ function invalidateCache(prefix: string): void {
 
 type ApiUser = {
   id: string;
+  tenant_id?: string | null;
   name: string;
   email: string;
   employer_id?: string;
@@ -741,6 +744,9 @@ type ApiTimeEntry = {
   correction_reason?: string | null;
   corrected_by_id?: string | null;
   corrected_at?: string | null;
+  continued_from_id?: string | null;
+  start_kind?: string | null;
+  stop_reason?: string | null;
 };
 
 type ApiTaskCalendarDaySummary = {
@@ -1923,6 +1929,7 @@ function mapUser(user: ApiUser): User {
   const avatarAsset = mapAvatarAsset(user.avatar_asset);
   return {
     id: user.id,
+    tenantId: user.tenant_id ?? null,
     name: user.name,
     email: user.email,
     employerId: user.employer_id || '',
@@ -2384,6 +2391,9 @@ function mapTimeEntry(entry: ApiTimeEntry): TimeEntry {
     correctionReason: entry.correction_reason ?? null,
     correctedById: entry.corrected_by_id ?? null,
     correctedAt: entry.corrected_at ?? null,
+    continuedFromId: entry.continued_from_id ?? null,
+    startKind: entry.start_kind ?? null,
+    stopReason: entry.stop_reason ?? null,
   };
 }
 
@@ -3794,16 +3804,28 @@ const api = {
     },
 
   logout(): void {
-    try {
-      void http.post('/auth/logout', {});
-    } catch {
-    }
+    const token = getAccessToken();
     clearTokens();
+    if (token) {
+      // Capture credentials before clearing; logout must never refresh/revive a session.
+      void axios.post(`${API_BASE_URL}/auth/logout`, {}, {
+        headers: { Authorization: `Bearer ${token}` }, timeout: 5000,
+      }).catch(() => undefined);
+    }
   },
 
-  async forgotPassword(email: string): Promise<void> {
+  async forgotPassword(email: string, signal?: AbortSignal): Promise<void> {
     try {
-      await http.post('/auth/forgot-password', { email });
+      await http.post('/auth/forgot-password', { email }, { signal, showGlobalProgress: false });
+    } catch (error) {
+      mapAxiosError(error);
+    }
+  },
+
+  async completePasswordReset(token: string, newPassword: string, signal?: AbortSignal): Promise<void> {
+    try {
+      await http.post('/auth/reset-password', { token, new_password: newPassword }, { signal, showGlobalProgress: false });
+      clearTokens();
     } catch (error) {
       mapAxiosError(error);
     }
@@ -4382,20 +4404,67 @@ const api = {
   },
 
 
-  async getTask(taskId: string): Promise<Task> {
+  async getTask(taskId: string, options: { fresh?: boolean; signal?: AbortSignal } = {}): Promise<Task> {
     try {
       const cacheKey = `task:${taskId}`;
-      const cached = getCached<Task>(cacheKey);
+      const cached = options.fresh ? null : getCached<Task>(cacheKey);
       if (cached) {
         return cached;
       }
-      const { data } = await http.get<ApiTask>(`/tasks/${taskId}`);
+      const { data } = await http.get<ApiTask>(`/tasks/${taskId}`, {
+        signal: options.signal, showGlobalProgress: !options.fresh, timeout: options.fresh ? 15000 : undefined,
+      });
       const mapped = mapTask(data);
-      setCached(cacheKey, mapped);
+      if (!options.fresh) setCached(cacheKey, mapped);
       return mapped;
     } catch (error) {
+      if (options.fresh) throw error;
       mapAxiosError(error);
     }
+  },
+
+  async getTaskJourney(taskId: string, afterId = 0, signal?: AbortSignal): Promise<TaskJourney> {
+    return (await http.get<TaskJourney>(`/tasks/${encodeURIComponent(taskId)}/journey`, {
+      params: { after_id: afterId, limit: 100 }, signal, showGlobalProgress: false, timeout: 15000,
+    })).data;
+  },
+
+  async getTaskExecutionReport(taskId: string, signal?: AbortSignal): Promise<ExecutionReport> {
+    return (await http.get<ExecutionReport>(`/tasks/${encodeURIComponent(taskId)}/execution-report`, {
+      signal, timeout: 15000, showGlobalProgress: false,
+    })).data;
+  },
+
+  async getTaskReportCompletions(taskId: string, afterId = '', signal?: AbortSignal): Promise<ReportPage<ReportCompletion>> {
+    return (await http.get<ReportPage<ReportCompletion>>(`/tasks/${encodeURIComponent(taskId)}/execution-report/completions`, {
+      params: { after_id: afterId, limit: 24 }, signal, timeout: 15000, showGlobalProgress: false,
+    })).data;
+  },
+
+  async getTaskReportEvidence(taskId: string, source: 'completion' | 'linked', afterId = '', signal?: AbortSignal): Promise<ReportPage<ReportEvidence>> {
+    return (await http.get<ReportPage<ReportEvidence>>(`/tasks/${encodeURIComponent(taskId)}/execution-report/evidence`, {
+      params: { source, after_id: afterId, limit: 24 }, signal, timeout: 15000, showGlobalProgress: false,
+    })).data;
+  },
+
+  async getTaskReportFile(taskId: string, source: Exclude<EvidenceSource, 'unverified'>, id: string, preview: boolean, signal?: AbortSignal): Promise<Blob> {
+    return (await http.get<Blob>(`/tasks/${encodeURIComponent(taskId)}/execution-report/evidence/${source}/${encodeURIComponent(id)}`, {
+      params: { preview }, responseType: 'blob', signal, timeout: 30000, showGlobalProgress: false,
+    })).data;
+  },
+
+  async getTaskAnalytics(taskId: string, signal?: AbortSignal): Promise<TaskAnalytics> {
+    return (await http.get<TaskAnalytics>(`/tasks/${encodeURIComponent(taskId)}/analytics`, {
+      signal, showGlobalProgress: false, timeout: 15000,
+    })).data;
+  },
+
+  async getTaskExecutionSessions(taskId: string, afterId = '', signal?: AbortSignal): Promise<TaskExecutionSessions> {
+    const { data } = await http.get<{ task_id: string; items: ApiTimeEntry[]; next_after_id: string | null }>(
+      `/tasks/${encodeURIComponent(taskId)}/execution-sessions`, {
+        params: { after_id: afterId, limit: 100 }, signal, showGlobalProgress: false, timeout: 15000,
+      });
+    return { ...data, items: data.items.map(mapTimeEntry) };
   },
 
   async getTaskGroup(taskId: string): Promise<Task[]> {

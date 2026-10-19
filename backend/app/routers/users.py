@@ -17,6 +17,7 @@ from ..dependencies import get_current_active_user, get_current_admin
 from ..email_utils import send_notification_email
 from ..integrations import trigger_n8n_event
 from ..services import audit_logger
+from ..services import password_recovery
 from ..services import notifications as notification_service
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -41,17 +42,18 @@ def _hydrate_user_avatar(user: models.User) -> models.User:
     return user
 
 
-def _get_admin_ids(db: Session) -> list[str]:
+def _get_admin_ids(db: Session, tenant_id) -> list[str]:
     return (
         db.execute(
-            select(models.User.id).where(models.User.role.in_({models.RoleEnum.ADMIN, models.RoleEnum.OWNER}))
+            select(models.User.id).where(models.User.tenant_id == tenant_id,
+                models.User.role.in_({models.RoleEnum.ADMIN, models.RoleEnum.OWNER}))
         )
         .scalars()
         .all()
     )
 
 
-def _apply_user_updates(db: Session, user: models.User, payload: schemas.UserUpdate) -> None:
+def _apply_user_updates(db: Session, user: models.User, payload: schemas.UserUpdate, *, actor=None) -> None:
     if payload.name is not None:
         user.name = payload.name
     if 'employer_id' in payload.__dict__:
@@ -111,7 +113,7 @@ def _apply_user_updates(db: Session, user: models.User, payload: schemas.UserUpd
     if payload.unlocked_achievement_ids is not None:
         user.unlocked_achievement_ids = payload.unlocked_achievement_ids
     if payload.password is not None:
-        user.hashed_password = hash_password(payload.password)
+        password_recovery.replace_password(db, user, payload.password, actor=actor, reason="admin_profile")
     if "avatar_asset_id" in payload.model_fields_set:
         if payload.avatar_asset_id:
             asset = resolve_avatar_asset(db, payload.avatar_asset_id)
@@ -232,7 +234,7 @@ def create_user(
             request=request,
         )
     )
-    for admin_id in _get_admin_ids(db):
+    for admin_id in _get_admin_ids(db, current_user.tenant_id):
         if admin_id == current_user.id:
             continue
         notification_service.create_notification(
@@ -295,7 +297,7 @@ def update_user(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_admin),
 ) -> schemas.UserRead:
-    user = db.get(models.User, user_id)
+    user = db.scalar(select(models.User).where(models.User.id == user_id, models.User.tenant_id == current_user.tenant_id))
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -311,7 +313,7 @@ def update_user(
         before["department_id"] = str(user.department_id) if user.department_id else None
         after["department_id"] = str(payload.department_id) if payload.department_id else None
 
-    _apply_user_updates(db, user, payload)
+    _apply_user_updates(db, user, payload, actor=current_user)
     db.commit()
     db.refresh(user)
     hydrated_user = _hydrate_user_avatar(user)
@@ -335,7 +337,7 @@ def update_user(
                 request=request,
             )
         )
-        for admin_id in _get_admin_ids(db):
+        for admin_id in _get_admin_ids(db, current_user.tenant_id):
             if admin_id == current_user.id:
                 continue
             notification_service.create_notification(
@@ -405,7 +407,7 @@ def delete_user(
             created_at=datetime.utcnow(),
         )
     )
-    for admin_id in _get_admin_ids(db):
+    for admin_id in _get_admin_ids(db, current_user.tenant_id):
         if admin_id == current_user.id:
             continue
         notification_service.create_notification(
@@ -557,7 +559,7 @@ def change_current_user_password(
     if not verify_password(payload.old_password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password")
 
-    user.hashed_password = hash_password(payload.new_password)
+    password_recovery.replace_password(db, user, payload.new_password, actor=current_user, reason="self_service")
     db.commit()
 
 
@@ -565,13 +567,13 @@ def change_current_user_password(
 def reset_user_password(
     user_id: str,
     payload: schemas.UserResetPassword,
-    _: models.User = Depends(get_current_admin),
+    current_user: models.User = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ) -> None:
-    user = db.get(models.User, user_id)
+    user = db.scalar(select(models.User).where(models.User.id == user_id, models.User.tenant_id == current_user.tenant_id))
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    user.hashed_password = hash_password(payload.new_password)
+    password_recovery.replace_password(db, user, payload.new_password, actor=current_user, reason="admin_reset")
     db.commit()
 
 

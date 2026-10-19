@@ -2,6 +2,7 @@ import React, { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'rea
 
 import { useAuth, useTheme } from '../hooks/useAuth';
 import api from '../services/mockApi';
+import { passwordError } from '../utils/passwordReset';
 import PageLoader from '../components/loading/PageLoader';
 import {
     AvatarCropMetadata,
@@ -440,10 +441,11 @@ const Settings: React.FC = () => {
 
         setPasswordStatus(null);
 
-        if (passwordForm.next !== passwordForm.confirm) {
+        const validation = passwordError(passwordForm.next, passwordForm.confirm);
+        if (validation) {
             setPasswordStatus({
                 type: 'error',
-                message: 'New password and confirmation do not match.',
+                message: validation,
             });
             return;
         }

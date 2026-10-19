@@ -14,6 +14,9 @@ import TaskPriorityBadge from './ui/TaskPriorityBadge';
 import MultiSelect from './ui/MultiSelect';
 import { StarIcon, PaperClipIcon, TagIcon, TrashIcon } from './icons';
 import SameTaskLogModal from './SameTaskLogModal';
+import { History } from 'lucide-react';
+
+const TaskJourneyModal = React.lazy(() => import('./TaskJourneyModal'));
 
 type TaskTransferLogEntry = {
     id: string;
@@ -210,6 +213,7 @@ const resolvePointsToneClasses = (tone: TaskPointsTone | undefined) => {
 };
 
 const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initialTask = null, onClose, usersMap, onTaskDeleted, onTaskUpdated, notes = [] }) => {
+    const statusSelectId = React.useId();
     const [task, setTask] = useState<Task | null>(initialTask);
     const [loading, setLoading] = useState(!initialTask);
     const [error, setError] = useState<string | null>(null);
@@ -220,6 +224,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [isSameTaskLogModalOpen, setIsSameTaskLogModalOpen] = useState(false);
+    const [journeyOpen, setJourneyOpen] = useState(false);
     const [groupTasks, setGroupTasks] = useState<Task[]>([]);
     const [groupLoading, setGroupLoading] = useState(false);
     const [groupError, setGroupError] = useState<string | null>(null);
@@ -323,6 +328,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
             return;
         }
         setDraftTitle(task.title ?? '');
+        setJourneyOpen(false);
         setDraftDescription(task.description ?? '');
         setIsEditingCore(false);
         setEditUnlockCount(0);
@@ -1008,6 +1014,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                     <main className="flex-1 max-h-[85vh] overflow-y-auto px-6 py-6 scrollbar-thin scrollbar-thumb-primary scrollbar-track-transparent scrollbar-thumb-rounded-lg">
                         <section className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
                             <div className="flex flex-wrap items-center gap-3 text-xs text-white/80">
+                                <button type="button" onClick={() => setJourneyOpen(true)}
+                                    title="Task status journey" aria-label="Open task status journey"
+                                    className="inline-flex items-center gap-2 rounded-md border border-white/20 px-3 py-2 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                                    <History size={16} aria-hidden="true" /> Journey
+                                </button>
                                 <span className={metaChipClass}>
                                     {subtaskStats.completed}/{subtaskStats.total} subtasks
                                 </span>
@@ -1674,8 +1685,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                     </div>
                                 )}
                                 <div>
-                                    <label className="text-xs uppercase tracking-[0.25em] text-white/50">Status</label>
+                                    <label htmlFor={statusSelectId} className="text-xs uppercase tracking-[0.25em] text-white/50">Status</label>
                                     <select
+                                        id={statusSelectId}
                                         value={pendingUpdates.status !== undefined ? pendingUpdates.status : task.status}
                                         onChange={(e) => setPendingUpdates(prev => ({ ...prev, status: e.target.value as TaskStatus }))}
                                         className={selectFieldClass}
@@ -1950,6 +1962,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                     </div>
                 )}
             </div>
+            {journeyOpen && user && <React.Suspense fallback={<span role="status" className="sr-only">Loading task journey...</span>}>
+                <TaskJourneyModal taskId={taskId} usersMap={usersMap} onClose={() => setJourneyOpen(false)} />
+            </React.Suspense>}
             <SameTaskLogModal
                 isOpen={isSameTaskLogModalOpen}
                 onClose={() => setIsSameTaskLogModalOpen(false)}

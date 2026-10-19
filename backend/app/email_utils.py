@@ -3,6 +3,7 @@
 from datetime import datetime
 from email.message import EmailMessage
 import smtplib
+import ssl
 from typing import Optional, Union
 
 from sqlalchemy.orm import Session
@@ -103,14 +104,14 @@ def _send_email_with_config(
 
     try:
         if smtp_config.encryption and smtp_config.encryption.lower() == "ssl":
-            with smtplib.SMTP_SSL(smtp_config.host, smtp_config.port) as client:
+            with smtplib.SMTP_SSL(smtp_config.host, smtp_config.port, timeout=15, context=ssl.create_default_context()) as client:
                 client.login(smtp_config.username, smtp_config.password)
                 client.send_message(message)
         else:
-            with smtplib.SMTP(smtp_config.host, smtp_config.port) as client:
+            with smtplib.SMTP(smtp_config.host, smtp_config.port, timeout=15) as client:
                 client.ehlo()
                 if smtp_config.encryption and smtp_config.encryption.lower() == "tls":
-                    client.starttls()
+                    client.starttls(context=ssl.create_default_context())
                     client.ehlo()
                 client.login(smtp_config.username, smtp_config.password)
                 client.send_message(message)
@@ -182,7 +183,7 @@ def send_notification_email(
             )
         )
     except EmailDeliveryError as exc:
-        safe_error = _sanitize_email_error(exc)
+        safe_error = "Credential email delivery failed" if notification_type == "welcome_password" else _sanitize_email_error(exc)
         audit_logger.log_event(
             audit_logger.AuditLogInput(
                 action="EMAIL_FAILED",

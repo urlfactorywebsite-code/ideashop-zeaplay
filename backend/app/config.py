@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "change_me"
     jwt_refresh_secret_key: str = "change_me_refresh"
     jwt_algorithm: str = "HS256"
+    password_reset_url: Optional[str] = None
+    password_reset_expire_minutes: int = Field(default=15, ge=5, le=60)
+    password_reset_requests_per_email: int = Field(default=3, ge=1, le=20)
+    password_reset_requests_per_ip: int = Field(default=100, ge=1, le=1000)
     bcrypt_rounds: int = 12
     default_tenant_id: str = "00000000-0000-0000-0000-000000000000"
 
@@ -113,6 +117,14 @@ class Settings(BaseSettings):
     websocket_ticket_expire_minutes: int = 2
     websocket_max_message_bytes: int = 64 * 1024
     websocket_max_connections_per_user: int = 6
+    realtime_outbox_enabled: bool = False
+    realtime_outbox_categories: List[Literal["chat", "task", "ticket"]] = Field(default_factory=list)
+    realtime_max_event_bytes: int = Field(default=262144, ge=1024, le=2097152)
+    realtime_queue_size: int = Field(default=128, ge=1, le=4096)
+    realtime_send_timeout: float = Field(default=2.0, gt=0, le=30)
+    realtime_outbox_max_pending: int = Field(default=100000, ge=1)
+    realtime_outbox_retention_days: int = Field(default=7, ge=1, le=3650)
+    bootstrap_schema: bool = True
 
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.local"),

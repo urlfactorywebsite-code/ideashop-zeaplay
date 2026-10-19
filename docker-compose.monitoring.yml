@@ -1,0 +1,78 @@
+# Explicit opt-in overlay; never used by the default deployment.
+services:
+  backend:
+    command: ["python", "-m", "app.metrics_launcher", "app.main:app", "--host", "0.0.0.0", "--port", "6311", "--workers", "${VEE_API_WORKERS:-1}", "--ws-max-size", "${VEE_WEBSOCKET_MAX_MESSAGE_BYTES:-65536}", "--ws-max-queue", "${UVICORN_WS_MAX_QUEUE:-16}"]
+    environment:
+      ZEAPLAY_METRICS_TOKEN_FILE: /run/secrets/metrics_token
+    secrets: [metrics_token]
+    tmpfs: [/tmp/zeaplay-prometheus:mode=0700]
+  presence:
+    environment:
+      ZEAPLAY_METRICS_TOKEN_FILE: /run/secrets/metrics_token
+    secrets: [metrics_token]
+  realtime-relay:
+    command: ["python", "-m", "app.realtime.relay", "--metrics-port", "9164"]
+    environment:
+      ZEAPLAY_METRICS_TOKEN_FILE: /run/secrets/metrics_token
+    secrets: [metrics_token]
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=7d", "--storage.tsdb.retention.size=2GB"]
+    volumes:
+      - ./ops/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./ops/monitoring/relay-targets.json:/etc/prometheus/relay-targets.json:ro
+      - prometheus_data:/prometheus
+    secrets: [metrics_token]
+    ports: ["127.0.0.1:9090:9090"]
+  grafana:
+    image: grafana/grafana:11.6.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+    secrets: [grafana_password]
+    volumes:
+      - ./ops/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports: ["127.0.0.1:3001:3000"]
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.69.0
+    environment:
+      REDIS_ADDR: redis://redis:6379
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    environment:
+      DATA_SOURCE_NAME_FILE: /run/secrets/postgres_monitor_dsn
+    secrets: [postgres_monitor_dsn]
+    command: ["--extend.query-path=/etc/postgres/queries.yml"]
+    volumes:
+      - ./ops/monitoring/postgres-queries.yml:/etc/postgres/queries.yml:ro
+  node-exporter:
+    image: prom/node-exporter:v1.9.0
+    pid: host
+    command: ["--path.rootfs=/host", "--path.procfs=/host/proc", "--path.sysfs=/host/sys", "--collector.disable-defaults", "--collector.cpu", "--collector.meminfo", "--collector.filesystem", "--collector.diskstats", "--collector.netdev", "--collector.netstat", "--collector.filefd", "--collector.sockstat"]
+    volumes: ["/:/host:ro,rslave"]
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.2
+    command: ["--docker_only=true", "--housekeeping_interval=30s"]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+secrets:
+  metrics_token:
+    file: ${ZEAPLAY_METRICS_TOKEN_FILE:?Provide an external random metrics token file}
+  grafana_password:
+    file: ${ZEAPLAY_GRAFANA_PASSWORD_FILE:?Provide an external Grafana password file}
+  postgres_monitor_dsn:
+    file: ${ZEAPLAY_POSTGRES_MONITOR_DSN_FILE:?Provide an external least-privilege monitoring DSN file}
+volumes:
+  prometheus_data:
+  grafana_data:

@@ -1,6 +1,6 @@
 ﻿import asyncio
 from pathlib import Path
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -10,7 +10,7 @@ from sqlalchemy.exc import ProgrammingError
 from .config import get_settings
 from .database import Base, SessionLocal, engine
 from . import models
-from .dependencies import _decode_access_token
+from .dependencies import _decode_access_token, get_current_admin
 from .services import audit_logger
 from .seed import seed_database, seed_badges_from_achievements
 from .avatar_utils import ensure_avatar_dirs
@@ -51,6 +51,10 @@ from .chat import router as chat_router
 from .chat.schema import ensure_chat_schema
 from .ws import chat as chat_ws, ticket_chat, tasks as tasks_ws
 from .services import notification_outbox, task_events
+from .services.notification_schema import ensure_notification_enum_values
+from .realtime import transport as realtime_transport
+from .observability import RealtimeMetricsMiddleware
+from .lifecycle.bootstrap import ensure_execution_columns
 from .chat import realtime as chat_realtime
 from .webhooks.dispatcher import start_webhook_retry_worker, stop_webhook_retry_worker
 from .webhooks.schema import ensure_webhook_schema
@@ -201,6 +205,8 @@ def ensure_user_profile_columns() -> None:
 
     add_column("manager_id", "ALTER TABLE users ADD COLUMN manager_id VARCHAR(36)",
                "ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_id VARCHAR(36)")
+    add_column("credentials_version", "ALTER TABLE users ADD COLUMN credentials_version INTEGER NOT NULL DEFAULT 0",
+               "ALTER TABLE users ADD COLUMN IF NOT EXISTS credentials_version INTEGER NOT NULL DEFAULT 0")
     add_column("manager_email", "ALTER TABLE users ADD COLUMN manager_email VARCHAR(255)",
                "ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_email VARCHAR(255)")
     add_column("webex_person_id", "ALTER TABLE users ADD COLUMN webex_person_id VARCHAR(120)",
@@ -302,6 +308,10 @@ def ensure_notification_table_schema() -> None:
     """Bring legacy notification tables up to the current additive schema."""
     if engine.dialect.name != "postgresql":
         return
+
+    # PostgreSQL requires a commit before newly added enum labels can be used.
+    with engine.begin() as connection:
+        ensure_notification_enum_values(connection)
 
     inspector = inspect(engine)
     if "notifications" not in inspector.get_table_names():
@@ -681,7 +691,20 @@ def ensure_kanban_columns() -> None:
         session.commit()
 
 
-app = FastAPI(title=settings.app_name)
+class CorsFastAPI(FastAPI):
+    def build_middleware_stack(self):
+        # Keep FastAPI's public API while placing CORS outside its 500 handler.
+        return CORSMiddleware(
+            super().build_middleware_stack(),
+            allow_origins=settings.cors_allow_origins,
+            allow_credentials=settings.cors_allow_credentials,
+            allow_methods=settings.cors_allow_methods,
+            allow_headers=settings.cors_allow_headers,
+        )
+
+
+app = CorsFastAPI(title=settings.app_name)
+app.add_middleware(RealtimeMetricsMiddleware)
 
 
 def _apply_security_headers(response):
@@ -693,6 +716,11 @@ def _apply_security_headers(response):
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
+
+
+@app.exception_handler(Exception)
+async def internal_server_error(request: Request, exc: Exception):
+    return _apply_security_headers(JSONResponse(status_code=500, content={"detail": "Internal server error"}))
 
 
 @app.middleware("http")
@@ -766,32 +794,14 @@ uploads_directory = Path(settings.media_root) / "uploads"
 uploads_directory.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(uploads_directory)), name="media-uploads")
 
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:3001",
-    "https://play.zeacrm.com",
-    "http://167.86.108.178:6300",
-    "http://127.0.0.1:3001",
-    # add your dev or prod origins here
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_allow_origins,
-    allow_credentials=settings.cors_allow_credentials,
-    allow_methods=settings.cors_allow_methods,
-    allow_headers=settings.cors_allow_headers,
-)
-
-
-@app.on_event("startup")
-def startup_event() -> None:
+def initialize_schema() -> None:
     ensure_pg_trgm_extension()
     ensure_composite_fk_reference_constraints()
     ensure_notification_table_schema()
     ensure_task_manager_table_schema()
-    Base.metadata.create_all(bind=engine)
+    with engine.begin() as connection:
+        ensure_execution_columns(connection)
+    Base.metadata.create_all(bind=engine, tables=[table for table in Base.metadata.sorted_tables if table.name not in {"realtime_outbox", "realtime_aggregates"}])
     ensure_task_status_enum()
     ensure_reward_schema()
     ensure_chat_schema()
@@ -804,19 +814,34 @@ def startup_event() -> None:
     seed_badges_from_achievements()
     ensure_kanban_columns()
     ensure_avatar_dirs()
+
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    if settings.realtime_outbox_enabled and not {"realtime_outbox", "realtime_aggregates"}.issubset(inspect(engine).get_table_names()):
+        raise RuntimeError("Apply realtime migration fc4d5e6f7a8b before enabling the outbox")
+    if settings.bootstrap_schema:
+        initialize_schema()
     start_webhook_retry_worker()
     notification_outbox.start_notification_outbox_worker()
     loop = asyncio.get_event_loop()
-    task_events.start_task_event_listener(loop=loop, handler=tasks_ws.broadcast_task_event)
-    chat_realtime.start_chat_event_listener(loop=loop, handler=chat_ws.manager.dispatch_remote_event)
+    task_events.start_task_event_listener(loop=loop, handler=tasks_ws.broadcast_task_event, on_gap=tasks_ws.manager.close_all)
+    chat_realtime.start_chat_event_listener(loop=loop, handler=chat_ws.manager.dispatch_remote_event, on_gap=chat_ws.manager.close_all)
+    realtime_transport.start("ticket", loop, ticket_chat.manager.dispatch, ticket_chat.manager.close_all)
 
 
 @app.on_event("shutdown")
-def shutdown_event() -> None:
+async def shutdown_event() -> None:
     notification_outbox.stop_notification_outbox_worker()
     stop_webhook_retry_worker()
-    task_events.stop_task_event_listener()
-    chat_realtime.stop_chat_event_listener()
+    await task_events.stop_task_event_listener()
+    await chat_realtime.stop_chat_event_listener()
+    await realtime_transport.stop("ticket")
+    await tasks_ws.manager.close_all()
+    await chat_ws.manager.close_all()
+    await ticket_chat.manager.close_all()
+    from .cache import close_redis_client
+    close_redis_client()
 
 
 
@@ -853,6 +878,7 @@ app.include_router(chat_router.router)
 app.include_router(tickets_router.router)
 app.include_router(ticket_attachments_router.router)
 app.include_router(ticket_chat.router)
+app.include_router(ticket_chat.router, prefix="/api")
 app.include_router(tasks_ws.router)
 app.include_router(chat_ws.router)
 app.include_router(webhooks.router)
@@ -915,6 +941,31 @@ def root() -> dict[str, str]:
 @app.get("/health")
 def health_check() -> dict[str, str]:
     return _health_response()
+
+
+@app.get("/ready")
+async def readiness():
+    state = realtime_transport.health()
+    redis_ok = len(state["subscribers"]) == 3 and all(item["connected"] and item["alive"] for item in state["subscribers"].values())
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+        database_ok = True
+    except Exception:
+        database_ok = False
+    return JSONResponse(status_code=200 if database_ok and redis_ok else 503,
+                        content={"database": database_ok, "realtime": redis_ok})
+
+
+@app.get("/realtime/metrics")
+async def realtime_metrics(user=Depends(get_current_admin)):
+    from .realtime.outbox import backlog
+    state = realtime_transport.health()
+    state["connections"] = {"chat": chat_ws.manager.snapshot(), "tasks": tasks_ws.manager.snapshot(), "tickets": ticket_chat.manager.snapshot()}
+    if settings.realtime_outbox_enabled:
+        with SessionLocal() as db:
+            state["outbox"] = backlog(db)
+    return state
 
 
 @app.get("/doc/health")

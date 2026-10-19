@@ -17,6 +17,7 @@ from ..email_utils import EmailDeliveryError, resolve_smtp_config, send_notifica
 from ..models import task_dependencies
 from ..seed import seed_database
 from ..services import rewards as reward_service
+from ..lifecycle.context import bind_actor
 
 OTP_EXPIRATION_MINUTES = 10
 OTP_MAX_ATTEMPTS = 5
@@ -286,8 +287,8 @@ def import_data(
     payload: schemas.DataImportPayload,
     current_owner: models.User = Depends(get_current_owner),
 ) -> Dict[str, str]:
-    del current_owner
     with session_scope() as session:
+        bind_actor(session, current_owner)
         if payload.scope is schemas.DataExportScope.DEPARTMENTS:
             for department in payload.departments:
                 existing_department = session.get(models.Department, department.id)
@@ -776,6 +777,7 @@ def confirm_reset(
     db.commit()
 
     with session_scope() as session:
+        bind_actor(session, current_owner)
         session.execute(delete(models.Notification))
         session.execute(delete(models.RewardClaim))
         session.execute(delete(models.UserAchievement))

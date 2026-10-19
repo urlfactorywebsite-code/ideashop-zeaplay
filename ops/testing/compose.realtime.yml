@@ -1,0 +1,14 @@
+# Disposable regression services only. No production env files, volumes or credentials.
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:56379:6379"]
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: zeaplay_rt3_test
+      POSTGRES_USER: rt_test
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports: ["127.0.0.1:56415:5432"]
+    tmpfs: [/var/lib/postgresql/data]

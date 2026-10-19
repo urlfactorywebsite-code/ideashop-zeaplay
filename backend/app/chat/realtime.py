@@ -1,85 +1,49 @@
 from __future__ import annotations
 
-import asyncio
-import json
-import logging
-import threading
-from datetime import datetime
-from typing import Any, Awaitable, Callable
 from uuid import uuid4
 
-from ..cache import get_cache_prefix, get_redis_client
+from ..realtime.contracts import Event
+from ..realtime import transport
 
-logger = logging.getLogger("zeaplay.chat.realtime")
-
-CHAT_EVENT_CHANNEL = f"{get_cache_prefix()}:chat:events"
+CHAT_EVENT_CHANNEL = transport.channel("chat")
 EVENT_VERSION = "v1"
 INSTANCE_ID = uuid4().hex
 
-_listener_thread: threading.Thread | None = None
-_stop_event = threading.Event()
-_pubsub = None
+
+def build_event(event_type, payload):
+    from datetime import datetime, timezone
+    return {"version": EVENT_VERSION, "type": event_type, "payload": payload,
+            "sent_at": datetime.now(timezone.utc).isoformat(), "origin": INSTANCE_ID}
 
 
-def build_event(event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "version": EVENT_VERSION,
-        "type": event_type,
-        "payload": payload,
-        "sent_at": datetime.utcnow().isoformat(),
-        "origin": INSTANCE_ID,
-    }
-
-
-def publish_chat_event(event_type: str, payload: dict[str, Any]) -> None:
-    client = get_redis_client()
-    if client is None:
+def publish_chat_event(event_type, payload):
+    from ..database import SessionLocal
+    from ..models import ChatConversation, User
+    resource_id = payload.get("conversation_id") or payload.get("user_id") or payload.get("tenant_id")
+    tenant = payload.get("tenant_id")
+    if not tenant:
+        with SessionLocal() as db:
+            obj = db.get(ChatConversation, resource_id) if payload.get("conversation_id") else db.get(User, resource_id)
+            tenant = getattr(obj, "tenant_id", None)
+    if not tenant or not resource_id:
         return
-    client.publish(CHAT_EVENT_CHANNEL, json.dumps(build_event(event_type, payload)))
+    transport.publish(Event(event_type=event_type, tenant_id=str(tenant), resource_type="chat", resource_id=str(resource_id),
+                            payload={"browser": build_event(event_type, payload)}))
 
 
-def start_chat_event_listener(
-    *,
-    loop: asyncio.AbstractEventLoop,
-    handler: Callable[[dict[str, Any]], Awaitable[None]],
-) -> None:
-    global _listener_thread, _pubsub
-    if _listener_thread is not None:
-        return
-    client = get_redis_client()
-    if client is None:
-        return
-    _stop_event.clear()
-    _pubsub = client.pubsub()
-    _pubsub.subscribe(CHAT_EVENT_CHANNEL)
-
-    def _run() -> None:
-        if _pubsub is None:
-            return
-        for message in _pubsub.listen():
-            if _stop_event.is_set():
-                break
-            if message.get("type") != "message":
-                continue
-            raw = message.get("data")
-            try:
-                payload = json.loads(raw) if isinstance(raw, str) else raw
-            except json.JSONDecodeError:
-                logger.warning("chat.redis.invalid_payload")
-                continue
-            asyncio.run_coroutine_threadsafe(handler(payload), loop)
-
-    _listener_thread = threading.Thread(target=_run, name="chat-event-listener", daemon=True)
-    _listener_thread.start()
+def start_chat_event_listener(*, loop, handler, on_gap=None):
+    async def adapt(event):
+        browser = event.payload.get("browser")
+        if browser:
+            if browser["type"] in {"message:new", "message:updated", "message:deleted", "reaction:added", "reaction:removed"}:
+                message_id = browser["payload"].get("message", {}).get("id")
+                await handler(event.model_copy(update={"payload": {"message_id": message_id, "origin": browser.get("origin")}}))
+                return
+            await handler({**browser, "event_id": event.event_id, "trusted_tenant_id": event.tenant_id})
+        else:
+            await handler(event)
+    transport.start("chat", loop, adapt, on_gap)
 
 
-def stop_chat_event_listener() -> None:
-    global _listener_thread, _pubsub
-    _stop_event.set()
-    if _pubsub is not None:
-        try:
-            _pubsub.close()
-        except Exception:
-            pass
-        _pubsub = None
-    _listener_thread = None
+async def stop_chat_event_listener():
+    await transport.stop("chat")

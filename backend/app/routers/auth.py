@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import uuid
+import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -12,11 +13,13 @@ from ..auth import (
     create_refresh_token,
     hash_password,
     verify_password,
+    credentials_match,
 )
 from ..dependencies import get_current_active_user
 from ..database import get_db
 from ..config import get_settings
 from ..services import audit_logger
+from ..services import password_recovery
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
@@ -43,6 +46,7 @@ def _build_token_claims(user: models.User) -> dict[str, object]:
     return {
         "tenant_id": str(user.tenant_id),
         "roles": [user.role.value],
+        "credentials_version": user.credentials_version,
     }
 
 
@@ -205,6 +209,9 @@ def refresh_token(
     user = db.get(models.User, token_payload.sub)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if (user.status != models.UserStatusEnum.ACTIVE or not credentials_match(user, token_payload)
+            or str(user.tenant_id) != token_payload.tenant_id):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credentials changed. Please sign in again.")
 
     extra_claims = _build_token_claims(user)
     return schemas.Token(
@@ -220,31 +227,34 @@ def get_me(current_user=Depends(get_current_active_user)):
 
 @router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)
 def forgot_password(
-    payload: schemas.LoginRequest,
+    payload: schemas.ForgotPasswordRequest,
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """Mock password reset - in production integrate with email service."""
-    user = db.execute(select(models.User).where(models.User.email == payload.email)).scalar_one_or_none()
-    # Intentionally do not reveal whether user exists
-    if user and user.status == models.UserStatusEnum.ACTIVE:
-        # TODO: integrate with email service
-        pass
-    audit_logger.log_event(
-        audit_logger.AuditLogInput(
-            action="USER_PASSWORD_RESET_REQUESTED",
-            category=models.AuditLogCategoryEnum.USER,
-            actor_id=str(user.id) if user else None,
-            actor_role=user.role.value if user and user.role else None,
-            target_user_id=str(user.id) if user else None,
-            entity_type="user",
-            entity_id=str(user.id) if user else None,
-            source=models.AuditLogSourceEnum.MANUAL,
-            metadata={"email": payload.email},
-            request=request,
-        )
-    )
-    return {"message": "If an account exists, reset instructions have been sent."}
+    started = time.monotonic()
+    password_recovery.rate_limit(request, str(payload.email))
+    base = password_recovery.check_delivery_configuration(db)
+    try:
+        user = db.scalar(select(models.User).where(models.User.email == str(payload.email),
+            models.User.status == models.UserStatusEnum.ACTIVE))
+        if user and user.tenant_id:
+            password_recovery.queue_link(db, user, base)
+            db.commit()
+    finally:
+        time.sleep(max(0, 0.15 - (time.monotonic() - started)))
+    audit_logger.log_event(audit_logger.AuditLogInput(
+        action="USER_PASSWORD_RESET_REQUESTED", category=models.AuditLogCategoryEnum.USER,
+        entity_type="auth", source=models.AuditLogSourceEnum.API, request=request,
+        metadata={"delivery": "queued_if_eligible"}))
+    return {"message": password_recovery.GENERIC_REQUEST}
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+def reset_password(payload: schemas.PasswordResetRequest, request: Request, db: Session = Depends(get_db)):
+    password_recovery.rate_limit(request, payload.token, redeem=True)
+    user = password_recovery.token_user(db, payload.token)
+    password_recovery.replace_password(db, user, payload.new_password, actor=None, reason="email_recovery")
+    db.commit()
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
+import { X } from 'lucide-react';
 import api from '../services/mockApi';
+import './PasswordRecovery.css';
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;
@@ -10,68 +13,79 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
     const [email, setEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
+    const pending = useRef<AbortController | null>(null);
+    useEffect(() => {
+        setMessage(''); setError(''); setEmail(''); setIsSubmitting(false);
+        return () => pending.current?.abort();
+    }, [isOpen]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
+        const controller = new AbortController();
+        pending.current = controller;
         setIsSubmitting(true);
         setMessage('');
+        setError('');
         try {
-            await api.forgotPassword(email);
-            setMessage('If an account with this email exists, a password reset link has been sent.');
+            await api.forgotPassword(email, controller.signal);
+            if (!controller.signal.aborted) setMessage('If an active account matches this email, reset instructions will be emailed shortly.');
         } catch (error) {
-            // Even on error, show a generic message for security
-            setMessage('If an account with this email exists, a password reset link has been sent.');
+            if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Unable to request a reset. Please try again later.');
         } finally {
-            setIsSubmitting(false);
-            setEmail('');
+            if (!controller.signal.aborted) setIsSubmitting(false);
         }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center p-4">
-            <div className="bg-surface p-8 rounded-lg shadow-xl w-full max-w-md border border-border-color relative">
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
-                <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold text-text-primary">Forgot Password?</h2>
-                    <p className="text-text-secondary mt-2">Enter your email address and we'll send you instructions to reset your password.</p>
+        <Dialog open={isOpen} onClose={onClose} className="password-recovery recovery-modal">
+          <DialogBackdrop className="recovery-backdrop" />
+          <div className="recovery-position">
+            <DialogPanel className="recovery-panel">
+                <button type="button" onClick={onClose} title="Close password recovery" aria-label="Close password recovery" className="recovery-close"><X size={18} /></button>
+                <div>
+                    <DialogTitle>Forgot Password?</DialogTitle>
                 </div>
                 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} aria-busy={isSubmitting}>
                     <div>
-                        <label htmlFor="forgot-email" className="sr-only">Email address</label>
+                        <label htmlFor="forgot-email">Email address</label>
                         <input
                             id="forgot-email"
                             name="email"
                             type="email"
                             autoComplete="email"
                             required
+                            disabled={isSubmitting}
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-600 bg-background placeholder-gray-400 text-text-primary focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
                             placeholder="Email address"
                         />
                     </div>
 
                     {message && (
-                        <div className="p-3 bg-green-900 border border-green-700 rounded-md">
-                           <p className="text-sm text-green-200">{message}</p>
+                        <div>
+                           <p role="status">{message}</p>
                         </div>
                     )}
+                    {error && <p role="alert">{error}</p>}
 
                     <div>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
+                            className="recovery-submit"
                         >
                             {isSubmitting ? 'Sending...' : 'Send Reset Link'}
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </DialogPanel>
+          </div>
+        </Dialog>
     );
 };
 

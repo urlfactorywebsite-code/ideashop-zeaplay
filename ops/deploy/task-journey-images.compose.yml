@@ -1,0 +1,6 @@
+# Explicit immutable release/rollback tags; never use an unpinned "latest" image.
+services:
+  backend:
+    image: ${ZEAPLAY_BACKEND_RELEASE_IMAGE:?Set an approved backend release image}
+  frontend:
+    image: ${ZEAPLAY_FRONTEND_RELEASE_IMAGE:?Set an approved frontend release image}

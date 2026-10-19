@@ -8,13 +8,18 @@ import uuid
 from datetime import datetime
 from typing import Any, Iterable
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from sqlalchemy import and_, or_, select
 
 from ..config import get_settings
-from ..database import SessionLocal
+from ..auth import credentials_match
+from ..database import SessionLocal, get_db
+from ..dependencies import get_current_active_user
 from ..events.bus import emit_ticket_event
 from ..models import User, UserStatusEnum
+from ..realtime import capture as realtime_capture, transport
+from ..realtime.contracts import Event
+from ..observability import FANOUT_FAILURES
 from ..tickets.models import (
     Ticket,
     TicketComment,
@@ -43,6 +48,18 @@ class TicketConnectionManager:
         self._connections: dict[uuid.UUID, set[WebSocket]] = {}
         self._socket_users: dict[WebSocket, str] = {}
         self._lock = asyncio.Lock()
+
+    async def close_all(self):
+        async with self._lock:
+            sockets = list(self._socket_users)
+            self._socket_users.clear()
+            self._connections.clear()
+        async def close(socket):
+            try:
+                await asyncio.wait_for(socket.close(code=1013), timeout=get_settings().realtime_send_timeout)
+            except Exception:
+                pass
+        await asyncio.gather(*(close(socket) for socket in sockets))
 
     def snapshot(self) -> dict[str, int]:
         return {
@@ -73,13 +90,58 @@ class TicketConnectionManager:
         logger.info("tickets.ws.disconnected ticket_id=%s active=%s", ticket_id, self.snapshot())
 
     async def broadcast(self, ticket_id: uuid.UUID, message: dict[str, Any]) -> None:
+        with SessionLocal() as db:
+            ticket = db.get(Ticket, ticket_id)
+            if not ticket or ticket.deleted_at:
+                return
+            transport.publish(Event(tenant_id=str(ticket.tenant_id), resource_type="ticket", resource_id=str(ticket.id),
+                                    event_type=message["type"], payload={"browser": message}))
+
+    async def dispatch(self, event: Event) -> None:
+        try:
+            ticket_id = uuid.UUID(event.resource_id)
+        except ValueError:
+            return
         async with self._lock:
             recipients = list(self._connections.get(ticket_id, set()))
-        for socket in recipients:
-            try:
-                await socket.send_json(message)
-            except Exception:
-                await self.disconnect(ticket_id, socket)
+        with SessionLocal() as db:
+            ticket = db.get(Ticket, ticket_id)
+            if not ticket or ticket.deleted_at or str(ticket.tenant_id) != event.tenant_id:
+                return
+            message = event.payload.get("browser") or {"type": "ticket.changed", "ticket_id": str(ticket_id)}
+            if event.event_type == "comment":
+                comment_id = event.payload.get("comment_id")
+                if not comment_id:
+                    comment_id = message.get("comment", {}).get("id")
+                try:
+                    comment = db.get(TicketComment, uuid.UUID(comment_id))
+                except (ValueError, TypeError):
+                    return
+                if not comment or comment.deleted_at or comment.ticket_id != ticket_id or str(comment.tenant_id) != event.tenant_id:
+                    return
+                mentions = db.scalars(select(TicketCommentMention.mentioned_user_id).where(TicketCommentMention.comment_id == comment.id)).all()
+                message = {"type": "comment", "comment": _comment_payload(comment, list(mentions))}
+            message = {**message, "event_id": event.event_id}
+            for socket in recipients:
+                user = db.get(User, self._socket_users.get(socket))
+                if not user or user.status != UserStatusEnum.ACTIVE or str(user.tenant_id) != event.tenant_id or not credentials_match(user, getattr(socket, "scope", {})) or not _user_can_access_ticket(
+                    db=db, ticket=ticket, user_id=user.id, user_department_id=user.department_id, roles={user.role.value.lower()},
+                ):
+                    await self.disconnect(ticket_id, socket)
+                    try:
+                        await socket.close(code=1008)
+                    except Exception:
+                        pass
+                    continue
+                try:
+                    await asyncio.wait_for(socket.send_json(message), timeout=get_settings().realtime_send_timeout)
+                except Exception as exc:
+                    FANOUT_FAILURES.labels("tickets", "timeout" if isinstance(exc, TimeoutError) else "error").inc()
+                    await self.disconnect(ticket_id, socket)
+                    try:
+                        await socket.close(code=1013)
+                    except Exception:
+                        pass
 
 
 manager = TicketConnectionManager()
@@ -163,6 +225,30 @@ def _comment_payload(comment: TicketComment, mention_ids: list[str]) -> dict[str
     }
 
 
+@router.get("/ws/tickets/{ticket_id}/snapshot")
+def ticket_snapshot(ticket_id: uuid.UUID, before: uuid.UUID | None = None, limit: int = Query(200, ge=1, le=200),
+                    db=Depends(get_db), user: User = Depends(get_current_active_user)):
+    ticket = db.get(Ticket, ticket_id)
+    if not ticket or ticket.deleted_at or ticket.tenant_id != user.tenant_id:
+        raise HTTPException(404, "Ticket not found")
+    if not _user_can_access_ticket(db=db, ticket=ticket, user_id=user.id, user_department_id=user.department_id, roles={user.role.value.lower()}):
+        raise HTTPException(403, "Ticket access denied")
+    query = select(TicketComment).where(TicketComment.ticket_id == ticket.id, TicketComment.tenant_id == user.tenant_id, TicketComment.deleted_at.is_(None))
+    if before:
+        cursor = db.get(TicketComment, before)
+        if not cursor or cursor.ticket_id != ticket.id or cursor.tenant_id != user.tenant_id:
+            raise HTTPException(404, "Comment cursor not found")
+        cursor_time = select(TicketComment.created_at).where(TicketComment.id == cursor.id).scalar_subquery()
+        query = query.where(or_(TicketComment.created_at < cursor_time,
+                                and_(TicketComment.created_at == cursor_time, TicketComment.id < cursor.id)))
+    rows = db.scalars(query.order_by(TicketComment.created_at.desc(), TicketComment.id.desc()).limit(limit + 1)).all()
+    more = len(rows) > limit
+    rows = rows[:limit]
+    return {"ticket": {"id": str(ticket.id), "status": ticket.status.value, "updated_at": ticket.updated_at.isoformat()},
+            "comments": [_comment_payload(row, _parse_mentions(row.body)) for row in reversed(rows)],
+            "has_more": more, "next_cursor": str(rows[-1].id) if more else None}
+
+
 @router.websocket("/ws/tickets/{ticket_id}")
 async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
     if not validate_websocket_origin(websocket):
@@ -187,7 +273,7 @@ async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
     db = SessionLocal()
     try:
         user = db.get(User, str(user_id))
-        if not user or user.status != UserStatusEnum.ACTIVE:
+        if not user or user.status != UserStatusEnum.ACTIVE or not credentials_match(user, payload):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
         if not user.tenant_id or user.tenant_id != tenant_id:
@@ -212,7 +298,7 @@ async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
             ticket=ticket,
             user_id=user_id,
             user_department_id=user.department_id,
-            roles=roles,
+            roles={user.role.value.lower()},
         ):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
@@ -224,9 +310,11 @@ async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
         await close_policy_violation(websocket)
         return
 
+    websocket.scope["credentials_version"] = payload.get("credentials_version", 0)
     await manager.connect(ticket_uuid, str(user_id), websocket)
 
     try:
+        await websocket.send_json({"type": "realtime:ready", "ticket_id": str(ticket_uuid)})
         while True:
             raw_text = await websocket.receive_text()
             if not validate_websocket_message_size(raw_text):
@@ -240,6 +328,16 @@ async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
             if not isinstance(message, dict):
                 await websocket.send_json({"type": "error", "message": "Unsupported message type"})
                 continue
+            # Recheck role, membership, tenant and active status before each mutation/typing event.
+            with SessionLocal() as access_db:
+                live_user = access_db.get(User, user_id)
+                live_ticket = access_db.get(Ticket, ticket_uuid)
+                if not live_user or live_user.status != UserStatusEnum.ACTIVE or live_user.tenant_id != tenant_id or not credentials_match(live_user, websocket.scope) or not live_ticket or live_ticket.deleted_at or live_ticket.tenant_id != tenant_id or not _user_can_access_ticket(
+                    db=access_db, ticket=live_ticket, user_id=user_id, user_department_id=live_user.department_id,
+                    roles={live_user.role.value.lower()},
+                ):
+                    await websocket.close(code=1008)
+                    break
             message_type = message.get("type")
             body = message.get("body") if isinstance(message, dict) else None
 
@@ -321,10 +419,7 @@ async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
             finally:
                 db.close()
 
-            await manager.broadcast(
-                ticket_uuid,
-                {"type": "comment", "comment": _comment_payload(comment, mentions)},
-            )
+            # The committed ORM mutation is fanned out once by transaction capture.
     except WebSocketDisconnect:
         pass
     finally:

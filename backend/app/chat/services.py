@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
+from ..realtime import capture as realtime_capture
 from .. import models, schemas
 from ..rate_limit import check_rate_limit
 from ..services import notifications as notification_service

@@ -1,0 +1,148 @@
+{
+  "results": [
+    "PASS: exact border centerline/radius at three sizes; all sampled points stay on the perimeter",
+    "PASS: every login control has a 44px target; effects hidden from accessibility tree and input events",
+    "PASS: typing does not mutate the memoized background/effect DOM",
+    "PASS: eight SPA unmount/remount cycles; heap/listener/node counts recorded after GC",
+    "PASS: reduced motion leaves no running descendant animations"
+  ],
+  "measurements": {
+    "desktop": {
+      "frames": 217,
+      "medianMs": 16.699999999999818,
+      "p95Ms": 16.899999999999636,
+      "gapsOver34ms": 0,
+      "longTasks": 0,
+      "heapMiB": 16.567626953125,
+      "taskSeconds": 0.586478,
+      "layouts": 0,
+      "styleRecalculations": 219,
+      "elements": 125,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "cpuSlowdown": 1
+    },
+    "mobileCpu4x": {
+      "frames": 217,
+      "medianMs": 16.699999999999818,
+      "p95Ms": 16.800000000000182,
+      "gapsOver34ms": 0,
+      "longTasks": 0,
+      "heapMiB": 16.611583709716797,
+      "taskSeconds": 2.0977889999999997,
+      "layouts": 0,
+      "styleRecalculations": 219,
+      "elements": 125,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "cpuSlowdown": 4
+    },
+    "perimeter": [
+      {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "panel": {
+          "width": 446,
+          "height": 533.890625
+        },
+        "box": {
+          "x": 0.5,
+          "y": 0.5,
+          "width": 445,
+          "height": 532.890625
+        },
+        "radius": 21.5,
+        "pathTransform": "none"
+      },
+      {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "panel": {
+          "width": 346,
+          "height": 521.890625
+        },
+        "box": {
+          "x": 0.5,
+          "y": 0.5,
+          "width": 345,
+          "height": 520.890625
+        },
+        "radius": 21.5,
+        "pathTransform": "none"
+      },
+      {
+        "viewport": {
+          "width": 320,
+          "height": 568
+        },
+        "panel": {
+          "width": 288,
+          "height": 509
+        },
+        "box": {
+          "x": 0.5,
+          "y": 0.5,
+          "width": 287,
+          "height": 508
+        },
+        "radius": 21.5,
+        "pathTransform": "none"
+      }
+    ],
+    "touchTargets": [
+      {
+        "name": "Enable interaction sound",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "name": "Pause background animation",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "name": "email",
+        "width": 372,
+        "height": 54
+      },
+      {
+        "name": "Forgot your password?",
+        "width": 121.265625,
+        "height": 44
+      },
+      {
+        "name": "password",
+        "width": 372,
+        "height": 54
+      },
+      {
+        "name": "Show password",
+        "width": 44,
+        "height": 44
+      },
+      {
+        "name": "Sign in",
+        "width": 372,
+        "height": 56
+      }
+    ],
+    "mountCycles": {
+      "count": 8,
+      "beforeHeapMiB": 17.789134979248047,
+      "afterHeapMiB": 18.181503295898438,
+      "beforeListeners": 213,
+      "afterListeners": 226,
+      "beforeNodes": 276,
+      "afterNodes": 430
+    }
+  },
+  "scope": "Headless Chrome on this Windows host; emulated viewport/CPU, not physical mobile hardware. APIs/CDNs intercepted. Heap is JS-only; not GPU/process memory."
+}

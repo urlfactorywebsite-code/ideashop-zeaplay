@@ -1,6 +1,6 @@
 """Pydantic schemas for request and response bodies."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 import uuid
 from typing import Any, Dict, List, Optional, Literal
 from enum import Enum
@@ -172,6 +172,7 @@ class TokenPayload(BaseModel):
     scopes: List[str] = Field(default_factory=list)
     tenant_id: Optional[str] = None
     purpose: Optional[str] = None
+    credentials_version: int = 0
 
 
 class TokenMintRequest(BaseModel):
@@ -201,6 +202,19 @@ class RefreshRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
+
+
+def _validate_password_bytes(value):
+    if value is not None and len(value.encode("utf-8")) > 72:
+        raise ValueError("Password must be at most 72 UTF-8 bytes")
+    return value
+
+
+class PasswordResetRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=2048)
+    new_password: str = Field(min_length=8, max_length=72)
+
+    _password_bytes = field_validator("new_password")(_validate_password_bytes)
 
 
 # ---------------------------------------------------------------------------
@@ -308,7 +322,8 @@ class UserUpdate(BaseModel):
     role: Optional[RoleEnum] = None
     status: Optional[UserStatusEnum] = None
     department_id: Optional[str] = None
-    password: Optional[str] = Field(default=None, min_length=6)
+    password: Optional[str] = Field(default=None, min_length=8, max_length=72)
+    _password_bytes = field_validator("password")(_validate_password_bytes)
     points: Optional[int] = None
     tasks_created: Optional[int] = None
     tasks_completed: Optional[int] = None
@@ -339,7 +354,8 @@ class UserUpdate(BaseModel):
 
 class UserPasswordChange(BaseModel):
     old_password: str
-    new_password: str = Field(min_length=6)
+    new_password: str = Field(min_length=8, max_length=72)
+    _password_bytes = field_validator("new_password")(_validate_password_bytes)
 
 
 class UserProfileUpdate(BaseModel):
@@ -361,13 +377,15 @@ class UserProfileUpdate(BaseModel):
 
 
 class UserResetPassword(BaseModel):
-    new_password: str = Field(min_length=6)
+    new_password: str = Field(min_length=8, max_length=72)
+    _password_bytes = field_validator("new_password")(_validate_password_bytes)
 
 
 class UserRead(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    tenant_id: Optional[uuid.UUID] = None
     employer_id: Optional[str] = None
     points: int
     overall_xp_points: int = 0
@@ -1021,6 +1039,9 @@ class TimeEntryRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    continued_from_id: Optional[str] = None
+    start_kind: Optional[str] = None
+    stop_reason: Optional[str] = None
     tenant_id: uuid.UUID
     user_id: str
     task_id: Optional[str] = None
@@ -1036,6 +1057,13 @@ class TimeEntryRead(BaseModel):
     correction_reason: Optional[str] = None
     corrected_by_id: Optional[str] = None
     corrected_at: Optional[datetime] = None
+
+    @field_validator("started_at", "stopped_at", "original_started_at", "original_stopped_at", "corrected_at")
+    @classmethod
+    def normalize_utc(cls, value: Optional[datetime]) -> Optional[datetime]:
+        if value is None:
+            return None
+        return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 
 
 class TimeEntryActiveResponse(BaseModel):

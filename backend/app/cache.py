@@ -1,9 +1,13 @@
 import json
+import os
+import threading
 from typing import Any, Iterable, Optional
 from urllib.parse import urlencode
 
 try:
     import redis
+    from redis.backoff import NoBackoff
+    from redis.retry import Retry
 except ImportError:  # pragma: no cover
     redis = None
 
@@ -11,6 +15,7 @@ from .config import get_settings
 
 
 _REDIS_CLIENT: Optional[Any] = None
+_REDIS_CLIENT_LOCK = threading.Lock()
 
 
 def _get_client() -> Optional[Any]:
@@ -21,11 +26,18 @@ def _get_client() -> Optional[Any]:
     redis_url = settings.redis_url or settings.cache_redis_url
     if not redis_url:
         return None
-    if _REDIS_CLIENT is None:
-        _REDIS_CLIENT = redis.Redis.from_url(
-            redis_url,
-            decode_responses=True,
-        )
+    with _REDIS_CLIENT_LOCK:
+        if _REDIS_CLIENT is None:
+            _REDIS_CLIENT = redis.Redis.from_url(
+                redis_url,
+                decode_responses=True,
+                max_connections=32,
+                socket_connect_timeout=2,
+                socket_timeout=2,
+                retry=Retry(NoBackoff(), 0),
+                health_check_interval=15,
+                client_name=f"{settings.cache_prefix}:rt:{os.getpid()}",
+            )
     return _REDIS_CLIENT
 
 
@@ -39,6 +51,14 @@ def get_cache_prefix() -> str:
 
 def get_redis_client() -> Optional[Any]:
     return _get_client()
+
+
+def close_redis_client() -> None:
+    global _REDIS_CLIENT
+    with _REDIS_CLIENT_LOCK:
+        if _REDIS_CLIENT is not None:
+            _REDIS_CLIENT.close()
+            _REDIS_CLIENT = None
 
 
 def build_cache_key(
@@ -61,17 +81,21 @@ def get_cached_json(cache_key: str) -> Optional[Any]:
     client = _get_client()
     if client is None:
         return None
-    payload = client.get(cache_key)
-    if not payload:
+    try:
+        payload = client.get(cache_key)
+        return json.loads(payload) if payload else None
+    except Exception:
         return None
-    return json.loads(payload)
 
 
 def set_cached_json(cache_key: str, value: Any, *, ttl_seconds: int) -> None:
     client = _get_client()
     if client is None:
         return
-    client.setex(cache_key, ttl_seconds, json.dumps(value))
+    try:
+        client.setex(cache_key, ttl_seconds, json.dumps(value))
+    except Exception:
+        return
 
 
 def invalidate_prefix(prefix: str) -> None:

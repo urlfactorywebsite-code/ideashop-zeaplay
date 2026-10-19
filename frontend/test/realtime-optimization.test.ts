@@ -20,8 +20,9 @@ test('presence and call hooks share one Socket.IO lease per auth context', () =>
   assert.match(sharedSocketSource, /tokenFingerprint/);
   assert.match(sharedSocketSource, /socket\.off\(eventName, handler\)/);
 
-  assert.match(presenceHookSource, /acquireSharedPresenceSocket\(user\.id\)/);
-  assert.match(callsHookSource, /acquireSharedPresenceSocket\(currentUser\.id\)/);
+  assert.match(presenceHookSource, /acquireSharedPresenceSocket\(user\.id, user\.tenantId\)/);
+  assert.match(callsHookSource, /acquireSharedPresenceSocket\(currentUser\.id, currentUser\.tenantId\)/);
+  assert.match(sharedSocketSource, /entry\.accessToken !== getAccessToken\(\)/);
   assert.match(callsHookSource, /lease\.emit\('call:end'/);
   assert.match(callsHookSource, /lease\.emit\('meeting:leave'/);
   assert.match(callsHookSource, /stopMediaTracks\(\)/);

@@ -1,0 +1,18 @@
+{
+  "results": [
+    "PASS: slow scene loading keeps the first background static and the login usable",
+    "PASS: all three provided images render; no WebGL canvas or external CSS dependency",
+    "PASS: background moves and the pause/play control works",
+    "PASS: rounded border follows responsive perimeter in six seconds; neon/smoke animate and pause",
+    "PASS: each scene becomes visible and adjacent scenes crossfade without a blank interval",
+    "PASS: six desktop/tablet/mobile/short-landscape viewports without horizontal overflow or clipped controls",
+    "PASS: physical hover/press/ripple and real Web Audio opt-in/mute; no autoplay context",
+    "PASS: native required/email validation, password visibility and keyboard focus",
+    "PASS: existing recovery modal/API contract, Escape and focus restoration",
+    "PASS: keyboard login, unchanged payload, duplicate-submit guard, pending state and backend error with audio cue",
+    "PASS: existing successful-login session/redirect; success cue followed by audio resource cleanup",
+    "PASS: live reduced-motion preference and stable readable design under all existing theme settings",
+    "PASS: no uncaught page errors"
+  ],
+  "safety": "Loopback only; API/CDN traffic intercepted; no real credentials or emails."
+}

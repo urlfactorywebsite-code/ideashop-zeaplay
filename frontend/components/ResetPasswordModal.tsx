@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import api from '../services/mockApi';
 import { User } from '../types';
 import { EyeIcon, EyeSlashIcon } from './icons';
+import { passwordError } from '../utils/passwordReset';
 
 interface ResetPasswordModalProps {
   isOpen: boolean;
@@ -36,12 +37,9 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, onClose
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newPassword !== confirmPassword) {
-            setError("Passwords do not match.");
-            return;
-        }
-        if (newPassword.length < 8) {
-            setError("Password must be at least 8 characters long.");
+        const validation = passwordError(newPassword, confirmPassword);
+        if (validation) {
+            setError(validation);
             return;
         }
         setIsSubmitting(true);

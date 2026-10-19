@@ -33,6 +33,37 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
 
+class RealtimeAggregate(Base):
+    __tablename__ = "realtime_aggregates"
+    tenant_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    aggregate_type: Mapped[str] = mapped_column(String(16), primary_key=True)
+    aggregate_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    version: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class RealtimeOutbox(Base):
+    __tablename__ = "realtime_outbox"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "aggregate_type", "aggregate_id", "aggregate_version", name="uq_realtime_outbox_version"),
+        Index("ix_realtime_outbox_due", "status", "next_attempt_at", "created_at"),
+        CheckConstraint("status IN ('PENDING', 'PUBLISHED', 'DEAD')", name="ck_realtime_outbox_status"),
+        CheckConstraint("aggregate_version > 0 AND attempt_count >= 0", name="ck_realtime_outbox_counters"),
+    )
+    event_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    aggregate_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    aggregate_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    aggregate_version: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    event_type: Mapped[str] = mapped_column(String(96), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON().with_variant(JSONB, "postgresql"), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="PENDING")
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+
+
 # ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
@@ -422,6 +453,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     employer_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    credentials_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
     role: Mapped[RoleEnum] = mapped_column(SAEnum(RoleEnum), default=RoleEnum.USER, nullable=False)
     department_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("departments.id", ondelete="SET NULL"), nullable=True
@@ -1127,7 +1159,7 @@ class SubtaskWorkflowEvent(Base):
     payload: Mapped[Optional[dict]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     task: Mapped[Task] = relationship("Task")
     subtask: Mapped[Subtask] = relationship("Subtask")
@@ -1226,6 +1258,9 @@ class TimeEntry(Base):
         Index("ix_time_entries_tenant_user_started", "tenant_id", "user_id", "started_at"),
         Index("ix_time_entries_task_started", "task_id", "started_at"),
         Index("ix_time_entries_subtask_started", "subtask_id", "started_at"),
+        Index("uq_time_entries_continued_from_id", "continued_from_id", unique=True,
+              postgresql_where=text("continued_from_id IS NOT NULL"),
+              sqlite_where=text("continued_from_id IS NOT NULL")),
         Index(
             "uq_time_entries_one_active_per_user",
             "tenant_id",
@@ -1237,6 +1272,9 @@ class TimeEntry(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    continued_from_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    start_kind: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    stop_reason: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
@@ -1268,9 +1306,9 @@ class TimeEntry(Base):
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     corrected_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
 
     user: Mapped[User] = relationship("User", foreign_keys=[user_id])
@@ -2300,6 +2338,37 @@ class TaskTemplate(Base):
     creator: Mapped[User] = relationship("User", back_populates="task_templates")
 
 
+class TaskLifecycleEvent(Base):
+    """Immutable database observations, deliberately independent of cascading business FKs."""
+
+    __tablename__ = "task_lifecycle_events"
+    __table_args__ = (
+        Index("ix_task_lifecycle_tenant_task_id", "tenant_id", "task_id", "id"),
+        Index("ix_task_lifecycle_entry_id", "time_entry_id", "id"),
+        Index("ix_task_lifecycle_subtask_id", "subtask_id", "id"),
+        Index("ix_task_lifecycle_task_id", "task_id", "id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True)
+    task_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    subtask_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    time_entry_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    event_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    previous_status: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    new_status: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    actor_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    details: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+
+class TaskLifecycleCoverage(Base):
+    __tablename__ = "task_lifecycle_coverage"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 # Add relationships to existing models
 Department.task_templates: Mapped[List["TaskTemplate"]] = relationship("TaskTemplate", back_populates="department")
 User.task_templates: Mapped[List["TaskTemplate"]] = relationship("TaskTemplate", back_populates="creator")
@@ -2580,5 +2649,11 @@ User.created_levels: Mapped[List["Level"]] = relationship("Level", back_populate
 Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
 Level.user_progress: Mapped[List["UserProgress"]] = relationship("UserProgress", back_populates="level", cascade="all, delete-orphan")
 Reward.level_nodes: Mapped[List["LevelNode"]] = relationship("LevelNode", back_populates="reward")
+
+# Register transactional actor context and bootstrap/test DDL only after models exist.
+from .lifecycle import context as _lifecycle_context  # noqa: E402,F401
+from .lifecycle.schema_v1 import register_metadata as _register_lifecycle_metadata  # noqa: E402
+
+_register_lifecycle_metadata(Base.metadata)
 
 

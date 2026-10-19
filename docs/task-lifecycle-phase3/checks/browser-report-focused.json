@@ -1,0 +1,390 @@
+{
+  "results": [
+    {
+      "name": "report: lazy loading, recorded identities and reopened completion metrics",
+      "result": "PASS"
+    },
+    {
+      "name": "report: completion attempts preserve rejected history in chronological order",
+      "result": "PASS"
+    },
+    {
+      "name": "report: private image preview and object URL cleanup",
+      "result": "PASS"
+    },
+    {
+      "name": "report: secure download and missing, deleted, unverified evidence states",
+      "result": "PASS"
+    },
+    {
+      "name": "report: validated PDF opens in native viewer with no persistent object URLs",
+      "result": "PASS"
+    },
+    {
+      "name": "report: pagination and refresh preserve loaded evidence and completion attempts",
+      "result": "PASS"
+    },
+    {
+      "name": "report: responsive large datasets, keyboard tabs and reduced motion",
+      "result": "PASS"
+    },
+    {
+      "name": "report: errors, recovery, realtime invalidation and close cleanup",
+      "result": "PASS"
+    }
+  ],
+  "measurements": {
+    "pdfFrames": [
+      {
+        "url": "http://127.0.0.1:6302/__journey-test"
+      },
+      {
+        "url": "blob:http://127.0.0.1:6302/f58b6fd5-adf3-454d-a5f2-304c387199bc"
+      },
+      {
+        "url": "chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/index.html"
+      },
+      {
+        "url": "blob:http://127.0.0.1:6302/f58b6fd5-adf3-454d-a5f2-304c387199bc"
+      }
+    ]
+  },
+  "pageErrors": [],
+  "sockets": [
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/"
+  ],
+  "requests": [
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/screenshot",
+      "search": "?preview=true",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/screenshot",
+      "search": "?preview=false",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/screenshot",
+      "search": "?preview=true",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/acceptance",
+      "search": "?preview=true",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=attempt-a&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=screenshot&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=attempt-a&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=screenshot&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/screenshot",
+      "search": "?preview=true",
+      "method": "GET"
+    }
+  ]
+}

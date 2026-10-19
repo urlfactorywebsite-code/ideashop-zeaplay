@@ -7,6 +7,7 @@ import PageLoader from './components/loading/PageLoader';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import PasswordReset from './pages/PasswordReset';
 import NotFound from './pages/NotFound';
 import { Role } from './types';
 
@@ -47,6 +48,7 @@ const AppRoutes: React.FC = () => {
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<PasswordReset />} />
             
             <Route path="/" element={<ProtectedLayout />}>
                 <Route index element={<Navigate to={user?.role === Role.USER ? "/dashboard" : "/tasks"} replace />} />

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getWebSocketTicket, toWebSocketBaseUrl } from '../services/realtimeAuth';
 import { RealtimeReconnectController } from '../services/realtimeBackoff';
+import { useAuth } from './useAuth';
+import { publishTaskRealtime } from '../services/taskRealtimeEvents';
 
 type TaskSocketStatus = 'connected' | 'connecting' | 'offline';
 
@@ -16,7 +18,7 @@ const resolveTasksSocketUrl = (): string | null => {
   const base =
     import.meta.env.VITE_API_URL ??
     import.meta.env.VITE_API_BASE_URL ??
-    (typeof window !== 'undefined' ? window.location.origin : '');
+    '/api';
 
   if (!base) {
     return null;
@@ -26,6 +28,7 @@ const resolveTasksSocketUrl = (): string | null => {
 };
 
 export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOptions) => {
+  const { user } = useAuth();
   const [status, setStatus] = useState<TaskSocketStatus>('offline');
   const socketRef = useRef<WebSocket | null>(null);
   const onEventRef = useRef(onEvent);
@@ -33,7 +36,6 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
   const connectAttemptRef = useRef(0);
   const mountedRef = useRef(false);
   const connectingRef = useRef(false);
-  const hasOpenedRef = useRef(false);
 
   useEffect(() => {
     onEventRef.current = onEvent;
@@ -65,13 +67,15 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
       connectingRef.current = true;
       const token = await getWebSocketTicket('tasks');
       const wsUrl = resolveTasksSocketUrl();
-      connectingRef.current = false;
       if (attempt !== connectAttemptRef.current) return;
+      connectingRef.current = false;
       if (!mountedRef.current) return;
       if (!token || !wsUrl) {
         setStatus('offline');
+        if (wsUrl) reconnectControllerRef.current.schedule(connect);
         return;
       }
+      if (socketRef.current && socketRef.current.readyState <= WebSocket.OPEN) return;
 
       const url = `${wsUrl}?token=${encodeURIComponent(token)}`;
       setStatus('connecting');
@@ -82,20 +86,19 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
         if (socketRef.current !== socket || !mountedRef.current) return;
         reconnectControllerRef.current.reset();
         setStatus('connected');
-        if (hasOpenedRef.current) {
-          onEventRef.current?.({ type: 'realtime:reconnected' });
-        }
-        hasOpenedRef.current = true;
+        publishTaskRealtime({ userId: user.id, tenantId: user.tenantId ?? null, payload: { type: 'realtime:reconnected' } });
+        onEventRef.current?.({ type: 'realtime:reconnected' });
       };
 
       socket.onmessage = (event) => {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || socketRef.current !== socket) return;
         try {
           const payload = JSON.parse(event.data);
           if (payload?.type === 'ping') {
             socket.send(JSON.stringify({ type: 'pong' }));
             return;
           }
+          publishTaskRealtime({ userId: user.id, tenantId: user.tenantId ?? null, payload });
           onEventRef.current?.(payload);
         } catch {
           // ignore malformed payload
@@ -103,9 +106,8 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
       };
 
       socket.onclose = (event) => {
-        if (socketRef.current === socket) {
-          socketRef.current = null;
-        }
+        if (socketRef.current !== socket) return;
+        socketRef.current = null;
         setStatus('offline');
         if (!mountedRef.current || !enabled || event.code === 1008) {
           return;
@@ -117,12 +119,12 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
         socket.close();
       };
     })();
-  }, [enabled]);
+  }, [enabled, user?.id, user?.tenantId]);
 
   useEffect(() => {
     mountedRef.current = true;
     reconnectControllerRef.current.activate();
-    if (!enabled) {
+    if (!enabled || !user?.id) {
       cleanup();
       setStatus('offline');
       return;
@@ -132,7 +134,7 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
       mountedRef.current = false;
       cleanup();
     };
-  }, [cleanup, connect, enabled]);
+  }, [cleanup, connect, enabled, user?.id, user?.tenantId]);
 
   return useMemo(
     () => ({

@@ -1,0 +1,4 @@
+TypeScript exit: 2
+Existing diagnostics: 131
+Changed diagnostic lines: 0
+No frontend lint script is configured.

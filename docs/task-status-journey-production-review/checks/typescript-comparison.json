@@ -1,0 +1,11 @@
+{
+  "baseline": "docs/task-lifecycle-phase2/checks/review-typescript.txt",
+  "current": "docs/task-status-journey-production-review/checks/typescript.txt",
+  "normalization": "Replace diagnostic line/column positions, then compare sorted path/error-message multisets",
+  "baselineErrors": 131,
+  "currentErrors": 131,
+  "newDiagnostics": 0,
+  "removedDiagnostics": 0,
+  "exitCode": 2,
+  "result": "FAIL_PREEXISTING"
+}

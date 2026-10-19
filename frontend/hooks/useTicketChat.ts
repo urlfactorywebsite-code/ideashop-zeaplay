@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getWebSocketTicket, toWebSocketBaseUrl } from '../services/realtimeAuth';
 import { RealtimeReconnectController } from '../services/realtimeBackoff';
+import { getAccessToken } from '../services/tokenStorage';
+import { CoalescedReconciliation, comparePersistedTimes, RecentEventIds } from '../services/realtimeRecovery';
+import { useAuth } from './useAuth';
 
 export type TicketChatComment = {
     id: string;
@@ -38,7 +41,8 @@ const resolveTicketChatUrl = (): string => {
     return 'ws://localhost:6311/api';
 };
 
-export const useTicketChat = (ticketId?: string): TicketChatState => {
+export const useTicketChat = (ticketId?: string, onReconcile?: () => void): TicketChatState => {
+    const { user } = useAuth();
     const [connected, setConnected] = useState(false);
     const [messages, setMessages] = useState<TicketChatMessage[]>([]);
     const socketRef = useRef<WebSocket | null>(null);
@@ -46,11 +50,22 @@ export const useTicketChat = (ticketId?: string): TicketChatState => {
     const mountedRef = useRef(false);
     const connectingRef = useRef(false);
     const connectAttemptRef = useRef(0);
+    const reconcileRef = useRef(onReconcile);
+    reconcileRef.current = onReconcile;
+    const seenRef = useRef(new RecentEventIds());
+    const bufferedRef = useRef<TicketChatMessage[] | null>(null);
+    const recoveryTimerRef = useRef<number | null>(null);
+    const recoveryAbortRef = useRef<AbortController | null>(null);
+    const recoveryRef = useRef<CoalescedReconciliation | null>(null);
 
     const cleanup = useCallback(() => {
         connectAttemptRef.current += 1;
         reconnectControllerRef.current.cancel();
         connectingRef.current = false;
+        bufferedRef.current = null;
+        recoveryRef.current?.cancel();
+        recoveryAbortRef.current?.abort();
+        if (recoveryTimerRef.current !== null) window.clearTimeout(recoveryTimerRef.current);
         if (socketRef.current) {
             socketRef.current.onopen = null;
             socketRef.current.onclose = null;
@@ -68,7 +83,9 @@ export const useTicketChat = (ticketId?: string): TicketChatState => {
                 if (prev.some((message) => message.type === 'comment' && message.comment.id === parsed.comment.id)) {
                     return prev;
                 }
-                return [...prev, parsed].slice(-200);
+                const comments = [...prev.filter((message): message is Extract<TicketChatMessage, { type: 'comment' }> => message.type === 'comment'), parsed];
+                comments.sort((a, b) => comparePersistedTimes(a.comment.created_at, b.comment.created_at) || a.comment.id.localeCompare(b.comment.id));
+                return [...comments, ...prev.filter(message => message.type !== 'comment')].slice(-200);
             }
             if (parsed.type === 'typing') {
                 return [
@@ -90,43 +107,111 @@ export const useTicketChat = (ticketId?: string): TicketChatState => {
             const attempt = ++connectAttemptRef.current;
             connectingRef.current = true;
             const token = await getWebSocketTicket('tickets');
+            if (attempt !== connectAttemptRef.current) return;
             connectingRef.current = false;
-            if (attempt !== connectAttemptRef.current || !mountedRef.current || !token) {
+            if (!mountedRef.current) return;
+            if (!token) {
+                reconnectControllerRef.current.schedule(connect);
                 return;
             }
+            if (socketRef.current && socketRef.current.readyState <= WebSocket.OPEN) return;
 
             const baseUrl = resolveTicketChatUrl();
             const wsUrl = `${baseUrl}/ws/tickets/${ticketId}?token=${encodeURIComponent(token)}`;
             const socket = new WebSocket(wsUrl);
             socketRef.current = socket;
+            let waitingForReady = true;
+            const abort = new AbortController();
+            recoveryAbortRef.current = abort;
+
+            const recovery = new CoalescedReconciliation(async () => {
+                if (waitingForReady || socketRef.current !== socket) return;
+                bufferedRef.current ??= [];
+                try {
+                    const apiBase = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+                    const response = await fetch(`${apiBase}/ws/tickets/${ticketId}/snapshot`, {
+                        headers: { Authorization: `Bearer ${getAccessToken()}` },
+                        signal: abort.signal,
+                    });
+                    if (!response.ok) throw new Error('Ticket recovery failed');
+                    const snapshot = await response.json();
+                    if (!mountedRef.current || socketRef.current !== socket) return;
+                    const byId = new Map<string, TicketChatMessage>();
+                    for (const message of [
+                        ...snapshot.comments.map((comment: TicketChatComment) => ({ type: 'comment' as const, comment })),
+                        ...(bufferedRef.current || []),
+                    ]) {
+                        if (message.type === 'comment') byId.set(message.comment.id, message);
+                    }
+                    setMessages([...byId.values()].sort((a, b) => {
+                        if (a.type !== 'comment' || b.type !== 'comment') return 0;
+                        return comparePersistedTimes(a.comment.created_at, b.comment.created_at) || a.comment.id.localeCompare(b.comment.id);
+                    }).slice(-200));
+                    bufferedRef.current = null;
+                    reconcileRef.current?.();
+                } catch {
+                    if (socketRef.current !== socket) return;
+                    bufferedRef.current = null;
+                    appendMessage({ type: 'error', message: 'Unable to refresh ticket history. Reconnecting.' });
+                    socket.close();
+                }
+            });
+            recoveryRef.current = recovery;
+            const recover = () => recovery.request();
 
             socket.onopen = () => {
                 if (socketRef.current !== socket || !mountedRef.current) return;
                 reconnectControllerRef.current.reset();
                 setConnected(true);
+                seenRef.current = new RecentEventIds();
+                bufferedRef.current = [];
+                // Older backends do not send the additive ready control frame.
+                recoveryTimerRef.current = window.setTimeout(() => {
+                    waitingForReady = false;
+                    void recover();
+                }, 1000);
             };
             socket.onclose = (event) => {
-                if (socketRef.current === socket) {
-                    socketRef.current = null;
-                }
+                recovery.cancel();
+                abort.abort();
+                if (socketRef.current !== socket) return;
+                socketRef.current = null;
+                bufferedRef.current = null;
+                if (recoveryTimerRef.current !== null) window.clearTimeout(recoveryTimerRef.current);
                 setConnected(false);
+                if (event.code === 1008) setMessages([]);
                 if (!mountedRef.current || event.code === 1008) return;
                 reconnectControllerRef.current.schedule(connect);
             };
             socket.onerror = () => socket.close();
             socket.onmessage = (event) => {
-                if (!mountedRef.current) return;
+                if (!mountedRef.current || socketRef.current !== socket) return;
                 try {
-                    appendMessage(JSON.parse(event.data) as TicketChatMessage);
+                    const parsed = JSON.parse(event.data);
+                    if (!seenRef.current.accept(parsed.event_id)) return;
+                    if (parsed.type === 'realtime:ready') {
+                        if (recoveryTimerRef.current !== null) window.clearTimeout(recoveryTimerRef.current);
+                        waitingForReady = false;
+                        void recover();
+                    } else if (parsed.type === 'ticket.changed') {
+                        if (recoveryTimerRef.current !== null) window.clearTimeout(recoveryTimerRef.current);
+                        recoveryTimerRef.current = window.setTimeout(() => { void recover(); }, 250);
+                    } else if (bufferedRef.current !== null) {
+                        if (bufferedRef.current.length >= 200) socket.close();
+                        else bufferedRef.current.push(parsed);
+                    } else {
+                        appendMessage(parsed as TicketChatMessage);
+                    }
                 } catch (error) {
-                    console.warn('Ticket chat message parse failed', error);
+                    console.warn('Ticket chat message parse failed');
                 }
             };
         })();
     }, [appendMessage, ticketId]);
 
     useEffect(() => {
-        if (!ticketId) {
+        if (!ticketId || !user?.id) {
+            setMessages([]);
             return () => undefined;
         }
         mountedRef.current = true;
@@ -138,7 +223,7 @@ export const useTicketChat = (ticketId?: string): TicketChatState => {
             mountedRef.current = false;
             cleanup();
         };
-    }, [cleanup, connect, ticketId]);
+    }, [cleanup, connect, ticketId, user?.id, user?.tenantId]);
 
     const sendComment = useCallback((body: string, isInternal = false) => {
         if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {

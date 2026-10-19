@@ -1,13 +1,16 @@
 import crypto from 'node:crypto';
 import http from 'node:http';
+import fs from 'node:fs';
 
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { createClient } from 'redis';
 import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
+import { adapter, authFailures, errors as metricErrors, instrument, metricsRoute, presence } from './metrics.js';
 
 const config = {
+  environment: process.env.NODE_ENV || process.env.VEE_ENVIRONMENT || 'development',
   port: Number.parseInt(process.env.PRESENCE_PORT || '6312', 10),
   redisUrl: process.env.PRESENCE_REDIS_URL || 'redis://localhost:6379',
   jwtSecret: process.env.PRESENCE_JWT_SECRET || '',
@@ -28,6 +31,12 @@ if (!config.jwtSecret) {
 const instanceId = crypto.randomUUID();
 const app = express();
 const server = http.createServer(app);
+if (process.env.PRESENCE_TEST_ISOLATION_FILE) {
+  if (config.environment !== 'test') throw new Error('Isolation proof is test-only');
+  const proof = JSON.parse(fs.readFileSync(process.env.PRESENCE_TEST_ISOLATION_FILE, 'utf8'));
+  if (!proof.nonce || !proof.runId || !Array.isArray(proof.accounts)) throw new Error('Invalid owned isolation proof');
+  app.get('/api/__test__/realtime-isolation', (_request, response) => response.json({ ...proof, outboundDeliveryBlocked: true }));
+}
 const redis = createClient({ url: config.redisUrl });
 const pubClient = createClient({ url: config.redisUrl });
 const subClient = pubClient.duplicate();
@@ -67,9 +76,12 @@ function parseBool(value, fallback) {
 
 function normalizeOrigin(origin) {
   try {
-    const url = new URL(origin.trim());
+    if (typeof origin !== 'string' || /[\s\x00-\x1f\x7f\\,?#@]/.test(origin) || origin.endsWith('/') || origin.endsWith(':')) {
+      return '';
+    }
+    const url = new URL(origin);
     const protocol = url.protocol.toLowerCase();
-    if (protocol !== 'http:' && protocol !== 'https:') {
+    if ((protocol !== 'http:' && protocol !== 'https:') || url.pathname !== '/' || url.username || url.password) {
       return '';
     }
     const defaultPort =
@@ -86,12 +98,12 @@ function isAllowedOrigin(origin) {
   if (!origin) {
     return !config.requireOrigin;
   }
-  if (config.corsOrigins.includes('*')) {
-    return true;
-  }
   const normalizedOrigin = normalizeOrigin(origin);
   if (!normalizedOrigin) {
     return false;
+  }
+  if (config.corsOrigins.includes('*')) {
+    return config.environment !== 'production';
   }
   const allowedOrigins = new Set(config.corsOrigins.map(normalizeOrigin).filter(Boolean));
   if (allowedOrigins.has(normalizedOrigin)) {
@@ -160,6 +172,13 @@ function extractToken(socket) {
 }
 
 function authenticateSocket(socket, next) {
+  authenticateSocketRequest(socket, error => {
+    if (error) authFailures.inc();
+    next(error);
+  });
+}
+
+function authenticateSocketRequest(socket, next) {
   const token = extractToken(socket);
   if (!token) {
     next(new Error('Authentication token required'));
@@ -172,6 +191,11 @@ function authenticateSocket(socket, next) {
     });
     if (payload.token_type && payload.token_type !== 'access') {
       next(new Error('Invalid token type'));
+      return;
+    }
+    if (payload.purpose === 'websocket' && (!Array.isArray(payload.scopes) ||
+        !payload.scopes.some(scope => ['websocket:presence', 'websocket:calls', 'websocket:realtime'].includes(scope)))) {
+      next(new Error('WebSocket ticket scope mismatch'));
       return;
     }
 
@@ -228,6 +252,7 @@ async function markOnline(socket) {
   const wasLocalOffline = localSockets.size === 0;
   localSockets.add(socket.id);
   localUserSockets.set(localKey, localSockets);
+  presence.set(localUserSockets.size);
   socketProfiles.set(socket.id, profile);
 
   const socketCount = await redis.sAdd(tenantUserSocketsKey, socket.id);
@@ -254,6 +279,7 @@ async function markOffline(socket) {
     localSockets.delete(socket.id);
     if (localSockets.size === 0) {
       localUserSockets.delete(localKey);
+      presence.set(localUserSockets.size);
     }
   }
   socketProfiles.delete(socket.id);
@@ -410,6 +436,11 @@ function leaveMeetingRoom(socket, meetingId) {
 }
 
 const io = new Server(server, {
+  allowRequest(request, callback) {
+    const allowed = isAllowedOrigin(request.headers.origin);
+    if (!allowed) metricErrors.inc({ kind: 'origin' });
+    callback(null, allowed);
+  },
   cors: {
     origin(origin, callback) {
       if (isAllowedOrigin(origin)) {
@@ -424,6 +455,7 @@ const io = new Server(server, {
 });
 
 io.use(authenticateSocket);
+app.get('/internal/metrics', metricsRoute);
 
 app.get('/health', async (_req, res) => {
   let redisStatus = redisReady ? 'ok' : 'unavailable';
@@ -442,6 +474,7 @@ app.get('/health', async (_req, res) => {
 });
 
 io.on('connection', async (socket) => {
+  const on = instrument(socket);
   const profile = socket.data.user;
   if (exceedsConnectionLimits(profile)) {
     socket.emit('presence:error', { code: 'connection_limit' });
@@ -450,26 +483,27 @@ io.on('connection', async (socket) => {
   }
   console.log(`[presence] socket connected user=${profile.id} tenant=${profile.tenantId} active=${io.engine.clientsCount}`);
 
-  socket.on('presence:get', async (ack) => {
+  on('presence:get', async (ack) => {
     try {
       const users = await redis.sMembers(onlineKey(profile.tenantId));
       ack?.({ ok: true, users });
     } catch (error) {
-      console.error('[presence] presence:get failed', error);
+      console.error('[presence] presence:get failed', error?.constructor?.name || 'Error');
       ack?.({ ok: false, error: 'Presence unavailable' });
     }
   });
 
-  socket.on('presence:ping', async (ack) => {
+  on('presence:ping', async (ack) => {
     try {
       await redis.expire(userSocketsKey(profile.tenantId, profile.id), 60 * 60 * 24);
       ack?.({ ok: true });
     } catch {
+      metricErrors.inc({ kind: 'presence_heartbeat' });
       ack?.({ ok: false });
     }
   });
 
-  socket.on('chat:join', async (payload, ack) => {
+  on('chat:join', async (payload, ack) => {
     try {
       const spaceId = typeof payload?.spaceId === 'string' ? payload.spaceId.trim() : '';
       if (!spaceId) {
@@ -480,19 +514,19 @@ io.on('connection', async (socket) => {
       const history = await getChatHistory(profile.tenantId, spaceId);
       ack?.({ ok: true, history });
     } catch (error) {
-      console.error('[chat] join failed', error);
+      console.error('[chat] join failed', error?.constructor?.name || 'Error');
       ack?.({ ok: false, error: 'Failed to join chat' });
     }
   });
 
-  socket.on('chat:leave', (payload) => {
+  on('chat:leave', (payload) => {
     const spaceId = typeof payload?.spaceId === 'string' ? payload.spaceId.trim() : '';
     if (spaceId) {
       socket.leave(buildChatRoom(profile.tenantId, spaceId));
     }
   });
 
-  socket.on('chat:message', async (payload, ack) => {
+  on('chat:message', async (payload, ack) => {
     try {
       const message = normalizeMessage(payload, profile.id);
       await saveChatMessage(profile.tenantId, message);
@@ -510,12 +544,12 @@ io.on('connection', async (socket) => {
 
       ack?.({ ok: true, message });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to send message';
+      const message = 'Failed to send message';
       ack?.({ ok: false, error: message });
     }
   });
 
-  socket.on('chat:typing', (payload) => {
+  on('chat:typing', (payload) => {
     const spaceId = typeof payload?.spaceId === 'string' ? payload.spaceId.trim() : '';
     if (!spaceId) {
       return;
@@ -528,7 +562,7 @@ io.on('connection', async (socket) => {
     });
   });
 
-  socket.on('chat:reaction', (payload, ack) => {
+  on('chat:reaction', (payload, ack) => {
     const spaceId = typeof payload?.spaceId === 'string' ? payload.spaceId.trim() : '';
     const messageId = typeof payload?.messageId === 'string' ? payload.messageId.trim() : '';
     const reaction = typeof payload?.reaction === 'string' ? payload.reaction.trim() : '';
@@ -541,7 +575,7 @@ io.on('connection', async (socket) => {
     ack?.({ ok: true });
   });
 
-  socket.on('chat:space', (payload) => {
+  on('chat:space', (payload) => {
     const space = normalizeSpaceSnapshot(payload?.space || payload, profile.id);
     if (!space) {
       return;
@@ -557,7 +591,7 @@ io.on('connection', async (socket) => {
     });
   });
 
-  socket.on('call:initiate', (payload, ack) => {
+  on('call:initiate', (payload, ack) => {
     const recipientId = typeof payload?.recipientId === 'string' ? payload.recipientId.trim() : '';
     if (!recipientId) {
       ack?.({ ok: false, error: 'recipientId is required' });
@@ -575,7 +609,7 @@ io.on('connection', async (socket) => {
     ack?.({ ok: true });
   });
 
-  socket.on('call:answer', (payload, ack) => {
+  on('call:answer', (payload, ack) => {
     const callerId = typeof payload?.callerId === 'string' ? payload.callerId.trim() : '';
     if (!callerId) {
       ack?.({ ok: false, error: 'callerId is required' });
@@ -588,7 +622,7 @@ io.on('connection', async (socket) => {
     ack?.({ ok: true });
   });
 
-  socket.on('call:candidate', (payload) => {
+  on('call:candidate', (payload) => {
     const targetUserId = typeof payload?.targetUserId === 'string' ? payload.targetUserId.trim() : '';
     if (!targetUserId) {
       return;
@@ -599,21 +633,21 @@ io.on('connection', async (socket) => {
     });
   });
 
-  socket.on('call:reject', (payload) => {
+  on('call:reject', (payload) => {
     const callerId = typeof payload?.callerId === 'string' ? payload.callerId.trim() : '';
     if (callerId) {
       io.to(buildUserRoom(profile.tenantId, callerId)).emit('call:rejected', { responderId: profile.id });
     }
   });
 
-  socket.on('call:end', (payload) => {
+  on('call:end', (payload) => {
     const targetUserId = typeof payload?.targetUserId === 'string' ? payload.targetUserId.trim() : '';
     if (targetUserId) {
       io.to(buildUserRoom(profile.tenantId, targetUserId)).emit('call:ended', { fromUserId: profile.id });
     }
   });
 
-  socket.on('meeting:join', (payload, ack) => {
+  on('meeting:join', (payload, ack) => {
     const meetingId = typeof payload?.meetingId === 'string' ? payload.meetingId.trim() : '';
     if (!meetingId) {
       ack?.({ ok: false, error: 'meetingId is required' });
@@ -631,7 +665,7 @@ io.on('connection', async (socket) => {
     ack?.({ ok: true, participants: Array.from(room.values()) });
   });
 
-  socket.on('meeting:media_state', (payload) => {
+  on('meeting:media_state', (payload) => {
     const meetingId = typeof payload?.meetingId === 'string' ? payload.meetingId.trim() : '';
     const room = meetingId ? meetingRooms.get(meetingRoomKey(profile.tenantId, meetingId)) : null;
     const participant = room?.get(socket.id);
@@ -647,7 +681,7 @@ io.on('connection', async (socket) => {
     emitMeetingParticipants(profile.tenantId, meetingId);
   });
 
-  socket.on('meeting:leave', (payload) => {
+  on('meeting:leave', (payload) => {
     const meetingId = typeof payload?.meetingId === 'string' ? payload.meetingId.trim() : '';
     if (meetingId) {
       leaveMeetingRoom(socket, meetingId);
@@ -662,23 +696,29 @@ io.on('connection', async (socket) => {
       }
       await markOffline(socket);
     } catch (error) {
-      console.error('[presence] failed to mark offline', error);
+      console.error('[presence] failed to mark offline', error?.constructor?.name || 'Error');
     }
   });
 
   try {
     await markOnline(socket);
   } catch (error) {
-    console.error('[presence] failed to mark online', error);
+    console.error('[presence] failed to mark online', error?.constructor?.name || 'Error');
     socket.disconnect(true);
   }
 });
 
 async function start() {
-  for (const client of [redis, pubClient, subClient]) {
+  for (const [name, client] of [['command', redis], ['publisher', pubClient], ['subscriber', subClient]]) {
+    adapter.set({ client: name }, 0);
+    client.on('ready', () => adapter.set({ client: name }, 1));
+    client.on('reconnecting', () => { adapter.set({ client: name }, 0); metricErrors.inc({ kind: 'redis_reconnect' }); });
+    client.on('end', () => adapter.set({ client: name }, 0));
     client.on('error', (error) => {
+      adapter.set({ client: name }, 0);
+      metricErrors.inc({ kind: 'redis' });
       if (!shuttingDown) {
-        console.error('[redis] error', error);
+        console.error('[redis] error', error?.constructor?.name || 'Error');
       }
     });
   }
@@ -698,7 +738,7 @@ async function start() {
         tenantId: event.tenantId,
       });
     } catch (error) {
-      console.error('[presence] invalid pubsub payload', error);
+      console.error('[presence] invalid pubsub payload', error?.constructor?.name || 'Error');
     }
   });
 
@@ -727,6 +767,6 @@ process.on('SIGINT', () => void shutdown('SIGINT'));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
 start().catch((error) => {
-  console.error('[presence] failed to start', error);
+  console.error('[presence] failed to start', error?.constructor?.name || 'Error');
   process.exit(1);
 });

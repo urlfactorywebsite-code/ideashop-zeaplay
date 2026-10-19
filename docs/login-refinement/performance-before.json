@@ -1,0 +1,40 @@
+{
+  "results": [],
+  "measurements": {
+    "desktop": {
+      "frames": 217,
+      "medianMs": 16.699999999999818,
+      "p95Ms": 16.800000000000182,
+      "gapsOver34ms": 0,
+      "longTasks": 0,
+      "heapMiB": 16.56713104248047,
+      "taskSeconds": 0.5016109999999999,
+      "layouts": 0,
+      "styleRecalculations": 218,
+      "elements": 124,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "cpuSlowdown": 1
+    },
+    "mobileCpu4x": {
+      "frames": 217,
+      "medianMs": 16.699999999999818,
+      "p95Ms": 16.800000000000182,
+      "gapsOver34ms": 0,
+      "longTasks": 0,
+      "heapMiB": 16.59054183959961,
+      "taskSeconds": 1.919375,
+      "layouts": 0,
+      "styleRecalculations": 219,
+      "elements": 124,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "cpuSlowdown": 4
+    }
+  },
+  "scope": "Headless Chrome on this Windows host; emulated viewport/CPU, not physical mobile hardware. APIs/CDNs intercepted. Heap is JS-only; not GPU/process memory."
+}

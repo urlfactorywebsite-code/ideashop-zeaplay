@@ -209,7 +209,7 @@ export const useNexusCalls = (currentUser?: User | null) => {
       return undefined;
     }
 
-    const lease = acquireSharedPresenceSocket(currentUser.id);
+    const lease = acquireSharedPresenceSocket(currentUser.id, currentUser.tenantId);
     if (!lease) {
       setConnected(false);
       return undefined;
@@ -294,7 +294,7 @@ export const useNexusCalls = (currentUser?: User | null) => {
         socketRef.current = null;
       }
     };
-  }, [currentUser?.id, endCall, stopMediaTracks, stopStreams]);
+  }, [currentUser?.id, currentUser?.tenantId, endCall, stopMediaTracks, stopStreams]);
 
   useEffect(() => {
     if (activeCall?.state !== 'connected') {

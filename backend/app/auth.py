@@ -32,6 +32,11 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return pwd_context.verify(password, hashed_password)
 
 
+def credentials_match(user, claims) -> bool:
+    version = claims.get("credentials_version", 0) if isinstance(claims, dict) else claims.credentials_version
+    return type(version) is int and version == user.credentials_version
+
+
 # ---------------------------------------------------------------------------
 # JWT helpers
 # ---------------------------------------------------------------------------

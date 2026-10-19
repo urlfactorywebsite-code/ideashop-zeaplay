@@ -1,0 +1,96 @@
+{
+  "results": [
+    {
+      "name": "task details opens the journey without replacing status editing",
+      "result": "PASS"
+    }
+  ],
+  "measurements": {},
+  "pageErrors": [],
+  "sockets": [
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/"
+  ],
+  "requests": [
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/time-entries/active",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/transfer-requests",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/group",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/comments/task/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "PATCH"
+    },
+    {
+      "path": "/api/tasks/task-a/group",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    }
+  ]
+}

@@ -1,4 +1,7 @@
 import uuid
+import atexit
+import tempfile
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -6,7 +9,6 @@ from fastapi.testclient import TestClient
 from jose import jwt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from backend.app import models
 from backend.app.auth import hash_password
@@ -20,11 +22,14 @@ from backend.app.services.points_table import get_task_creation_points
 from backend.app.tickets import models as ticket_models  # noqa: F401
 
 
+# Concurrent requests need independent database connections, not simultaneous
+# transactions on StaticPool's single in-memory connection.
+_database_directory = tempfile.TemporaryDirectory(prefix="zeaplay-task-contract-tests-")
 engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+    "sqlite:///" + (Path(_database_directory.name) / "contracts.db").as_posix(),
+    connect_args={"check_same_thread": False, "timeout": 30},
 )
+atexit.register(engine.dispose)
 
 models.Task.__table__.c.search_vector.computed = None
 Base.metadata.create_all(bind=engine)
