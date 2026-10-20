@@ -1,0 +1,34 @@
+{
+  "result": {
+    "page": "http://localhost:6300",
+    "policy": "no-referrer",
+    "xhr": {
+      "status": 401,
+      "detail": "Browser session expired"
+    },
+    "fetch": {
+      "status": 401,
+      "detail": "Browser session expired"
+    }
+  },
+  "requests": [
+    {
+      "url": "http://localhost:6311/api/auth/browser-session/refresh",
+      "origin": "http://localhost:6300",
+      "intent": "1",
+      "site": null
+    },
+    {
+      "url": "http://localhost:6300/api/auth/browser-session/refresh",
+      "origin": "http://localhost:6300",
+      "intent": "1",
+      "site": null
+    },
+    {
+      "url": "http://localhost:6300/api/auth/browser-session/refresh",
+      "origin": "http://localhost:6300",
+      "intent": "1",
+      "site": null
+    }
+  ]
+}

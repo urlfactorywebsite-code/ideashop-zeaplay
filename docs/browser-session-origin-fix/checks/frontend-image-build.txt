@@ -1,0 +1,223 @@
+docker : #0 building with "desktop-linux" instance using docker driver
+At line:2 char:1
++ docker build -f frontend\Dockerfile --build-arg VITE_API_BASE_URL=/ap ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (#0 building wit...g docker driver:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.23kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/nginx:alpine
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:18-alpine
+#3 ...
+
+#4 [auth] library/node:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:18-alpine
+#3 DONE 1.6s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 133B done
+#5 DONE 0.0s
+
+#6 [build 1/6] FROM 
+docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#6 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e 
+0.0s done
+#6 DONE 0.0s
+
+#7 [stage-1 1/6] FROM 
+docker.io/library/nginx:alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2
+#7 resolve docker.io/library/nginx:alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2 0.0s 
+done
+#7 DONE 0.1s
+
+#8 [internal] load build context
+#8 transferring context: 1.89MB 0.2s done
+#8 DONE 0.2s
+
+#9 [build 2/6] WORKDIR /app
+#9 CACHED
+
+#10 [build 3/6] COPY package*.json ./
+#10 CACHED
+
+#11 [build 4/6] RUN npm install
+#11 1.111 npm warn EBADENGINE Unsupported engine {
+#11 1.111 npm warn EBADENGINE   package: '@google/genai@1.27.0',
+#11 1.111 npm warn EBADENGINE   required: { node: '>=20.0.0' },
+#11 1.111 npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+#11 1.111 npm warn EBADENGINE }
+#11 1.111 npm warn EBADENGINE Unsupported engine {
+#11 1.111 npm warn EBADENGINE   package: '@vitejs/plugin-react@5.1.0',
+#11 1.111 npm warn EBADENGINE   required: { node: '^20.19.0 || >=22.12.0' },
+#11 1.111 npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+#11 1.111 npm warn EBADENGINE }
+#11 1.113 npm warn EBADENGINE Unsupported engine {
+#11 1.113 npm warn EBADENGINE   package: 'react-router@7.13.2',
+#11 1.113 npm warn EBADENGINE   required: { node: '>=20.0.0' },
+#11 1.113 npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+#11 1.113 npm warn EBADENGINE }
+#11 1.114 npm warn EBADENGINE Unsupported engine {
+#11 1.114 npm warn EBADENGINE   package: 'react-router-dom@7.13.2',
+#11 1.114 npm warn EBADENGINE   required: { node: '>=20.0.0' },
+#11 1.114 npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+#11 1.114 npm warn EBADENGINE }
+#11 5.146 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#11 6.292 npm warn deprecated lodash.isequal@4.5.0: This package is deprecated. Use 
+require('node:util').isDeepStrictEqual instead.
+#11 29.48 
+#11 29.48 added 462 packages, and audited 463 packages in 29s
+#11 29.48 
+#11 29.48 181 packages are looking for funding
+#11 29.48   run `npm fund` for details
+#11 29.53 
+#11 29.53 20 vulnerabilities (4 low, 3 moderate, 12 high, 1 critical)
+#11 29.53 
+#11 29.53 To address all issues, run:
+#11 29.53   npm audit fix
+#11 29.53 
+#11 29.53 Run `npm audit` for details.
+#11 29.53 npm notice
+#11 29.53 npm notice New major version of npm available! 10.8.2 -> 12.2.0
+#11 29.53 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+#11 29.53 npm notice To update run: npm install -g npm@12.2.0
+#11 29.53 npm notice
+#11 DONE 29.9s
+
+#12 [build 5/6] COPY . .
+#12 DONE 0.4s
+
+#13 [build 6/6] RUN npm run build
+#13 0.349 
+#13 0.349 > vee-task-manager@6.0.1 build
+#13 0.349 > vite build
+#13 0.349 
+#13 0.553 vite v6.4.2 building for production...
+#13 0.634 transforming...
+#13 3.036 ✓ 2168 modules transformed.
+#13 3.038 ✗ Build failed in 2.46s
+#13 3.038 error during build:
+#13 3.038 Could not resolve "../../images/favicon/login1.png" from "components/login/AnimatedLoginBackground.tsx"
+#13 3.038 file: /app/components/login/AnimatedLoginBackground.tsx
+#13 3.038     at getRollupError (file:///app/node_modules/rollup/dist/es/shared/parseAst.js:406:41)
+#13 3.038     at error (file:///app/node_modules/rollup/dist/es/shared/parseAst.js:402:42)
+#13 3.038     at ModuleLoader.handleInvalidResolvedId 
+(file:///app/node_modules/rollup/dist/es/shared/node-entry.js:21765:24)
+#13 3.038     at file:///app/node_modules/rollup/dist/es/shared/node-entry.js:21725:26
+#13 ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+------
+ > [build 6/6] RUN npm run build:
+0.634 transforming...
+3.036 ✓ 2168 modules transformed.
+3.038 ✗ Build failed in 2.46s
+3.038 error during build:
+3.038 Could not resolve "../../images/favicon/login1.png" from "components/login/AnimatedLoginBackground.tsx"
+3.038 file: /app/components/login/AnimatedLoginBackground.tsx
+3.038     at getRollupError (file:///app/node_modules/rollup/dist/es/shared/parseAst.js:406:41)
+3.038     at error (file:///app/node_modules/rollup/dist/es/shared/parseAst.js:402:42)
+3.038     at ModuleLoader.handleInvalidResolvedId 
+(file:///app/node_modules/rollup/dist/es/shared/node-entry.js:21765:24)
+3.038     at file:///app/node_modules/rollup/dist/es/shared/node-entry.js:21725:26
+------
+Dockerfile:32
+--------------------
+  30 |     
+  31 |     # Build the app
+  32 | >>> RUN npm run build
+  33 |     
+  34 |     # Production stage
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+21296 v0.32.1-desktop.1 C:\Program Files\Docker\cli-plugins\docker-buildx.exe buildx build -f frontend\Dockerfile 
+--build-arg VITE_API_BASE_URL=/api --build-arg VITE_API_URL=/api --build-arg VITE_PRESENCE_URL=same-origin --build-arg 
+VITE_CHAT_URL=same-origin -t zeaplay-browser-session-fix:2026-10-21 frontend
+github.com/docker/buildx/commands.runBuildWithOptions
+	github.com/docker/buildx/commands/build.go:479
+github.com/docker/buildx/commands.runBuild
+	github.com/docker/buildx/commands/build.go:399
+github.com/docker/buildx/commands.buildCmd.func1
+	github.com/docker/buildx/commands/build.go:515
+github.com/docker/cli/cli-plugins/plugin.RunPlugin.func1.1.2
+	github.com/docker/cli@v29.2.1+incompatible/cli-plugins/plugin/plugin.go:65
+github.com/spf13/cobra.(*Command).execute
+	github.com/spf13/cobra@v1.10.2/command.go:1015
+github.com/spf13/cobra.(*Command).ExecuteC
+	github.com/spf13/cobra@v1.10.2/command.go:1148
+github.com/spf13/cobra.(*Command).Execute
+	github.com/spf13/cobra@v1.10.2/command.go:1071
+github.com/docker/cli/cli-plugins/plugin.RunPlugin
+	github.com/docker/cli@v29.2.1+incompatible/cli-plugins/plugin/plugin.go:80
+main.runPlugin
+	github.com/docker/buildx/cmd/buildx/main.go:66
+main.run
+	github.com/docker/buildx/cmd/buildx/main.go:80
+main.main
+	github.com/docker/buildx/cmd/buildx/main.go:90
+runtime.main
+	runtime/proc.go:285
+runtime.goexit
+	runtime/asm_amd64.s:1693
+
+124  /usr/local/bin/dockerd --config-file /run/config/docker/daemon.json
+github.com/moby/buildkit/executor/runcexecutor.exitError
+	/root/build-deb/engine/vendor/github.com/moby/buildkit/executor/runcexecutor/executor.go:395
+github.com/moby/buildkit/executor/runcexecutor.(*runcExecutor).Run
+	/root/build-deb/engine/vendor/github.com/moby/buildkit/executor/runcexecutor/executor.go:343
+github.com/moby/buildkit/solver/llbsolver/ops.(*ExecOp).Exec
+	/root/build-deb/engine/vendor/github.com/moby/buildkit/solver/llbsolver/ops/exec.go:498
+github.com/moby/buildkit/solver.(*sharedOp).Exec.func2
+	/root/build-deb/engine/vendor/github.com/moby/buildkit/solver/jobs.go:1181
+github.com/moby/buildkit/util/flightcontrol.(*call[...]).run
+	/root/build-deb/engine/vendor/github.com/moby/buildkit/util/flightcontrol/flightcontrol.go:122
+sync.(*Once).doSlow
+	/usr/local/go/src/sync/once.go:78
+sync.(*Once).Do
+	/usr/local/go/src/sync/once.go:69
+runtime.goexit
+	/usr/local/go/src/runtime/asm_amd64.s:1693
+
+21296 v0.32.1-desktop.1 C:\Program Files\Docker\cli-plugins\docker-buildx.exe buildx build -f frontend\Dockerfile 
+--build-arg VITE_API_BASE_URL=/api --build-arg VITE_API_URL=/api --build-arg VITE_PRESENCE_URL=same-origin --build-arg 
+VITE_CHAT_URL=same-origin -t zeaplay-browser-session-fix:2026-10-21 frontend
+google.golang.org/grpc.(*ClientConn).Invoke
+	google.golang.org/grpc@v1.78.0/call.go:35
+github.com/moby/buildkit/api/services/control.(*controlClient).Solve
+	github.com/moby/buildkit@v0.28.0/api/services/control/control_grpc.pb.go:88
+github.com/moby/buildkit/client.(*Client).solve.func2
+	github.com/moby/buildkit@v0.28.0/client/solve.go:319
+golang.org/x/sync/errgroup.(*Group).Go.func1
+	golang.org/x/sync@v0.19.0/errgroup/errgroup.go:93
+runtime.goexit
+	runtime/asm_amd64.s:1693
+
+124  /usr/local/bin/dockerd --config-file /run/config/docker/daemon.json
+github.com/moby/buildkit/solver.(*edge).execOp
+	/root/build-deb/engine/vendor/github.com/moby/buildkit/solver/edge.go:963
+github.com/moby/buildkit/solver/internal/pipe.NewWithFunction[...].func2
+	/root/build-deb/engine/vendor/github.com/moby/buildkit/solver/internal/pipe/pipe.go:78
+runtime.goexit
+	/usr/local/go/src/runtime/asm_amd64.s:1693
+
+21296 v0.32.1-desktop.1 C:\Program Files\Docker\cli-plugins\docker-buildx.exe buildx build -f frontend\Dockerfile 
+--build-arg VITE_API_BASE_URL=/api --build-arg VITE_API_URL=/api --build-arg VITE_PRESENCE_URL=same-origin --build-arg 
+VITE_CHAT_URL=same-origin -t zeaplay-browser-session-fix:2026-10-21 frontend
+github.com/moby/buildkit/client.(*Client).solve.func2
+	github.com/moby/buildkit@v0.28.0/client/solve.go:321
+golang.org/x/sync/errgroup.(*Group).Go.func1
+	golang.org/x/sync@v0.19.0/errgroup/errgroup.go:93
+
+124  /usr/local/bin/dockerd --config-file /run/config/docker/daemon.json
+github.com/moby/buildkit/solver/llbsolver/ops.(*ExecOp).Exec
+	/root/build-deb/engine/vendor/github.com/moby/buildkit/solver/llbsolver/ops/exec.go:519
+github.com/moby/buildkit/solver.(*sharedOp).Exec.func2
+	/root/build-deb/engine/vendor/github.com/moby/buildkit/solver/jobs.go:1181
+
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/1pww0qdc0mnvrvdn4c0lu6n6b

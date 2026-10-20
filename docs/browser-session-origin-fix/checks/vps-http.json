@@ -1,0 +1,37 @@
+{
+  "origin": "http://167.86.108.178:6300",
+  "passed": false,
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/api/openapi.json",
+      "status": 200,
+      "documented_paths": 522,
+      "browser_session_routes": [
+        "/auth/browser-session/refresh",
+        "/auth/browser-session/logout",
+        "/api/auth/browser-session/refresh",
+        "/api/auth/browser-session/logout"
+      ]
+    },
+    {
+      "path": "/api/auth/browser-session/refresh",
+      "status": 403,
+      "detail": "Browser session origin check failed"
+    },
+    {
+      "path": "/api/auth/login",
+      "status": 403,
+      "detail": "Browser session origin check failed"
+    }
+  ],
+  "expected": "Health/schema 200; refresh without a cookie and login with invalid synthetic credentials both 401",
+  "diagnosis": {
+    "403": "Origin rejected",
+    "400": "HTTPS/proxy scheme rejected",
+    "404": "Missing route or different/stale upstream"
+  }
+}

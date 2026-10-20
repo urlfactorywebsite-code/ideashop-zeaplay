@@ -19,8 +19,8 @@ test('login redesign retains auth handler, redirect, validation, recovery and au
 
 test('all three real supplied PNG backgrounds are bundled, not remote or fabricated artwork', () => {
     for (const filename of ['login1.png', 'login2.png', 'login3.png']) {
-        assert.ok(background.includes(`images/favicon/${filename}`));
-        const asset = readFileSync(new URL(`../images/favicon/${filename}`, import.meta.url));
+        assert.ok(background.includes(`images/${filename}`));
+        const asset = readFileSync(new URL(`../images/${filename}`, import.meta.url));
         assert.equal(asset.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
         assert.ok(asset.readUInt32BE(16) >= 1000 && asset.readUInt32BE(20) >= 700);
     }

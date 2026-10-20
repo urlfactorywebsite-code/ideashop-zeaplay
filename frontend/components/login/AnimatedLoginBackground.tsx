@@ -1,8 +1,8 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { Star, Trophy, Zap } from 'lucide-react';
-import login1 from '../../images/favicon/login1.png';
-import login2 from '../../images/favicon/login2.png';
-import login3 from '../../images/favicon/login3.png';
+import login1 from '../../images/login1.png';
+import login2 from '../../images/login2.png';
+import login3 from '../../images/login3.png';
 
 const scenes = [login3, login1, login2];
 

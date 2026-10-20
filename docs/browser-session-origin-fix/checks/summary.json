@@ -1,0 +1,18 @@
+{
+  "frontend_image_build": "PASS",
+  "frontend_unit_tests": {
+    "passed": 129,
+    "failed": 0
+  },
+  "backend_focused_tests": {
+    "passed": 4
+  },
+  "proxy_chain_and_configuration": {
+    "passed": 14,
+    "failed": 0
+  },
+  "vps_deployed": false,
+  "vps_ssh": "connection refused",
+  "public_ip_refresh": 403,
+  "https_domain_refresh": 404
+}

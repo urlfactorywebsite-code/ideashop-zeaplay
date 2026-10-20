@@ -1,0 +1,99 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "proxy_peer_trusted": true,
+      "case": "HTTPS refresh",
+      "status": 401,
+      "expected": 401,
+      "passed": true
+    },
+    {
+      "proxy_peer_trusted": true,
+      "case": "HTTPS login",
+      "status": 401,
+      "expected": 401,
+      "passed": true
+    },
+    {
+      "proxy_peer_trusted": true,
+      "case": "Plain HTTP denied",
+      "status": 400,
+      "expected": 400,
+      "passed": true
+    },
+    {
+      "proxy_peer_trusted": true,
+      "case": "Foreign origin denied",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "proxy_peer_trusted": true,
+      "case": "Malformed scheme denied",
+      "status": 400,
+      "expected": 400,
+      "passed": true
+    },
+    {
+      "proxy_peer_trusted": false,
+      "case": "HTTPS refresh",
+      "status": 400,
+      "expected": 400,
+      "passed": true
+    },
+    {
+      "proxy_peer_trusted": false,
+      "case": "HTTPS login",
+      "status": 400,
+      "expected": 400,
+      "passed": true
+    },
+    {
+      "proxy_peer_trusted": false,
+      "case": "Plain HTTP denied",
+      "status": 400,
+      "expected": 400,
+      "passed": true
+    },
+    {
+      "proxy_peer_trusted": false,
+      "case": "Foreign origin denied",
+      "status": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "proxy_peer_trusted": false,
+      "case": "Malformed scheme denied",
+      "status": 400,
+      "expected": 400,
+      "passed": true
+    },
+    {
+      "case": "No configured peers",
+      "exit_code": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "case": "Bounded IPv4 and IPv6 peers",
+      "exit_code": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "case": "Universal proxy trust denied",
+      "exit_code": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "case": "Nginx directive injection denied",
+      "exit_code": 1,
+      "expected": 1,
+      "passed": true
+    }
+  ]
+}

@@ -2,6 +2,12 @@
 
 This runbook deploys the current GitHub project to the VPS at `167.86.108.178` using Docker Compose.
 
+Production browser login and session refresh require HTTPS. Use
+`https://todoplay.urlfactory.website` after its Nginx Proxy Manager host targets
+the current stack. The HTTP IP address on port 6300 is a diagnostic endpoint,
+not a production login URL. See [the verified browser-session proxy repair](browser-session-origin-fix/README.md)
+for the required upstream and trusted-proxy settings.
+
 ## Local Push
 
 Run these commands on your local machine from the project root.
@@ -120,15 +126,17 @@ curl http://127.0.0.1:6312/health
 Expected URLs:
 
 ```text
-Frontend: http://167.86.108.178:6300
-API through frontend proxy: http://167.86.108.178:6300/api
+Frontend after configuring TLS/proxy: https://todoplay.urlfactory.website
+API through frontend proxy: https://todoplay.urlfactory.website/api
+HTTP health diagnostics only: http://167.86.108.178:6300/api/health
 Direct API on the VPS host only: http://127.0.0.1:6311
 Presence service on the VPS host only: http://127.0.0.1:6312
 ```
 
 ## Enable browser push notifications
 
-The HTTP IP URL above serves the app, but cannot enable browser push. Browser push
+The HTTP IP URL above can serve the page and health checks, but production browser
+sessions and browser push require HTTPS. Browser push
 requires a trusted HTTPS origin (localhost is a development exception). See
 [MDN secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts).
 The Enable button also requires valid backend VAPID configuration; HTTPS alone

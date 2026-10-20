@@ -42,6 +42,7 @@ services:
     env_file: *common_env
     environment:
       VEE_ENVIRONMENT: production
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
       VEE_DATABASE_URL: ${VEE_DATABASE_URL}
       VEE_REDIS_URL: ${VEE_REDIS_URL}
       VEE_CACHE_REDIS_URL: ${VEE_CACHE_REDIS_URL}
@@ -88,6 +89,7 @@ services:
     container_name: zeaplay_frontend
     environment:
       API_URL: ${API_URL}
+      NGINX_TRUSTED_PROXY_CIDRS: ${NGINX_TRUSTED_PROXY_CIDRS:-}
       PRESENCE_URL: ${PRESENCE_URL}
       WS_URL: ${WS_URL}
       TICKET_CHAT_WS_URL: ${TICKET_CHAT_WS_URL}

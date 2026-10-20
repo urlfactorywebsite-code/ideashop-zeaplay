@@ -1,0 +1,32 @@
+{
+  "origin": "https://todoplay.urlfactory.website",
+  "passed": false,
+  "checks": [
+    {
+      "path": "/api/health",
+      "status": 200
+    },
+    {
+      "path": "/api/openapi.json",
+      "status": 200,
+      "documented_paths": 393,
+      "browser_session_routes": []
+    },
+    {
+      "path": "/api/auth/browser-session/refresh",
+      "status": 404,
+      "detail": "Not Found"
+    },
+    {
+      "path": "/api/auth/login",
+      "status": 401,
+      "detail": "Invalid credentials"
+    }
+  ],
+  "expected": "Health/schema 200; refresh without a cookie and login with invalid synthetic credentials both 401",
+  "diagnosis": {
+    "403": "Origin rejected",
+    "400": "HTTPS/proxy scheme rejected",
+    "404": "Missing route or different/stale upstream"
+  }
+}
