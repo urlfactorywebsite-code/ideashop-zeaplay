@@ -1,0 +1,125 @@
+{
+  "checks": [
+    {
+      "case": "Full production backend health",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "case": "PostgreSQL and Redis readiness",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "case": "HTTP browser CORS preflight",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "case": "CORS permits exact HTTP IP",
+      "actual": "http://167.86.108.178:6300",
+      "expected": "http://167.86.108.178:6300",
+      "passed": true
+    },
+    {
+      "case": "CORS permits browser credentials",
+      "actual": "true",
+      "expected": "true",
+      "passed": true
+    },
+    {
+      "case": "Anonymous HTTP refresh",
+      "actual": 401,
+      "expected": 401,
+      "passed": true
+    },
+    {
+      "case": "Invalid HTTP login",
+      "actual": 401,
+      "expected": 401,
+      "passed": true
+    },
+    {
+      "case": "Valid HTTP login",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "case": "Login response permits credentialed browser access",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "case": "HTTP cookie accepted by cookie jar",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "case": "HTTP cookie has separate name",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "case": "HTTP cookie is HttpOnly and SameSite=Lax",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "case": "HTTP cookie has no Secure or Domain attribute",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "case": "Persisted HTTP session refresh",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "case": "Refreshed token authenticates user",
+      "actual": 200,
+      "expected": 200,
+      "passed": true
+    },
+    {
+      "case": "Foreign origin rejected",
+      "actual": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "case": "Different IP port rejected",
+      "actual": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "case": "Missing browser marker rejected",
+      "actual": 403,
+      "expected": 403,
+      "passed": true
+    },
+    {
+      "case": "Logout revokes HTTP session",
+      "actual": 204,
+      "expected": 204,
+      "passed": true
+    },
+    {
+      "case": "Revoked HTTP session cannot refresh",
+      "actual": 401,
+      "expected": 401,
+      "passed": true
+    }
+  ],
+  "passed": true
+}

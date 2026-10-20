@@ -2,11 +2,11 @@
 
 This runbook deploys the current GitHub project to the VPS at `167.86.108.178` using Docker Compose.
 
-Production browser login and session refresh require HTTPS. Use
-`https://todoplay.urlfactory.website` after its Nginx Proxy Manager host targets
-the current stack. The HTTP IP address on port 6300 is a diagnostic endpoint,
-not a production login URL. See [the verified browser-session proxy repair](browser-session-origin-fix/README.md)
-for the required upstream and trusted-proxy settings.
+The current main URL is `http://167.86.108.178:6300/`. Enable its explicit HTTP
+IP browser-session exception using [the HTTP login repair](vps-http-login.md).
+HTTPS remains the default policy; switching the environment to development is
+not required. When moving to a domain, use [the browser-session proxy guide](browser-session-origin-fix/README.md)
+and remove the temporary HTTP exception.
 
 ## Local Push
 
@@ -15,8 +15,8 @@ Run these commands on your local machine from the project root.
 ```powershell
 cd F:\Projects\ideashop-zeaplay-v5
 git status
-git add -- .env.production.example docker-compose.prod.yml backend/app/config.py backend/app/main.py docs/vps-deployment-167-86-108-178.md
-git commit -m "Prepare VPS deployment for 167.86.108.178"
+git add -- .env.production.example docker-compose.prod.yml backend/app/config.py backend/app/services/browser_session.py backend/tests/test_browser_session_http.py backend/tests/test_oauth2_server.py ops/verify-http-session.py docs/vps-http-login.md docs/browser-session-origin-fix/README.md docs/vps-deployment-167-86-108-178.md docs/browser-session-http-fix
+git commit -m "Support explicit HTTP IP browser sessions"
 git push origin main
 ```
 

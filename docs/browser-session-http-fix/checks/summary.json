@@ -1,0 +1,14 @@
+{
+  "windows_tests": {
+    "tests": "83",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  "http_integration": {
+    "checks": 20,
+    "passed": true
+  },
+  "https_proxy": true,
+  "vps_deployed": false
+}

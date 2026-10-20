@@ -42,6 +42,7 @@ services:
     env_file: *common_env
     environment:
       VEE_ENVIRONMENT: production
+      VEE_BROWSER_SESSION_HTTP_ORIGINS: '${VEE_BROWSER_SESSION_HTTP_ORIGINS:-[]}'
       FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
       VEE_DATABASE_URL: ${VEE_DATABASE_URL}
       VEE_REDIS_URL: ${VEE_REDIS_URL}

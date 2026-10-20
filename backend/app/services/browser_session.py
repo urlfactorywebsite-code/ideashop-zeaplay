@@ -1,4 +1,5 @@
 """HttpOnly browser session transport for Zea.Play's existing user authentication."""
+from hashlib import sha256
 from secrets import token_urlsafe
 
 from fastapi import HTTPException
@@ -11,7 +12,16 @@ from .oauth import digest
 COOKIE = 'zea_browser_session'
 
 
-def cookie_name():
+def http_exception(request):
+    return (request.url.scheme == 'http'
+            and request.headers.get('origin') in get_settings().browser_session_http_origins)
+
+
+def cookie_name(request):
+    if http_exception(request):
+        # Keep plaintext cookies separate from HTTPS and other IP/port deployments.
+        suffix = sha256(request.headers['origin'].encode()).hexdigest()[:12]
+        return f'{COOKIE}_http_{suffix}'
     return '__Host-' + COOKIE if get_settings().environment == 'production' else COOKIE
 
 
@@ -20,7 +30,8 @@ def check_origin(request):
     allowed = set(get_settings().cors_allow_origins)
     if request.headers.get('x-zea-browser') != '1' or not origin or origin not in allowed:
         raise HTTPException(403, 'Browser session origin check failed')
-    if get_settings().environment == 'production' and request.url.scheme != 'https':
+    if (get_settings().environment == 'production' and request.url.scheme != 'https'
+            and not http_exception(request)):
         raise HTTPException(400, 'HTTPS is required for browser sessions')
 
 
@@ -32,7 +43,7 @@ def cookie_path(request):
 
 def start(db, user, request, response):
     check_origin(request)
-    old = request.cookies.get(cookie_name())
+    old = request.cookies.get(cookie_name(request))
     if old:
         row = db.get(BrowserSession, digest(old))
         if row:
@@ -42,15 +53,15 @@ def start(db, user, request, response):
     db.add(BrowserSession(verifier=digest(value), user_id=user.id, tenant_id=user.tenant_id,
         credentials_version=user.credentials_version, expires_at=epoch() + lifetime))
     db.commit()
-    response.set_cookie(cookie_name(), value, max_age=lifetime, httponly=True,
-        secure=request.url.scheme == 'https' or get_settings().environment == 'production',
+    response.set_cookie(cookie_name(request), value, max_age=lifetime, httponly=True,
+        secure=request.url.scheme == 'https' or (get_settings().environment == 'production' and not http_exception(request)),
         samesite='lax', path=cookie_path(request))
     response.headers['Cache-Control'] = 'no-store'
 
 
 def current(db, request):
     check_origin(request)
-    value = request.cookies.get(cookie_name())
+    value = request.cookies.get(cookie_name(request))
     row = db.get(BrowserSession, digest(value)) if value else None
     user = db.get(User, row.user_id) if row else None
     if (not row or row.revoked_at or row.expires_at <= epoch() or not user
@@ -62,7 +73,7 @@ def current(db, request):
 
 def end(db, request, response):
     check_origin(request)
-    value = request.cookies.get(cookie_name())
+    value = request.cookies.get(cookie_name(request))
     row = db.get(BrowserSession, digest(value)) if value else None
     if row:
         row.revoked_at = epoch()

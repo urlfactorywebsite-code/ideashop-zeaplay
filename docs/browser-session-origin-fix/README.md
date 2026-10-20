@@ -1,5 +1,9 @@
 # Production browser-session 403 repair
 
+**Current deployment:** the main URL is `http://167.86.108.178:6300/`; the domain
+will be adopted later. Use [the HTTP IP login repair](../vps-http-login.md) for
+that deployment. The HTTPS instructions below apply to the later domain change.
+
 Live diagnosis on 21 October 2026:
 
 | Public entry point | Health | Documented API paths | Session refresh |
@@ -7,9 +11,13 @@ Live diagnosis on 21 October 2026:
 | `http://167.86.108.178:6300` | 200 | 522, including browser sessions | 403: origin rejected |
 | `https://todoplay.urlfactory.website` | 200 | 393, no browser-session routes | 404: route missing |
 
-The HTTPS proxy currently reaches a different/stale backend. The HTTP IP origin is intentionally absent from production's HTTPS origin allowlist. Supplying the approved HTTPS Origin to the HTTP endpoint gets a second rejection: `400 HTTPS is required for browser sessions`. Adding the HTTP IP to CORS is not a working repair.
+At diagnosis, the HTTPS proxy reached a different/stale backend and the HTTP IP
+origin was absent from production's HTTPS origin allowlist. Supplying the approved
+HTTPS Origin to the HTTP endpoint got a second rejection: `400 HTTPS is required
+for browser sessions`. CORS alone does not fix HTTP login: use the explicit IP
+exception and HTTP cookie handling documented in the current repair above.
 
-The production login URL is **https://todoplay.urlfactory.website** after repairing the proxy target and deploying these files. SSH port 22 refused the connection, so no VPS configuration was changed by this work.
+The future HTTPS login URL is **https://todoplay.urlfactory.website** after repairing the proxy target and deploying these files. SSH port 22 refused the connection, so no VPS configuration was changed by this work.
 
 ## Source repair and verification
 

@@ -300,11 +300,15 @@ def test_guarded_legacy_installer(engine, monkeypatch):
             install(conn, True)
 
 
-def test_browser_cookie_restores_existing_login_and_logout_revokes(api, data, monkeypatch):
+@pytest.mark.parametrize('browser_url', ['https://testserver', 'http://167.86.108.178:6300'])
+def test_browser_cookie_restores_existing_login_and_logout_revokes(api, data, monkeypatch, browser_url):
     monkeypatch.setattr(get_settings(), 'environment', 'production')
-    api.base_url = 'https://testserver'
-    monkeypatch.setattr(get_settings(), 'cors_allow_origins', ['https://app.example.test'])
-    request_headers = {'Origin': 'https://app.example.test', 'X-Zea-Browser': '1'}
+    api.base_url = browser_url
+    plaintext = browser_url.startswith('http:')
+    origin = browser_url if plaintext else 'https://app.example.test'
+    monkeypatch.setattr(get_settings(), 'cors_allow_origins', [origin])
+    monkeypatch.setattr(get_settings(), 'browser_session_http_origins', [origin] if plaintext else [])
+    request_headers = {'Origin': origin, 'X-Zea-Browser': '1'}
     with data.factory() as db:
         user = db.get(models.User, data.owner.id)
         user.hashed_password = hash_password('Synthetic-browser-password!')
@@ -313,13 +317,21 @@ def test_browser_cookie_restores_existing_login_and_logout_revokes(api, data, mo
     assert api.post('/api/auth/browser-session/refresh', headers={'Origin': 'https://evil.example.test', 'X-Zea-Browser': '1'}).status_code == 403
     response = api.post('/api/auth/login', json={'email': email, 'password': 'Synthetic-browser-password!'}, headers=request_headers)
     assert response.status_code == 200, response.text
-    assert all(flag in response.headers['set-cookie'] for flag in ['HttpOnly', 'SameSite=lax', 'Secure'])
+    assert all(flag in response.headers['set-cookie'] for flag in ['HttpOnly', 'SameSite=lax'])
+    assert ('Secure' in response.headers['set-cookie']) is not plaintext
+    assert response.headers['set-cookie'].startswith('zea_browser_session_http_' if plaintext else '__Host-zea_browser_session=')
     assert 'Path=/' in response.headers['set-cookie']
-    assert api.post('/api/auth/browser-session/refresh', headers={'Origin': 'https://app.example.test'}).status_code == 403
+    assert 'Domain=' not in response.headers['set-cookie']
+    assert api.post('/api/auth/browser-session/refresh', headers={'Origin': origin}).status_code == 403
     response = api.post('/api/auth/browser-session/refresh', headers=request_headers)
     assert response.status_code == 200
     assert response.headers['cache-control'] == 'no-store'
     assert api.get('/api/auth/me', headers=bearer(response.json()['access_token'])).status_code == 200
+    if plaintext:
+        # The HTTP cookie must not restore an HTTPS session, even on the same IP.
+        api.base_url = browser_url.replace('http:', 'https:', 1)
+        assert api.post('/api/auth/browser-session/refresh', headers=request_headers).status_code == 401
+        api.base_url = browser_url
     assert api.post('/api/auth/browser-session/logout', headers=request_headers).status_code == 204
     assert api.post('/api/auth/browser-session/refresh', headers=request_headers).status_code == 401
 

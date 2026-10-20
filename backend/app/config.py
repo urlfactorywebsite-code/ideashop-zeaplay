@@ -24,17 +24,37 @@ class Settings(BaseSettings):
     oauth_issuer: Optional[str] = None
     oauth_ui_url: Optional[str] = None
     oauth_audience: str = "zeaplay-api"
+    # Temporary, explicit IP origins for deployments without TLS. Empty by default.
+    browser_session_http_origins: List[str] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def validate_oauth_urls(self):
+        from ipaddress import ip_address
+        from urllib.parse import urlsplit
+
+        for origin in self.browser_session_http_origins:
+            try:
+                parsed = urlsplit(origin)
+                address = ip_address(parsed.hostname or '')
+                host = f'[{address}]' if address.version == 6 else str(address)
+                port = parsed.port
+                canonical = f'http://{host}' + (f':{port}' if port is not None else '')
+                if origin != canonical or port == 0:
+                    raise ValueError('Non-canonical origin')
+            except ValueError:
+                raise ValueError('Browser session HTTP exceptions must be exact HTTP IP origins') from None
+            if origin not in self.cors_allow_origins:
+                raise ValueError('Browser session HTTP exceptions must also be explicitly allowed by CORS')
         if self.environment == 'production':
             keys = [self.jwt_secret_key, self.jwt_refresh_secret_key]
             if (any(len(key.encode()) < 32 or key.startswith(('change_me', 'replace-with')) for key in keys)
                     or keys[0] == keys[1]):
                 raise ValueError('Production JWT signing keys must be independent, non-default secrets of at least 32 bytes')
-            if not self.cors_allow_origins or any(not origin.startswith('https://') or '*' in origin for origin in self.cors_allow_origins):
-                raise ValueError('Production CORS origins must be explicit HTTPS origins')
-        from urllib.parse import urlsplit
+            if not self.cors_allow_origins or any(
+                ('*' in origin or (not origin.startswith('https://') and origin not in self.browser_session_http_origins))
+                for origin in self.cors_allow_origins
+            ):
+                raise ValueError('Production CORS origins require HTTPS or an explicit HTTP IP exception')
         for value, consent in [(self.oauth_issuer, False), (self.oauth_ui_url, True)]:
             if not value:
                 continue
