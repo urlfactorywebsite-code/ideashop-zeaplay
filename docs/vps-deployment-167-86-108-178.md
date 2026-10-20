@@ -283,6 +283,59 @@ git pull origin main
 
 ## Notes
 
+### Login returns 502 after an update
+
+A 200 frontend page with 502 from `/api/health`, `/api/ready` and
+`/api/auth/login` means nginx cannot reach a healthy API upstream. Inspect
+startup before changing the login endpoint or resetting credentials:
+
+```bash
+cd /opt/ideashop-zeaplay
+docker compose --env-file .env.production -f docker-compose.prod.yml ps -a
+docker compose --env-file .env.production -f docker-compose.prod.yml logs --tail=80 backend
+curl -i --max-time 10 http://127.0.0.1:6311/health
+```
+
+Keep log output private and redact credentials before sharing it. Do not print
+the resolved Compose environment or the contents of `.env.production`.
+
+The OAuth security refinement adds production startup validation. A deployment
+with HTTP entries in `VEE_CORS_ALLOW_ORIGINS`, default/short/shared JWT keys, or
+non-HTTPS OAuth issuer/UI URLs can now fail before Uvicorn starts. Only treat
+this as the cause when the backend log names the corresponding validation error.
+Use explicit origins for the actual HTTPS frontend and independently managed
+signing keys. Preserve existing valid keys; changing signing keys invalidates
+existing sessions and requires a coordinated change. Keep OAuth issuer/UI blank
+until that feature's HTTPS deployment is configured. Setting OAuth blank does
+not bypass JWT/CORS production validation.
+
+The HTTP IP/port URLs elsewhere in this historical runbook are useful for
+reachability checks, but they are not a supported production browser-session or
+OAuth origin after the refinement. Complete the actual domain/TLS/proxy setup
+described in [OAuth deployment](oauth/deployment.md). Do not switch production
+to development mode or weaken the checks to hide a startup error.
+
+After correcting a confirmed backend configuration error:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --no-deps backend
+curl --fail --show-error --max-time 10 http://127.0.0.1:6311/health
+```
+
+If direct API health is 200 but the frontend proxy still returns 502, inspect
+frontend errors for an obsolete upstream address or Docker network/DNS failure.
+Once the backend is healthy, restarting only frontend nginx refreshes its
+startup-time upstream resolution:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml restart frontend
+curl --fail --show-error --max-time 10 http://127.0.0.1:6300/api/health
+```
+
+That restart is conditional on the direct-health result; it does not repair a
+crashing backend. No schema deletion, database reset or volume removal is needed
+to diagnose a 502.
+
 - Do not commit `.env.production`; it contains secrets.
 - The Compose file uses `.env.production` by default. For local syntax checks against the sample file, run `ZEAPLAY_ENV_FILE=.env.production.example docker compose --env-file .env.production.example -f docker-compose.prod.yml config`.
 - `docker-compose.prod.yml` builds images from the pulled Git checkout, so server updates follow `git pull`.

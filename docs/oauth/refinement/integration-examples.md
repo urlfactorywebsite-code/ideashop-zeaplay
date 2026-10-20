@@ -58,7 +58,8 @@ async function authorize() {
       if (!result || result.type !== 'zea-oauth-callback') return;
       if (result.state !== state || result.iss !== issuer)
         return finish(new Error('Authorization response did not match this request'));
-      if (result.error || !result.code) return finish(new Error('Authorization denied or invalid'));
+      if (result.error || typeof result.code !== 'string' || !result.code)
+        return finish(new Error('Authorization denied or invalid'));
       finish(null, result.code);
     };
     const timer = setTimeout(() => finish(new Error('Authorization timed out')), 300000);
@@ -110,10 +111,13 @@ The callback page contains no third-party scripts. Its script is:
 ```javascript
 const result = new URLSearchParams(location.search);
 history.replaceState(null, '', location.pathname); // Remove code before other work.
+const ambiguous = ['code', 'state', 'iss', 'error'].some(key => result.getAll(key).length > 1)
+  || (result.has('code') && result.has('error'));
 if (window.opener) {
   window.opener.postMessage({ type: 'zea-oauth-callback',
-    code: result.get('code'), state: result.get('state'), iss: result.get('iss'),
-    error: result.get('error') }, 'https://client.example.com');
+    code: ambiguous ? null : result.get('code'),
+    state: result.get('state'), iss: result.get('iss'),
+    error: ambiguous ? 'invalid_callback' : result.get('error') }, 'https://client.example.com');
 }
 ```
 

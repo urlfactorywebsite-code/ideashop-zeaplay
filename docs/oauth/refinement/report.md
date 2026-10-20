@@ -62,25 +62,30 @@ with implementation responsibilities described by
 
 ## Executed checks
 
-Final execution results are updated after the remaining isolated PostgreSQL runs.
 Earlier failed/incomplete logs remain for traceability; they are not final PASS
 evidence. Tests use disposable users, clients, schemas and synthetic credentials.
 
 | Check | Current evidence |
 |---|---|
 | Final source suite, SQLite | **PASS: 55 passed**, 42 PostgreSQL cases deselected; [log](sqlite-verified.txt) |
-| Protocol/security, SQLite + PostgreSQL | Final run in progress; [log](protocol-verified.txt) |
-| Built-image Linux protocol/security | Final run in progress; [log](linux-protocol-verified.txt) |
-| Existing password recovery, SMTP management/refinement, bearer builder | Final PostgreSQL run in progress; earlier isolated run 97 passed/67 skipped; [final log](regressions-verified.txt) |
+| Protocol/security, SQLite + PostgreSQL, Windows Python 3.14 | **PASS: 97 passed**, no skipped cases; [log](protocol-verified.txt) |
+| Built-image Linux Python 3.11 protocol/security, SQLite + PostgreSQL | **PASS: 97 passed**, no skipped cases; pytest installed only into ephemeral tmpfs; [log](linux-protocol-verified.txt) |
+| Existing password recovery, SMTP management/refinement, bearer builder | **PASS: 161 passed, three skipped** (two require isolated Redis; one intentionally PostgreSQL-only case skipped on SQLite); [log](regressions-verified.txt) |
+| Previously skipped Redis regressions | **PASS: two passed** with dedicated disposable Redis and SQLite/PostgreSQL fixtures; [log](redis-regression-verified.txt). Only the intentional SQLite migration skip remains uncovered in that parameterization; its PostgreSQL counterpart passed. |
 | Frontend automated suite | **PASS: 129 passed**, zero skipped; [log](frontend-tests.txt) |
 | Browser, PostgreSQL API | **PASS: eight workflow groups**, no pageErrors; [log](browser-postgres.txt), [structured results](postgres-browser/browser-results.json) |
 | Browser, SQLite API | **PASS**; [log](browser.txt), [results](checks/browser-results.json) |
-| Responsive / keyboard | Chromium 1440/768/375 widths, no page overflow, reduced-motion preference, Escape dialog; [screenshots](postgres-browser/) |
+| Responsive / keyboard | Chromium 1440/768/375 widths, no page overflow, reduced-motion preference, Escape dialog; [desktop](postgres-browser/management-1440.png), [tablet](postgres-browser/management-768.png), [mobile](postgres-browser/management-375.png) |
 | Native Vite production build | **PASS**; existing Lottie eval/chunk-size warnings; [log](frontend-build.txt) |
 | Backend and frontend container builds | **PASS** after disk/WSL recovery; [backend](container-backend-verified.txt), [frontend](container-frontend-verified.txt) |
 | Scoped Ruff | **PASS** with documented existing-rule exclusions B008/F811/C408/E402; [log](lint-verified.txt) |
+| Documentation | Public/confidential/machine examples supplied; JavaScript/Python syntax, evidence JSON and local report links checked. Example deployment domains still require real integration testing. |
 | Full TypeScript | **FAIL: 125 existing diagnostics**, no new OAuth/session-file diagnostics identified; [log](typescript.txt) |
-| Local legacy schema refinement | Dry run found exactly seven missing indexes, apply/recheck recorded in [log](migration-verified.txt) |
+| Local legacy schema refinement | **PASS:** refinement_required -> refined (`ffc2f3a4b5c6`) -> already_compatible; [log](migration-verified.txt) |
+| Rebuilt local running API | **PASS**: health/readiness, admin authentication, wrong-tenant denial, metadata/scopes, legacy retirement, existing bearer builder, SMTP/webhook reads and form OpenAPI; [results](runtime-verified.json) |
+| Same-origin nginx discovery | **PASS**: correct configured issuer and S256-only metadata; [results](proxy-verified.json) |
+| Running source and image identity | Backend security-file hashes match the reviewed workspace; [hash comparisons](running-source-verified.json), [current/rollback images](images-verified.txt). Nginx syntax check passed. |
+| Running-image cleanup dry run | **PASS**, zero eligible rows; no live cleanup applied; [results](cleanup-dry-run.json) |
 | Business data preservation | **PASS**: users(6), tasks(9), projects(1), SMTP config(1), webhook subscriptions(0) match pre-change hashes; [results](business-data-verified.json) |
 
 The browser API is real for auth/OAuth/scoped reads. Unrelated background UI APIs
@@ -90,9 +95,9 @@ outbound email/delivery or webhook execution claim.
 
 ## Files changed in this refinement
 
-The working tree's user commit advanced while work was in progress; do not infer
-the complete review scope from the final unstaged diff alone. This is the concrete
-file inventory, including fixes already captured by that user commit:
+Some reviewed changes are already present in HEAD; do not infer the complete
+review scope from the final unstaged diff alone. This inventory includes the
+refinement fixes already present there:
 
 - `backend/app/services/oauth.py`, `browser_session.py`: protocol adapter,
   lifetime, policy, locking, limits, consent/session invalidation.
@@ -111,7 +116,7 @@ file inventory, including fixes already captured by that user commit:
   `frontend/nginx.conf`: session coordination, token-free events, server search,
   metadata labels and discovery proxy.
 - `backend/tests/test_oauth_refinement.py`, `test_oauth2_server.py`,
-  `frontend/services/tokenStorage.test.ts`, `browserSession.test.ts`,
+  `frontend/test/oauth.test.ts`,
   `frontend/e2e/oauth.mjs`, `ops/oauth_smoke_server.py`,
   `ops/oauth_refinement_snapshot.py`: security regressions and isolated evidence.
 - `docs/oauth/deployment.md`, `architecture.md`, `report.md`, this directory's

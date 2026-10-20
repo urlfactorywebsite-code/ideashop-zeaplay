@@ -56,7 +56,7 @@ certify a VPS or production proxy.
    retain the explicit origin policy; this does not enable cookie-based API access.
 7. Configure TLS, a trusted proxy chain and correct real-client IP handling.
    The database rate limiter permits 120 protocol requests/minute per peer IP
-   and 120 successful issuance attempts/minute per validated client, shared
+   and 120 token issuances/minute per validated client, shared
    across workers. Invalid claimed client IDs cannot spend a client's issuance
    budget. Throttling returns 429 and Retry-After: 60 without consuming a code
    or refresh token. Do not trust arbitrary forwarded

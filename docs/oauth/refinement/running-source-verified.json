@@ -1,0 +1,14 @@
+{
+  "services/oauth.py": true,
+  "routers/oauth_management.py": true,
+  "services/oauth_install.py": true,
+  "services/oauth_cleanup.py": true,
+  "services/browser_session.py": true,
+  "oauth_schemas.py": true,
+  "oauth_models.py": true,
+  "oauth_cors.py": true,
+  "oauth_logging.py": true,
+  "config.py": true,
+  "main.py": true,
+  "routers/auth.py": true
+}
