@@ -285,6 +285,25 @@ git pull origin main
 
 ### Login returns 502 after an update
 
+For the confirmed 2026-10-20 mixed-Compose incident, the backend error changed
+from JWT/CORS validation to `failed to resolve host 'postgres'`. The stopped
+development `postgres:16-alpine` container had the production volume
+`ideashop-zeaplay_postgres_data`, whose `PG_VERSION` was 15. Its logs explicitly
+reported an incompatible major version. Restore the PostgreSQL 15 service from
+the production Compose file using that existing volume; do not initialize a new
+cluster or attempt a major-version upgrade as an outage workaround.
+
+The narrowly scoped [recovery script](../ops/recover-vps-postgres15.sh) checks
+the production image/volume, stops backend retries, requires the volume to be
+unused, checks disk headroom, takes and validates a private offline backup,
+restores production PostgreSQL/Redis, checks existing user/task counts, takes a
+logical backup, and finally resumes matching application services. It is for
+that verified VPS layout and intentionally fails on other layouts. Local syntax
+and disposable-volume backup checks passed; VPS execution remains operator work.
+Always include `-f docker-compose.prod.yml --env-file .env.production` for this
+deployment. The development file uses PostgreSQL 16 and the same logical volume
+name, so selecting it under the production project can reproduce this outage.
+
 A 200 frontend page with 502 from `/api/health`, `/api/ready` and
 `/api/auth/login` means nginx cannot reach a healthy API upstream. Inspect
 startup before changing the login endpoint or resetting credentials:
@@ -308,6 +327,53 @@ signing keys. Preserve existing valid keys; changing signing keys invalidates
 existing sessions and requires a coordinated change. Keep OAuth issuer/UI blank
 until that feature's HTTPS deployment is configured. Setting OAuth blank does
 not bypass JWT/CORS production validation.
+
+If the log explicitly says `Production JWT signing keys must be independent,
+non-default secrets of at least 32 bytes`, restore an existing valid production
+pair if available. Otherwise the following generates a new pair without printing
+it, saves a private backup, atomically updates only signing-key entries, and keeps
+Presence on the API access-signing key. Run this once on the VPS from the project
+directory. Rotation invalidates existing first-party JWT sessions and generated
+JWT bearer keys; users must sign in and reissue those keys. It does not change
+passwords or business data.
+
+```bash
+python3 - <<'PY'
+import os, re, secrets, tempfile, time
+from pathlib import Path
+
+p = Path('.env.production')
+original = p.read_bytes()
+backup = p.with_name(p.name + '.before-jwt-' + str(time.time_ns()))
+with os.fdopen(os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as f:
+    f.write(original)
+text = original.decode('utf-8-sig').replace('\r\n', '\n')
+access, refresh = secrets.token_hex(32), secrets.token_hex(32)
+for key, value in {'VEE_JWT_SECRET_KEY': access,
+                   'VEE_JWT_REFRESH_SECRET_KEY': refresh,
+                   'PRESENCE_JWT_SECRET': access}.items():
+    pattern = r'(?m)^[ \t]*(?:export[ \t]+)?' + key + r'[ \t]*=.*$'
+    text, count = re.subn(pattern, key + '=' + value, text)
+    if not count:
+        text = text.rstrip('\n') + '\n' + key + '=' + value + '\n'
+with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='\n',
+                                 dir=p.parent, prefix='.env-jwt-', delete=False) as f:
+    f.write(text)
+os.replace(f.name, p)
+print('Signing keys updated; private backup:', backup.name)
+PY
+
+# Shell exports override --env-file: remove stale signing-key overrides.
+unset VEE_JWT_SECRET_KEY VEE_JWT_REFRESH_SECRET_KEY PRESENCE_JWT_SECRET
+
+# Configuration-only preflight; does not import database/bootstrap code.
+docker compose --env-file .env.production -f docker-compose.prod.yml run --rm --no-deps --entrypoint python backend -c 'from app.config import get_settings; get_settings(); print("Production settings valid")'
+```
+
+Proceed with `up -d --no-deps backend presence` only after the preflight passes.
+If it reports HTTPS CORS/OAuth configuration errors next, fix those named settings
+for the actual HTTPS deployment first. Then verify direct API health and refresh
+frontend nginx as described below. Do not share or commit the backup/key values.
 
 The HTTP IP/port URLs elsewhere in this historical runbook are useful for
 reachability checks, but they are not a supported production browser-session or
