@@ -1,5 +1,10 @@
 # OAuth implementation and validation report — 2026-10-20
 
+> Historical implementation report. For the later security review, current
+> dependency version, deployment status and remaining gates, see
+> [the refinement report](refinement/report.md). Results below describe the
+> initial implementation and are not certification of the refined release.
+
 The OAuth module is implemented and running in the local Docker stack at
 `http://localhost:6300/#/api/overview` (OAuth tab). Administrators may also use
 `/#/api/oauth-apps`; every user can use `/#/oauth/applications`.

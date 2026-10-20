@@ -64,6 +64,13 @@ work concerns API clients and user delegation, not external-provider login.
 
 ## Implemented browser-session transport
 
+The follow-up [security refinement](refinement/report.md) supersedes initial
+dependency, migration and validation details. OAuthlib is now 4.0.0; revision
+`ffc2f3a4b5c6` adds cleanup/revocation indexes. See
+[deployment.md](deployment.md) for production cookie, retention, TLS and proxy
+requirements and [integration examples](refinement/integration-examples.md) for
+public, confidential and machine clients.
+
 Browser login now additionally creates a hashed, tenant/user/credential-version
 bound session and places its random identifier in an HttpOnly, SameSite=Lax
 cookie (Secure in production). Existing JSON login/refresh contracts and API

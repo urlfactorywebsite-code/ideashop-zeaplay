@@ -261,3 +261,34 @@ def test_rotation_invalidates_machine_secret_and_all_existing_grants(api, data):
     assert api.get('/api/oauth2/service', headers=bearer(old)).status_code == 401
     assert api.post('/api/oauth2/token', data=payload, auth=credentials).status_code == 401
     assert api.post('/api/oauth2/token', data=payload, auth=(credentials[0], rotated['client_secret'])).status_code == 200
+
+
+def test_claimed_client_cannot_spend_authenticated_issuance_budget(api, data):
+    from backend.app.oauth_models import OAuthRateLimit
+    client = register(api, data)['client']
+    response = api.post('/api/oauth2/token', data={'grant_type': 'refresh_token',
+        'client_id': client['client_id'], 'refresh_token': 'synthetic-invalid'})
+    assert response.status_code == 400
+    with data.factory() as db:
+        assert db.scalar(select(OAuthRateLimit).where(
+            OAuthRateLimit.key == oauth.digest('authenticated-client:' + client['id']))) is None
+
+
+def test_authenticated_throttling_does_not_consume_authorization_code(api, data):
+    from sqlalchemy import delete
+
+    from backend.app.oauth_models import OAuthRateLimit
+    client = register(api, data)['client']
+    parsed, _, _ = authorize(api, data, client)
+    with data.factory() as db:
+        db.add(OAuthRateLimit(key=oauth.digest('authenticated-client:' + client['id']),
+            window=epoch() // 60, count=120))
+        db.commit()
+    response = exchange(api, client, parsed['code'][0])
+    assert response.status_code == 429 and response.headers['retry-after'] == '60'
+    assert response.json()['error'] == 'temporarily_unavailable'
+    with data.factory() as db:
+        db.execute(delete(OAuthRateLimit).where(
+            OAuthRateLimit.key == oauth.digest('authenticated-client:' + client['id'])))
+        db.commit()
+    assert exchange(api, client, parsed['code'][0]).status_code == 200
