@@ -337,7 +337,7 @@ def test_completion_badge_bonus_does_not_progress_from_duplicate_recompletion():
     db.close()
 
 
-def test_subtask_completion_does_not_award_task_completion_xp():
+def test_partial_subtask_completion_does_not_award_task_completion_xp():
     _, owner, owner_token, _, member, member_token, project = _create_project_with_member()
     payload = _task_payload(project.id, member.id)
     payload["subtasks"] = [
@@ -347,7 +347,14 @@ def test_subtask_completion_does_not_award_task_completion_xp():
             "assigned_to_id": member.id,
             "status": models.SubtaskStatusEnum.TODO.value,
             "sort_order": 0,
-        }
+        },
+        {
+            "title": "Remaining work",
+            "completed": False,
+            "assigned_to_id": member.id,
+            "status": models.SubtaskStatusEnum.TODO.value,
+            "sort_order": 1,
+        },
     ]
 
     create_response = client.post("/api/tasks", json=payload, headers=_auth_header(owner_token))

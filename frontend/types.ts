@@ -1517,6 +1517,9 @@ export interface TaskPointsBreakdown {
 
 export interface Task {
   id: string;
+  canEdit?: boolean;
+  canManageSubtasks?: boolean;
+  canReviewSubtasks?: boolean;
   title: string;
   description: string;
   // FIX: Changed status from string to the new TaskStatus enum.
@@ -2073,6 +2076,10 @@ export interface AuditRetentionApplyResponse {
 }
 
 export enum NotificationType {
+  PROJECT_CREATED = 'PROJECT_CREATED',
+  PROJECT_UPDATED = 'PROJECT_UPDATED',
+  CLIENT_CREATED = 'CLIENT_CREATED',
+  CLIENT_UPDATED = 'CLIENT_UPDATED',
   TASK_CREATED = 'TASK_CREATED',
   TASK_UPDATED = 'TASK_UPDATED',
   TASK_DELETED = 'TASK_DELETED',
@@ -2107,6 +2114,8 @@ export enum NotificationType {
 }
 
 export enum NotificationEntityType {
+  PROJECT = 'project',
+  CLIENT = 'client',
   TICKET = 'ticket',
   TASK = 'task',
   SUBTASK = 'subtask',
@@ -2117,6 +2126,8 @@ export enum NotificationEntityType {
 
 export interface Notification {
   id: string;
+  tenantId?: string | null;
+  dedupeKey?: string | null;
   userId: string;
   type: NotificationType;
   title?: string | null;
@@ -2133,7 +2144,7 @@ export interface Notification {
   source?: 'api' | 'local';
 }
 
-export type NotificationModule = 'tasks' | 'tickets' | 'users' | 'departments' | 'comments' | 'chat';
+export type NotificationModule = 'tasks' | 'projects' | 'clients' | 'rewards' | 'tickets' | 'users' | 'departments' | 'comments' | 'chat';
 
 export type ChatConversationType = 'DIRECT' | 'GROUP' | 'SPACE';
 export type ChatMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER';

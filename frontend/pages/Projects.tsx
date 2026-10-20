@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useNotificationRefresh } from '../hooks/useNotificationRefresh';
 import {
   ArchiveBoxIcon,
   ArrowUturnLeftIcon,
@@ -305,6 +307,9 @@ const ProjectFormModal: React.FC<ProjectFormProps> = ({ project, clients, users,
 
 const Projects: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const linkedProjectId = searchParams.get('projectId');
+  const [notificationRevision, setNotificationRevision] = useState(0);
   const [filters, setFilters] = useState<ProjectListFilters>({ page: 1, pageSize: 10, sortBy: 'name', sortOrder: 'asc', status: ProjectStatus.ACTIVE });
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -353,14 +358,28 @@ const Projects: React.FC = () => {
       setProjects(response.items);
       setTotal(response.total);
       setTotalPages(response.totalPages);
-      setSelectedProject((current) => response.items.find((project) => project.id === current?.id) ?? response.items[0] ?? null);
+      setSelectedProject((current) => linkedProjectId
+        ? response.items.find((project) => project.id === linkedProjectId) ?? (current?.id === linkedProjectId ? current : null)
+        : response.items.find((project) => project.id === current?.id) ?? response.items[0] ?? null);
     } catch (err) {
       if (generation !== listGeneration.current) return;
       setError(err instanceof Error ? err.message : 'Unable to load projects.');
     } finally {
       if (generation === listGeneration.current) setLoading(false);
     }
-  }, [filters]);
+  }, [filters, linkedProjectId]);
+  useNotificationRefresh(() => { void fetchProjects(); setNotificationRevision(revision => revision + 1); });
+
+  useEffect(() => {
+    if (!linkedProjectId) return;
+    let active = true;
+    setSelectedProject(null);
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(linkedProjectId)) return;
+    void api.getProject(linkedProjectId).then(project => {
+      if (active) setSelectedProject(project);
+    }).catch(() => { if (active) setError('Unable to open this project. It may no longer be available to your account.'); });
+    return () => { active = false; };
+  }, [linkedProjectId, user?.id, user?.tenantId, notificationRevision]);
 
   useEffect(() => () => { listGeneration.current++; dashboardGeneration.current++; }, []);
 

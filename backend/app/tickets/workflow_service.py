@@ -14,6 +14,7 @@ from .. import models as app_models
 from ..models import NotificationTypeEnum, User
 from ..notifiers import get_notifier
 from ..services import notifications as notification_service
+from ..services.ticket_notification_access import notify_ticket_change
 from ..webhooks import payloads as webhook_payloads
 from ..webhooks import service as webhook_service
 from .models import (
@@ -1051,6 +1052,7 @@ def close_ticket(
 
     now = _now()
     ticket.status = TicketStatusEnum.CLOSED
+    ticket.updated_at = now
     ticket.closed_at = now
     if ticket.resolved_at is None:
         ticket.resolved_at = now
@@ -1122,20 +1124,9 @@ def close_ticket(
             created_at=now,
         )
     )
-    recipients = {ticket.owner_id, ticket.created_by}
-    recipients.discard(None)
-    for recipient_id in recipients:
-        notification_service.create_notification(
-            db,
-            user_id=str(recipient_id),
-            notification_type=app_models.NotificationTypeEnum.TICKET_CLOSED,
-            message=f"Ticket '{ticket.title}' closed.",
-            title="Ticket closed",
-            body=f"Ticket '{ticket.title}' was closed.",
-            entity_type=app_models.NotificationEntityTypeEnum.TICKET,
-            entity_id=str(ticket.id),
-            deep_link=f"/tickets?status=CLOSED&ticketId={ticket.id}",
-        )
+    notify_ticket_change(db, ticket=ticket, actor=current_user,
+        kind=app_models.NotificationTypeEnum.TICKET_CLOSED, title="Ticket closed",
+        message=f"{current_user.name} closed ticket '{ticket.title}'.")
 
     db.commit()
     db.refresh(ticket)
@@ -1216,6 +1207,7 @@ def update_ticket_status(
 
     now = _now()
     ticket.status = next_status
+    ticket.updated_at = now
     if next_status == TicketStatusEnum.RESOLVED:
         ticket.resolved_at = now
     if next_status == TicketStatusEnum.CLOSED:
@@ -1249,6 +1241,11 @@ def update_ticket_status(
             created_at=now,
         )
     )
+    notify_ticket_change(db, ticket=ticket, actor=current_user,
+        kind=app_models.NotificationTypeEnum.TICKET_CLOSED if next_status == TicketStatusEnum.CLOSED
+        else app_models.NotificationTypeEnum.TICKET_UPDATED,
+        title="Ticket status updated",
+        message=f"{current_user.name} moved ticket '{ticket.title}' from {previous_status.value} to {next_status.value}.")
     db.commit()
     db.refresh(ticket)
 

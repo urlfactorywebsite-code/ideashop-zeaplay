@@ -27,10 +27,8 @@ def _get_task(db: Session, task_id: str) -> models.Task:
 
 
 def _ensure_comment_access(task: models.Task, user: models.User) -> None:
-    if user.role in {models.RoleEnum.ADMIN, models.RoleEnum.MANAGER, models.RoleEnum.OWNER}:
-        return
-    if task.created_by_id != user.id and task.assigned_to_id != user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You cannot access comments for this task")
+    from .tasks import _ensure_task_access
+    _ensure_task_access(task, user)
 
 
 def _mention_aliases(user: models.User) -> set[str]:
@@ -121,6 +119,11 @@ def _bridge_comment_mentions_to_chat(
         return
 
     for mentioned_user in mentioned_users:
+        try:
+            _ensure_comment_access(task, mentioned_user)
+        except HTTPException:
+            # A mention must not copy private task content into a new chat.
+            continue
         conversation = _ensure_direct_conversation(db, actor, mentioned_user)
         now = datetime.utcnow()
         message = models.ChatMessage(
@@ -186,13 +189,22 @@ def create_comment(
 
     _ensure_comment_access(task, current_user)
 
+    commenter = db.get(models.User, payload.user_id)
+    if (not commenter or commenter.status != models.UserStatusEnum.ACTIVE
+            or str(commenter.tenant_id) != str(current_user.tenant_id)):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment author not found")
+    _ensure_comment_access(task, commenter)
     comment = models.Comment(task_id=payload.task_id, user_id=payload.user_id, content=payload.content)
     db.add(comment)
     db.flush()
 
-    commenter = db.get(models.User, payload.user_id)
     commenter_name = commenter.name if commenter else "Someone"
     recipient_ids = {task.assigned_to_id, task.created_by_id}
+    recipient_ids.update(follower.id for follower in task.followers)
+    recipient_ids.update(subtask.assigned_to_id for subtask in task.subtasks)
+    if task.project:
+        recipient_ids.update(member.user_id for member in task.project.members
+                             if member.role == models.ProjectMemberRoleEnum.MANAGER)
     recipient_ids.discard(None)
     if payload.user_id in recipient_ids:
         recipient_ids.remove(payload.user_id)

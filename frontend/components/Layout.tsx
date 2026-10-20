@@ -29,6 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [modalTaskId, setModalTaskId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedTaskId = searchParams.get('taskId');
+  const linkedSubtaskId = searchParams.get('subtaskId');
   const linkedTaskRef = useRef<string | null>(null);
   const [workSubtaskId, setWorkSubtaskId] = useState<string | null>(null);
   const [viewingRewardId, setViewingRewardId] = useState<string | null>(null);
@@ -142,9 +143,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       return;
     }
     linkedTaskRef.current = linkedTaskId;
-    setWorkSubtaskId(null);
+    setWorkSubtaskId(linkedSubtaskId && /^[A-Za-z0-9_-]{1,128}$/.test(linkedSubtaskId) ? linkedSubtaskId : null);
     setModalTaskId(linkedTaskId);
-  }, [linkedTaskId, user?.id]);
+  }, [linkedTaskId, linkedSubtaskId, user?.id]);
 
   const handleCloseModal = () => {
     setModalTaskId(null);
@@ -153,6 +154,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
         next.delete('taskId');
+        next.delete('subtaskId');
         return next;
       }, { replace: true });
     }

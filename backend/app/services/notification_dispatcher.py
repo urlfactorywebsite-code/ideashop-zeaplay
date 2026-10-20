@@ -7,6 +7,7 @@ from typing import Iterable, Optional
 from urllib.parse import parse_qs, urlencode, urlsplit
 from uuid import UUID
 
+from fastapi import HTTPException
 from sqlalchemy import event, insert, select
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -17,7 +18,7 @@ from ..integrations import trigger_n8n_event
 from . import audit_logger, push_service
 
 
-MODULES = {"tasks", "tickets", "users", "departments", "comments", "chat"}
+MODULES = {"tasks", "projects", "clients", "tickets", "users", "departments", "comments", "chat", "rewards"}
 logger = logging.getLogger(__name__)
 _PENDING_PUSH = "notification_push_pending"
 _COMMITTED_PUSH = "notification_push_committed"
@@ -63,6 +64,7 @@ def _entity_matches_recipient(
     db: Session, *, recipient: models.User,
     entity_type: Optional[models.NotificationEntityTypeEnum], entity_id: Optional[str],
     related_task_id: Optional[str],
+    notification_type: Optional[models.NotificationTypeEnum] = None,
 ) -> bool:
     task_id = related_task_id
     if entity_type == models.NotificationEntityTypeEnum.TASK:
@@ -83,6 +85,28 @@ def _entity_matches_recipient(
         task_tenant = project.tenant_id if project else creator.tenant_id if creator else None
         if str(task_tenant) != str(recipient.tenant_id):
             return False
+        from ..routers.tasks import _ensure_task_access
+        try:
+            _ensure_task_access(task, recipient)
+        except HTTPException:
+            return False
+    if entity_type == models.NotificationEntityTypeEnum.PROJECT:
+        project = db.get(models.Project, entity_id) if entity_id else None
+        if not project or str(project.tenant_id) != str(recipient.tenant_id):
+            return False
+        if recipient.role not in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
+            membership = db.scalar(select(models.ProjectMember.user_id).where(
+                models.ProjectMember.project_id == project.id,
+                models.ProjectMember.tenant_id == recipient.tenant_id,
+                models.ProjectMember.user_id == recipient.id,
+            ))
+            if membership is None:
+                return False
+    elif entity_type == models.NotificationEntityTypeEnum.CLIENT:
+        client = db.get(models.Client, entity_id) if entity_id else None
+        if (not client or str(client.tenant_id) != str(recipient.tenant_id)
+                or recipient.role not in {models.RoleEnum.OWNER, models.RoleEnum.ADMIN, models.RoleEnum.MANAGER}):
+            return False
     if entity_type == models.NotificationEntityTypeEnum.TICKET:
         from ..tickets.models import Ticket
         try:
@@ -91,9 +115,20 @@ def _entity_matches_recipient(
             return False
         if not ticket or str(ticket.tenant_id) != str(recipient.tenant_id):
             return False
+        if notification_type != models.NotificationTypeEnum.TICKET_DELETED:
+            from ..tickets.service import get_ticket_for_user
+            try:
+                get_ticket_for_user(db, tenant_id=recipient.tenant_id, ticket_id=ticket.id,
+                                    current_user=recipient, roles=[recipient.role.value])
+            except HTTPException:
+                return False
     elif entity_type == models.NotificationEntityTypeEnum.USER:
         target = db.get(models.User, entity_id) if entity_id else None
         if not target or str(target.tenant_id) != str(recipient.tenant_id):
+            return False
+        if recipient.id != target.id and recipient.role not in {
+            models.RoleEnum.ADMIN, models.RoleEnum.OWNER, models.RoleEnum.MANAGER,
+        }:
             return False
     return True
 
@@ -156,21 +191,50 @@ def _deliver_committed_push(db: Session, transaction) -> None:
                 )
                 if recipient is None:
                     continue
-                push_if_enabled(
-                    delivery_db, user_ids=[notification.user_id],
-                    module=job["module"], payload=job["payload"],
-                )
-                delivery_db.commit()
+                if notification.type not in {
+                    models.NotificationTypeEnum.TASK_DELETED, models.NotificationTypeEnum.TICKET_DELETED,
+                    models.NotificationTypeEnum.USER_DELETED, models.NotificationTypeEnum.DEPARTMENT_DELETED,
+                } and not _entity_matches_recipient(
+                    delivery_db, recipient=recipient, entity_type=notification.entity_type,
+                    entity_id=notification.entity_id, related_task_id=notification.related_task_id,
+                    notification_type=notification.type,
+                ):
+                    continue
+                integration_payload = schemas.NotificationRead.model_validate(notification).model_dump(mode="json")
+                try:
+                    push_if_enabled(
+                        delivery_db, user_ids=[notification.user_id],
+                        module=job["module"], payload=job["payload"],
+                    )
+                    delivery_db.commit()
+                except Exception as exc:
+                    delivery_db.rollback()
+                    logger.warning("Post-commit push failed: error_type=%s", type(exc).__name__)
+            # Automations must observe the same committed history as the bell.
+            # Provider failures must not suppress automation delivery either.
+            trigger_n8n_event("notification.created", integration_payload)
         except Exception as exc:
             # Provider acceptance cannot roll back committed domain work. Push is
             # best effort here; the existing durable outbox is email-only.
-            logger.warning("Post-commit push failed: error_type=%s", type(exc).__name__)
+            logger.warning("Post-commit notification delivery failed: error_type=%s", type(exc).__name__)
 
 
 def resolve_module(
     notification_type: models.NotificationTypeEnum,
     entity_type: Optional[models.NotificationEntityTypeEnum],
 ) -> Optional[str]:
+    if notification_type in {
+        models.NotificationTypeEnum.PROJECT_CREATED, models.NotificationTypeEnum.PROJECT_UPDATED,
+    }:
+        return "projects"
+    if notification_type in {
+        models.NotificationTypeEnum.CLIENT_CREATED, models.NotificationTypeEnum.CLIENT_UPDATED,
+    }:
+        return "clients"
+    if notification_type in {
+        models.NotificationTypeEnum.ACHIEVEMENT_UNLOCKED, models.NotificationTypeEnum.REWARD_CLAIMED,
+    }:
+        return "rewards"
     if (
         notification_type == models.NotificationTypeEnum.TASK_OVERDUE
         and entity_type == models.NotificationEntityTypeEnum.TICKET
@@ -252,6 +316,18 @@ def _canonical_push_url(value: Optional[str]) -> Optional[str]:
             if not valid_id:
                 return None
             parameters[key] = valid_id
+        subtask_id = identifier(query.get("subtaskId", [None])[0])
+        if parts[0] == "tasks" and subtask_id:
+            parameters["subtaskId"] = subtask_id
+    elif parts and parts[0] in {"projects", "clients"} and len(parts) <= 2:
+        path = "/" + parts[0]
+        key = "projectId" if parts[0] == "projects" else "clientId"
+        raw_id = parts[1] if len(parts) == 2 else query.get(key, [None])[0]
+        if raw_id:
+            valid_id = identifier(raw_id)
+            if not valid_id:
+                return None
+            parameters[key] = valid_id
     elif parts and parts[0] == "chat" and len(parts) <= 2:
         if len(parts) == 2 and not identifier(parts[1]):
             return None
@@ -264,13 +340,21 @@ def _canonical_push_url(value: Optional[str]) -> Optional[str]:
     elif path == "/settings":
         if query.get("tab", [None])[0] == "push":
             parameters["tab"] = "push"
-    elif path not in {"/", "/dashboard", "/admin/users", "/achievements"}:
+    elif path in {"/achievements", "/rewards"}:
+        if path == "/rewards" or query.get("tab", [None])[0] == "rewards":
+            parameters["tab"] = "rewards"
+        path = "/achievements"
+    elif path not in {"/", "/dashboard", "/admin/users"}:
         return None
     suffix = "?" + urlencode(parameters) if parameters else ""
     return f"/#{path}{suffix}"
 
 
 def _resolve_url(notification: models.Notification) -> str:
+    if notification.type == models.NotificationTypeEnum.TASK_DELETED:
+        return "/#/tasks"
+    if notification.type == models.NotificationTypeEnum.TICKET_DELETED:
+        return "/#/tickets"
     canonical = _canonical_push_url(notification.deep_link)
     if canonical:
         return canonical
@@ -281,12 +365,20 @@ def _resolve_url(notification: models.Notification) -> str:
         fallback = f"/tasks/{notification.related_task_id}"
     elif notification.entity_type == models.NotificationEntityTypeEnum.TICKET and notification.entity_id:
         fallback = f"/tickets/{notification.entity_id}"
+    elif notification.entity_type == models.NotificationEntityTypeEnum.PROJECT and notification.entity_id:
+        fallback = f"/projects/{notification.entity_id}"
+    elif notification.entity_type == models.NotificationEntityTypeEnum.CLIENT and notification.entity_id:
+        fallback = f"/clients/{notification.entity_id}"
     elif notification.entity_type in {models.NotificationEntityTypeEnum.USER, models.NotificationEntityTypeEnum.DEPARTMENT}:
         fallback = "/admin/users"
     elif notification.related_chat_id:
         fallback = f"/chat/{notification.related_chat_id}"
     elif notification.related_task_id:
         fallback = f"/tasks/{notification.related_task_id}"
+    elif notification.type == models.NotificationTypeEnum.REWARD_CLAIMED:
+        fallback = "/achievements?tab=rewards"
+    elif notification.type == models.NotificationTypeEnum.ACHIEVEMENT_UNLOCKED:
+        fallback = "/achievements"
     return _canonical_push_url(fallback) or "/#/"
 
 
@@ -329,6 +421,7 @@ def create_history_notification(
     if not _entity_matches_recipient(
         db, recipient=recipient, entity_type=entity_type,
         entity_id=entity_id, related_task_id=related_task_id,
+        notification_type=notification_type,
     ):
         return None
     tenant_id = recipient.tenant_id
@@ -378,8 +471,13 @@ def create_history_notification(
             )
         else:
             stmt = insert(models.Notification).values(**values)
-        result = db.execute(stmt)
-        if result.rowcount != 1:
+        # psycopg may report -1 for INSERT rowcount; RETURNING distinguishes a
+        # genuinely new row from ON CONFLICT without suppressing its delivery.
+        if dialect_name in {"postgresql", "sqlite"}:
+            inserted = db.execute(stmt.returning(models.Notification.id)).scalar_one_or_none() is not None
+        else:
+            inserted = db.execute(stmt).rowcount == 1
+        if not inserted:
             existing = db.execute(
                 select(models.Notification).where(
                     models.Notification.user_id == user_id,
@@ -411,8 +509,6 @@ def create_history_notification(
         db.add(notification)
         db.flush()
     notification._already_dispatched = False
-    payload = schemas.NotificationRead.model_validate(notification).model_dump()
-    trigger_n8n_event("notification.created", payload)
     audit_logger.log_event(
         audit_logger.AuditLogInput(
             action="NOTIFICATION_SENT",
@@ -499,21 +595,20 @@ def dispatch_notification(
     if notification is None or getattr(notification, "_already_dispatched", False):
         return notification
     module = resolve_module(notification_type, entity_type)
-    if module:
-        transaction = db.get_nested_transaction() or db.get_transaction()
-        db.info.setdefault(_PENDING_PUSH, []).append((transaction, {
-            "notification_id": str(notification.id),
-            "actor_id": actor_id,
+    transaction = db.get_nested_transaction() or db.get_transaction()
+    db.info.setdefault(_PENDING_PUSH, []).append((transaction, {
+        "notification_id": str(notification.id),
+        "actor_id": actor_id,
+        "module": module,
+        "payload": {
+            "title": _resolve_title(notification),
+            "body": _resolve_body(notification),
+            "url": _resolve_url(notification),
+            "icon": None,
+            "badge": None,
             "module": module,
-            "payload": {
-                "title": _resolve_title(notification),
-                "body": _resolve_body(notification),
-                "url": _resolve_url(notification),
-                "icon": None,
-                "badge": None,
-                "module": module,
-                "event_type": notification_type.value,
-                "notification_id": str(notification.id),
-            },
-        }))
+            "event_type": notification_type.value,
+            "notification_id": str(notification.id),
+        },
+    }))
     return notification

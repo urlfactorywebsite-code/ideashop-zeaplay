@@ -252,6 +252,7 @@ def test_inactive_and_cross_tenant_recipients_are_not_notified():
 
     db = TestingSessionLocal()
     try:
+        notification_count_before_deactivation = db.query(models.Notification).filter_by(user_id=member.id).count()
         db_member = db.get(models.User, member.id)
         db_member.status = models.UserStatusEnum.DEACTIVATED
         db.commit()
@@ -267,7 +268,7 @@ def test_inactive_and_cross_tenant_recipients_are_not_notified():
 
     db = TestingSessionLocal()
     try:
-        assert db.query(models.Notification).filter_by(user_id=member.id).count() == 0
+        assert db.query(models.Notification).filter_by(user_id=member.id).count() == notification_count_before_deactivation
         assert db.query(models.NotificationOutbox).filter_by(recipient_user_id=member.id).count() == 0
 
         other_tenant_user, _ = _create_user(models.RoleEnum.USER, uuid.uuid4())

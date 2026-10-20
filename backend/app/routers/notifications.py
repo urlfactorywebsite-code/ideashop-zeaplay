@@ -1,15 +1,34 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..auth import oauth2_scheme
 from ..database import get_db
 from ..dependencies import get_current_active_user
 from ..services import audit_logger
+from ..services.notification_stream import notification_events
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
+
+
+@router.get("/stream")
+def stream_notifications(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    user_id, tenant_id, bind = str(current_user.id), current_user.tenant_id, db.get_bind()
+    db.rollback()
+    return StreamingResponse(
+        notification_events(request, bind, token=token, user_id=user_id, tenant_id=tenant_id),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache, no-store", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("", response_model=list[schemas.NotificationRead])

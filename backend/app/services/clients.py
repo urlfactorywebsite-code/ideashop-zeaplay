@@ -11,7 +11,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
-from . import archive_state, security_audit
+from . import archive_state, entity_notifications, security_audit
 
 
 SortField = Literal["company_name", "created_at", "updated_at", "country", "status"]
@@ -206,6 +206,7 @@ def create_client(
             entity_id=client.id,
             payload={"status": client.status.value},
         )
+        entity_notifications.notify_client(db, client=client, actor=actor, action="created")
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -224,6 +225,8 @@ def update_client(
 ) -> models.Client:
     client = get_client(db, tenant_id=tenant_id, client_id=client_id)
     update_data = payload.model_dump(exclude_unset=True)
+    update_data = {key: value for key, value in update_data.items()
+                   if getattr(client, key) != (str(value) if key == "email" and value else value)}
     if not update_data:
         return client
 
@@ -258,6 +261,7 @@ def update_client(
     )
 
     try:
+        entity_notifications.notify_client(db, client=client, actor=actor, action="updated")
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -289,6 +293,7 @@ def archive_client(
         client.notes = f"{existing_notes}\n{note}".strip() if existing_notes else note
     archive_state.audit_transition(db, record=client, actor=actor, entity_type="client",
         action="archived", previous=previous, reason_provided=bool(payload.reason))
+    entity_notifications.notify_client(db, client=client, actor=actor, action="archived")
     db.commit()
     db.refresh(client)
     return client
@@ -309,6 +314,7 @@ def restore_client(db: Session, *, tenant_id: uuid.UUID | str, client_id: str, a
     archive_state.audit_transition(db, record=client, actor=actor, entity_type="client",
         action="restored", previous=previous)
     try:
+        entity_notifications.notify_client(db, client=client, actor=actor, action="restored")
         db.commit()
     except IntegrityError as exc:
         db.rollback()

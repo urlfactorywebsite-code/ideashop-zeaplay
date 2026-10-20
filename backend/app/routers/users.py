@@ -45,7 +45,8 @@ def _get_admin_ids(db: Session, tenant_id) -> list[str]:
     return (
         db.execute(
             select(models.User.id).where(models.User.tenant_id == tenant_id,
-                models.User.role.in_({models.RoleEnum.ADMIN, models.RoleEnum.OWNER}))
+                models.User.role.in_({models.RoleEnum.ADMIN, models.RoleEnum.OWNER, models.RoleEnum.MANAGER}),
+                models.User.status == models.UserStatusEnum.ACTIVE)
         )
         .scalars()
         .all()
@@ -338,7 +339,10 @@ def update_user(
                 request=request,
             )
         )
-        for admin_id in _get_admin_ids(db, current_user.tenant_id):
+        recipient_ids = set(_get_admin_ids(db, current_user.tenant_id))
+        if user.status == models.UserStatusEnum.ACTIVE:
+            recipient_ids.add(user.id)
+        for admin_id in recipient_ids:
             if admin_id == current_user.id:
                 continue
             notification_service.create_notification(
@@ -351,7 +355,7 @@ def update_user(
                 body=f"User '{user.name}' was updated.",
                 entity_type=models.NotificationEntityTypeEnum.USER,
                 entity_id=str(user.id),
-                deep_link=f"/users/{user.id}",
+                deep_link="/settings" if admin_id == user.id else f"/users/{user.id}",
             )
         db.add(
             models.AuditEvent(
@@ -378,7 +382,7 @@ def delete_user(
     stmt = (
         select(models.User)
         .options(selectinload(models.User.avatar_asset))
-        .where(models.User.id == user_id)
+        .where(models.User.id == user_id, models.User.tenant_id == current_user.tenant_id)
     )
     user = db.execute(stmt).scalars().first()
     if not user:

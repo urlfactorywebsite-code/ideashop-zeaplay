@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
-from . import archive_state, security_audit
+from . import archive_state, entity_notifications, security_audit
 
 
 SortField = Literal["name", "created_at", "updated_at", "status", "client"]
@@ -181,7 +181,7 @@ def _replace_members(
                 )
             )
     for stale in existing.values():
-        db.delete(stale)
+        project.members.remove(stale)
 
 
 def _to_read(project: models.Project, *, task_count: int = 0) -> schemas.ProjectRead:
@@ -359,6 +359,7 @@ def create_project(
         },
     )
     try:
+        entity_notifications.notify_project(db, project=project, actor=actor, action="created")
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -380,6 +381,19 @@ def update_project(
     _ensure_can_read(project, actor)
     _ensure_project_manager(project, actor)
     update_data = payload.model_dump(exclude_unset=True)
+    current_membership = {member.user_id: member.role for member in project.members}
+    normalized_data = {}
+    for key, value in update_data.items():
+        if key in {"manager_ids", "member_ids"}:
+            role = models.ProjectMemberRoleEnum.MANAGER if key == "manager_ids" else models.ProjectMemberRoleEnum.MEMBER
+            current_ids = {user_id for user_id, member_role in current_membership.items() if member_role == role}
+            if set(value or []) != current_ids:
+                normalized_data[key] = value
+        elif getattr(project, key) != (_as_datetime(value) if key in {"start_date", "end_date"} else value):
+            normalized_data[key] = value
+    update_data = normalized_data
+    if not update_data:
+        return project
     if "client_id" in update_data:
         _get_active_client(db, tenant_id=project.tenant_id, client_id=update_data["client_id"])
         actor = archive_state.management_actor(db, actor, project.tenant_id)
@@ -417,6 +431,7 @@ def update_project(
         payload={"fields": sorted(update_data.keys())},
     )
     try:
+        entity_notifications.notify_project(db, project=project, actor=actor, action="updated")
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -437,6 +452,8 @@ def replace_project_members(
     _ensure_can_read(project, actor)
     _ensure_project_manager(project, actor)
     membership = _membership_payload(manager_ids=payload.manager_ids, member_ids=payload.member_ids, actor=actor)
+    if membership == {member.user_id: member.role for member in project.members}:
+        return project
     _replace_members(db, project=project, membership=membership, actor=actor)
     project.updated_by_id = actor.id
     security_audit.append_event(
@@ -451,6 +468,7 @@ def replace_project_members(
         },
     )
     try:
+        entity_notifications.notify_project(db, project=project, actor=actor, action="updated membership for")
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -483,6 +501,7 @@ def archive_project(
         project.description = f"{existing}\n{note}".strip() if existing else note
     archive_state.audit_transition(db, record=project, actor=actor, entity_type="project",
         action="archived", previous=previous, reason_provided=bool(payload.reason))
+    entity_notifications.notify_project(db, project=project, actor=actor, action="archived")
     db.commit()
     return db.execute(_project_query(project.tenant_id).where(models.Project.id == project.id)).scalars().first()
 
@@ -512,6 +531,7 @@ def restore_project(db: Session, *, tenant_id: uuid.UUID | str, project_id: str,
     project.updated_by_id = actor.id
     archive_state.audit_transition(db, record=project, actor=actor, entity_type="project",
         action="restored", previous=previous)
+    entity_notifications.notify_project(db, project=project, actor=actor, action="restored")
     db.commit()
     return db.execute(_project_query(project.tenant_id).where(models.Project.id == project.id)).scalars().first()
 

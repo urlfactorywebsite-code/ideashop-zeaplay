@@ -19,6 +19,7 @@ from ..models import RoleEnum, User, UserStatusEnum
 from ..services.badge_engine import BadgeEvent, process_badge_event
 from ..services import notifications as notification_service
 from ..services import audit_logger
+from ..services.ticket_notification_access import eligible_ticket_recipients, notify_ticket_change, ticket_audience, ticket_notification_key
 from .models import (
     Ticket,
     TicketActivityLog,
@@ -110,13 +111,15 @@ def _resolve_default_assignee(
     db: Session,
     *,
     department_id: Optional[uuid.UUID],
+    tenant_id: uuid.UUID,
 ) -> Optional[str]:
     if not department_id:
         return None
     stmt = (
         select(User)
         .where(
-            User.department_id == department_id,
+            User.department_id == str(department_id),
+            User.tenant_id == tenant_id,
             User.role == RoleEnum.MANAGER,
             User.status == UserStatusEnum.ACTIVE,
         )
@@ -486,7 +489,7 @@ def create_ticket(
     requested_assignee = payload.assigned_user_id or payload.owner_id
     owner_id = str(requested_assignee) if requested_assignee else None
     if owner_id is None:
-        owner_id = _resolve_default_assignee(db, department_id=payload.department_id)
+        owner_id = _resolve_default_assignee(db, department_id=payload.department_id, tenant_id=tenant_id)
 
     if payload.approval_enabled and not payload.due_date:
         raise HTTPException(
@@ -628,19 +631,9 @@ def create_ticket(
         )
     )
 
-    if ticket.owner_id:
-        notification_service.create_notification(
-            db,
-            user_id=str(ticket.owner_id),
-            actor_id=user_id,
-            notification_type=app_models.NotificationTypeEnum.TICKET_CREATED,
-            message=f"Ticket '{ticket.title}' was created.",
-            title="Ticket created",
-            body=f"Ticket '{ticket.title}' was created.",
-            entity_type=app_models.NotificationEntityTypeEnum.TICKET,
-            entity_id=str(ticket.id),
-            deep_link=f"/tickets/{ticket.id}",
-        )
+    notify_ticket_change(db, ticket=ticket, actor=current_user,
+        kind=app_models.NotificationTypeEnum.TICKET_CREATED, title="Ticket created",
+        message=f"{current_user.name} created ticket '{ticket.title}'.")
 
     process_badge_event(
         db,
@@ -807,6 +800,7 @@ def update_ticket(
         _apply_sla(ticket, policy=policy, now=now)
 
     if changes:
+        ticket.updated_at = now
         before: dict[str, object] = {}
         after: dict[str, object] = {}
         if "status" in changes:
@@ -896,6 +890,7 @@ def update_ticket(
             user_id=str(ticket.owner_id),
             actor_id=user_id,
             notification_type=app_models.NotificationTypeEnum.TICKET_ASSIGNED,
+            dedupe_key=ticket_notification_key(ticket, app_models.NotificationTypeEnum.TICKET_ASSIGNED),
             message=f"You were assigned ticket '{ticket.title}'.",
             title="Ticket assigned",
             body=f"You were assigned ticket '{ticket.title}'.",
@@ -1072,19 +1067,10 @@ def update_ticket(
             ),
         )
 
-    if update_fields and ticket.created_by and ticket.created_by != user_id:
-        notification_service.create_notification(
-            db,
-            user_id=str(ticket.created_by),
-            actor_id=user_id,
-            notification_type=app_models.NotificationTypeEnum.TICKET_UPDATED,
-            message=f"Ticket '{ticket.title}' was updated.",
-            title="Ticket updated",
-            body=f"Ticket '{ticket.title}' was updated.",
-            entity_type=app_models.NotificationEntityTypeEnum.TICKET,
-            entity_id=str(ticket.id),
-            deep_link=f"/tickets/{ticket.id}",
-        )
+    if update_fields:
+        notify_ticket_change(db, ticket=ticket, actor=current_user,
+            kind=app_models.NotificationTypeEnum.TICKET_UPDATED, title="Ticket updated",
+            message=f"{current_user.name} updated ticket '{ticket.title}'.")
 
     db.commit()
     db.refresh(ticket)
@@ -1142,6 +1128,7 @@ def soft_delete_ticket(
     if not (_has_role(roles, "admin", "owner") or _is_owner(ticket, participant_roles, user_id)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to delete ticket")
 
+    recipients = ticket_audience(db, ticket=ticket, actor_id=user_id)
     now = _now()
     ticket.deleted_at = now
     _log_activity(
@@ -1196,10 +1183,10 @@ def soft_delete_ticket(
             occurred_at=now,
         ),
     )
-    if ticket.created_by and str(ticket.created_by) != user_id:
+    for recipient in recipients:
         notification_service.create_notification(
             db,
-            user_id=str(ticket.created_by),
+            user_id=recipient.id,
             actor_id=user_id,
             notification_type=app_models.NotificationTypeEnum.TICKET_DELETED,
             message=f"Ticket '{ticket.title}' was deleted.",
@@ -1264,6 +1251,7 @@ def transfer_ticket(
         tenant_id=tenant_id,
         department_id=payload.department_id,
         ticket=ticket,
+        actor_id=user_id,
     )
 
     db.commit()
@@ -1879,6 +1867,8 @@ def close_ticket(
         or _is_assignee(participant_roles)
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to close ticket")
+    if ticket.status == TicketStatusEnum.CLOSED:
+        return ticket
 
     override_allowed = db.execute(
         select(app_models.Approval)
@@ -1904,6 +1894,7 @@ def close_ticket(
     now = _now()
     previous_status = ticket.status
     ticket.status = TicketStatusEnum.CLOSED
+    ticket.updated_at = now
     ticket.closed_at = now
     if ticket.resolved_at is None:
         ticket.resolved_at = now
@@ -1940,21 +1931,9 @@ def close_ticket(
             after={"status": ticket.status.value},
         )
     )
-    recipients = {ticket.owner_id, ticket.created_by}
-    recipients.discard(None)
-    for recipient_id in recipients:
-        notification_service.create_notification(
-            db,
-            user_id=str(recipient_id),
-            actor_id=user_id,
-            notification_type=app_models.NotificationTypeEnum.TICKET_CLOSED,
-            message=f"Ticket '{ticket.title}' closed.",
-            title="Ticket closed",
-            body=f"Ticket '{ticket.title}' was closed.",
-            entity_type=app_models.NotificationEntityTypeEnum.TICKET,
-            entity_id=str(ticket.id),
-            deep_link=f"/tickets?status=CLOSED&ticketId={ticket.id}",
-        )
+    notify_ticket_change(db, ticket=ticket, actor=current_user,
+        kind=app_models.NotificationTypeEnum.TICKET_CLOSED, title="Ticket closed",
+        message=f"{current_user.name} closed ticket '{ticket.title}'.")
 
     process_badge_event(
         db,
@@ -2024,9 +2003,12 @@ def reopen_ticket(
 
     if not (_has_role(roles, "admin", "owner") or _is_creator(ticket, user_id)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to reopen ticket")
+    if ticket.status == TicketStatusEnum.OPEN:
+        return ticket
 
     previous_status = ticket.status
     ticket.status = TicketStatusEnum.OPEN
+    ticket.updated_at = _now()
     ticket.closed_at = None
     ticket.resolved_at = None
 
@@ -2064,6 +2046,9 @@ def reopen_ticket(
         ),
     )
 
+    notify_ticket_change(db, ticket=ticket, actor=current_user,
+        kind=app_models.NotificationTypeEnum.TICKET_UPDATED, title="Ticket reopened",
+        message=f"{current_user.name} reopened ticket '{ticket.title}'.")
     db.commit()
     db.refresh(ticket)
 
@@ -2100,9 +2085,15 @@ def _notify_department_members(
     tenant_id: uuid.UUID,
     department_id: uuid.UUID,
     ticket: Ticket,
+    actor_id: str | None = None,
 ) -> None:
-    stmt = select(User).where(User.department_id == str(department_id))
-    users = db.execute(stmt).scalars().all()
+    db.flush()
+    stmt = select(User.id).where(
+        User.department_id == str(department_id), User.tenant_id == tenant_id,
+        User.status == UserStatusEnum.ACTIVE,
+    )
+    users = eligible_ticket_recipients(db, ticket=ticket,
+        recipient_ids=db.scalars(stmt).all(), actor_id=actor_id)
     for user in users:
         user_id = str(user.id)
         notification = TicketNotification(
@@ -2116,3 +2107,10 @@ def _notify_department_members(
             created_at=_now(),
         )
         db.add(notification)
+        notification_service.create_notification(
+            db, user_id=user_id, tenant_id=tenant_id, actor_id=actor_id,
+            notification_type=app_models.NotificationTypeEnum.TICKET_UPDATED,
+            message=notification.body, title=notification.title, body=notification.body,
+            entity_type=app_models.NotificationEntityTypeEnum.TICKET, entity_id=str(ticket.id),
+            deep_link=f"/tickets/{ticket.id}",
+        )

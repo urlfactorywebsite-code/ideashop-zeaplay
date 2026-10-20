@@ -1210,6 +1210,9 @@ class TaskRead(TaskBase):
     follower_ids: List[str] = Field(default_factory=list)
     status_title: Optional[str] = None
     total_tracked_seconds: int = 0
+    can_edit: bool = False
+    can_manage_subtasks: bool = False
+    can_review_subtasks: bool = False
 
 
 class TaskListItem(BaseModel):
@@ -2568,7 +2571,7 @@ class NotificationOutboxRead(BaseModel):
     updated_at: datetime
 
 
-NotificationModule = Literal["tasks", "tickets", "users", "departments", "comments", "chat"]
+NotificationModule = Literal["tasks", "projects", "clients", "tickets", "users", "departments", "comments", "chat", "rewards"]
 
 
 class PushSubscriptionKeys(BaseModel):

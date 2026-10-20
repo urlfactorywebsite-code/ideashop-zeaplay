@@ -17,6 +17,9 @@ import SameTaskLogModal from './SameTaskLogModal';
 import { History } from 'lucide-react';
 import { WorkTimerControls } from './ActiveWork';
 import { WORK_UPDATED_EVENT } from '../hooks/useActiveWork';
+import { TASK_REALTIME_EVENT, type TaskRealtimeNotice } from '../services/taskRealtimeEvents';
+import { NOTIFICATIONS_CHANGED_EVENT } from '../services/notificationRealtime';
+import { taskPermissions } from '../utils/taskPermissions';
 
 const TaskJourneyModal = React.lazy(() => import('./TaskJourneyModal'));
 
@@ -256,7 +259,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     const [completionError, setCompletionError] = useState<string | null>(null);
     const [completionBusy, setCompletionBusy] = useState(false);
     const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
+    const [subtaskBusyId, setSubtaskBusyId] = useState<string | null>(null);
+    const subtaskMutation = useRef(false);
+    const taskFetchSequence = useRef(0);
+    const taskScope = useRef('');
     const { user } = useAuth();
+    taskScope.current = `${user?.tenantId}:${user?.id}:${taskId}:${isOpen}`;
     const { notify } = useToast();
     useEffect(() => {
         if (!isOpen || !focusSubtaskId || loading || task?.id !== taskId) return;
@@ -391,18 +399,23 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
         [task],
     );
 
-    const fetchTask = async () => {
+    const fetchTask = async (fresh = requireFresh) => {
+        const sequence = ++taskFetchSequence.current;
+        const scope = taskScope.current;
+        const current = () => sequence === taskFetchSequence.current && scope === taskScope.current && isOpen;
         setLoading((previous) => (task ? previous : true));
         setError(null);
         setGroupLoading(true);
         try {
-            const fetchedTask = await api.getTask(taskId, { fresh: requireFresh });
+            const fetchedTask = await api.getTask(taskId, { fresh });
+            if (!current()) return;
             setTask(fetchedTask);
             setLoading(false);
             const [groupResult, commentsResult] = await Promise.allSettled([
                 api.getTaskGroup(fetchedTask.id),
                 api.getComments(taskId),
             ]);
+            if (!current()) return;
             if (groupResult.status === 'fulfilled') {
                 setGroupTasks(groupResult.value);
                 setGroupError(null);
@@ -416,22 +429,47 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                 console.error('Failed to load comments', commentsResult.reason);
             }
         } catch (err) {
+            if (!current()) return;
             console.error('Error fetching task:', err);
             setError('Failed to load task');
         } finally {
-            setLoading(false);
-            setGroupLoading(false);
+            if (current()) {
+                setLoading(false);
+                setGroupLoading(false);
+            }
         }
     };
     const refreshTaskAndTimer = async () => { await fetchTask(); };
     useEffect(() => {
-        if (!isOpen) return;
-        const update = () => { void fetchTask(); };
+        if (!isOpen || !user) return;
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const update = () => {
+            if (timer) return;
+            timer = setTimeout(() => { timer = null; void fetchTask(true); }, 150);
+        };
+        const realtime = (event: Event) => {
+            const notice = (event as CustomEvent<TaskRealtimeNotice>).detail;
+            if (notice?.userId !== user.id || notice.tenantId !== (user.tenantId ?? null)) return;
+            const target = notice.payload?.task_id;
+            if (!target || target === taskId) update();
+        };
+        const notificationsChanged = (event: Event) => {
+            const notice = (event as CustomEvent<{ userId: string; tenantId: string | null }>).detail;
+            if (notice?.userId === user.id && notice.tenantId === (user.tenantId ?? null)) update();
+        };
         window.addEventListener(WORK_UPDATED_EVENT, update);
-        return () => window.removeEventListener(WORK_UPDATED_EVENT, update);
-    }, [isOpen, taskId]);
+        window.addEventListener(TASK_REALTIME_EVENT, realtime);
+        window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, notificationsChanged);
+        return () => {
+            ++taskFetchSequence.current;
+            if (timer) clearTimeout(timer);
+            window.removeEventListener(WORK_UPDATED_EVENT, update);
+            window.removeEventListener(TASK_REALTIME_EVENT, realtime);
+            window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, notificationsChanged);
+        };
+    }, [isOpen, taskId, user?.id, user?.tenantId]);
     const handleUpdateTask = async (updates: Partial<Task>) => {
-        if (!task) return;
+        if (!task || !canEditTask) return;
         try {
         const updatedTask = await api.updateTask(task.id, updates, user?.id);
             setTask(updatedTask);
@@ -439,7 +477,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
             await fetchGroupTasks(updatedTask);
             notify('Task updated successfully.');
         } catch (err) {
-            console.error('Failed to update task');
+            notify(err instanceof Error ? err.message : 'Unable to update task.', 'error');
         }
     };
 
@@ -453,32 +491,33 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
         }, 500); // 500ms debounce
     }, [task, user]);
     const handleSubtaskToggle = async (subtaskId: string, completed: boolean) => {
-        if (!task) return;
-        try {
-            await api.updateSubtask(task.id, subtaskId, { completed });
-            setTask({
-                ...task,
-                subtasks: task.subtasks.map(sub => sub.id === subtaskId ? {
-                    ...sub,
-                    completed,
-                    status: completed ? SubtaskStatus.DONE : SubtaskStatus.TODO,
-                } : sub)
-            });
-        } catch (err) {
-            console.error('Failed to update subtask');
-        }
+        if (completed) openCompletionDialog(subtaskId);
+        else await handleSubtaskUpdate(subtaskId, { status: SubtaskStatus.TODO });
     };
     const handleSubtaskUpdate = async (
         subtaskId: string,
         updates: { assignedToId?: string | null; status?: SubtaskStatus },
     ) => {
-        if (!task) return;
+        if (!task || subtaskMutation.current) return;
+        if (updates.status === SubtaskStatus.DONE) {
+            openCompletionDialog(subtaskId);
+            return;
+        }
+        subtaskMutation.current = true;
+        setSubtaskBusyId(subtaskId);
+        ++taskFetchSequence.current;
+        const scope = taskScope.current;
         try {
             const updatedTask = await api.updateSubtask(task.id, subtaskId, updates);
+            if (scope !== taskScope.current) return;
+            ++taskFetchSequence.current;
             setTask(updatedTask);
             onTaskUpdated?.(updatedTask);
         } catch (err) {
-            console.error('Failed to update subtask');
+            if (scope === taskScope.current) notify(err instanceof Error ? err.message : 'Unable to update subtask.', 'error');
+        } finally {
+            subtaskMutation.current = false;
+            if (scope === taskScope.current) setSubtaskBusyId(null);
         }
     };
     const openCompletionDialog = (subtaskId: string) => {
@@ -511,7 +550,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
             notify('Completion submitted.');
         } catch (err) {
             console.error('Failed to submit completion', err);
-            setCompletionError('Unable to submit completion evidence.');
+            setCompletionError(err instanceof Error ? err.message : 'Unable to submit completion evidence.');
         } finally {
             setCompletionBusy(false);
         }
@@ -570,7 +609,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     };
 
     const handleDeleteTask = async () => {
-    if (!task || !user || ![Role.MANAGER, Role.ADMIN, Role.OWNER].includes(user.role)) return;
+    if (!task || !canEditTask) return;
         if (!window.confirm('Are you sure you want to permanently delete this task?')) return;
         
         try {
@@ -762,15 +801,18 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     }, [assigneeOptions, groupAssigneeIds]);
 
     const canManageTask = Boolean(user && [Role.MANAGER, Role.ADMIN, Role.OWNER].includes(user.role));
-    const editUnlocked = canManageTask && editUnlockCount >= 5;
+    const { canEdit: canEditTask, canManageSubtasks, canReviewSubtasks } = taskPermissions(task, user);
+    const canUpdateSubtask = (subtask: Subtask) => Boolean(user && task && (canReviewSubtasks
+        || subtask.assignedToId === user.id || (!subtask.assignedToId && task.assignedTo?.includes(user.id))));
+    const editUnlocked = canEditTask && editUnlockCount >= 5;
     const canSubmitCompletion = useCallback((subtask: Subtask) => {
         if (!user || !task) return false;
         const status = subtask.status ?? (subtask.completed ? SubtaskStatus.DONE : SubtaskStatus.TODO);
         if ([SubtaskStatus.WAITING, SubtaskStatus.IN_REVIEW, SubtaskStatus.DONE].includes(status)) {
             return false;
         }
-        return subtask.assignedToId === user.id || (!subtask.assignedToId && task.assignedTo?.includes(user.id)) || canManageTask;
-    }, [user, task, canManageTask]);
+        return subtask.assignedToId === user.id || (!subtask.assignedToId && task.assignedTo?.includes(user.id)) || canReviewSubtasks;
+    }, [user, task, canReviewSubtasks]);
 
     const pendingCompletion = useCallback((subtask: Subtask) => {
         const latest = subtask.latestCompletionSubmission;
@@ -810,11 +852,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     );
 
     const handleEditUnlockClick = useCallback(() => {
-        if (!canManageTask || editUnlocked) {
+        if (!canEditTask || editUnlocked) {
             return;
         }
         setEditUnlockCount((prev) => Math.min(prev + 1, 5));
-    }, [canManageTask, editUnlocked]);
+    }, [canEditTask, editUnlocked]);
 
     const handleStartEditCore = useCallback(() => {
         if (!task || !editUnlocked) {
@@ -835,7 +877,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     }, [task]);
 
     const handleSaveEditCore = useCallback(async () => {
-        if (!task || !canManageTask) {
+        if (!task || !canEditTask) {
             return;
         }
         await handleUpdateTask({
@@ -843,7 +885,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
             description: draftDescription,
         });
         setIsEditingCore(false);
-    }, [task, canManageTask, draftTitle, draftDescription]);
+    }, [task, canEditTask, draftTitle, draftDescription]);
 
     const handleFollowersChange = useCallback((nextFollowers: string[]) => {
         setFollowers(nextFollowers);
@@ -1138,6 +1180,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                                         <input
                                                             type="checkbox"
                                                             checked={sub.completed}
+                                                            aria-label={`${sub.completed ? 'Reopen' : 'Complete'} ${sub.title}`}
+                                                            disabled={Boolean(subtaskBusyId) || completionBusy || (sub.completed ? !canUpdateSubtask(sub) : !canSubmitCompletion(sub))}
                                                             onChange={(e) => handleSubtaskToggle(sub.id, e.target.checked)}
                                                             className="mt-1 h-4 w-4 rounded border-white/30 bg-black/20 text-emerald-400 focus:ring-emerald-300"
                                                         />
@@ -1155,11 +1199,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                                         </div>
                                                     </div>
                                                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                                                        <WorkTimerControls taskId={task.id} subtaskId={sub.id} disabled={sub.status === SubtaskStatus.WAITING || sub.status === SubtaskStatus.DONE}
-                                                            canForceStart={sub.status === SubtaskStatus.WAITING && (sub.assignedToId === user?.id || canManageTask)} />
+                                                        <WorkTimerControls taskId={task.id} subtaskId={sub.id} disabled={!canUpdateSubtask(sub) || [SubtaskStatus.WAITING, SubtaskStatus.IN_REVIEW, SubtaskStatus.DONE].includes(sub.status!)}
+                                                            canForceStart={sub.status === SubtaskStatus.WAITING && canUpdateSubtask(sub)} />
                                                         <button
                                                             type="button"
-                                                            disabled={!canSubmitCompletion(sub)}
+                                                            disabled={Boolean(subtaskBusyId) || completionBusy || !canSubmitCompletion(sub)}
                                                             onClick={() => openCompletionDialog(sub.id)}
                                                             className="rounded-full border border-sky-400/50 bg-sky-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-sky-100 disabled:opacity-50"
                                                         >
@@ -1170,7 +1214,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                                                 Attempt {sub.latestCompletionSubmission.attemptNumber}: {sub.latestCompletionSubmission.status.replace(/_/g, ' ')}
                                                             </span>
                                                         )}
-                                                        {canManageTask && pendingCompletion(sub) && (
+                                                        {canReviewSubtasks && pendingCompletion(sub) && (
                                                             <>
                                                                 <button
                                                                     type="button"
@@ -1197,6 +1241,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                                             onChange={(event) => handleSubtaskUpdate(sub.id, { assignedToId: event.target.value || null })}
                                                             className={selectFieldClass}
                                                             aria-label="Subtask assignee"
+                                                            disabled={!canManageSubtasks || Boolean(subtaskBusyId) || completionBusy}
                                                         >
                                                             <option value="">Unassigned</option>
                                                             {Array.from(usersMap.values())
@@ -1210,9 +1255,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                                             onChange={(event) => handleSubtaskUpdate(sub.id, { status: event.target.value as SubtaskStatus })}
                                                             className={selectFieldClass}
                                                             aria-label="Subtask status"
+                                                            disabled={!canUpdateSubtask(sub) || Boolean(subtaskBusyId) || completionBusy || Boolean(pendingCompletion(sub))}
                                                         >
                                                             {subtaskStatuses.map((subtaskStatus) => (
-                                                                <option key={subtaskStatus} value={subtaskStatus}>
+                                                                <option key={subtaskStatus} value={subtaskStatus}
+                                                                    disabled={(subtaskStatus === SubtaskStatus.DONE && !canSubmitCompletion(sub))
+                                                                        || (sub.status === SubtaskStatus.WAITING && subtaskStatus !== SubtaskStatus.WAITING)
+                                                                        || (subtaskStatus === SubtaskStatus.IN_REVIEW && !canReviewSubtasks)}>
                                                                     {formatTaskStatus(subtaskStatus)}
                                                                 </option>
                                                             ))}
@@ -1395,7 +1444,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                     <button
                                         type="button"
                                         onClick={() => setShowAssigneeDropdown((prev) => !prev)}
-                                        disabled={isAssigningUser}
+                                        disabled={isAssigningUser || !canEditTask}
                                         className={`${dropdownToggleClass} ${isAssigningUser ? 'cursor-not-allowed opacity-60' : ''}`}
                                     >
                                         <span>{assigneeSelection.length ? `${assigneeSelection.length} selected` : 'Select assignees'}</span>
@@ -1403,7 +1452,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                             {showAssigneeDropdown ? 'Close' : 'Open'}
                                         </span>
                                     </button>
-                                    {showAssigneeDropdown && (
+                                    {showAssigneeDropdown && canEditTask && (
                                         <div className="mt-3 rounded-2xl border border-white/10 bg-black/40 p-3">
                                             <MultiSelect
                                                 options={assigneeOptions}
@@ -1626,6 +1675,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                     <label htmlFor={statusSelectId} className="text-xs uppercase tracking-[0.25em] text-white/50">Status</label>
                                     <select
                                         id={statusSelectId}
+                                        disabled={!canEditTask}
                                         value={pendingUpdates.status !== undefined ? pendingUpdates.status : task.status}
                                         onChange={(e) => setPendingUpdates(prev => ({ ...prev, status: e.target.value as TaskStatus }))}
                                         className={selectFieldClass}
@@ -1643,7 +1693,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                         value={pendingUpdates.priority !== undefined ? pendingUpdates.priority : task.priority}
                                         onChange={(e) => setPendingUpdates(prev => ({ ...prev, priority: e.target.value as TaskPriority }))}
                                         className={selectFieldClass}
-                                        disabled={!user || ![Role.MANAGER, Role.ADMIN, Role.OWNER].includes(user.role)}
+                                        disabled={!canEditTask}
                                     >
                                         {Object.values(TaskPriority).map((p) => (
                                             <option key={p} value={p}>
@@ -1652,7 +1702,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                         ))}
                                     </select>
                                 </div>
-                                {user && [Role.MANAGER, Role.ADMIN, Role.OWNER].includes(user.role) && (
+                                {canEditTask && (
                                     <>
                                         <div>
                                             <label className="text-xs uppercase tracking-[0.25em] text-white/50">Due date</label>

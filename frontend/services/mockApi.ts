@@ -222,7 +222,7 @@ import {
   MediaSortOption,
   StorageProvider,
 } from '../types';
-import { storeTokens, getAccessToken, getRefreshToken, clearTokens } from './tokenStorage';
+import { storeTokens, storeRefreshedTokens, getAccessToken, getRefreshToken, clearTokens } from './tokenStorage';
 import { augmentTaskWithPoints } from '../utils/taskPoints';
 import { AUTH_EXPIRED_EVENT } from '../utils/appEvents';
 import { clearPushSession } from './pushBrowser';
@@ -248,7 +248,7 @@ declare module 'axios' {
 }
 
 console.log('mockApi.ts: Setting API_BASE_URL');
-const API_BASE_URL = (
+export const API_BASE_URL = (
   import.meta.env.VITE_API_URL ??
   import.meta.env.VITE_API_BASE_URL ??
   'https://todoplay.urlfactory.website/api'
@@ -678,6 +678,9 @@ type ApiCompletionSubmission = {
 
 type ApiTask = {
   id: string;
+  can_edit?: boolean;
+  can_manage_subtasks?: boolean;
+  can_review_subtasks?: boolean;
   title: string;
   description: string;
   status: TaskStatus;
@@ -1886,6 +1889,7 @@ function notifyAuthExpired(): void {
 }
 
 async function refreshAccessToken(): Promise<string | null> {
+  const previousAccessToken = getAccessToken();
   const refreshToken = getRefreshToken();
   if (!refreshToken) {
     notifyAuthExpired();
@@ -1895,9 +1899,10 @@ async function refreshAccessToken(): Promise<string | null> {
     const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
       refresh_token: refreshToken,
     });
-    storeTokens(data.access_token, data.refresh_token);
+    if (!storeRefreshedTokens(previousAccessToken, refreshToken, data.access_token, data.refresh_token)) return null;
     return data.access_token as string;
   } catch (error) {
+    if (getAccessToken() !== previousAccessToken || getRefreshToken() !== refreshToken) return null;
     clearTokens();
     notifyAuthExpired();
     return null;
@@ -1913,6 +1918,9 @@ http.interceptors.response.use(
     const { response, config } = error;
     stopGlobalLoadingTask(config?.globalProgressTaskId);
     if (response?.status === 401 && !config.__isRetryRequest) {
+      const requestToken = config.headers?.Authorization;
+      const currentToken = getAccessToken();
+      if (requestToken && requestToken !== `Bearer ${currentToken}`) return Promise.reject(error);
       if (!refreshPromise) {
         refreshPromise = refreshAccessToken();
       }
@@ -1924,8 +1932,7 @@ http.interceptors.response.use(
         config.headers.Authorization = `Bearer ${newToken}`;
         return http(config);
       }
-      clearTokens();
-      notifyAuthExpired();
+      // The refresh handler owns expiry. A concurrent account switch must survive.
     }
     return Promise.reject(error);
   }
@@ -2448,6 +2455,9 @@ function mapTask(task: ApiTask): Task {
 
   const mapped: Task = {
     id: task.id,
+    canEdit: task.can_edit,
+    canManageSubtasks: task.can_manage_subtasks,
+    canReviewSubtasks: task.can_review_subtasks,
     title: task.title,
     description: task.description ?? '',
     status: task.status,
@@ -3549,6 +3559,9 @@ async function resolveDepartmentId(departmentName?: string | null): Promise<stri
 }
 
 const api = {
+  invalidateNotificationCaches(): void {
+    for (const prefix of ['tasks', 'task:', 'task-group:', 'comments:', 'project', 'client']) invalidateCache(prefix);
+  },
   async login(email: string, pass: string): Promise<User> {
     try {
       const { data } = await http.post<AuthResponse>('/auth/login', { email, password: pass });

@@ -195,7 +195,25 @@ def _serialize_task(task: models.Task, status_title_map: dict[str, str], viewer:
         for subtask in task.subtasks
         for entry in subtask.time_entries
     )
+    capabilities = {"can_edit": False, "can_manage_subtasks": False, "can_review_subtasks": False}
+    if viewer:
+        try:
+            _ensure_task_access(task, viewer)
+        except HTTPException:
+            pass
+        else:
+            for capability, check in (
+                ("can_edit", _ensure_task_update_access),
+                ("can_manage_subtasks", _ensure_subtask_workflow_write),
+                ("can_review_subtasks", _ensure_can_review_subtask_completion),
+            ):
+                try:
+                    check(task, viewer)
+                except HTTPException:
+                    continue
+                capabilities[capability] = True
     return payload.model_copy(update={
+        **capabilities,
         "status_title": _resolve_status_title(task.status, status_title_map),
         "follower_ids": [follower.id for follower in task.followers],
         "project": _serialize_task_project(task.project),
@@ -317,6 +335,14 @@ def _publish_subtask_workflow_events(
 
 def _schedule_notification_outbox_delivery(background_tasks: BackgroundTasks) -> None:
     background_tasks.add_task(notification_outbox.run_due_notification_outbox)
+
+
+def _finish_subtask_parent_completion(
+    db: Session, task_id: str, result: subtask_workflow.WorkflowResult, background_tasks: BackgroundTasks,
+) -> None:
+    if result.parent_completed:
+        background_tasks.add_task(trigger_n8n_event, "task.completed", {"taskId": task_id})
+        task_link_service.handle_task_completion(db, task_id=task_id)
 
 
 def _fetch_task_or_404(db: Session, task_id: str) -> models.Task:
@@ -458,6 +484,8 @@ def _ensure_task_access(task: models.Task, user: models.User) -> None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
     if user.role in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
         return
+    if task.approver_id == user.id:
+        return
     if task.project and user.id in _project_member_ids(task.project):
         return
     if user.role == models.RoleEnum.MANAGER:
@@ -493,7 +521,16 @@ def _ensure_task_update_access(task: models.Task, user: models.User) -> None:
                 detail="Only the task creator or assignee can update this ticket task",
             )
         return
-    _ensure_task_access(task, user)
+    if user.role in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
+        return
+    if user.id in {task.created_by_id, task.assigned_to_id}:
+        return
+    if user.role == models.RoleEnum.MANAGER:
+        if task.project and user.id in _project_manager_ids(task.project):
+            return
+        if not task.project and user.department_id and task.assignee and task.assignee.department_id == user.department_id:
+            return
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Task updates require ownership, assignment, or manager access")
 
 
 def _ensure_priority_allowed(priority: models.TaskPriorityEnum, user: models.User) -> None:
@@ -506,6 +543,7 @@ def _apply_task_visibility(stmt: select, current_user: models.User) -> select:
         visibility_filters = [
             models.Task.created_by_id == current_user.id,
             models.Task.assigned_to_id == current_user.id,
+            models.Task.approver_id == current_user.id,
             models.Task.followers.any(models.User.id == current_user.id),
             models.Task.subtasks.any(models.Subtask.assigned_to_id == current_user.id),
             models.Task.project.has(
@@ -522,6 +560,7 @@ def _apply_task_visibility(stmt: select, current_user: models.User) -> select:
             or_(
                 models.Task.created_by_id == current_user.id,
                 models.Task.assigned_to_id == current_user.id,
+                models.Task.approver_id == current_user.id,
                 models.Task.followers.any(models.User.id == current_user.id),
                 models.Task.subtasks.any(models.Subtask.assigned_to_id == current_user.id),
                 models.Task.project.has(
@@ -558,31 +597,36 @@ def _resolve_task_followers(
     return resolved
 
 
-def _notify_task_followers(
+def _notify_task_participants(
     db: Session,
     *,
     task: models.Task,
     current_user: models.User,
     title: str,
     message: str,
+    exclude_ids: Optional[set[str]] = None,
+    notification_type: models.NotificationTypeEnum = models.NotificationTypeEnum.TASK_UPDATED,
+    deep_link: Optional[str] = None,
 ) -> None:
-    recipient_ids = {
-        follower.id
-        for follower in task.followers
-        if follower.id not in {current_user.id, task.assigned_to_id, task.created_by_id}
-    }
-    for recipient_id in recipient_ids:
+    recipient_ids = {follower.id for follower in task.followers}
+    recipient_ids.update(subtask.assigned_to_id for subtask in task.subtasks if subtask.assigned_to_id)
+    if task.assigned_to_id:
+        recipient_ids.add(task.assigned_to_id)
+    if task.project:
+        recipient_ids.update(_project_manager_ids(task.project))
+    recipient_ids.difference_update({current_user.id, task.created_by_id, *(exclude_ids or set())})
+    for recipient_id in sorted(recipient_ids):
         notification_service.create_notification(
             db,
             user_id=recipient_id,
             actor_id=str(current_user.id),
-            notification_type=models.NotificationTypeEnum.TASK_UPDATED,
+            notification_type=notification_type,
             message=message,
             title=title,
             body=message,
             entity_type=models.NotificationEntityTypeEnum.TASK,
             entity_id=task.id,
-            deep_link=f"/tasks/{task.id}",
+            deep_link=deep_link or f"/tasks/{task.id}",
             related_task_id=task.id,
         )
 
@@ -1704,7 +1748,7 @@ def create_task(
         if payload_status in COMPLETED_STATUSES and not task.completed_at:
             task.completed_at = datetime.utcnow()
 
-        for subtask_input in payload.subtasks:
+        for subtask_index, subtask_input in enumerate(payload.subtasks):
             subtask_status, subtask_completed = _normalize_subtask_status(
                 completed=subtask_input.completed,
                 status_value=subtask_input.status,
@@ -1717,13 +1761,17 @@ def create_task(
                     completed=subtask_completed,
                     assigned_to_id=subtask_assignee_id,
                     status=subtask_status,
-                    sort_order=subtask_input.sort_order,
+                    sort_order=subtask_input.sort_order if "sort_order" in subtask_input.model_fields_set else subtask_index,
                 )
             )
 
         if dependencies:
             task.dependencies = dependencies
 
+        if task.status in COMPLETED_STATUSES and any(
+            subtask.status != models.SubtaskStatusEnum.DONE for subtask in task.subtasks
+        ):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Complete all subtasks before completing the task")
         task.followers = list(follower_users)
 
         db.add(task)
@@ -1735,6 +1783,8 @@ def create_task(
     db.flush()
     now = datetime.utcnow()
     for task in created_tasks:
+        if task.subtasks and all(subtask.status == models.SubtaskStatusEnum.DONE for subtask in task.subtasks):
+            subtask_workflow.synchronize_parent_completion(db, task, actor=current_user)
         audit_logger.log_event(
             audit_logger.AuditLogInput(
                 action="TASK_CREATED",
@@ -1854,6 +1904,14 @@ def create_task(
                 entity_id=task_snapshot["id"],
                 deep_link=f"/tasks/{task_snapshot['id']}",
                 related_task_id=task_snapshot["id"],
+            )
+        created_task = db.get(models.Task, task_snapshot["id"])
+        if created_task:
+            _notify_task_participants(
+                db, task=created_task, current_user=current_user,
+                title="Task created", message=f"{current_user.name} created task '{created_task.title}'.",
+                notification_type=models.NotificationTypeEnum.TASK_CREATED,
+                exclude_ids={*(user.id for user in follower_users), *(filter(None, [assignee_id]))},
             )
 
     for task_snapshot in task_snapshots:
@@ -2439,6 +2497,7 @@ def update_task(
     follower_ids = update_data.pop("follower_ids", None)
     subtasks_provided = "subtasks" in update_data
     subtask_workflow_events: list[subtask_workflow.WorkflowDomainEvent] = []
+    parent_completed_by_subtasks = False
 
     if "project_id" in update_data:
         next_project_id = update_data["project_id"]
@@ -2527,6 +2586,7 @@ def update_task(
         if not task.approval_required:
             task.approval_status = models.TaskApprovalStatusEnum.NONE
     if "subtask_approval_required" in update_data:
+        _ensure_subtask_workflow_write(task, current_user)
         task.subtask_approval_required = update_data["subtask_approval_required"]
 
     if dependencies_ids is not None:
@@ -2561,6 +2621,10 @@ def update_task(
         for subtask_input in incoming_subtasks:
             if subtask_input.id and subtask_input.id in existing_subtasks:
                 subtask = existing_subtasks.pop(subtask_input.id)
+                if subtask.title != subtask_input.title or (
+                    "sort_order" in subtask_input.model_fields_set and subtask.sort_order != subtask_input.sort_order
+                ):
+                    _ensure_subtask_workflow_write(task, current_user)
                 subtask.title = subtask_input.title
                 if "completed" in subtask_input.model_fields_set or "status" in subtask_input.model_fields_set:
                     next_status = subtask_workflow.status_from_completed(
@@ -2575,6 +2639,7 @@ def update_task(
                         actor=current_user,
                         target_status=next_status,
                         can_override=_can_override_subtask_workflow(task, current_user),
+                        synchronize_parent=False,
                     )
                     subtask_workflow_events.extend(workflow_result.domain_events)
                 if "assigned_to_id" in subtask_input.model_fields_set and subtask_input.assigned_to_id != subtask.assigned_to_id:
@@ -2622,8 +2687,17 @@ def update_task(
                 )
 
         for stale_subtask in existing_subtasks.values():
+            _ensure_subtask_workflow_write(task, current_user)
             task.subtasks.remove(stale_subtask)
             db.delete(stale_subtask)
+        db.flush()
+        parent_changed = subtask_workflow.synchronize_parent_completion(db, task, actor=current_user)
+        parent_completed_by_subtasks = parent_changed and task.status in COMPLETED_STATUSES
+
+    if update_data.get("status") in COMPLETED_STATUSES and any(
+        subtask.status != models.SubtaskStatusEnum.DONE for subtask in task.subtasks
+    ):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Complete all subtasks before completing the task")
 
     completion_points_awarded = False
     if should_award_points:
@@ -2661,7 +2735,7 @@ def update_task(
             related_task_id=task.id,
         )
 
-    if task.created_by_id and task.created_by_id != current_user.id:
+    if task.created_by_id and task.created_by_id != current_user.id and not parent_completed_by_subtasks:
         notification_service.create_notification(
             db,
             user_id=task.created_by_id,
@@ -2676,13 +2750,16 @@ def update_task(
             related_task_id=task.id,
         )
 
-    if update_fields:
-        _notify_task_followers(
+    if update_fields and not parent_completed_by_subtasks:
+        just_completed = task.status in COMPLETED_STATUSES and previous_status not in COMPLETED_STATUSES
+        _notify_task_participants(
             db,
             task=task,
             current_user=current_user,
-            title="Task updated",
-            message=f"Task '{task.title}' was updated.",
+            title="Task completed" if just_completed else "Task updated",
+            message=f"Task '{task.title}' was {'completed' if just_completed else 'updated'}.",
+            exclude_ids={assignee_notification_target.id} if assignee_notification_target else None,
+            notification_type=models.NotificationTypeEnum.TASK_COMPLETED if just_completed else models.NotificationTypeEnum.TASK_UPDATED,
         )
 
     status_changed = task.status != previous_status
@@ -2841,7 +2918,7 @@ def update_task(
         serialized_task,
     )
 
-    if completion_points_awarded:
+    if status_changed and task.status in COMPLETED_STATUSES:
         background_tasks.add_task(
             trigger_n8n_event,
             "task.completed",
@@ -2862,6 +2939,8 @@ def complete_task(
 ) -> schemas.TaskRead:
     task = _fetch_task_or_404(db, task_id)
     _ensure_task_update_access(task, current_user)
+    if any(subtask.status != models.SubtaskStatusEnum.DONE for subtask in task.subtasks):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Complete all subtasks before completing the task")
 
     previous_status = task.status
     now = datetime.utcnow()
@@ -2878,6 +2957,11 @@ def complete_task(
     completion_points_awarded = False
     if should_award_points:
         completion_points_awarded = award_task_completion_points(db, task)
+        _notify_task_participants(
+            db, task=task, current_user=current_user, title="Task completed",
+            message=f"Task '{task.title}' was completed.",
+            notification_type=models.NotificationTypeEnum.TASK_COMPLETED,
+        )
 
     db.add(
         models.AuditEvent(
@@ -3041,7 +3125,7 @@ def delete_task(
     current_user: models.User = Depends(get_current_active_user),
 ) -> None:
     task = _fetch_task_or_404(db, task_id)
-    _ensure_task_access(task, current_user)
+    _ensure_task_update_access(task, current_user)
     status_title_map = _status_title_map(db)
     serialized_task = _serialize_task(task, status_title_map, viewer=current_user)
 
@@ -3072,6 +3156,11 @@ def delete_task(
             deep_link="/tasks",
             related_task_id=task.id,
         )
+    _notify_task_participants(
+        db, task=task, current_user=current_user, title="Task deleted",
+        message=f"Task '{task.title}' was deleted.",
+        notification_type=models.NotificationTypeEnum.TASK_DELETED, deep_link="/tasks",
+    )
 
     db.add(
         models.AuditEvent(
@@ -3336,7 +3425,7 @@ def delete_subtask_dependency(
 
     db.delete(dependency)
     db.flush()
-    workflow_result = subtask_workflow.activate_ready_subtasks(db, task, actor=current_user)
+    workflow_result = subtask_workflow.activate_ready_subtasks(db, task, actor=current_user, activate_orphans=True)
     subtask_notifications.enqueue_workflow_notifications(db, task=task, events=workflow_result.domain_events)
     db.commit()
     _invalidate_task_cache(current_user, action="subtask_dependency_deleted", task_id=task_id)
@@ -3364,6 +3453,8 @@ def update_subtask(
     previous_assignee_id = subtask.assigned_to_id
     update_data = payload.model_dump(exclude_unset=True)
     workflow_result = subtask_workflow.WorkflowResult()
+    if any(field in update_data for field in ("title", "assigned_to_id", "sort_order")):
+        _ensure_subtask_workflow_write(task, current_user)
     if "title" in update_data:
         subtask.title = update_data["title"]
     if "assigned_to_id" in update_data:
@@ -3453,6 +3544,7 @@ def update_subtask(
     _invalidate_task_cache(current_user, action="subtask_updated", task_id=task_id)
     _publish_subtask_workflow_events(current_user, workflow_result.domain_events)
     _schedule_notification_outbox_delivery(background_tasks)
+    _finish_subtask_parent_completion(db, task_id, workflow_result, background_tasks)
 
     updated_task = _fetch_task_or_404(db, task_id)
     status_title_map = _status_title_map(db)
@@ -3573,6 +3665,7 @@ def submit_subtask_completion(
 ) -> schemas.TaskRead:
     task = _fetch_task_or_404(db, task_id)
     _ensure_task_access(task, current_user)
+    subtask_workflow.lock_workflow_rows(db, task.id)
     subtask = _fetch_task_subtask_or_404(task, subtask_id)
     if not _can_submit_subtask_completion(task, subtask, current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Subtask completion is not allowed")
@@ -3660,6 +3753,7 @@ def submit_subtask_completion(
     _invalidate_task_cache(current_user, action="subtask_completion_submitted", task_id=task.id)
     _publish_subtask_workflow_events(current_user, workflow_result.domain_events)
     _schedule_notification_outbox_delivery(background_tasks)
+    _finish_subtask_parent_completion(db, task.id, workflow_result, background_tasks)
 
     updated_task = _fetch_task_or_404(db, task.id)
     status_title_map = _status_title_map(db)
@@ -3717,6 +3811,8 @@ def approve_subtask_completion(
                 actor=current_user,
                 target_status=models.SubtaskStatusEnum.DONE,
                 can_override=True,
+                completion_reviewed=True,
+                completed_by_id=db.get(models.CompletionSubmission, submission_id).submitted_by_id,
             )
             reviewed_subtask = db.get(models.Subtask, subtask_id)
             if reviewed_subtask:
@@ -3736,6 +3832,7 @@ def approve_subtask_completion(
     _invalidate_task_cache(current_user, action="subtask_completion_approved", task_id=task.id)
     _publish_subtask_workflow_events(current_user, workflow_result.domain_events)
     _schedule_notification_outbox_delivery(background_tasks)
+    _finish_subtask_parent_completion(db, task.id, workflow_result, background_tasks)
 
     updated_task = _fetch_task_or_404(db, task.id)
     serialized_task = _serialize_task(updated_task, _status_title_map(db), viewer=current_user)
@@ -3789,6 +3886,7 @@ def reject_subtask_completion(
                 actor=current_user,
                 target_status=models.SubtaskStatusEnum.TODO,
                 can_override=True,
+                completion_reviewed=True,
             )
             reviewed_subtask = db.get(models.Subtask, subtask_id)
             if reviewed_subtask:

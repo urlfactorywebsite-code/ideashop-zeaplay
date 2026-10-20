@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useRef, useCallb
 import { useNavigate } from 'react-router-dom';
 import { User, Role } from '../types';
 import api from '../services/mockApi';
-import { getAccessToken } from '../services/tokenStorage';
+import { AUTH_TOKEN_REFRESHED_EVENT, getAccessToken } from '../services/tokenStorage';
 import { AUTH_EXPIRED_EVENT } from '../utils/appEvents';
 import PageLoader from '../components/loading/PageLoader';
 import { clearPushSession, syncPushAccount } from '../services/pushBrowser';
@@ -25,6 +25,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const authenticatedToken = useRef<string | null>(null);
   const navigate = useNavigate();
+  useEffect(() => {
+    const rotated = (event: Event) => {
+      const detail = (event as CustomEvent<{ previousAccessToken: string | null; accessToken: string }>).detail;
+      if (detail && authenticatedToken.current === detail.previousAccessToken && getAccessToken() === detail.accessToken) {
+        authenticatedToken.current = detail.accessToken;
+      }
+    };
+    window.addEventListener(AUTH_TOKEN_REFRESHED_EVENT, rotated);
+    return () => window.removeEventListener(AUTH_TOKEN_REFRESHED_EVENT, rotated);
+  }, []);
 
   useEffect(() => {
     console.log('useAuth.tsx: AuthProvider useEffect running');

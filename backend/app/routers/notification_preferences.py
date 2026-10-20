@@ -16,11 +16,14 @@ router = APIRouter(prefix="/notification/preferences", tags=["notifications"])
 
 MODULES: list[schemas.NotificationModule] = [
     "tasks",
+    "projects",
+    "clients",
     "tickets",
     "users",
     "departments",
     "comments",
     "chat",
+    "rewards",
 ]
 
 

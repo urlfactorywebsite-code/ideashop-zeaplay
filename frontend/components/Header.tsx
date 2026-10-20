@@ -27,12 +27,18 @@ import { Notification, NotificationType } from '../types';
 import NotificationDetailModal from './NotificationDetailModal';
 import { APP_REFRESH_EVENT } from '../utils/appEvents';
 import GlobalProgressBar from './loading/GlobalProgressBar';
+import { useNotifications } from '../hooks/useNotifications';
+import { notificationDestination } from '../utils/notificationNavigation';
 
 // ✅ NEW IMPORT
 import ClockButton from './ClockAssistant/ClockButton';
 import ActiveWork from './ActiveWork';
 
 const notificationIconMap: Record<NotificationType, React.FC<React.SVGProps<SVGSVGElement>>> = {
+  [NotificationType.PROJECT_CREATED]: BellIcon,
+  [NotificationType.PROJECT_UPDATED]: ArrowPathIcon,
+  [NotificationType.CLIENT_CREATED]: UserIcon,
+  [NotificationType.CLIENT_UPDATED]: ArrowPathIcon,
   [NotificationType.TASK_CREATED]: BellIcon,
   [NotificationType.TASK_UPDATED]: ArrowPathIcon,
   [NotificationType.TASK_DELETED]: TrashIcon,
@@ -66,7 +72,7 @@ const notificationIconMap: Record<NotificationType, React.FC<React.SVGProps<SVGS
   [NotificationType.MENTION]: ChatBubbleLeftEllipsisIcon,
 };
 
-const notificationAccentMap: Record<NotificationType, { icon: string; ring: string; glow: string; bg: string }> = {
+const notificationAccentMap: Partial<Record<NotificationType, { icon: string; ring: string; glow: string; bg: string }>> = {
   [NotificationType.TASK_CREATED]: {
     icon: 'text-sky-300',
     ring: 'border-sky-300/40',
@@ -359,7 +365,7 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [docModalOpen, setDocModalOpen] = useState(false);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { notifications, setNotifications, refresh: fetchNotifications } = useNotifications();
   const [resolvedTheme, setResolvedTheme] = useState<HeaderTheme>('light');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -370,34 +376,17 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
   const [is12Hour, setIs12Hour] = useState(true);
   const [notificationPreviewOpen, setNotificationPreviewOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  useEffect(() => {
+    setNotificationDropdownOpen(false);
+    setSelectedNotification(null);
+    setNotificationPreviewOpen(false);
+  }, [user?.id, user?.tenantId]);
 
   const profileDropdownRef = useRef(null);
   const notificationDropdownRef = useRef(null);
   const refreshTimeoutRef = useRef<number | null>(null);
   const mobileMenuRef = useRef(null);
   const mobileMenuButtonRef = useRef(null);
-
-  const fetchNotifications = useCallback(async () => {
-    if (!user) return;
-    try {
-      const userNotifications = await api.getNotifications(user.id);
-      setNotifications(userNotifications);
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.addEventListener(APP_REFRESH_EVENT, fetchNotifications);
-    return () => window.removeEventListener(APP_REFRESH_EVENT, fetchNotifications);
-  }, [fetchNotifications]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -521,8 +510,9 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
     setNotificationDropdownOpen(false);
     let handled = false;
 
-    if (notification.relatedChatId) {
-      navigate(`/chat/${notification.relatedChatId}`);
+    const destination = notificationDestination(notification, window.location.origin);
+    if (destination) {
+      navigate(destination);
       handled = true;
     } else if (notification.relatedRewardId && onRewardNotificationClick) {
       onRewardNotificationClick(notification.relatedRewardId);
@@ -549,6 +539,7 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
         await api.markNotificationAsRead(user.id, notification.id);
       } catch (error) {
         console.error('Failed to mark notification as read:', error);
+        fetchNotifications();
       }
     }
   };
@@ -709,6 +700,8 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
                 <div className="relative" ref={notificationDropdownRef}>
                   <button
                     onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
+                    aria-label={`Notifications, ${unreadCount} unread`}
+                    aria-expanded={notificationDropdownOpen}
                     className="zea-header-icon-button p-2 relative"
                   >
                     <BellIcon className="h-6 w-6" />
@@ -726,6 +719,14 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
                           <div
                             key={notif.id}
                             onClick={() => handleNotificationItemClick(notif)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(event) => {
+                              if (event.target === event.currentTarget && ['Enter', ' '].includes(event.key)) {
+                                event.preventDefault();
+                                void handleNotificationItemClick(notif);
+                              }
+                            }}
                             className="p-3 flex items-start gap-3 border-b border-sky-400/20 last:border-0 hover:bg-sky-500/10 cursor-pointer relative transition"
                           >
                             {(() => {
@@ -913,6 +914,8 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
         <div className="relative" ref={notificationDropdownRef}>
           <button
             onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
+            aria-label={`Notifications, ${unreadCount} unread`}
+            aria-expanded={notificationDropdownOpen}
             className="zea-header-icon-button relative p-2"
           >
             <BellIcon className="h-5 w-5" />
@@ -930,6 +933,14 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
                   <div
                     key={notif.id}
                     onClick={() => handleNotificationItemClick(notif)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.target === event.currentTarget && ['Enter', ' '].includes(event.key)) {
+                        event.preventDefault();
+                        void handleNotificationItemClick(notif);
+                      }
+                    }}
                     className="p-3 flex items-start gap-3 border-b border-sky-400/20 last:border-0 hover:bg-sky-500/10 cursor-pointer relative transition"
                   >
                     {(() => {

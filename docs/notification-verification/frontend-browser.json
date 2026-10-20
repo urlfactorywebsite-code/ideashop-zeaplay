@@ -1,0 +1,47 @@
+{
+  "passed": true,
+  "scenarios": [
+    {
+      "role": "user",
+      "delivered_ms": 247,
+      "unread_live": true,
+      "subtask_focus": true,
+      "evidence_dialog": true,
+      "parent_and_child_live": true,
+      "server_capabilities_honored": true,
+      "account_switch_isolated": true
+    },
+    {
+      "role": "manager",
+      "delivered_ms": 221,
+      "unread_live": true,
+      "subtask_focus": true,
+      "evidence_dialog": true,
+      "parent_and_child_live": true,
+      "server_capabilities_honored": true,
+      "account_switch_isolated": true
+    },
+    {
+      "role": "admin",
+      "delivered_ms": 174,
+      "unread_live": true,
+      "subtask_focus": true,
+      "evidence_dialog": true,
+      "parent_and_child_live": true,
+      "server_capabilities_honored": true,
+      "account_switch_isolated": true
+    },
+    {
+      "role": "owner",
+      "delivered_ms": 267,
+      "unread_live": true,
+      "subtask_focus": true,
+      "evidence_dialog": true,
+      "parent_and_child_live": true,
+      "server_capabilities_honored": true,
+      "account_switch_isolated": true
+    }
+  ],
+  "page_errors": [],
+  "scope": "Actual React components and browser fetch-stream consumer; synthetic APIs/SSE. No live database/provider writes."
+}

@@ -6,13 +6,14 @@ from datetime import datetime
 from string import Template
 from typing import Any, Iterable
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..email_utils import EmailDeliveryError
 from ..emails import smtp as email_sender
-from ..models import User
-from ..tickets.models import TicketNotification
+from .. import models
+from ..services.notifications import create_notification
+from ..services.ticket_notification_access import eligible_ticket_recipients, ticket_notification_key
+from ..tickets.models import Ticket, TicketNotification
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,14 @@ def create_ticket_notifications(
     recipients = _normalize_recipient_ids(recipient_ids)
     if not recipients:
         return []
+    try:
+        ticket = db.get(Ticket, uuid.UUID(str(context["ticket_id"])))
+    except (KeyError, TypeError, ValueError):
+        return []
+    if not ticket or ticket.tenant_id != tenant_id:
+        return []
+    recipients = [user.id for user in eligible_ticket_recipients(
+        db, ticket=ticket, recipient_ids=recipients, actor_id=context.get("actor_id"))]
 
     title, body = _render_notification(event_type, context)
     now = _now()
@@ -119,6 +128,29 @@ def create_ticket_notifications(
         )
         db.add(notification)
         notifications.append(notification)
+        kind = {
+            "ticket.created": models.NotificationTypeEnum.TICKET_CREATED,
+            "ticket.status_changed": models.NotificationTypeEnum.TICKET_UPDATED,
+            "ticket.reopened": models.NotificationTypeEnum.TICKET_UPDATED,
+            "ticket.assigned": models.NotificationTypeEnum.TICKET_ASSIGNED,
+            "ticket.closed": models.NotificationTypeEnum.TICKET_CLOSED,
+            "ticket.mentioned": models.NotificationTypeEnum.MENTION,
+            "ticket.approval.expired": models.NotificationTypeEnum.APPROVAL_ACTED,
+        }.get(event_type)
+        if event_type == "ticket.status_changed" and data.get("data", {}).get("to_status") == "CLOSED":
+            kind = models.NotificationTypeEnum.TICKET_CLOSED
+        if kind is not None:
+            shared_version = event_type in {
+                "ticket.created", "ticket.status_changed", "ticket.reopened", "ticket.closed",
+            } or (event_type == "ticket.assigned" and data.get("data", {}).get("role") == "OWNER")
+            key = ticket_notification_key(ticket, kind) if shared_version else (
+                f"ticket:{ticket.id}:{event_type}:{context.get('event_id') or uuid.uuid4()}")
+            create_notification(
+                db, user_id=user_id, tenant_id=tenant_id, actor_id=context.get("actor_id") or None,
+                notification_type=kind, message=body, title=title, body=body,
+                entity_type=models.NotificationEntityTypeEnum.TICKET, entity_id=str(ticket.id),
+                deep_link=f"/tickets/{ticket.id}", dedupe_key=key,
+            )
     return notifications
 
 
@@ -135,10 +167,13 @@ def send_ticket_emails(
 
     try:
         tenant_id = uuid.UUID(str(context['tenant_id']))
+        ticket = db.get(Ticket, uuid.UUID(str(context["ticket_id"])))
     except (KeyError, ValueError, TypeError):
         return
-    recipient_lookup = [str(user_id) for user_id in recipients]
-    users = db.execute(select(User).where(User.id.in_(recipient_lookup), User.tenant_id == tenant_id)).scalars().all()
+    if not ticket or ticket.tenant_id != tenant_id:
+        return
+    users = eligible_ticket_recipients(
+        db, ticket=ticket, recipient_ids=recipients, actor_id=context.get("actor_id"))
 
     for user in users:
         if not user.email:

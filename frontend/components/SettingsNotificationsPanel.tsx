@@ -11,6 +11,9 @@ import { isPushStorageEvent, notifyPushChanged, PUSH_STATE_EVENT } from '../serv
 type StatusMessage = { type: 'success' | 'error'; message: string } | null;
 const MODULES: Array<{ module: NotificationModule; label: string; description: string }> = [
   { module: 'tasks', label: 'Tasks', description: 'Assignments, updates, deadlines and subtask activity.' },
+  { module: 'projects', label: 'Projects', description: 'New projects and project updates you can access.' },
+  { module: 'clients', label: 'Clients', description: 'New clients and client updates permitted for your role.' },
+  { module: 'rewards', label: 'Rewards and achievements', description: 'Achievement unlocks and reward activity.' },
   { module: 'tickets', label: 'Tickets', description: 'Ticket lifecycle changes and approvals.' },
   { module: 'chat', label: 'Chat', description: 'Direct messages, group conversations and mentions.' },
   { module: 'comments', label: 'Comments', description: 'Mission log comments and task mentions.' },

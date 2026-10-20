@@ -257,13 +257,14 @@ def test_chat_category_mute_preserves_history(fixture):
     assert fixture.sent == []
 
 
-def test_rewards_and_achievements_remain_history_only(fixture):
+def test_rewards_and_achievements_deliver_push_and_history(fixture):
     with fixture.factory() as db:
         for kind in (models.NotificationTypeEnum.REWARD_CLAIMED, models.NotificationTypeEnum.ACHIEVEMENT_UNLOCKED):
             assert notify(db, fixture, notification_type=kind) is not None
         db.commit()
         assert len(list(db.scalars(select(models.Notification)))) == 2
-    assert fixture.sent == []
+    assert len(fixture.sent) == 2
+    assert all(payload["module"] == "rewards" for _, payload in fixture.sent)
 
 
 @pytest.mark.parametrize("change", ["deactivate", "mute-category", "change-tenant"])
@@ -308,6 +309,10 @@ def test_ticket_overdue_alert_obeys_ticket_category():
 
 @pytest.mark.parametrize("source,expected", [
     ("/tasks/task-1", "/#/tasks?taskId=task-1"),
+    ("/tasks/task-1?subtaskId=step-2", "/#/tasks?taskId=task-1&subtaskId=step-2"),
+    ("/projects/project-1", "/#/projects?projectId=project-1"),
+    ("/clients/client-1", "/#/clients?clientId=client-1"),
+    ("/achievements?tab=rewards", "/#/achievements?tab=rewards"),
     ("/#/tasks?taskId=task-1", "/#/tasks?taskId=task-1"),
     ("#/tasks?taskId=task-1", "/#/tasks?taskId=task-1"),
     ("/tickets/ticket-1", "/#/tickets?ticketId=ticket-1"),

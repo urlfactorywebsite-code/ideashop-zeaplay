@@ -1,27 +1,31 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import api from '../services/api';
-import { NotificationType } from '../types';
+import { NotificationType, type ChatConversation, type Notification } from '../types';
 import { APP_REFRESH_EVENT, CHAT_UNREAD_REFRESH_EVENT } from '../utils/appEvents';
 import { useAuth } from './useAuth';
 
 const REFRESH_INTERVAL_MS = 30000;
 
 export const useChatUnreadIndicator = () => {
-  const { user } = useAuth();
+  const { user, isCurrentSession } = useAuth();
   const userId = user?.id ?? null;
-  const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const identity = `${user?.tenantId ?? ''}:${userId ?? ''}`;
+  const [unread, setUnread] = useState({ identity, count: 0 });
+  const sequence = useRef(0);
+  const currentIdentity = useRef(identity);
+  currentIdentity.current = identity;
 
   const refreshChatUnread = useCallback(async () => {
     if (!userId) {
-      setUnreadChatCount(0);
+      setUnread({ identity, count: 0 });
       return;
     }
-
+    const request = ++sequence.current;
     try {
       const [notifications, conversations] = await Promise.all([
-        api.getNotifications(userId).catch(() => []),
-        api.getChatConversations().catch(() => []),
+        api.getNotifications(userId).catch((): Notification[] => []),
+        api.getChatConversations().catch((): ChatConversation[] => []),
       ]);
       const unreadChatNotifications = notifications.filter(
         (notification) => notification.type === NotificationType.CHAT_MESSAGE && !notification.isRead,
@@ -31,11 +35,13 @@ export const useChatUnreadIndicator = () => {
         0,
       );
 
-      setUnreadChatCount(Math.max(unreadChatNotifications, unreadConversationMessages));
+      if (request === sequence.current && currentIdentity.current === identity && isCurrentSession()) {
+        setUnread({ identity, count: Math.max(unreadChatNotifications, unreadConversationMessages) });
+      }
     } catch (error) {
       console.error('Failed to refresh chat unread indicator:', error);
     }
-  }, [userId]);
+  }, [userId, identity, isCurrentSession]);
 
   useEffect(() => {
     void refreshChatUnread();
@@ -51,12 +57,14 @@ export const useChatUnreadIndicator = () => {
     const interval = window.setInterval(handleRefresh, REFRESH_INTERVAL_MS);
 
     return () => {
+      ++sequence.current;
       window.removeEventListener(APP_REFRESH_EVENT, handleRefresh);
       window.removeEventListener(CHAT_UNREAD_REFRESH_EVENT, handleRefresh);
       window.clearInterval(interval);
     };
   }, [refreshChatUnread]);
 
+  const unreadChatCount = unread.identity === identity ? unread.count : 0;
   return {
     unreadChatCount,
     hasUnreadChat: unreadChatCount > 0,

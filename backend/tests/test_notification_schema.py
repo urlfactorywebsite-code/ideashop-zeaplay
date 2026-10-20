@@ -22,7 +22,9 @@ def legacy_enums(engine):
     with engine.begin() as connection:
         for column in (models.Notification.__table__.c.type, models.Notification.__table__.c.entity_type):
             enum = column.type
-            labels = [value for value in enum.enums if not value.startswith("SUBTASK_") and value not in {"MENTION", "subtask"}]
+            labels = [value for value in enum.enums
+                      if not value.startswith(("SUBTASK_", "PROJECT_", "CLIENT_"))
+                      and value not in {"MENTION", "subtask", "project", "client"}]
             labels.append("LEGACY_CUSTOM")
             serialized = ",".join(str(literal(value).compile(dialect=connection.dialect, compile_kwargs={"literal_binds": True})) for value in labels)
             connection.exec_driver_sql(f"CREATE TYPE {enum.name}_legacy AS ENUM ({serialized})")
@@ -64,7 +66,8 @@ def test_legacy_subtask_reassignment_rolls_back_then_succeeds_after_repair(data,
         with engine.begin() as connection:
             added = ensure_notification_enum_values(connection)
         assert "SUBTASK_REASSIGNED" in added["notificationtypeenum"]
-        assert added["notification_entity_type_enum"] == ["subtask"]
+        assert set(added["notification_entity_type_enum"]) == {"subtask", "project", "client"}
+        assert {"PROJECT_CREATED", "PROJECT_UPDATED", "CLIENT_CREATED", "CLIENT_UPDATED"} <= set(added["notificationtypeenum"])
         with TestClient(app) as strict_client:
             response = strict_client.patch(url, json={"assigned_to_id": worker_id}, headers=headers)
         assert response.status_code == 200, response.text
@@ -88,7 +91,7 @@ def test_concurrent_enum_bootstrap_is_additive_and_idempotent(engine):
         with engine.begin() as connection:
             return sum(map(len, ensure_notification_enum_values(connection).values()))
     with ThreadPoolExecutor(max_workers=2) as executor:
-        assert sorted(executor.map(repair, range(2))) == [0, 8]
+        assert sorted(executor.map(repair, range(2))) == [0, 14]
     with engine.connect() as connection:
         assert notification_enum_gaps(connection) == {}
 
@@ -96,6 +99,24 @@ def test_concurrent_enum_bootstrap_is_additive_and_idempotent(engine):
 def test_current_metadata_needs_no_enum_repair(engine):
     with engine.begin() as connection:
         assert ensure_notification_enum_values(connection) == {}
+
+
+def test_project_client_migration_is_additive_and_repeatable(engine, monkeypatch):
+    from importlib import import_module
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
+    legacy_enums(engine)
+    migration = import_module("backend.alembic.versions.ff9c0d1e2f3a_project_client_notifications")
+    with engine.connect() as connection:
+        context = MigrationContext.configure(connection)
+        monkeypatch.setattr(migration, "op", Operations(context))
+        for _ in range(2):
+            migration.upgrade()
+        missing = notification_enum_gaps(connection)
+        assert not any(value.startswith(("PROJECT_", "CLIENT_")) for value in missing["notificationtypeenum"])
+        assert set(missing["notification_entity_type_enum"]) == {"subtask"}
+        assert connection.scalar(text("SELECT 'LEGACY_CUSTOM'::notificationtypeenum::text")) == "LEGACY_CUSTOM"
 
 
 def test_notification_bootstrap_commits_before_seed():

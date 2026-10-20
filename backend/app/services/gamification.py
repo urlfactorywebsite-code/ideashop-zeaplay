@@ -117,7 +117,7 @@ def check_and_unlock_achievements(db: Session, user: models.User) -> None:
             grant_achievement_by_id(db, user, achievement.id)
 
 
-def award_task_completion_points(db: Session, task: models.Task) -> bool:
+def award_task_completion_points(db: Session, task: models.Task, *, notify_creator: bool = True) -> bool:
     db.flush()
     with _completion_award_lock(task.id):
         locked_task = db.execute(
@@ -173,7 +173,7 @@ def award_task_completion_points(db: Session, task: models.Task) -> bool:
         locked_task.completion_xp_awarded_to_id = assignee.id if assignee else None
         locked_task.completion_xp_points_awarded = awarded_points
 
-        if creator:
+        if creator and notify_creator:
             assignee_name = assignee.name if assignee else "Someone"
             create_notification(
                 db,

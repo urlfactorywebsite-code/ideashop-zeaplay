@@ -29,6 +29,14 @@ from backend.app.models import (
 from backend.app.routers.clients import router as clients_router
 from backend.app.routers.projects import router as projects_router
 from backend.app.routers.users import router as users_router
+from backend.app.services import entity_notifications
+
+
+@pytest.fixture(autouse=True)
+def isolate_notification_delivery(monkeypatch):
+    # This older fixture builds only the project schema. Full transaction,
+    # recipient and delivery integration runs in test_entity_notifications.
+    monkeypatch.setattr(entity_notifications, "create_notification", lambda *_args, **_kwargs: None)
 
 
 engine = create_engine(

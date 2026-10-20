@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
@@ -66,16 +66,19 @@ class WorkflowDomainEvent:
     reason: Optional[str] = None
     blocked_predecessor_ids: list[str] = field(default_factory=list)
     payload: dict[str, Any] = field(default_factory=dict)
+    event_id: str = field(default_factory=models.generate_uuid)
 
 
 @dataclass
 class WorkflowResult:
     changed: bool = False
     domain_events: list[WorkflowDomainEvent] = field(default_factory=list)
+    parent_completed: bool = False
 
     def extend(self, other: "WorkflowResult") -> None:
         self.changed = self.changed or other.changed
         self.domain_events.extend(other.domain_events)
+        self.parent_completed = self.parent_completed or other.parent_completed
 
 
 def status_from_completed(
@@ -111,11 +114,21 @@ def can_override_workflow(task: models.Task, actor: models.User) -> bool:
 
 
 def _lock_workflow_rows(db: Session, task_id: str) -> tuple[list[models.Subtask], list[models.SubtaskDependency]]:
+    # Every change for a parent uses the same lock, including simultaneous
+    # completion of different children. Flush caller edits before refreshing rows.
+    db.flush()
+    if db.get_bind().dialect.name == "sqlite":
+        # SQLite ignores FOR UPDATE. Acquire its write lock before reading the
+        # current child states so concurrent HTTP retries also stay idempotent.
+        db.execute(text("UPDATE tasks SET id = id WHERE id = :task_id"), {"task_id": task_id})
+    db.execute(select(models.Task.id).where(models.Task.id == task_id).with_for_update()).scalar_one()
     subtasks = (
         db.execute(
             select(models.Subtask)
             .where(models.Subtask.task_id == task_id)
+            .order_by(models.Subtask.sort_order, models.Subtask.id)
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         .scalars()
         .all()
@@ -254,15 +267,15 @@ def _record_workflow_event(
         dialect_name = db.get_bind().dialect.name
         if dialect_name == "sqlite":
             statement = sqlite_insert(models.SubtaskWorkflowEvent).values(**event_values)
-            statement = statement.on_conflict_do_nothing(index_elements=["event_key"])
+            statement = statement.on_conflict_do_nothing(index_elements=["event_key"]).returning(models.SubtaskWorkflowEvent.id)
             result = db.execute(statement)
-            if result.rowcount == 0:
+            if result.scalar_one_or_none() is None:
                 return None
         elif dialect_name == "postgresql":
             statement = pg_insert(models.SubtaskWorkflowEvent).values(**event_values)
-            statement = statement.on_conflict_do_nothing(index_elements=["event_key"])
+            statement = statement.on_conflict_do_nothing(index_elements=["event_key"]).returning(models.SubtaskWorkflowEvent.id)
             result = db.execute(statement)
-            if result.rowcount == 0:
+            if result.scalar_one_or_none() is None:
                 return None
         else:
             db.add(models.SubtaskWorkflowEvent(**event_values))
@@ -278,6 +291,7 @@ def _record_workflow_event(
         reason=reason,
         blocked_predecessor_ids=blocked,
         payload=payload or {},
+        event_id=event_values["id"],
     )
 
 
@@ -298,6 +312,9 @@ def activate_ready_subtasks(
     *,
     actor: Optional[models.User] = None,
     locked_rows: Optional[tuple[list[models.Subtask], list[models.SubtaskDependency]]] = None,
+    completed_subtask: Optional[models.Subtask] = None,
+    completed_by_id: Optional[str] = None,
+    activate_orphans: bool = False,
 ) -> WorkflowResult:
     if actor:
         bind_actor(db, actor)
@@ -306,18 +323,48 @@ def activate_ready_subtasks(
     result = WorkflowResult()
 
     for subtask in sorted(subtasks, key=lambda item: (item.sort_order, item.id)):
-        if subtask.status != models.SubtaskStatusEnum.WAITING:
+        blocked = _blocked_predecessor_ids(subtasks_by_id, dependencies, subtask.id)
+        if subtask.status == models.SubtaskStatusEnum.TODO and blocked:
+            subtask.status = models.SubtaskStatusEnum.WAITING
+            subtask.completed = False
+            waiting_event = _record_workflow_event(
+                db, task_id=task.id, subtask_id=subtask.id, event_type="SUBTASK_STATUS_CHANGED",
+                from_status=models.SubtaskStatusEnum.TODO, to_status=subtask.status,
+                actor_id=actor.id if actor else None, blocked_predecessor_ids=blocked,
+                payload={"predecessor_ids": _predecessor_ids(dependencies, subtask.id)},
+            )
+            if waiting_event:
+                result.domain_events.append(waiting_event)
+            result.changed = True
+        if subtask.status not in {models.SubtaskStatusEnum.WAITING, models.SubtaskStatusEnum.TODO}:
             continue
         predecessor_ids = _predecessor_ids(dependencies, subtask.id)
-        if not predecessor_ids:
+        if not predecessor_ids and not (activate_orphans and subtask.status == models.SubtaskStatusEnum.WAITING):
             continue
-        if _blocked_predecessor_ids(subtasks_by_id, dependencies, subtask.id):
+        if subtask.status == models.SubtaskStatusEnum.TODO and (
+            completed_subtask is None or completed_subtask.id not in predecessor_ids
+        ):
+            continue
+        if blocked:
             continue
 
         previous = subtask.status
         subtask.status = models.SubtaskStatusEnum.TODO
         subtask.completed = False
         db.flush()
+        completed_events = db.execute(
+            select(models.SubtaskWorkflowEvent.id)
+            .where(
+                models.SubtaskWorkflowEvent.subtask_id.in_(predecessor_ids),
+                models.SubtaskWorkflowEvent.event_type == "SUBTASK_COMPLETED",
+            )
+            .order_by(models.SubtaskWorkflowEvent.created_at.desc(), models.SubtaskWorkflowEvent.id.desc())
+        ).scalars().all()
+        generation = completed_events[0] if completed_events else "initial"
+        payload = {"predecessor_ids": predecessor_ids}
+        if completed_subtask:
+            payload["completed_subtask_id"] = completed_subtask.id
+            payload["completed_by_id"] = completed_by_id or (actor.id if actor else None)
         event = _record_workflow_event(
             db,
             task_id=task.id,
@@ -326,14 +373,74 @@ def activate_ready_subtasks(
             from_status=previous,
             to_status=subtask.status,
             actor_id=actor.id if actor else None,
-            payload={"predecessor_ids": predecessor_ids},
-            event_key=f"subtask-activated:{task.id}:{subtask.id}",
+            payload=payload,
+            event_key=f"subtask-activated:{task.id}:{subtask.id}:{generation}",
         )
         if event:
             result.domain_events.append(event)
         result.changed = True
 
     return result
+
+
+def synchronize_parent_completion(db: Session, task: models.Task, *, actor: models.User) -> bool:
+    """Keep parent completion and rewards consistent with its remaining children."""
+    from .gamification import COMPLETED_STATUSES, award_task_completion_points
+    from .badge_engine import BadgeEvent, process_badge_event
+    from .notifications import create_notification
+
+    db.flush()
+    children = db.execute(select(models.Subtask).where(models.Subtask.task_id == task.id)).scalars().all()
+    if not children:
+        return False
+    all_done = all(child.status == models.SubtaskStatusEnum.DONE for child in children)
+    previous = task.status
+    if all_done and previous not in COMPLETED_STATUSES:
+        task.status = models.TaskStatusEnum.DONE
+        task.completed_at = datetime.utcnow()
+        task.approval_status = (
+            models.TaskApprovalStatusEnum.PENDING if task.approval_required else models.TaskApprovalStatusEnum.APPROVED
+        )
+        awarded = award_task_completion_points(db, task, notify_creator=False)
+        recipients = {task.created_by_id, task.assigned_to_id, *(follower.id for follower in task.followers)}
+        if task.project:
+            recipients.update(member.user_id for member in task.project.members if member.role == models.ProjectMemberRoleEnum.MANAGER)
+        recipients.discard(None)
+        recipients.discard(actor.id)
+        for recipient_id in sorted(recipients):
+            create_notification(
+                db, user_id=recipient_id, actor_id=actor.id,
+                notification_type=models.NotificationTypeEnum.TASK_COMPLETED,
+                message=f"All subtasks are complete. Task '{task.title}' is completed.",
+                related_task_id=task.id,
+            )
+        if task.approval_required and task.approver_id and task.approver_id != actor.id:
+            create_notification(
+                db, user_id=task.approver_id, actor_id=actor.id,
+                notification_type=models.NotificationTypeEnum.APPROVAL_REQUESTED,
+                message=f"All subtasks of '{task.title}' are complete. The task requires your approval.",
+                related_task_id=task.id,
+            )
+        event_type = "task.completed"
+        if awarded:
+            process_badge_event(db, event=BadgeEvent(
+                entity="task", event="completed", actor_id=actor.id,
+                assigned_to_id=task.assigned_to_id, created_by_id=task.created_by_id,
+                priority=task.priority.value, occurred_at=task.completed_at,
+            ))
+    elif not all_done and previous in COMPLETED_STATUSES:
+        task.status = models.TaskStatusEnum.IN_PROGRESS
+        task.completed_at = None
+        task.approval_status = models.TaskApprovalStatusEnum.NONE
+        event_type = "task.reopened"
+    else:
+        return False
+    db.add(models.AuditEvent(
+        actor_id=actor.id, event_type=event_type, entity_type="task", entity_id=task.id,
+        payload={"reason": "subtask_status", "previous_status": previous.value, "status": task.status.value},
+    ))
+    db.flush()
+    return True
 
 
 def transition_subtask(
@@ -345,6 +452,9 @@ def transition_subtask(
     target_status: models.SubtaskStatusEnum,
     force_start_reason: Optional[str] = None,
     can_override: bool = False,
+    completion_reviewed: bool = False,
+    synchronize_parent: bool = True,
+    completed_by_id: Optional[str] = None,
 ) -> WorkflowResult:
     bind_actor(db, actor)
     subtasks, dependencies = _lock_workflow_rows(db, task.id)
@@ -352,13 +462,29 @@ def transition_subtask(
     subtask = subtasks_by_id.get(subtask_id)
     if not subtask:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
+    authorized_override = can_override and can_override_workflow(task, actor)
+    is_assignee = (subtask.assigned_to_id or task.assigned_to_id) == actor.id
+    if not is_assignee and not authorized_override:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the subtask assignee or workflow manager can update its status")
 
     if subtask.status == target_status:
         return WorkflowResult()
 
+    from .subtask_completion import approval_required_for
+    if target_status == models.SubtaskStatusEnum.DONE and approval_required_for(task) and not completion_reviewed:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Submit completion evidence and wait for approval before completing this subtask")
+    pending_review = db.execute(select(models.CompletionSubmission.id).where(
+        models.CompletionSubmission.subtask_id == subtask.id,
+        models.CompletionSubmission.status == models.CompletionSubmissionStatusEnum.PENDING_REVIEW,
+    )).first()
+    if pending_review and not completion_reviewed:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Review the pending completion submission before changing this subtask")
+
     result = WorkflowResult()
     current_status = subtask.status
     blocked_predecessors = _blocked_predecessor_ids(subtasks_by_id, dependencies, subtask.id)
+    if blocked_predecessors and target_status == models.SubtaskStatusEnum.DONE:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Complete predecessor subtasks before completing this subtask")
 
     if (current_status, target_status) == SYSTEM_ACTIVATION_TRANSITION:
         raise HTTPException(
@@ -372,7 +498,7 @@ def transition_subtask(
             detail="Waiting subtasks can only be activated by dependencies or force-started",
         )
 
-    if (current_status, target_status) == FORCE_START_TRANSITION and blocked_predecessors:
+    if current_status in {models.SubtaskStatusEnum.WAITING, models.SubtaskStatusEnum.TODO} and target_status == models.SubtaskStatusEnum.IN_PROGRESS and blocked_predecessors:
         reason = (force_start_reason or "").strip()
         if len(reason) < 3:
             raise HTTPException(
@@ -405,6 +531,8 @@ def transition_subtask(
         if event:
             result.domain_events.append(event)
         result.changed = True
+        if synchronize_parent:
+            synchronize_parent_completion(db, task, actor=actor)
         db.flush()
         return result
 
@@ -430,7 +558,7 @@ def transition_subtask(
         from_status=previous_status,
         to_status=target_status,
         actor_id=actor.id,
-        payload={"predecessor_ids": _predecessor_ids(dependencies, subtask.id)},
+        payload={"predecessor_ids": _predecessor_ids(dependencies, subtask.id), "completed_by_id": completed_by_id or actor.id},
     )
     if event:
         result.domain_events.append(event)
@@ -439,7 +567,26 @@ def transition_subtask(
     # Persist the predecessor observation before recording successor activation/review.
     db.flush()
     if target_status == models.SubtaskStatusEnum.DONE:
-        result.extend(activate_ready_subtasks(db, task, actor=actor, locked_rows=(subtasks, dependencies)))
+        result.extend(activate_ready_subtasks(
+            db, task, actor=actor, locked_rows=(subtasks, dependencies), completed_subtask=subtask,
+            completed_by_id=completed_by_id,
+        ))
+        if not dependencies:
+            ordered = sorted(subtasks, key=lambda item: (item.sort_order, item.id))
+            following = ordered[ordered.index(subtask) + 1:]
+            successor = next((item for item in following if item.status != models.SubtaskStatusEnum.DONE), None)
+            if successor and all(item.status == models.SubtaskStatusEnum.DONE for item in ordered[:ordered.index(successor)]):
+                before = successor.status
+                if before == models.SubtaskStatusEnum.WAITING:
+                    successor.status = models.SubtaskStatusEnum.TODO
+                    successor.completed = False
+                handoff = _record_workflow_event(
+                    db, task_id=task.id, subtask_id=successor.id, event_type="SUBTASK_ACTIVATED",
+                    from_status=before, to_status=successor.status, actor_id=actor.id,
+                    payload={"completed_subtask_id": subtask.id, "predecessor_ids": [subtask.id], "completed_by_id": completed_by_id or actor.id},
+                )
+                if handoff:
+                    result.domain_events.append(handoff)
     elif previous_status == models.SubtaskStatusEnum.DONE:
         for descendant_id in _descendant_ids(dependencies, subtask.id):
             descendant = subtasks_by_id.get(descendant_id)
@@ -464,6 +611,9 @@ def transition_subtask(
                 result.domain_events.append(downstream_event)
             result.changed = True
 
+    if synchronize_parent:
+        parent_changed = synchronize_parent_completion(db, task, actor=actor)
+        result.parent_completed = parent_changed and task.status == models.TaskStatusEnum.DONE
     db.flush()
     return result
 
@@ -472,6 +622,7 @@ def event_payloads(events: list[WorkflowDomainEvent]) -> list[dict[str, Any]]:
     return [
         {
             "event_type": event.event_type,
+            "event_id": event.event_id,
             "task_id": event.task_id,
             "subtask_id": event.subtask_id,
             "from_status": event.from_status,

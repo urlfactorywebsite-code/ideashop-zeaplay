@@ -20,7 +20,7 @@ def _get_admin_ids(db: Session, tenant_id) -> list[str]:
     return (
         db.execute(
             select(models.User.id).where(
-                models.User.role.in_({models.RoleEnum.ADMIN, models.RoleEnum.OWNER}),
+                models.User.role.in_({models.RoleEnum.ADMIN, models.RoleEnum.OWNER, models.RoleEnum.MANAGER}),
                 models.User.tenant_id == tenant_id,
                 models.User.status == models.UserStatusEnum.ACTIVE,
             )
@@ -45,8 +45,7 @@ def create_department(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Department already exists")
     department = models.Department(name=payload.name)
     db.add(department)
-    db.commit()
-    db.refresh(department)
+    db.flush()
     for admin_id in _get_admin_ids(db, current_user.tenant_id):
         if admin_id == current_user.id:
             continue
@@ -79,11 +78,11 @@ def update_department(
     if not department:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found")
 
-    if payload.name is not None:
-        department.name = payload.name
+    if payload.name is None or payload.name == department.name:
+        return department
+    department.name = payload.name
 
-    db.commit()
-    db.refresh(department)
+    db.flush()
     for admin_id in _get_admin_ids(db, current_user.tenant_id):
         if admin_id == current_user.id:
             continue

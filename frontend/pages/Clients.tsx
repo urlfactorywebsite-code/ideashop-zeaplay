@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useNotificationRefresh } from '../hooks/useNotificationRefresh';
 import {
   ArchiveBoxIcon,
   ArrowUturnLeftIcon,
@@ -374,6 +376,9 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ contact, clients, d
 
 const Clients: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const linkedClientId = searchParams.get('clientId');
+  const [notificationRevision, setNotificationRevision] = useState(0);
   const canManage = user?.role === Role.OWNER || user?.role === Role.ADMIN || user?.role === Role.MANAGER;
   const [filters, setFilters] = useState<ClientListFilters>({ page: 1, pageSize: 10, sortBy: 'company_name', sortOrder: 'asc', status: ClientStatus.ACTIVE });
   const [clients, setClients] = useState<Client[]>([]);
@@ -413,6 +418,7 @@ const Clients: React.FC = () => {
       setTotalPages(response.totalPages);
       setTotal(response.total);
       setSelectedClient((current) => {
+        if (linkedClientId) return response.items.find(client => client.id === linkedClientId) ?? (current?.id === linkedClientId ? current : null);
         if (!current) return response.items[0] ?? null;
         return response.items.find((client) => client.id === current.id) ?? response.items[0] ?? null;
       });
@@ -422,7 +428,19 @@ const Clients: React.FC = () => {
     } finally {
       if (generation === listGeneration.current) setLoading(false);
     }
-  }, [filters]);
+  }, [filters, linkedClientId]);
+  useNotificationRefresh(() => { void fetchClients(); setNotificationRevision(revision => revision + 1); });
+
+  useEffect(() => {
+    if (!linkedClientId) return;
+    let active = true;
+    setSelectedClient(null);
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(linkedClientId)) return;
+    void api.getClient(linkedClientId).then(client => {
+      if (active) setSelectedClient(client);
+    }).catch(() => { if (active) setError('Unable to open this client. It may no longer be available to your account.'); });
+    return () => { active = false; };
+  }, [linkedClientId, user?.id, user?.tenantId, notificationRevision]);
 
   useEffect(() => () => { listGeneration.current++; }, []);
 

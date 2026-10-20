@@ -126,6 +126,112 @@ Direct API on the VPS host only: http://127.0.0.1:6311
 Presence service on the VPS host only: http://127.0.0.1:6312
 ```
 
+## Enable browser push notifications
+
+The HTTP IP URL above serves the app, but cannot enable browser push. Browser push
+requires a trusted HTTPS origin (localhost is a development exception). See
+[MDN secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts).
+The Enable button also requires valid backend VAPID configuration; HTTPS alone
+does not resolve "Server delivery: Setup required".
+
+1. Point the intended frontend domain at this VPS and configure a trusted TLS
+   certificate on the reverse proxy. Forward that domain to the frontend on
+   `127.0.0.1:6300`, retaining `/api/`, `/socket.io/`, WebSocket upgrades and
+   unbuffered `/api/notifications/stream` responses. Open the HTTPS domain in the
+   browser after configuring TLS; changing `http` to `https` on port 6300 does not
+   configure a certificate.
+2. Add the exact HTTPS frontend origin to `VEE_CORS_ALLOW_ORIGINS`,
+   `VEE_WEBSOCKET_TRUSTED_ORIGINS`, and `PRESENCE_CORS_ORIGINS` in
+   `.env.production`. Keep the relative `/api` and `same-origin` frontend URL
+   settings. If password recovery is enabled, also update `VEE_PASSWORD_RESET_URL`
+   to that origin plus `/#/reset-password`.
+3. Replace the sample VAPID values in `.env.production` with a matching key pair
+   and a real contact subject such as `mailto:your-admin@your-domain.example`.
+   Reuse an existing valid production pair when available. Do not rotate a valid
+   pair on restart: existing subscriptions depend on it.
+
+If this is the initial push setup and no valid pair exists, run this **on the VPS**
+from `/opt/ideashop-zeaplay`. It creates a private, Git-ignored file without
+printing the keys to the terminal and refuses to overwrite an existing file:
+
+```bash
+(
+  umask 077
+  set -C
+  docker compose --env-file .env.production -f docker-compose.prod.yml exec -T backend python - <<'PY' > .env.push.generated
+import base64
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+
+def encoded(value):
+    return base64.urlsafe_b64encode(value).decode("ascii").rstrip("=")
+
+private = ec.generate_private_key(ec.SECP256R1())
+public = private.public_key().public_bytes(
+    serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
+)
+print("VEE_VAPID_PUBLIC_KEY=" + encoded(public))
+print("VEE_VAPID_PRIVATE_KEY=" + encoded(private.private_numbers().private_value.to_bytes(32, "big")))
+PY
+)
+```
+
+Use a private editor to copy those two values into `.env.production`, replacing
+the placeholders, then set `VEE_VAPID_SUBJECT` to your real contact address.
+Keep one definition of each setting. Check for old `VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` entries too: those unprefixed environment
+variables take precedence over their `VEE_` equivalents. Do not share either
+environment file or include keys in screenshots/logs.
+
+After the reviewed backend fix has been deployed and environment settings saved:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --no-deps backend
+# Recreate presence only if its allowed origins changed.
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --no-deps presence
+docker compose --env-file .env.production -f docker-compose.prod.yml exec -T -e VEE_BOOTSTRAP_SCHEMA=false backend python - <<'PY'
+import json
+from app.services.push_service import configuration_status
+print(json.dumps(configuration_status()))
+PY
+```
+
+The diagnostic disables import-time schema helpers and prints only booleans.
+All five flags, including `configured` and
+`configuration_valid`, must be `true`. A normal `docker compose restart` does not
+apply updated environment values; use `up -d` to recreate the service.
+
+Sign in on the HTTPS domain, open **Settings > Push notifications**, select
+**Refresh status**, then **Enable this browser** and allow the browser permission.
+Verify **Server delivery: Configured**, **Browser permission: Allowed**, and
+**This browser: Enabled for your account**. Use **Send test to this browser** and
+confirm the notification actually appears. Provider acceptance alone is not proof
+of a displayed notification; check browser and OS notification settings if needed.
+
+## Active-work 404 behind the frontend proxy
+
+The read-only live check on 2026-10-20 returned `404` for
+`/api/time-entries/work/active` and `401 Not authenticated` for
+`/api/api/time-entries/work/active`. Live OpenAPI listed time-entry routes only
+under `/api/time-entries`. This identifies a prefix mismatch: frontend nginx
+strips the first `/api/`, while the backend had only the prefixed registration.
+
+The fix in `backend/app/main.py` registers time-entry routes both without a prefix
+and with the existing `/api` alias, as other API routers already do. Deploy the
+reviewed backend change and rebuild/recreate the backend using the command above.
+Keep the normal frontend URL `/api/time-entries/work/active`.
+
+Verify without credentials:
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:6300/api/time-entries/work/active
+```
+
+Expected: `401`, proving the route reaches authentication rather than `404`.
+After signing in, the same request must return `200`; no active timers is a valid
+snapshot with `items: []`. This route defect is separate from HTTPS and VAPID push
+configuration. These instructions do not constitute a completed VPS deployment.
+
 ## Update Deployment
 
 Use this after pushing a new commit to GitHub.
