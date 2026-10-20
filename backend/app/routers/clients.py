@@ -53,6 +53,16 @@ def get_client(
     return schemas.ClientRead.model_validate(client)
 
 
+@router.post("/{client_id}/restore", response_model=schemas.ClientRead)
+def restore_client(
+    client_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_admin),
+) -> schemas.ClientRead:
+    return schemas.ClientRead.model_validate(client_service.restore_client(
+        db, tenant_id=current_user.tenant_id, client_id=client_id, actor=current_user))
+
+
 @router.post("", response_model=schemas.ClientRead, status_code=status.HTTP_201_CREATED)
 def create_client(
     payload: schemas.ClientCreate,

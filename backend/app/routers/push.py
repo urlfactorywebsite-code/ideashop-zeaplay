@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from dataclasses import asdict
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -19,15 +23,69 @@ def get_vapid_public_key() -> schemas.PushSubscriptionPublicKey:
     return schemas.PushSubscriptionPublicKey(public_key=public_key)
 
 
-@router.post("/subscribe", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+@router.get("/status", response_model=schemas.PushStatusRead)
+def push_status(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+) -> schemas.PushStatusRead:
+    count = db.scalar(select(func.count()).select_from(models.PushSubscription).where(
+        models.PushSubscription.user_id == current_user.id,
+        models.PushSubscription.revoked_at.is_(None),
+    ))
+    return schemas.PushStatusRead(**push_service.configuration_status(), active_subscription_count=count or 0)
+
+
+@router.get("/subscriptions", response_model=list[schemas.PushSubscriptionRead])
+def list_subscriptions(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+) -> list[schemas.PushSubscriptionRead]:
+    subscriptions = db.scalars(select(models.PushSubscription).where(
+        models.PushSubscription.user_id == current_user.id,
+        models.PushSubscription.revoked_at.is_(None),
+    ).order_by(models.PushSubscription.created_at.desc(), models.PushSubscription.id)).all()
+    return [schemas.PushSubscriptionRead(**push_service.subscription_metadata(subscription)) for subscription in subscriptions]
+
+
+@router.delete("/subscriptions", status_code=204, response_class=Response)
+def revoke_all_subscriptions(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+) -> Response:
+    db.execute(update(models.PushSubscription).where(
+        models.PushSubscription.user_id == current_user.id,
+        models.PushSubscription.revoked_at.is_(None),
+    ).values(revoked_at=datetime.now(timezone.utc)))
+    db.commit()
+    return Response(status_code=204)
+
+
+@router.delete("/subscriptions/{subscription_id}", status_code=204, response_class=Response)
+def revoke_device(
+    subscription_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+) -> Response:
+    # Missing, foreign, and previously revoked ids intentionally share an
+    # idempotent result and never reveal another account's device inventory.
+    db.execute(update(models.PushSubscription).where(
+        models.PushSubscription.id == subscription_id,
+        models.PushSubscription.user_id == current_user.id,
+        models.PushSubscription.revoked_at.is_(None),
+    ).values(revoked_at=datetime.now(timezone.utc)))
+    db.commit()
+    return Response(status_code=204)
+
+
+@router.post("/subscribe", response_model=schemas.PushSubscriptionRead)
 def subscribe(
     payload: schemas.PushSubscriptionCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
-) -> Response:
-    if not payload.endpoint or not payload.keys:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid subscription payload")
-    push_service.save_subscription(
+) -> schemas.PushSubscriptionRead:
+    if not push_service.configuration_status()["configured"]:
+        raise HTTPException(status_code=503, detail="Push notifications are not configured correctly")
+    subscription = push_service.save_subscription(
         db,
         user_id=str(current_user.id),
         endpoint=payload.endpoint,
@@ -37,7 +95,7 @@ def subscribe(
         device_label=payload.device_label,
     )
     db.commit()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return schemas.PushSubscriptionRead(**push_service.subscription_metadata(subscription))
 
 
 @router.post("/unsubscribe", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
@@ -46,7 +104,7 @@ def unsubscribe(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ) -> Response:
-    revoked = push_service.revoke_subscription(db, endpoint=payload.endpoint)
+    revoked = push_service.revoke_subscription(db, user_id=str(current_user.id), endpoint=payload.endpoint)
     if revoked:
         db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -54,18 +112,27 @@ def unsubscribe(
 
 @router.post("/test", response_model=schemas.PushTestResult)
 def test_notification(
+    payload: schemas.PushTestRequest | None = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ) -> schemas.PushTestResult:
-    if current_user.role not in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required")
-    delivered = push_service.send_push(
+    if not push_service.configuration_status()["configured"]:
+        raise HTTPException(status_code=503, detail="Push notifications are not configured correctly")
+    subscription_id = payload.subscription_id if payload else None
+    if subscription_id and not db.scalar(select(models.PushSubscription.id).where(
+        models.PushSubscription.id == subscription_id,
+        models.PushSubscription.user_id == current_user.id,
+        models.PushSubscription.revoked_at.is_(None),
+    )):
+        raise HTTPException(status_code=404, detail="Active push device not found")
+    result = push_service.send_push_result(
         db,
         user_ids=[str(current_user.id)],
+        subscription_id=subscription_id,
         payload={
             "title": "ZeaPlay Push Test",
-            "body": "Push notifications are active on this device.",
-            "url": "/settings",
+            "body": "Your ZeaPlay test notification has arrived.",
+            "url": "/#/settings?tab=push",
             "icon": None,
             "badge": None,
             "module": "users",
@@ -73,4 +140,4 @@ def test_notification(
         },
     )
     db.commit()
-    return schemas.PushTestResult(delivered=delivered)
+    return schemas.PushTestResult(delivered=result.accepted, **asdict(result))

@@ -1,0 +1,3 @@
+PASS: scoped git diff --check exit 0.
+PASS: audit source/test/report whitespace and conflict-marker scan.
+warning: in the working copy of 'backend/app/services/projects.py', LF will be replaced by CRLF the next time Git touches it

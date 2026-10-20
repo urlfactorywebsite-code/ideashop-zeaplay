@@ -101,6 +101,8 @@ def _notify_user(
         actor_id=actor_id,
         dedupe_key=f"inapp:{dedupe_key}",
     )
+    if notification is None:
+        return
     if email:
         notification_outbox.enqueue_email(
             db,

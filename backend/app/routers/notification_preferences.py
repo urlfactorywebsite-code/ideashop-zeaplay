@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as postgres_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -18,6 +20,7 @@ MODULES: list[schemas.NotificationModule] = [
     "users",
     "departments",
     "comments",
+    "chat",
 ]
 
 
@@ -50,24 +53,17 @@ def update_preferences(
     current_user: models.User = Depends(get_current_active_user),
 ) -> list[schemas.NotificationPreferenceRead]:
     now = datetime.now(timezone.utc)
-    prefs = db.execute(
-        select(models.NotificationPreference).where(models.NotificationPreference.user_id == current_user.id)
-    ).scalars().all()
-    pref_map = {pref.module: pref for pref in prefs}
-
-    for update in payload.preferences:
-        existing = pref_map.get(update.module)
-        if existing:
-            existing.push_enabled = update.push_enabled
-            existing.updated_at = now
-        else:
-            db.add(
-                models.NotificationPreference(
-                    user_id=str(current_user.id),
-                    module=update.module,
-                    push_enabled=update.push_enabled,
-                    updated_at=now,
-                )
-            )
+    insert = postgres_insert if db.get_bind().dialect.name == "postgresql" else sqlite_insert
+    # Stable ordering prevents opposite-order batch updates from deadlocking.
+    # One atomic UPSERT per module avoids duplicate creation across devices.
+    for preference in sorted(payload.preferences, key=lambda item: item.module):
+        statement = insert(models.NotificationPreference).values(
+            id=models.generate_uuid(), user_id=str(current_user.id), module=preference.module,
+            push_enabled=preference.push_enabled, updated_at=now,
+        ).on_conflict_do_update(
+            index_elements=["user_id", "module"],
+            set_={"push_enabled": preference.push_enabled, "updated_at": now},
+        )
+        db.execute(statement)
     db.commit()
     return list_preferences(db=db, current_user=current_user)

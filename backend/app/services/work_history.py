@@ -4,7 +4,7 @@ Session IDs are the first interval's server ID. No second time ledger is maintai
 Date ranges select intersecting sessions; durations are clipped to [from, to).
 """
 from collections import defaultdict
-from datetime import datetime
+from datetime import timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import exists, func, or_, select
@@ -32,6 +32,18 @@ def _seconds(start, end):
 def _clipped(start, end, lower, upper):
     start, end = timers._as_utc(start), timers._as_utc(end)
     return _seconds(max(start, lower) if lower else start, min(end, upper) if upper else end)
+
+
+def _visible_task(user):
+    """Match timer target visibility without lazy-loading relationships per task."""
+    task = models.Task
+    tenant = task_tenant_predicate(user)
+    if user.role in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
+        return tenant
+    return tenant & or_(task.created_by_id == user.id, task.assigned_to_id == user.id,
+        task.subtasks.any(models.Subtask.assigned_to_id == user.id),
+        task.followers.any(models.User.id == user.id),
+        task.project.has(models.Project.members.any(models.ProjectMember.user_id == user.id)))
 
 
 def read(db, user, *, active=False, session_id=None, lower=None, upper=None, search="", offset=0, limit=30):
@@ -63,11 +75,15 @@ def read(db, user, *, active=False, session_id=None, lower=None, upper=None, sea
         sub = models.Subtask
         query = query.outerjoin(sub, sub.id == root.subtask_id).join(task, task.id == func.coalesce(root.task_id, sub.task_id))
         term = "%" + search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
-        query = query.where(or_(task.title.ilike(term, escape="\\"), sub.title.ilike(term, escape="\\")))
+        query = query.where(_visible_task(user), or_(task.title.ilike(term, escape="\\"), sub.title.ilike(term, escape="\\")))
     ordering = (entry.stopped_at.is_(None).desc(), root.started_at.desc(), root.id) if active else (root.started_at.desc(), root.id)
     ids = list(db.scalars(query.order_by(*ordering).offset(offset).limit(limit + 1)))
     more = len(ids) > limit
     ids = ids[:limit]
+    if not ids:
+        if session_id:
+            raise HTTPException(status_code=404, detail="Work session not found")
+        return _snapshot(db, user, [], now, None, running_count=0 if active else None)
     rows = db.execute(select(chain.c.root_id, entry).join(entry, entry.id == chain.c.entry_id)
                       .where(chain.c.root_id.in_(ids)).order_by(entry.started_at, entry.id)).all() if ids else []
     groups = defaultdict(list)
@@ -75,20 +91,22 @@ def read(db, user, *, active=False, session_id=None, lower=None, upper=None, sea
         groups[root_id].append(interval)
     # Batch load display metadata; never return another user's interval data.
     subs = {s.id: s for s in db.scalars(select(models.Subtask).where(models.Subtask.id.in_({r.subtask_id for _, r in rows if r.subtask_id})))}
-    task_ids = {r.task_id or subs[r.subtask_id].task_id for _, r in rows}
-    tasks = {t.id: t for t in db.scalars(select(models.Task).where(models.Task.id.in_(task_ids), task_tenant_predicate(user)))}
+    task_ids = {r.task_id or (subs[r.subtask_id].task_id if r.subtask_id in subs else None) for _, r in rows}
+    tasks = {t.id: t for t in db.scalars(select(models.Task).where(models.Task.id.in_(task_ids), _visible_task(user)))}
     projects = {p.id: p for p in db.scalars(select(models.Project).where(models.Project.id.in_({t.project_id for t in tasks.values() if t.project_id})))}
     # All-time subtask totals include all sessions, summing concurrent session time.
     totals = defaultdict(float)
     targets = {r.subtask_id for _, r in rows if r.subtask_id}
+    direct_targets = {r.task_id for _, r in rows if r.task_id}
+    target_filter = or_(entry.subtask_id.in_(targets), entry.task_id.in_(direct_targets))
     # Completed intervals aggregate in SQL; only currently running intervals need wall-time calculation.
-    for target, seconds in db.execute(select(entry.subtask_id, func.sum(entry.duration_seconds)).where(
-            entry.tenant_id == user.tenant_id, entry.user_id == user.id, entry.subtask_id.in_(targets))
-            .group_by(entry.subtask_id)):
-        totals[target] += seconds or 0
-    for target, started in db.execute(select(entry.subtask_id, entry.started_at).where(
-            entry.tenant_id == user.tenant_id, entry.user_id == user.id, entry.subtask_id.in_(targets), entry.stopped_at.is_(None))):
-        totals[target] += _seconds(started, now)
+    for sub_id, task_id, seconds in db.execute(select(entry.subtask_id, entry.task_id, func.sum(entry.duration_seconds)).where(
+            entry.tenant_id == user.tenant_id, entry.user_id == user.id, target_filter)
+            .group_by(entry.subtask_id, entry.task_id)):
+        totals[(sub_id, task_id)] += seconds or 0
+    for sub_id, task_id, started in db.execute(select(entry.subtask_id, entry.task_id, entry.started_at).where(
+            entry.tenant_id == user.tenant_id, entry.user_id == user.id, target_filter, entry.stopped_at.is_(None))):
+        totals[(sub_id, task_id)] += _seconds(started, now)
     items = []
     for root_id in ids:
         intervals = groups[root_id]
@@ -106,7 +124,10 @@ def read(db, user, *, active=False, session_id=None, lower=None, upper=None, sea
             end = interval.stopped_at or now
             seconds = interval.duration_seconds if interval.stopped_at else _seconds(interval.started_at, end)
             active_seconds += seconds or 0
-            range_seconds += _clipped(interval.started_at, end, lower, upper)
+            # The existing ledger persists whole seconds per closed interval.
+            # Clip those accounted seconds, rather than restoring discarded fractions.
+            accounted_end = min(timers._as_utc(end), timers._as_utc(interval.started_at) + timedelta(seconds=seconds or 0))
+            range_seconds += _clipped(interval.started_at, accounted_end, lower, upper)
             spans.append({"id": interval.id, "started_at": timers._as_utc(interval.started_at),
                           "ended_at": timers._as_utc(interval.stopped_at) if interval.stopped_at else None,
                           "active_seconds": seconds, "corrected": interval.corrected_at is not None,
@@ -124,23 +145,33 @@ def read(db, user, *, active=False, session_id=None, lower=None, upper=None, sea
             timeline.append({"event": "Stopped", "at": timers._as_utc(last.finalized_at)})
         sub = subs.get(first.subtask_id)
         task = tasks.get(first.task_id or (sub.task_id if sub else None))
-        if task is None:
+        task_id = first.task_id or (sub.task_id if sub else None)
+        if task_id is None:
             continue
-        project = projects.get(task.project_id)
+        accessible = task is not None
+        project = projects.get(task.project_id) if accessible else None
         items.append({"id": root_id, "entry_id": last.id, "status": state,
-            "task_id": task.id, "subtask_id": first.subtask_id, "project_name": project.name if project else "Personal work",
-            "task_title": task.title, "subtask_title": sub.title if sub else None,
-            "subtask_status": sub.status.value if sub else task.status.value,
+            "task_id": task_id, "subtask_id": first.subtask_id, "target_accessible": accessible,
+            "project_name": (project.name if project else "Personal work") if accessible else "Unavailable project",
+            "task_title": task.title if accessible else "Task access changed",
+            "subtask_title": (sub.title if accessible else "Subtask access changed") if sub else None,
+            "subtask_status": (sub.status.value if sub else task.status.value) if accessible else "UNAVAILABLE",
             "started_at": timers._as_utc(first.started_at), "stopped_at": timers._as_utc(final_stop) if final_stop else None,
             "running_since": timers._as_utc(last.started_at) if state == "RUNNING" else None,
             "active_seconds": active_seconds, "paused_seconds": paused_seconds,
             "range_active_seconds": range_seconds, "range_paused_seconds": range_paused,
-            "subtask_total_seconds": totals[first.subtask_id] if first.subtask_id else active_seconds,
+            "subtask_total_seconds": totals[(first.subtask_id, first.task_id)],
             "intervals": spans, "timeline": timeline})
     if session_id and not items:
         raise HTTPException(status_code=404, detail="Work session not found")
-    running_count = db.scalar(select(func.count()).select_from(entry).where(entry.tenant_id == user.tenant_id,
-        entry.user_id == user.id, entry.stopped_at.is_(None)))
+    return _snapshot(db, user, items, now, offset + limit if more else None)
+
+
+def _snapshot(db, user, items, now, next_offset, running_count=None):
+    entry = models.TimeEntry
+    if running_count is None:
+        running_count = db.scalar(select(func.count()).select_from(entry).where(entry.tenant_id == user.tenant_id,
+            entry.user_id == user.id, entry.stopped_at.is_(None)))
     return {"items": items, "user_id": user.id, "tenant_id": str(user.tenant_id),
             "server_time": now, "limit": timers.timer_limit(user),
-            "running_count": running_count, "next_offset": offset + limit if more else None}
+            "running_count": running_count, "next_offset": next_offset}

@@ -1,0 +1,24 @@
+{
+  "passed": [
+    "empty state, keyboard dismissal and focus restoration",
+    "three starts and cross-tab invalidation",
+    "continuous invalidations cannot starve state or overlap per-tab reads",
+    "elapsed display uses a local clock without per-second requests",
+    "offline controls preserve running sessions and recover online",
+    "capacity error, independent pause and resume",
+    "refresh recovery",
+    "socket reconnect triggers backend reconciliation",
+    "background history refresh preserves expanded details and focus",
+    "stop synchronization and chronological history",
+    "mobile drawer and reduced motion",
+    "320px mobile drawer has no horizontal overflow",
+    "mismatched tenant responses clear private state",
+    "revoked account access clears previously loaded work",
+    "unmount closes shared sockets"
+  ],
+  "errors": [],
+  "activeConnections": 0,
+  "peakPerTabActiveReads": 1,
+  "requests": 66,
+  "note": "Mocked API/WebSocket component integration; database and real transport tested separately."
+}

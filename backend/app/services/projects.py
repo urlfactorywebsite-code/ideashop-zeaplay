@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
-from . import security_audit
+from . import archive_state, security_audit
 
 
 SortField = Literal["name", "created_at", "updated_at", "status", "client"]
@@ -58,12 +58,17 @@ def _project_query(tenant_id: uuid.UUID):
 
 
 def _get_active_client(db: Session, *, tenant_id: uuid.UUID, client_id: str) -> models.Client:
+    if db.get_bind().dialect.name == "sqlite":
+        # FOR SHARE is ignored by SQLite; reserve its writer before validation.
+        archive_state.locked_entity(db, models.Client, tenant_id=tenant_id, entity_id=client_id)
     client = (
         db.execute(
             select(models.Client)
             .where(models.Client.tenant_id == tenant_id)
             .where(models.Client.id == client_id)
             .where(models.Client.status == models.ClientStatusEnum.ACTIVE)
+            .with_for_update(read=True)
+            .execution_options(populate_existing=True)
         )
         .scalars()
         .first()
@@ -317,6 +322,7 @@ def create_project(
 ) -> models.Project:
     tenant_uuid = _tenant_uuid(tenant_id)
     _get_active_client(db, tenant_id=tenant_uuid, client_id=payload.client_id)
+    actor = archive_state.management_actor(db, actor, tenant_uuid)
     membership = _membership_payload(
         manager_ids=payload.manager_ids,
         member_ids=payload.member_ids,
@@ -369,11 +375,15 @@ def update_project(
     payload: schemas.ProjectUpdate,
     actor: models.User,
 ) -> models.Project:
-    project = get_project(db, tenant_id=tenant_id, project_id=project_id, actor=actor)
+    project = archive_state.locked_entity(db, models.Project, tenant_id=_tenant_uuid(tenant_id), entity_id=project_id)
+    actor = archive_state.management_actor(db, actor, project.tenant_id)
+    _ensure_can_read(project, actor)
     _ensure_project_manager(project, actor)
     update_data = payload.model_dump(exclude_unset=True)
     if "client_id" in update_data:
         _get_active_client(db, tenant_id=project.tenant_id, client_id=update_data["client_id"])
+        actor = archive_state.management_actor(db, actor, project.tenant_id)
+        _ensure_project_manager(project, actor)
         project.client_id = update_data["client_id"]
     if "name" in update_data:
         project.name = update_data["name"]
@@ -422,7 +432,9 @@ def replace_project_members(
     payload: schemas.ProjectMembershipInput,
     actor: models.User,
 ) -> models.Project:
-    project = get_project(db, tenant_id=tenant_id, project_id=project_id, actor=actor)
+    project = archive_state.locked_entity(db, models.Project, tenant_id=_tenant_uuid(tenant_id), entity_id=project_id)
+    actor = archive_state.management_actor(db, actor, project.tenant_id)
+    _ensure_can_read(project, actor)
     _ensure_project_manager(project, actor)
     membership = _membership_payload(manager_ids=payload.manager_ids, member_ids=payload.member_ids, actor=actor)
     _replace_members(db, project=project, membership=membership, actor=actor)
@@ -454,10 +466,13 @@ def archive_project(
     payload: schemas.ProjectArchive,
     actor: models.User,
 ) -> models.Project:
-    project = get_project(db, tenant_id=tenant_id, project_id=project_id, actor=actor)
+    project = archive_state.locked_entity(db, models.Project, tenant_id=_tenant_uuid(tenant_id), entity_id=project_id)
+    actor = archive_state.management_actor(db, actor, project.tenant_id)
+    _ensure_can_read(project, actor)
     _ensure_project_manager(project, actor)
     if project.status == models.ProjectStatusEnum.ARCHIVED:
         return project
+    previous = archive_state.state(project)
     project.status = models.ProjectStatusEnum.ARCHIVED
     project.archived_at = datetime.utcnow()
     project.archived_by_id = actor.id
@@ -466,14 +481,37 @@ def archive_project(
         existing = project.description or ""
         note = f"Archive reason: {payload.reason}"
         project.description = f"{existing}\n{note}".strip() if existing else note
-    security_audit.append_event(
-        db,
-        actor=actor,
-        event_type="project.archived",
-        entity_type="project",
-        entity_id=project.id,
-        payload={"reason_provided": bool(payload.reason)},
-    )
+    archive_state.audit_transition(db, record=project, actor=actor, entity_type="project",
+        action="archived", previous=previous, reason_provided=bool(payload.reason))
+    db.commit()
+    return db.execute(_project_query(project.tenant_id).where(models.Project.id == project.id)).scalars().first()
+
+
+def restore_project(db: Session, *, tenant_id: uuid.UUID | str, project_id: str, actor: models.User) -> models.Project:
+    project = archive_state.locked_entity(db, models.Project, tenant_id=_tenant_uuid(tenant_id), entity_id=project_id)
+    actor = archive_state.management_actor(db, actor, project.tenant_id)
+    _ensure_can_read(project, actor)
+    _ensure_project_manager(project, actor)
+    if project.status == models.ProjectStatusEnum.ACTIVE:
+        return project
+    # Coordinate with client archive/restore so validation and reactivation share
+    # one transaction. Separate project restores can share this client read lock.
+    client = db.scalar(select(models.Client).where(models.Client.id == project.client_id,
+        models.Client.tenant_id == project.tenant_id).with_for_update(read=True)
+        .execution_options(populate_existing=True))
+    if client is None or client.status != models.ClientStatusEnum.ACTIVE:
+        raise HTTPException(409, "Restore the linked client before restoring this project.")
+    actor = archive_state.management_actor(db, actor, project.tenant_id)
+    _ensure_project_manager(project, actor)
+    if not _manager_ids(project):
+        raise HTTPException(409, "Assign at least one active project manager before restoring this project.")
+    previous = archive_state.state(project)
+    project.status = models.ProjectStatusEnum.ACTIVE
+    project.archived_at = None
+    project.archived_by_id = None
+    project.updated_by_id = actor.id
+    archive_state.audit_transition(db, record=project, actor=actor, entity_type="project",
+        action="restored", previous=previous)
     db.commit()
     return db.execute(_project_query(project.tenant_id).where(models.Project.id == project.id)).scalars().first()
 

@@ -33,6 +33,7 @@ const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
 
 const registerServiceWorker = async (): Promise<ServiceWorkerRegistration> => {
   const registration = await navigator.serviceWorker.register('/sw.js', {
+    scope: '/',
     updateViaCache: 'none',
   });
   await registration.update().catch(() => undefined);
@@ -149,11 +150,17 @@ export const usePushNotifications = () => {
       }
 
       const json = subscription.toJSON();
+      const p256dh = json.keys?.p256dh;
+      const auth = json.keys?.auth;
+      if (!p256dh || !auth) {
+        throw new Error('Push subscription keys are missing. Refresh and try again.');
+      }
+
       await api.subscribePush({
         endpoint: subscription.endpoint,
         keys: {
-          p256dh: json.keys?.p256dh ?? '',
-          auth: json.keys?.auth ?? '',
+          p256dh,
+          auth,
         },
         userAgent: navigator.userAgent,
         deviceLabel: navigator.platform,

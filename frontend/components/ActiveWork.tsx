@@ -30,7 +30,7 @@ export function WorkTimerControls({ taskId, subtaskId, disabled = false, canForc
   };
   return <div className="work-inline">
     {session ? <><span className={`work-state work-${session.status.toLowerCase()}`}>{session.status} · {workDuration(sessionSeconds(session, work.advance))}</span>
-      <button type="button" disabled={work.busy} onClick={() => void work.control(session, session.status === 'RUNNING' ? 'pause' : 'resume')}>{session.status === 'RUNNING' ? 'Pause' : 'Resume'}</button>
+      <button type="button" disabled={work.busy || (session.status === 'PAUSED' && (disabled || session.target_accessible === false))} onClick={() => void work.control(session, session.status === 'RUNNING' ? 'pause' : 'resume')}>{session.status === 'RUNNING' ? 'Pause' : 'Resume'}</button>
       <button type="button" disabled={work.busy} onClick={() => void work.control(session, 'stop')}>Stop</button></> :
       <button type="button" disabled={disabled || work.busy || !work.snapshot} onClick={() => void work.start(subtaskId ? { subtaskId } : { taskId })}>Start timer</button>}
     <button type="button" onClick={() => work.setOpen(true)}>Active Work</button>
@@ -58,11 +58,15 @@ export default function ActiveWork({ onOpenTask }: { onOpenTask?: (taskId: strin
   const [loading, setLoading] = useState(false);
   const [offset, setOffset] = useState(0);
   const request = useRef(0);
+  const historyScope = useRef<string | null>(null);
   useEffect(() => { setOffset(0); }, [preset, from, to, search]);
   useEffect(() => {
     const generation = ++request.current;
     if (!work.open || tab !== 'history') return;
-    setHistory(null); setLoading(true); setHistoryError(null);
+    const scope = JSON.stringify([user?.id, user?.tenantId, preset, from, to, search, offset, timezone]);
+    if (historyScope.current !== scope || (!work.snapshot && work.error)) setHistory(null);
+    historyScope.current = scope;
+    setLoading(true); setHistoryError(null);
     const debounce = window.setTimeout(() => {
       void (async () => {
         try {
@@ -70,12 +74,12 @@ export default function ActiveWork({ onOpenTask }: { onOpenTask?: (taskId: strin
           const result = await api.getWorkHistory({ ...params, search, offset });
           if (result.user_id !== user?.id || result.tenant_id !== user?.tenantId) throw new Error('History response does not match your signed-in account.');
           if (generation === request.current) setHistory(result);
-        } catch (error) { if (generation === request.current) setHistoryError(error instanceof Error ? error.message : 'Unable to load history.'); }
+        } catch (error) { if (generation === request.current) { setHistory(null); setHistoryError(error instanceof Error ? error.message : 'Unable to load history.'); } }
         finally { if (generation === request.current) setLoading(false); }
       })();
     }, 250);
     return () => { request.current++; window.clearTimeout(debounce); };
-  }, [work.open, tab, preset, from, to, search, offset, timezone, work.snapshot?.server_time]);
+  }, [work.open, tab, preset, from, to, search, offset, timezone, work.snapshot?.server_time, work.error, user?.id, user?.tenantId]);
   const running = work.snapshot?.items.filter(row => row.status === 'RUNNING') ?? [];
   const paused = work.snapshot?.items.filter(row => row.status === 'PAUSED') ?? [];
   const total = running.reduce((sum, row) => sum + sessionSeconds(row, work.advance), 0);
@@ -97,11 +101,11 @@ export default function ActiveWork({ onOpenTask }: { onOpenTask?: (taskId: strin
           {interval.paused_until && <p>Paused {stamp(interval.ended_at)} → {stamp(interval.paused_until)} · {workDuration(interval.paused_seconds ?? 0)}</p>}</React.Fragment>)}
       </details>
     </> : <div className="work-actions">
-      <button type="button" disabled={work.busy} onClick={() => void work.control(row, row.status === 'RUNNING' ? 'pause' : 'resume')}>
+      <button type="button" disabled={work.busy || (row.status === 'PAUSED' && (row.target_accessible === false || ['DONE', 'DEPLOYED', 'FAILED', 'GRAVEYARD', 'WAITING'].includes(row.subtask_status)))} onClick={() => void work.control(row, row.status === 'RUNNING' ? 'pause' : 'resume')}>
         {row.status === 'RUNNING' ? <Pause size={14} /> : <Play size={14} />}{row.status === 'RUNNING' ? 'Pause' : 'Resume'}</button>
       <button type="button" disabled={work.busy} onClick={() => void work.control(row, 'stop')}><Square size={14} />Stop</button>
     </div>}
-    <button type="button" className="work-open" onClick={() => openTask(row)}><ExternalLink size={14} />Open {row.subtask_title ? 'subtask' : 'task'}</button>
+    <button type="button" className="work-open" disabled={row.target_accessible === false} title={row.target_accessible === false ? 'Access to this task has changed. You can still pause or stop your session.' : undefined} onClick={() => openTask(row)}><ExternalLink size={14} />Open {row.subtask_title ? 'subtask' : 'task'}</button>
   </article>;
   return <>
     <button type="button" className={`work-trigger ${running.length ? 'work-live' : ''}`} aria-label="Open Active Work" aria-haspopup="dialog" aria-expanded={work.open} onClick={() => work.setOpen(true)}>

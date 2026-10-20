@@ -1,0 +1,108 @@
+{
+  "results": [
+    "Client: archived discovery, named confirmation, cancel, loading, restore, active filter and search",
+    "Client: existing Edit and save work on the restored record",
+    "Client: existing Archive action still works after restoration",
+    "Project: archived discovery, named confirmation, cancel, loading, restore, active filter and search",
+    "Project: existing Edit and save work on the restored record",
+    "Project: existing Archive action still works after restoration",
+    "Client: denied/missing/conflict/network errors, no premature success, 320px dialog, keyboard focus recovery",
+    "Project: denied/missing/conflict/network errors, no premature success, 320px dialog, keyboard focus recovery",
+    "client: regular-user restore actions hidden",
+    "project: regular-user restore actions hidden",
+    "Project: manager without project-manager membership cannot restore",
+    "client: restoring last row on last page clamps pagination without reload",
+    "project: restoring last row on last page clamps pagination without reload",
+    "client: delayed filter response cannot replace the current active selection",
+    "project: delayed filter response cannot replace the current active selection",
+    "Project: stale task dashboard cannot cross the selected project",
+    "client: pre-restore requests cannot repopulate invalidated list caches",
+    "project: pre-restore requests cannot repopulate invalidated list caches",
+    "Client: transport disconnect retains the confirmation and offers a safe retry",
+    "Client: archive selection changes cannot display another client contacts"
+  ],
+  "errors": [],
+  "writes": [
+    {
+      "path": "/api/clients/client-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/clients/client-2",
+      "method": "PATCH"
+    },
+    {
+      "path": "/api/clients/client-2/archive",
+      "method": "POST"
+    },
+    {
+      "path": "/api/projects/project-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/projects/project-2",
+      "method": "PATCH"
+    },
+    {
+      "path": "/api/projects/project-2/archive",
+      "method": "POST"
+    },
+    {
+      "path": "/api/clients/client-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/clients/client-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/clients/client-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/clients/client-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/projects/project-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/projects/project-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/projects/project-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/projects/project-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/clients/client-11/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/projects/project-11/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/clients/client-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/projects/project-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/clients/client-2/restore",
+      "method": "POST"
+    },
+    {
+      "path": "/api/clients/client-1/archive",
+      "method": "POST"
+    }
+  ],
+  "transport": "Mocked HTTP with real pages, adapter and Headless UI dialog"
+}

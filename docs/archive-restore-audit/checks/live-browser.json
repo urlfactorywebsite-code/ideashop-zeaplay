@@ -1,0 +1,318 @@
+{
+  "results": [
+    "Real archive operations and correct next-client contact association",
+    "Real 409 dependency response without premature success",
+    "Owner client restore end to end, Active filter, focus recovery and no cascading project restore",
+    "Real restored dashboard counts: one task, two subtasks, one complete, 45 tracked seconds, no restarted timer",
+    "Owner project restore end to end and exact related-record/attachment-byte preservation",
+    "Real unauthorized, foreign-tenant and repeated idempotent API requests",
+    "Assigned manager project and client restores on 390px mobile; ordinary-user actions hidden"
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/users",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/task-dashboard",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/archive",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients/79dec892-a80a-48f8-a653-08151653b4ab/contacts",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/clients/79dec892-a80a-48f8-a653-08151653b4ab/archive",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients/3fc2b283-1067-41fd-89d5-ec93c62d4072/contacts",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/users",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/task-dashboard",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/restore",
+      "status": 409
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients/3fc2b283-1067-41fd-89d5-ec93c62d4072/contacts",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients/79dec892-a80a-48f8-a653-08151653b4ab/contacts",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/clients/79dec892-a80a-48f8-a653-08151653b4ab/restore",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients/79dec892-a80a-48f8-a653-08151653b4ab/contacts",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/users",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/task-dashboard",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/restore",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/task-dashboard",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/task-dashboard",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/users",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/task-dashboard",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/restore",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects/f1be50b8-ba49-47b1-832e-06c2ab0efb52/task-dashboard",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients/3fc2b283-1067-41fd-89d5-ec93c62d4072/contacts",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients/3fc2b283-1067-41fd-89d5-ec93c62d4072/contacts",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients/79dec892-a80a-48f8-a653-08151653b4ab/contacts",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/clients/79dec892-a80a-48f8-a653-08151653b4ab/restore",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "status": 200
+    }
+  ],
+  "api_mocked": false,
+  "backend": "rebuilt Linux API",
+  "database": "isolated PostgreSQL",
+  "style": "existing Tailwind runtime plus application components"
+}

@@ -2,6 +2,8 @@
 
 Implemented in `F:\Projects\ideashop-zeaplay-v5`. This is the existing React/Vite and FastAPI application. No deployment or application-database migration was performed.
 
+The [2026-10-20 refinement audit](../active-work-audit/README.md) records subsequent fixes, fresh verification, and current release gates. The original evidence below remains available.
+
 ## Architecture audit
 
 | Area | Existing implementation | Integration |
@@ -65,7 +67,7 @@ Other failures use the existing 401/403/404/409/422 conventions. Cross-tenant se
 
 Timer changes enqueue a transaction-owned event when the existing task outbox is enabled; otherwise they use the existing after-commit local/Redis transport. The existing relay is required when outbox mode is enabled. Events contain user identity and invalidation only. The task WebSocket filters recipients by tenant **and** authenticated user, and rechecks account credentials before sending. Existing task invalidations still contain no private work-session records.
 
-Clients never apply timer state from events. They reconcile through authenticated GETs, serialize those requests and skip a response if a newer invalidation arrived while it was in flight. Thus delayed/duplicate/out-of-order events cannot overwrite newer session state. Existing outbox aggregate versions and event IDs remain available for transport ordering/deduplication.
+Clients never apply timer state from events. They reconcile through authenticated GETs and serialize those requests. Each matching response is applied; intervening invalidations request a further read. Refresh promises perform at most two reads, with additional bursts coalesced into a tracked follow-up timeout, so continuous events cannot starve rendering or timer controls. Existing outbox aggregate versions and event IDs remain available for transport ordering/deduplication.
 
 One task WebSocket and one display clock serve the layout. The task page consumes its existing local notices. Reconcile on socket ready/reconnect, online/focus/visibility recovery and every 30 seconds while visible. No per-second network requests or broadcasts. Cleanup removes all listeners, sockets, timeouts and intervals. Private state and in-flight generations reset on identity/tenant changes. Responses must match the current user and tenant. A 401/403 active-work read clears private timer state.
 

@@ -1,0 +1,722 @@
+--- a/backend/app/services/archive_state.py
++++ b/backend/app/services/archive_state.py
+@@ -1,4 +1,5 @@
+ """Transaction-owned archive transitions on existing records and audit events."""
++from datetime import datetime, timezone
+ from fastapi import HTTPException
+ from sqlalchemy import select, update
+ 
+@@ -40,7 +41,9 @@
+ 
+ 
+ def audit_transition(db, *, record, actor, entity_type, action, previous, **details):
+-    security_audit.append_event(db, actor=actor, event_type=f"{entity_type}.{action}",
++    event = security_audit.append_event(db, actor=actor, event_type=f"{entity_type}.{action}",
+         entity_type=entity_type, entity_id=record.id,
+         payload={"tenant_id": str(record.tenant_id), "previous_state": previous,
+                  "new_state": state(record), **details})
++    # A naive UTC value is interpreted in PostgreSQL's session timezone.
++    event.created_at = datetime.now(timezone.utc)
+--- a/backend/app/services/projects.py
++++ b/backend/app/services/projects.py
+@@ -58,12 +58,17 @@
+ 
+ 
+ def _get_active_client(db: Session, *, tenant_id: uuid.UUID, client_id: str) -> models.Client:
++    if db.get_bind().dialect.name == "sqlite":
++        # FOR SHARE is ignored by SQLite; reserve its writer before validation.
++        archive_state.locked_entity(db, models.Client, tenant_id=tenant_id, entity_id=client_id)
+     client = (
+         db.execute(
+             select(models.Client)
+             .where(models.Client.tenant_id == tenant_id)
+             .where(models.Client.id == client_id)
+             .where(models.Client.status == models.ClientStatusEnum.ACTIVE)
++            .with_for_update(read=True)
++            .execution_options(populate_existing=True)
+         )
+         .scalars()
+         .first()
+@@ -317,6 +322,7 @@
+ ) -> models.Project:
+     tenant_uuid = _tenant_uuid(tenant_id)
+     _get_active_client(db, tenant_id=tenant_uuid, client_id=payload.client_id)
++    actor = archive_state.management_actor(db, actor, tenant_uuid)
+     membership = _membership_payload(
+         manager_ids=payload.manager_ids,
+         member_ids=payload.member_ids,
+@@ -369,11 +375,15 @@
+     payload: schemas.ProjectUpdate,
+     actor: models.User,
+ ) -> models.Project:
+-    project = get_project(db, tenant_id=tenant_id, project_id=project_id, actor=actor)
++    project = archive_state.locked_entity(db, models.Project, tenant_id=_tenant_uuid(tenant_id), entity_id=project_id)
++    actor = archive_state.management_actor(db, actor, project.tenant_id)
++    _ensure_can_read(project, actor)
+     _ensure_project_manager(project, actor)
+     update_data = payload.model_dump(exclude_unset=True)
+     if "client_id" in update_data:
+         _get_active_client(db, tenant_id=project.tenant_id, client_id=update_data["client_id"])
++        actor = archive_state.management_actor(db, actor, project.tenant_id)
++        _ensure_project_manager(project, actor)
+         project.client_id = update_data["client_id"]
+     if "name" in update_data:
+         project.name = update_data["name"]
+@@ -422,7 +432,9 @@
+     payload: schemas.ProjectMembershipInput,
+     actor: models.User,
+ ) -> models.Project:
+-    project = get_project(db, tenant_id=tenant_id, project_id=project_id, actor=actor)
++    project = archive_state.locked_entity(db, models.Project, tenant_id=_tenant_uuid(tenant_id), entity_id=project_id)
++    actor = archive_state.management_actor(db, actor, project.tenant_id)
++    _ensure_can_read(project, actor)
+     _ensure_project_manager(project, actor)
+     membership = _membership_payload(manager_ids=payload.manager_ids, member_ids=payload.member_ids, actor=actor)
+     _replace_members(db, project=project, membership=membership, actor=actor)
+@@ -489,6 +501,8 @@
+         .execution_options(populate_existing=True))
+     if client is None or client.status != models.ClientStatusEnum.ACTIVE:
+         raise HTTPException(409, "Restore the linked client before restoring this project.")
++    actor = archive_state.management_actor(db, actor, project.tenant_id)
++    _ensure_project_manager(project, actor)
+     if not _manager_ids(project):
+         raise HTTPException(409, "Assign at least one active project manager before restoring this project.")
+     previous = archive_state.state(project)
+--- a/frontend/pages/Clients.tsx
++++ b/frontend/pages/Clients.tsx
+@@ -524,8 +524,6 @@
+       setSelectedClient(archived);
+       setSuccess('Client archived.');
+       await fetchClients();
+-      const response = await api.getClientContacts(client.id);
+-      setClientContacts(response.items);
+     } catch (err) {
+       setError(err instanceof Error ? err.message : 'Unable to archive client.');
+     } finally {
+--- a/frontend/components/RestoreConfirmation.tsx
++++ b/frontend/components/RestoreConfirmation.tsx
+@@ -13,10 +13,12 @@
+     <DialogBackdrop className="restore-backdrop" />
+     <div className="restore-container"><DialogPanel className="restore-panel" aria-busy={busy}>
+       <DialogTitle className="restore-title">Restore {kind}?</DialogTitle>
++      <Description as="div">
+       <p className="restore-name">{name}</p>
+-      <Description className="restore-description">{kind === 'Project'
++      <p className="restore-description">{kind === 'Project'
+         ? 'Are you sure you want to restore this project? The project will become active again, and its existing tasks, subtasks, team members, and historical records will be preserved.'
+-        : 'Are you sure you want to restore this client? Its company information, linked contacts, projects, and historical records will be preserved.'}</Description>
++        : 'Are you sure you want to restore this client? Its company information, linked contacts, projects, and historical records will be preserved.'}</p>
++      </Description>
+       {error && <p role="alert" className="restore-error">{error}</p>}
+       <div className="restore-actions">
+         <button type="button" data-autofocus disabled={busy} onClick={onClose} className="restore-cancel">Cancel</button>
+--- a/frontend/e2e/archiveRestoreFixture.tsx
++++ b/frontend/e2e/archiveRestoreFixture.tsx
+@@ -9,6 +9,7 @@
+ const kind = new URLSearchParams(location.search).get('module');
+ function Fixture() {
+   const { user } = useAuth();
++  if (!user) return <p>Waiting for the synthetic authenticated session.</p>;
+   return <><output hidden id="fixture-identity" data-role={user?.role} data-user={user?.id} />
+     {kind === 'projects' ? <Projects /> : <Clients />}</>;
+ }
+--- a/frontend/e2e/archive-restore.mjs
++++ b/frontend/e2e/archive-restore.mjs
+@@ -4,13 +4,14 @@
+ const { chromium } = await import(pathToFileURL(process.env.ZEAPLAY_PLAYWRIGHT_MODULE).href);
+ const base = process.env.ZEAPLAY_RESTORE_TEST_URL || 'http://127.0.0.1:6302';
+ if (!['localhost', '127.0.0.1'].includes(new URL(base).hostname)) throw new Error('Loopback only');
+-const output = new URL('../../docs/archive-restore/checks/', import.meta.url);
++const output = new URL(process.env.ZEAPLAY_RESTORE_OUTPUT || '../../docs/archive-restore/checks/', import.meta.url);
+ await mkdir(output, { recursive: true });
+ const browser = await chromium.launch({ channel: 'chrome', headless: true });
+ const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+ const results = [], errors = [], writes = [], authRoles = [];
+ let clients = [], projects = [], restoreFailure = null, restoreDelay = 0, listDelay = 0, dashboardDelay = {};
+ let onDelayedList = null;
++let contactScenario = false;
+ const stamp = '2026-10-20T05:00:00Z';
+ const customer = (i, status = 'ACTIVE') => ({ id: `client-${i}`, tenant_id: 'tenant', company_name: `Client ${i}`, normalized_company_name: `client ${i}`,
+   status, notes: 'Retained company notes', created_at: stamp, updated_at: stamp, archived_at: status === 'ARCHIVED' ? stamp : null });
+@@ -30,7 +31,13 @@
+   const role = new URL(route.request().frame().page().url()).searchParams.get('role') || 'owner';
+   if (url.pathname === '/api/auth/me') { authRoles.push(role); return route.fulfill({ json: { id: 'actor', tenant_id: 'tenant', name: 'Actor', email: 'actor@example.test', status: 'ACTIVE', role, unlocked_achievement_ids: [], claimed_reward_ids: [] } }); }
+   if (url.pathname === '/api/users') return route.fulfill({ json: [{ id: 'actor', tenant_id: 'tenant', name: 'Actor', email: 'actor@example.test', role: 'manager', status: 'ACTIVE' }] });
+-  if (url.pathname.match(/\/clients\/[^/]+\/contacts$/)) return route.fulfill({ json: { items: [], total: 0, total_pages: 1 } });
++  if (url.pathname.match(/\/clients\/[^/]+\/contacts$/)) {
++    if (!contactScenario) return route.fulfill({ json: { items: [], total: 0, total_pages: 1 } });
++    const id = url.pathname.split('/')[3];
++    if (id === 'client-1' && clients[0].status === 'ARCHIVED') await new Promise(resolve => setTimeout(resolve, 300));
++    return route.fulfill({ json: { items: [{ id: `contact-${id}`, first_name: id, display_name: `Contact for ${id}`,
++      status: 'ACTIVE', created_at: stamp, updated_at: stamp, clients: [] }], total: 1, total_pages: 1 } });
++  }
+   if (url.pathname.endsWith('/task-dashboard')) {
+     const record = projects.find(p => url.pathname.includes(p.id));
+     if (dashboardDelay[record.id]) await new Promise(resolve => setTimeout(resolve, dashboardDelay[record.id]));
+@@ -86,6 +93,8 @@
+     await page.getByRole('button', { name, exact: true }).click();
+     const dialog = page.getByRole('dialog', { name: `${name}?` });
+     await dialog.getByText(`${title} 2`, { exact: true }).waitFor();
++    assert.equal(await dialog.evaluate((node, name) => (node.getAttribute('aria-describedby') || '').split(/\s+/)
++      .map(id => document.getElementById(id)?.textContent || '').join(' ').includes(name), `${title} 2`), true);
+     await dialog.getByRole('button', { name: 'Cancel' }).click();
+     assert.equal(writes.length, writesBefore);
+     await page.getByRole('button', { name, exact: true }).click();
+@@ -129,7 +138,7 @@
+     }
+     await page.setViewportSize({ width: 320, height: 740 });
+     await page.emulateMedia({ reducedMotion: 'reduce' });
+-    assert.equal(await page.getByRole('dialog').evaluate(node => node.getBoundingClientRect().right <= innerWidth), true);
++    assert.equal(await page.getByRole('dialog').locator('.restore-panel').evaluate(node => { const r = node.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }), true);
+     await page.screenshot({ path: new URL(`${kind}-mobile.png`, output).pathname.replace(/^\/([A-Za-z]:)/, '$1') });
+     await page.keyboard.press('Escape');
+     await page.waitForFunction(() => !document.querySelector('[role="dialog"]'));
+@@ -199,6 +208,15 @@
+   await offline.getByRole('alert').waitFor();
+   assert.equal(await offline.getByText('Client restored.', { exact: true }).count(), 0);
+   results.push('Client: transport disconnect retains the confirmation and offers a safe retry'); await offline.close();
++  reset(); contactScenario = true; clients = [customer(1), customer(2)];
++  const contacts = await open('client'); await contacts.getByText('Contact for client-1', { exact: true }).waitFor();
++  contacts.once('dialog', dialog => dialog.accept());
++  await contacts.getByRole('button', { name: 'Archive', exact: true }).last().click();
++  await contacts.getByRole('heading', { name: 'Client 2', exact: true }).waitFor();
++  await contacts.waitForTimeout(500);
++  assert.equal(await contacts.getByText('Contact for client-1', { exact: true }).count(), 0);
++  await contacts.getByText('Contact for client-2', { exact: true }).waitFor();
++  results.push('Client: archive selection changes cannot display another client contacts'); await contacts.close();
+   assert.deepEqual(errors, []);
+ } finally {
+   await writeFile(new URL('browser.json', output), JSON.stringify({ results, errors, writes, transport: 'Mocked HTTP with real pages, adapter and Headless UI dialog' }, null, 2));
+--- /dev/null
++++ b/backend/tests/test_archive_restore_audit.py
+@@ -0,0 +1,224 @@
++"""Regression audit: stale updates, audit UTC, real row waits and rich history."""
++from concurrent.futures import ThreadPoolExecutor
++from datetime import datetime, timezone
++from threading import Event
++import hashlib
++import time
++from uuid import uuid4
++
++from fastapi import HTTPException
++import pytest
++from sqlalchemy import event, select, text, update
++
++from backend.app import models, schemas
++from backend.app.services import clients, projects
++from backend.tests.test_task_lifecycle import api, auth, data, engine  # noqa: F401
++from backend.tests.test_archive_restore import records, retained, transition  # noqa: F401
++
++
++def test_stale_update_cannot_desynchronize_client_name_and_normalization(data, records):
++    with data.factory() as reader:
++        cached = clients.get_client(reader, tenant_id=data.owner.tenant_id, client_id=records.client)
++        assert cached.company_name == "Restore Client"
++        with data.factory() as writer:
++            clients.update_client(writer, tenant_id=data.owner.tenant_id, client_id=records.client,
++                actor=writer.get(models.User, data.owner.id), payload=schemas.ClientUpdate(company_name="Renamed Company"))
++        clients.update_client(reader, tenant_id=data.owner.tenant_id, client_id=records.client,
++            actor=reader.get(models.User, data.owner.id), payload=schemas.ClientUpdate(notes="New note"))
++    with data.factory() as db:
++        current = db.get(models.Client, records.client)
++        assert current.company_name == "Renamed Company"
++        assert current.normalized_company_name == "renamed company"
++
++
++@pytest.mark.parametrize("operation", ["update", "members"])
++def test_cached_project_membership_cannot_authorize_revoked_manager(data, records, operation):
++    with data.factory() as db:
++        db.get(models.User, data.owner.id).role = models.RoleEnum.MANAGER
++        db.commit()
++    with data.factory() as reader:
++        actor = reader.get(models.User, data.owner.id)
++        project = projects.get_project(reader, tenant_id=actor.tenant_id, project_id=records.project, actor=actor)
++        assert project.members[0].role == models.ProjectMemberRoleEnum.MANAGER
++        with data.factory() as writer:
++            writer.execute(update(models.ProjectMember).where(models.ProjectMember.project_id == project.id)
++                           .values(role=models.ProjectMemberRoleEnum.MEMBER))
++            writer.commit()
++        with pytest.raises(HTTPException) as denied:
++            if operation == "update":
++                projects.update_project(reader, tenant_id=actor.tenant_id, project_id=project.id, actor=actor,
++                    payload=schemas.ProjectUpdate(description="Unauthorized edit"))
++            else:
++                projects.replace_project_members(reader, tenant_id=actor.tenant_id, project_id=project.id, actor=actor,
++                    payload=schemas.ProjectMembershipInput(manager_ids=[actor.id], member_ids=[]))
++        assert denied.value.status_code == 403
++
++
++@pytest.mark.parametrize("kind", ["client", "project"])
++@pytest.mark.parametrize("action", ["archive", "restore"])
++def test_archive_audit_timestamp_is_utc_with_non_utc_postgres_session(data, records, engine, kind, action):
++    if engine.dialect.name != "postgresql": pytest.skip("PostgreSQL session timezone")
++    service = clients if kind == "client" else projects
++    with data.factory() as db:
++        actor = db.get(models.User, data.owner.id)
++        kwargs = {"tenant_id": actor.tenant_id, f"{kind}_id": getattr(records, kind), "actor": actor}
++        payload = schemas.ClientArchive() if kind == "client" else schemas.ProjectArchive()
++        if action == "restore": getattr(service, f"archive_{kind}")(db, payload=payload, **kwargs)
++        db.execute(text("SET LOCAL TIME ZONE 'Asia/Kolkata'"))
++        before = datetime.now(timezone.utc)
++        if action == "archive": kwargs["payload"] = payload
++        getattr(service, f"{action}_{kind}")(db, **kwargs)
++        name = f"{kind}.archived" if action == "archive" else f"{kind}.restored"
++        at = db.scalar(select(models.AuditEvent.created_at).where(models.AuditEvent.event_type == name))
++        assert abs((at.astimezone(timezone.utc) - before).total_seconds()) < 10
++
++
++@pytest.mark.parametrize("operation", ["create", "update"])
++def test_client_archived_while_project_write_waits_is_revalidated(data, records, engine, operation):
++    if engine.dialect.name != "postgresql": pytest.skip("PostgreSQL row/FK lock wait")
++    with data.factory() as db:
++        customer = models.Client(tenant_id=data.owner.tenant_id, company_name="Contended Client", normalized_company_name="contended client")
++        db.add(customer); db.commit(); client_id = customer.id
++    started = Event(); worker_pid = []
++    def write():
++        with data.factory() as db:
++            actor = db.get(models.User, data.owner.id)
++            worker_pid.append(db.connection().connection.driver_connection.get_backend_pid())
++            started.set()
++            try:
++                if operation == "create":
++                    projects.create_project(db, tenant_id=actor.tenant_id, actor=actor,
++                        payload=schemas.ProjectCreate(name="Concurrent project", client_id=client_id, manager_ids=[actor.id]))
++                else:
++                    projects.update_project(db, tenant_id=actor.tenant_id, project_id=records.project, actor=actor,
++                        payload=schemas.ProjectUpdate(client_id=client_id))
++                return 200
++            except HTTPException as error: return error.status_code
++    with data.factory() as holder:
++        customer = holder.scalar(select(models.Client).where(models.Client.id == client_id).with_for_update())
++        with ThreadPoolExecutor(max_workers=1) as pool:
++            result = pool.submit(write)
++            try:
++                assert started.wait(timeout=15)
++                # Both versions wait: the old one at the FK write, the fixed one
++                # at client validation. Release only once the DB proves a wait.
++                with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as observer:
++                    deadline = time.monotonic() + 8
++                    while time.monotonic() < deadline:
++                        row = observer.execute(text("SELECT wait_event_type FROM pg_stat_activity WHERE pid=:pid"), {"pid": worker_pid[0]}).first()
++                        if row and row[0] == "Lock": break
++                        time.sleep(.02)
++                    else: pytest.fail("Project writer did not reach the held database lock")
++                customer.status = models.ClientStatusEnum.ARCHIVED
++            finally: holder.commit()
++            assert result.result(timeout=20) == 404
++    with data.factory() as db:
++        assert not db.scalars(select(models.Project).where(models.Project.client_id == client_id)).all()
++
++
++@pytest.mark.parametrize("kind", ["client", "project"])
++def test_restore_preserves_nonempty_attachment_and_work_history(data, api, records, tmp_path, kind):
++    content = b"Synthetic preserved attachment\n"
++    blob = tmp_path / "evidence.txt"; blob.write_bytes(content)
++    with data.factory() as db:
++        submission = models.CompletionSubmission(tenant_id=data.owner.tenant_id, task_id=data.task.id,
++            subtask_id=data.child.id, submitted_by_id=data.owner.id, description="Completed evidence",
++            description_word_count=2, status=models.CompletionSubmissionStatusEnum.APPROVED,
++            approval_required=False, attempt_number=1)
++        db.add(submission); db.flush()
++        db.add(models.CompletionAttachment(tenant_id=data.owner.tenant_id, submission_id=submission.id,
++            original_filename="evidence.txt", mime_type="text/plain", file_size=len(content),
++            storage_key=f"synthetic/{uuid4()}.txt", checksum_sha256=hashlib.sha256(content).hexdigest()))
++        db.commit()
++        before = retained(db)
++        submission_before = db.execute(select(models.CompletionSubmission.__table__)).all()
++        assert len(before["completion_attachments"]) == 1
++    assert transition(api, data, records, kind, "archive").status_code == 200
++    assert transition(api, data, records, kind, "restore").status_code == 200
++    with data.factory() as db:
++        assert retained(db) == before
++        assert db.execute(select(models.CompletionSubmission.__table__)).all() == submission_before
++    assert blob.read_bytes() == content
++
++
++@pytest.mark.parametrize("operation", ["create", "update", "restore"])
++def test_demotion_during_client_dependency_wait_prevents_project_write(data, records, engine, operation):
++    if engine.dialect.name != "postgresql": pytest.skip("PostgreSQL dependency lock wait")
++    if operation == "restore":
++        with data.factory() as db:
++            projects.archive_project(db, tenant_id=data.owner.tenant_id, project_id=records.project,
++                actor=db.get(models.User, data.owner.id), payload=schemas.ProjectArchive())
++    started = Event(); worker_pid = []
++    def attempt():
++        with data.factory() as db:
++            actor = db.get(models.User, data.owner.id)
++            worker_pid.append(db.connection().connection.driver_connection.get_backend_pid()); started.set()
++            kwargs = {"tenant_id": actor.tenant_id, "actor": actor}
++            try:
++                if operation == "create":
++                    projects.create_project(db, payload=schemas.ProjectCreate(name="Forbidden new project",
++                        client_id=records.client, manager_ids=[actor.id]), **kwargs)
++                elif operation == "update":
++                    projects.update_project(db, project_id=records.project,
++                        payload=schemas.ProjectUpdate(client_id=records.client, description="Forbidden update"), **kwargs)
++                else: projects.restore_project(db, project_id=records.project, **kwargs)
++                return 200
++            except HTTPException as error: return error.status_code
++    with data.factory() as holder:
++        holder.scalar(select(models.Client).where(models.Client.id == records.client).with_for_update())
++        with ThreadPoolExecutor(max_workers=1) as pool:
++            result = pool.submit(attempt)
++            try:
++                assert started.wait(timeout=15)
++                with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as observer:
++                    deadline = time.monotonic() + 8
++                    while time.monotonic() < deadline:
++                        row = observer.execute(text("SELECT wait_event_type FROM pg_stat_activity WHERE pid=:pid"), {"pid": worker_pid[0]}).first()
++                        if row and row[0] == "Lock": break
++                        time.sleep(.02)
++                    else: pytest.fail("Project request did not wait for the dependency lock")
++                holder.get(models.User, data.owner.id).role = models.RoleEnum.USER
++            finally: holder.commit()
++            assert result.result(timeout=20) == 403
++
++
++def test_client_validation_serializes_project_create_before_later_archive(data, records, monkeypatch):
++    validated, release, archive_started, archived = Event(), Event(), Event(), Event()
++    commits = []
++    original = projects._get_active_client
++    def pause_after_validation(*args, **kwargs):
++        client = original(*args, **kwargs)
++        validated.set()
++        assert release.wait(timeout=15)
++        return client
++    monkeypatch.setattr(projects, "_get_active_client", pause_after_validation)
++    def committed(session):
++        op = session.info.get("restore_audit_operation")
++        if op:
++            commits.append(op)
++            if op == "archive": archived.set()
++    event.listen(data.factory.class_, "after_commit", committed)
++    def create():
++        with data.factory() as db:
++            db.info["restore_audit_operation"] = "create"
++            return projects.create_project(db, tenant_id=data.owner.tenant_id, actor=db.get(models.User, data.owner.id),
++                payload=schemas.ProjectCreate(name="Serialized create", client_id=records.client, manager_ids=[data.owner.id])).id
++    def archive():
++        with data.factory() as db:
++            actor = db.get(models.User, data.owner.id)
++            db.info["restore_audit_operation"] = "archive"
++            archive_started.set()
++            clients.archive_client(db, tenant_id=actor.tenant_id, client_id=records.client,
++                actor=actor, payload=schemas.ClientArchive())
++    try:
++        with ThreadPoolExecutor(max_workers=2) as pool:
++            creating = pool.submit(create)
++            try:
++                assert validated.wait(timeout=15)
++                archiving = pool.submit(archive)
++                assert archive_started.wait(timeout=10)
++                archived.wait(timeout=1)
++            finally: release.set()
++            creating.result(timeout=20); archiving.result(timeout=20)
++        assert commits == ["create", "archive"]
++    finally: event.remove(data.factory.class_, "after_commit", committed)
+--- /dev/null
++++ b/frontend/e2e/archive-restore-live.mjs
+@@ -0,0 +1,164 @@
++// Real browser -> Vite proxy -> rebuilt Linux API -> isolated PostgreSQL.
++import assert from 'node:assert/strict';
++import { readFile, writeFile, mkdir } from 'node:fs/promises';
++import { pathToFileURL } from 'node:url';
++const { chromium } = await import(pathToFileURL(process.env.ZEAPLAY_PLAYWRIGHT_MODULE).href);
++const runtime = process.env.ZEAPLAY_RESTORE_RUNTIME;
++if (!runtime) throw new Error('Caller-owned synthetic runtime directory required');
++const ready = JSON.parse(await readFile(`${runtime}/ready.json`, 'utf8'));
++if (!ready.schema.startsWith('restore_browser_')) throw new Error('Synthetic schema required');
++const base = 'http://127.0.0.1:6302', backend = 'http://127.0.0.1:6315';
++const output = new URL('../../docs/archive-restore-audit/checks/', import.meta.url);
++await mkdir(output, { recursive: true });
++const tailwind = await readFile(`${runtime}/tailwind.js`, 'utf8');
++const browser = await chromium.launch({ channel: 'chrome', headless: true });
++const contexts = [], errors = [], requests = [], results = [];
++const headers = role => ({ Authorization: `Bearer ${ready.tokens[role]}` });
++async function context(role, mobile = false) {
++  const ctx = await browser.newContext({ viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
++  contexts.push(ctx);
++  await ctx.addInitScript(token => { localStorage.clear(); localStorage.setItem('vee_access_token', token); }, ready.tokens[role]);
++  await ctx.route('**/*', route => {
++    const url = new URL(route.request().url());
++    if (url.origin !== base) return route.abort();
++    if (url.pathname === '/__audit-tailwind.js') return route.fulfill({ contentType: 'text/javascript', body: tailwind });
++    if (url.pathname === '/__restore-e2e') return route.fulfill({ contentType: 'text/html', body: `<!doctype html><html class="dark"><head><meta name="viewport" content="width=device-width,initial-scale=1"><script src="/__audit-tailwind.js"></script><script>tailwind.config={darkMode:'class'}</script><style>html,body,#root{height:100%;margin:0}body{background:#030712}</style></head><body><div id="root"></div><script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;</script><script type="module" src="/e2e/archiveRestoreFixture.tsx"></script></body></html>` });
++    // API calls continue to the real local proxy. No API response is mocked.
++    return route.continue();
++  });
++  return ctx;
++}
++async function open(ctx, kind) {
++  const page = await ctx.newPage(); page.on('pageerror', error => errors.push(error.message));
++  page.on('response', response => { const url = new URL(response.url()); if (url.pathname.startsWith('/api/')) requests.push({ method: response.request().method(), path: url.pathname, status: response.status() }); });
++  await page.goto(`${base}/__restore-e2e?module=${kind}s`);
++  await page.getByRole('heading', { name: kind === 'project' ? 'Projects' : 'Clients', exact: true }).waitFor();
++  return page;
++}
++async function filter(page, kind, value) { await page.getByRole('combobox', { name: kind === 'project' ? 'Project status' : 'Client status' }).selectOption(value); }
++async function restore(page, kind) {
++  const title = kind === 'project' ? 'Project' : 'Client';
++  await page.getByRole('button', { name: `Restore ${title}`, exact: true }).click();
++  const dialog = page.getByRole('dialog', { name: `Restore ${title}?` });
++  await dialog.locator('.restore-panel').waitFor();
++  await dialog.getByRole('button', { name: `Restore ${title}`, exact: true }).click();
++  await page.getByRole('status').filter({ hasText: `${title} restored.` }).waitFor();
++}
++async function archive(page) {
++  page.once('dialog', dialog => dialog.accept());
++  await page.getByRole('button', { name: 'Archive', exact: true }).last().click();
++}
++const snapshot = async ctx => {
++  const response = await ctx.request.get(`${backend}/__audit__/snapshot`, { headers: headers('owner') });
++  assert.equal(response.status(), 200); return response.json();
++};
++function preserve(before, after) {
++  for (const [name, rows] of Object.entries(before.tables)) {
++    if (name === 'audit_events') continue;
++    const clean = data => ['clients', 'projects'].includes(name)
++      ? data.map(row => Object.fromEntries(Object.entries(row).filter(([key]) => !['updated_at', 'updated_by_id'].includes(key)))) : data;
++    assert.deepEqual(clean(after.tables[name]), clean(rows), `Preserved ${name}`);
++  }
++  assert.equal(after.blob_sha256, before.blob_sha256);
++}
++try {
++  const owner = await context('owner');
++  const before = await snapshot(owner);
++  await writeFile(new URL('live-before.json', output), JSON.stringify(before, null, 2));
++  const p = await open(owner, 'project');
++  await p.getByRole('heading', { name: 'Audit Project', exact: true }).waitFor();
++  await archive(p);
++  await p.getByRole('status').filter({ hasText: 'Project archived.' }).waitFor(); await p.close();
++  const c = await open(owner, 'client');
++  await c.getByRole('heading', { name: 'Audit Client 1', exact: true }).waitFor();
++  await c.getByText('Audit Contact 1', { exact: true }).waitFor();
++  await archive(c);
++  await c.getByRole('heading', { name: 'Audit Client 2', exact: true }).waitFor();
++  await c.getByText('Audit Contact 2', { exact: true }).waitFor();
++  assert.equal(await c.getByText('Audit Contact 1', { exact: true }).count(), 0); await c.close();
++  results.push('Real archive operations and correct next-client contact association');
++  const blocked = await open(owner, 'project'); await filter(blocked, 'project', 'ARCHIVED');
++  await blocked.getByRole('button', { name: 'Restore Project', exact: true }).click();
++  await blocked.getByRole('dialog').getByRole('button', { name: 'Restore Project', exact: true }).click();
++  await blocked.getByRole('alert').filter({ hasText: 'Restore the linked client before restoring this project.' }).waitFor();
++  assert.equal(await blocked.getByText('Project restored.', { exact: true }).count(), 0);
++  await blocked.keyboard.press('Escape'); await blocked.close();
++  results.push('Real 409 dependency response without premature success');
++  const client = await open(owner, 'client'); await filter(client, 'client', 'ARCHIVED');
++  await client.getByRole('button', { name: 'Restore Client', exact: true }).click();
++  assert.equal(await client.getByRole('dialog').evaluate(node => (node.getAttribute('aria-describedby') || '').split(/\s+/)
++    .map(id => document.getElementById(id)?.textContent || '').join(' ').includes('Audit Client 1')), true);
++  for (let index = 0; index < 5; index++) {
++    await client.keyboard.press('Tab');
++    await client.waitForFunction(() => Boolean(document.activeElement?.closest('[role="dialog"]')));
++  }
++  await client.keyboard.press('Escape');
++  await client.waitForFunction(() => document.activeElement?.textContent?.trim() === 'Restore Client');
++  await restore(client, 'client');
++  await filter(client, 'client', 'ACTIVE');
++  await client.getByPlaceholder('Search clients').fill('Audit Client 1');
++  await client.getByRole('heading', { name: 'Audit Client 1', exact: true }).waitFor();
++  const midway = await snapshot(owner);
++  assert.equal(midway.tables.projects[0].status, 'ARCHIVED');
++  assert.equal(midway.tables.clients.find(row => row.id === ready.client_id).status, 'ACTIVE');
++  await client.close();
++  results.push('Owner client restore end to end, Active filter, focus recovery and no cascading project restore');
++  const project = await open(owner, 'project'); await filter(project, 'project', 'ARCHIVED');
++  await restore(project, 'project'); await filter(project, 'project', 'ACTIVE');
++  await project.getByRole('heading', { name: 'Audit Project', exact: true }).waitFor();
++  await project.getByRole('button', { name: 'Refresh', exact: true }).waitFor();
++  const dashboardResponse = await owner.request.get(`${backend}/api/projects/${ready.project_id}/task-dashboard`, { headers: headers('owner') });
++  assert.equal(dashboardResponse.status(), 200);
++  const dashboard = await dashboardResponse.json();
++  assert.equal(dashboard.summary.task_total, 1);
++  assert.equal(dashboard.summary.subtask_total, 2);
++  assert.equal(dashboard.summary.completed_subtasks, 1);
++  assert.equal(dashboard.summary.total_tracked_seconds, 45);
++  assert.equal(dashboard.summary.active_timer_count, 0);
++  results.push('Real restored dashboard counts: one task, two subtasks, one complete, 45 tracked seconds, no restarted timer');
++  await project.screenshot({ path: new URL('live-project-desktop.png', output).pathname.replace(/^\/([A-Za-z]:)/, '$1') });
++  await project.close();
++  const after = await snapshot(owner); preserve(before, after);
++  assert.equal(after.tables.audit_events.filter(row => row.event_type.endsWith('.restored')).length, 2);
++  for (const kind of ['client', 'project']) {
++    const history = after.tables.audit_events.filter(row => row.entity_type === kind).sort((a, b) => a.created_at.localeCompare(b.created_at));
++    assert.deepEqual(history.map(row => row.event_type), [`${kind}.archived`, `${kind}.restored`]);
++    assert.ok(history.every(row => row.actor_id && row.payload.tenant_id === before.tables.clients[0].tenant_id));
++    assert.equal(history[0].payload.previous_state.status, 'ACTIVE');
++    assert.equal(history[1].payload.previous_state.status, 'ARCHIVED');
++  }
++  await writeFile(new URL('live-after-owner.json', output), JSON.stringify(after, null, 2));
++  results.push('Owner project restore end to end and exact related-record/attachment-byte preservation');
++  for (const [kind, id] of [['clients', ready.client_id], ['projects', ready.project_id]]) {
++    const url = `${backend}/api/${kind}/${id}/restore`;
++    assert.equal((await owner.request.post(url)).status(), 401);
++    assert.equal((await owner.request.post(url, { headers: headers('user') })).status(), 403);
++    assert.equal((await owner.request.post(url, { headers: headers('foreign') })).status(), 404);
++    for (let i = 0; i < 3; i++) assert.equal((await owner.request.post(url, { headers: headers('owner') })).status(), 200);
++  }
++  assert.equal((await snapshot(owner)).tables.audit_events.length, after.tables.audit_events.length);
++  results.push('Real unauthorized, foreign-tenant and repeated idempotent API requests');
++  const manager = await context('manager', true);
++  await owner.request.post(`${backend}/api/projects/${ready.project_id}/archive`, { headers: headers('owner') });
++  const mp = await open(manager, 'project'); await filter(mp, 'project', 'ARCHIVED');
++  await restore(mp, 'project'); await mp.close();
++  await owner.request.post(`${backend}/api/clients/${ready.client_id}/archive`, { headers: headers('owner') });
++  const userContext = await context('user'); const userPage = await open(userContext, 'client'); await filter(userPage, 'client', 'ARCHIVED');
++  await userPage.getByRole('heading', { name: 'Audit Client 1', exact: true }).waitFor();
++  assert.equal(await userPage.getByRole('button', { name: 'Restore Client', exact: true }).count(), 0); await userPage.close();
++  const mc = await open(manager, 'client'); await filter(mc, 'client', 'ARCHIVED');
++  await mc.getByRole('button', { name: 'Restore Client', exact: true }).click();
++  const modal = mc.getByRole('dialog');
++  assert.equal(await modal.locator('.restore-panel').evaluate(node => { const r = node.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }), true);
++  await mc.screenshot({ path: new URL('live-client-mobile.png', output).pathname.replace(/^\/([A-Za-z]:)/, '$1') });
++  await modal.getByRole('button', { name: 'Restore Client', exact: true }).click();
++  await mc.getByRole('status').filter({ hasText: 'Client restored.' }).waitFor(); await mc.close();
++  preserve(before, await snapshot(owner));
++  results.push('Assigned manager project and client restores on 390px mobile; ordinary-user actions hidden');
++  assert.deepEqual(errors, []);
++} finally {
++  await writeFile(new URL('live-browser.json', output), JSON.stringify({ results, errors, requests,
++    api_mocked: false, backend: 'rebuilt Linux API', database: 'isolated PostgreSQL', style: 'existing Tailwind runtime plus application components' }, null, 2));
++  for (const ctx of contexts) await ctx.close(); await browser.close();
++}
++for (const result of results) console.log(`PASS ${result}`);
+--- /dev/null
++++ b/ops/testing/archive_restore_e2e_server.py
+@@ -0,0 +1,136 @@
++"""Synthetic browser E2E API. Never import into the application entry point.
++
++Requires an explicit rt3_test database, creates a random schema and only seeds
++that schema. Token material is written to a caller-owned temporary mount.
++"""
++from contextlib import asynccontextmanager
++from datetime import datetime, timedelta, timezone
++from pathlib import Path
++import hashlib
++import json
++import os
++from uuid import uuid4
++
++from fastapi import Depends, FastAPI, HTTPException
++from fastapi.encoders import jsonable_encoder
++from jose import jwt
++from sqlalchemy import create_engine, event, select, text
++from sqlalchemy.engine import make_url
++from sqlalchemy.orm import sessionmaker
++
++from app import models
++from app.config import get_settings
++from app.database import Base, get_db
++from app.dependencies import get_current_active_user
++from app.routers.auth import router as auth_router
++from app.routers.clients import router as clients_router
++from app.routers.contacts import router as contacts_router, client_contacts_router
++from app.routers.projects import router as projects_router
++from app.routers.users import router as users_router
++from app.tickets import models as ticket_models  # noqa: F401
++
++url = os.environ['ZEAPLAY_RT_POSTGRES_TEST_URL']
++assert 'rt3_test' in (make_url(url).database or ''), 'Scratch database required'
++scratch = Path(os.environ['ZEAPLAY_E2E_OUTPUT'])
++assert scratch.is_dir(), 'Caller-owned temporary output directory required'
++schema = 'restore_browser_' + uuid4().hex
++admin = create_engine(url)
++engine = create_engine(url)
++factory = sessionmaker(bind=engine, expire_on_commit=False)
++actors = {}
++
++
++@event.listens_for(engine, 'connect')
++def scope(connection, _):
++    cursor = connection.cursor()
++    cursor.execute(f'SET search_path TO "{schema}", public')
++    cursor.execute("SET statement_timeout TO 15000")
++    cursor.close(); connection.commit()
++
++
++def database():
++    with factory() as db: yield db
++
++
++@asynccontextmanager
++async def lifespan(app):
++    with admin.begin() as connection:
++        connection.execute(text('CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public'))
++        connection.execute(text(f'CREATE SCHEMA "{schema}"'))
++    try:
++        Base.metadata.create_all(engine)
++        tenant = uuid4()
++        with factory() as db:
++            for name, role in [('owner', models.RoleEnum.OWNER), ('manager', models.RoleEnum.MANAGER), ('user', models.RoleEnum.USER), ('foreign', models.RoleEnum.OWNER)]:
++                user = models.User(tenant_id=uuid4() if name == 'foreign' else tenant, name=f'Synthetic {name}',
++                    email=f'{uuid4()}@example.com', hashed_password='synthetic-unusable-password',
++                    role=role, status=models.UserStatusEnum.ACTIVE)
++                db.add(user); db.flush(); actors[name] = user.id
++            customers = [models.Client(tenant_id=tenant, company_name=f'Audit Client {number}',
++                normalized_company_name=f'audit client {number}', notes='Preserved notes',
++                created_by_id=actors['owner']) for number in (1, 2)]
++            db.add_all(customers); db.flush()
++            project = models.Project(tenant_id=tenant, client_id=customers[0].id, name='Audit Project',
++                normalized_name='audit project', description='Preserved project', created_by_id=actors['owner'])
++            db.add(project); db.flush()
++            db.add_all([models.ProjectMember(tenant_id=tenant, project_id=project.id, user_id=actors['manager'], role=models.ProjectMemberRoleEnum.MANAGER),
++                models.ProjectMember(tenant_id=tenant, project_id=project.id, user_id=actors['user'], role=models.ProjectMemberRoleEnum.MEMBER)])
++            task = models.Task(project_id=project.id, title='Preserved task', created_by_id=actors['owner'], assigned_to_id=actors['user'])
++            db.add(task); db.flush()
++            child = models.Subtask(task_id=task.id, title='Preserved complete child', status=models.SubtaskStatusEnum.DONE, assigned_to_id=actors['user'])
++            other = models.Subtask(task_id=task.id, title='Preserved waiting child', status=models.SubtaskStatusEnum.WAITING, assigned_to_id=actors['manager'])
++            db.add_all([child, other]); db.flush()
++            db.add(models.SubtaskDependency(task_id=task.id, subtask_id=other.id, depends_on_subtask_id=child.id))
++            db.add(models.Comment(task_id=task.id, user_id=actors['owner'], content='Preserved comment'))
++            now = datetime.now(timezone.utc)
++            db.add(models.TimeEntry(tenant_id=tenant, user_id=actors['user'], subtask_id=child.id,
++                started_at=now-timedelta(seconds=45), stopped_at=now, duration_seconds=45,
++                status=models.TimeEntryStatusEnum.STOPPED, stop_reason='paused'))
++            submission = models.CompletionSubmission(tenant_id=tenant, task_id=task.id, subtask_id=child.id,
++                submitted_by_id=actors['user'], description='Preserved evidence', description_word_count=2,
++                status=models.CompletionSubmissionStatusEnum.APPROVED, approval_required=False, attempt_number=1)
++            db.add(submission); db.flush()
++            content = b'Synthetic browser evidence\n'; (scratch/'evidence.txt').write_bytes(content)
++            db.add(models.CompletionAttachment(tenant_id=tenant, submission_id=submission.id, original_filename='evidence.txt',
++                mime_type='text/plain', file_size=len(content), storage_key=f'synthetic/{schema}/evidence.txt',
++                checksum_sha256=hashlib.sha256(content).hexdigest()))
++            for index, customer in enumerate(customers, start=1):
++                contact = models.Contact(tenant_id=tenant, first_name=f'Contact {index}', display_name=f'Audit Contact {index}',
++                    normalized_name=f'audit contact {index}')
++                db.add(contact); db.flush()
++                db.add(models.ClientContact(tenant_id=tenant, client_id=customer.id, contact_id=contact.id, is_primary=True))
++            db.commit()
++            settings = get_settings()
++            credentials = {}
++            for name, identifier in actors.items():
++                user = db.get(models.User, identifier)
++                credentials[name] = jwt.encode({'user_id': user.id, 'tenant_id': str(user.tenant_id),
++                    'token_type': 'access', 'credentials_version': 0, 'exp': datetime.now(timezone.utc)+timedelta(hours=1)},
++                    settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
++            (scratch/'ready.json').write_text(json.dumps({'tokens': credentials, 'client_id': customers[0].id,
++                'other_client_id': customers[1].id, 'project_id': project.id, 'schema': schema}))
++        yield
++    finally:
++        engine.dispose()
++        with admin.begin() as connection: connection.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
++        admin.dispose()
++        (scratch/'ready.json').unlink(missing_ok=True)
++
++
++app = FastAPI(lifespan=lifespan)
++for router in (auth_router, clients_router, contacts_router, client_contacts_router, projects_router, users_router):
++    app.include_router(router, prefix='/api')
++app.dependency_overrides[get_db] = database
++
++
++@app.get('/__audit__/snapshot')
++def snapshot(user=Depends(get_current_active_user)):
++    if user.id != actors.get('owner'): raise HTTPException(403)
++    names = (models.Client, models.Project, models.ProjectMember, models.Contact, models.ClientContact,
++        models.Task, models.Subtask, models.SubtaskDependency, models.Comment, models.TimeEntry,
++        models.CompletionSubmission, models.CompletionAttachment, models.TaskLifecycleEvent, models.TaskLifecycleCoverage,
++        models.AuditEvent)
++    with factory() as db:
++        rows = {model.__tablename__: [dict(row) for row in db.execute(select(model.__table__).order_by(*model.__table__.primary_key.columns)).mappings()]
++                for model in names}
++    return jsonable_encoder({'tables': rows, 'blob_sha256': hashlib.sha256((scratch/'evidence.txt').read_bytes()).hexdigest()})

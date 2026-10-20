@@ -1,0 +1,19 @@
+{
+  "snapshot": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zea-restore-regression-henowppm",
+  "sha256": {
+    "backend/app/services/archive_state.py": "3abf9fb8f23ab6da381c34bfd0f8accf78d84831a7d9e06ca507ac3306f939de",
+    "backend/app/services/clients.py": "5795b6b12b4d8f4b895ae7df22e1dd070a8f8a9af6d66bf8a1df640912ab731c",
+    "backend/app/services/projects.py": "015f074f86b21cba1b45208ae71d848b9ec6e384fa8604a606436668b0e00b0e",
+    "backend/app/routers/clients.py": "5ea56697c67579b60f0d39cc955b93977cb3a12bcd2d6a0b80e04c5ed18ddc12",
+    "backend/app/routers/projects.py": "675e62b663615f644844d6ffc9b9fcf47a2e8bbd81f04d631df493b13977cfb9",
+    "frontend/services/mockApi.ts": "c93280734c049cd5bab8f7280afa3309b40e00c689f3875f537880170501a7bb",
+    "frontend/pages/Clients.tsx": "71a49bb70e09daa3792bb24c1c75d9a952b3d8c9a390a7202275122356921169",
+    "frontend/pages/Projects.tsx": "4a894f2666d279c0eca13f5667bac477873508038f60bb8787f64d137a578fc6",
+    "frontend/components/RestoreConfirmation.tsx": "913d0cc96a3b77cc7be5f72b88d5624699a96f4327db4475a3c93ba22e8cfef4",
+    "frontend/components/RestoreConfirmation.css": "56be260dd0ceb3b4e17c5f8477c2246dd3278331f1f3c57d6d13ce5e16533ee4",
+    "backend/tests/test_archive_restore.py": "e48bc94b25c9a1a28c5d30480a92415d59c55718100199486aab49c07fbc8b36",
+    "frontend/e2e/archiveRestoreFixture.tsx": "207827522be9089fb330b8e41d9c8c835d79002b11f673968fc87da0c3bd0228",
+    "frontend/e2e/archive-restore.mjs": "8b1fbeec1a241f0ead891b286620edf12d76108a467f186ca2b2af8f173c2155",
+    "ops/testing/archive_restore_runtime.py": "9d1f5970826be0f47d07c29054f437797699a55b6e3702e579fdf49e9904ccc7"
+  }
+}

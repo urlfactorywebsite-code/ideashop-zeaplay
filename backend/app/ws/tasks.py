@@ -55,12 +55,21 @@ class TaskConnectionManager:
         async with self._lock:
             return sum(1 for socket_user_id in self._socket_users.values() if socket_user_id == user_id)
 
-    async def connect(self, tenant_id: str, user_id: str, websocket: WebSocket) -> None:
-        await websocket.accept()
+    async def connect(self, tenant_id: str, user_id: str, websocket: WebSocket) -> bool:
         async with self._lock:
-            self._connections.setdefault(tenant_id, set()).add(websocket)
-            self._socket_users[websocket] = user_id
+            limit = get_settings().websocket_max_connections_per_user
+            rejected = limit > 0 and sum(value == user_id for value in self._socket_users.values()) >= limit
+            if not rejected:
+                # Atomically check and register handshakes. ASGI acceptance is bounded
+                # so one stalled handshake cannot hold the connection registry forever.
+                await asyncio.wait_for(websocket.accept(), timeout=get_settings().realtime_send_timeout)
+                self._connections.setdefault(tenant_id, set()).add(websocket)
+                self._socket_users[websocket] = user_id
+        if rejected:
+            await close_policy_violation(websocket)
+            return False
         logger.info("tasks.ws.connected user_id=%s tenant_id=%s active=%s", user_id, tenant_id, self.snapshot())
+        return True
 
     async def disconnect(self, tenant_id: str, websocket: WebSocket) -> None:
         async with self._lock:
@@ -164,7 +173,8 @@ async def tasks_ws(websocket: WebSocket) -> None:
         return
 
     websocket.scope["credentials_version"] = payload.get("credentials_version", 0)
-    await manager.connect(tenant_id, str(user_id), websocket)
+    if not await manager.connect(tenant_id, str(user_id), websocket):
+        return
     heartbeat_task = asyncio.create_task(_heartbeat(websocket))
     try:
         await websocket.send_json({"type": "realtime:ready"})

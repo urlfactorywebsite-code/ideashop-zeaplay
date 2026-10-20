@@ -35,11 +35,12 @@ def paused_gaps(entries, as_of):
         if row.stop_reason != "paused":
             continue
         successor = continued.get(row.id)
-        if (not row.stopped_at or not successor or utc(successor.started_at) < utc(row.stopped_at)
-                or utc(successor.started_at) > as_of):
+        finalized = getattr(row, "finalized_at", None)
+        end = utc(successor.started_at) if successor else utc(finalized) if finalized else None
+        if (not row.stopped_at or end is None or end < utc(row.stopped_at) or end > as_of):
             unresolved += 1
             continue
-        intervals[row.user_id].append((utc(row.stopped_at), utc(successor.started_at)))
+        intervals[row.user_id].append((utc(row.stopped_at), end))
     # Pauses are person-time, not user idle time; different people may pause in parallel.
     return sum((_union_duration(value) for value in intervals.values()), timedelta()) // timedelta(seconds=1), unresolved
 
@@ -83,7 +84,7 @@ def build_report(db, task, user, as_of, coverage):
     entries = list(db.scalars(select(models.TimeEntry).options(load_only(
         models.TimeEntry.id, models.TimeEntry.user_id, models.TimeEntry.task_id, models.TimeEntry.subtask_id,
         models.TimeEntry.started_at, models.TimeEntry.stopped_at, models.TimeEntry.continued_from_id,
-        models.TimeEntry.start_kind, models.TimeEntry.stop_reason,
+        models.TimeEntry.start_kind, models.TimeEntry.stop_reason, models.TimeEntry.finalized_at,
     )).where(models.TimeEntry.tenant_id == user.tenant_id,
              (models.TimeEntry.task_id == task.id) | models.TimeEntry.subtask_id.in_(child_ids)).limit(MAX_ANALYTICS_SESSIONS + 1)))
     if len(entries) > MAX_ANALYTICS_SESSIONS:

@@ -522,6 +522,30 @@ const Tasks: React.FC = () => {
     });
     const [projects, setProjects] = useState<Project[]>([]);
 
+    useEffect(() => {
+        const handleCreateTaskShortcut = (event: KeyboardEvent) => {
+            if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'n') {
+                return;
+            }
+
+            const target = event.target as HTMLElement | null;
+            if (target) {
+                const tagName = target.tagName;
+                if (target.isContentEditable || tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+                    return;
+                }
+            }
+
+            event.preventDefault();
+            setCreateModalOpen(true);
+        };
+
+        document.addEventListener('keydown', handleCreateTaskShortcut);
+        return () => {
+            document.removeEventListener('keydown', handleCreateTaskShortcut);
+        };
+    }, []);
+
     const changeViewMode = (mode: 'list' | 'grid' | 'kanban') => {
         setViewMode(mode);
         if (typeof window !== 'undefined') {

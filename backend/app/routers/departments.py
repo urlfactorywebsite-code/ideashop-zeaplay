@@ -16,10 +16,14 @@ def list_departments(db: Session = Depends(get_db), _: models.User = Depends(get
     return db.execute(select(models.Department)).scalars().all()
 
 
-def _get_admin_ids(db: Session) -> list[str]:
+def _get_admin_ids(db: Session, tenant_id) -> list[str]:
     return (
         db.execute(
-            select(models.User.id).where(models.User.role.in_({models.RoleEnum.ADMIN, models.RoleEnum.OWNER}))
+            select(models.User.id).where(
+                models.User.role.in_({models.RoleEnum.ADMIN, models.RoleEnum.OWNER}),
+                models.User.tenant_id == tenant_id,
+                models.User.status == models.UserStatusEnum.ACTIVE,
+            )
         )
         .scalars()
         .all()
@@ -43,7 +47,7 @@ def create_department(
     db.add(department)
     db.commit()
     db.refresh(department)
-    for admin_id in _get_admin_ids(db):
+    for admin_id in _get_admin_ids(db, current_user.tenant_id):
         if admin_id == current_user.id:
             continue
         notification_service.create_notification(
@@ -80,7 +84,7 @@ def update_department(
 
     db.commit()
     db.refresh(department)
-    for admin_id in _get_admin_ids(db):
+    for admin_id in _get_admin_ids(db, current_user.tenant_id):
         if admin_id == current_user.id:
             continue
         notification_service.create_notification(
@@ -110,7 +114,7 @@ def delete_department(
     if not department:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Department not found")
     serialized_department = schemas.DepartmentRead.model_validate(department).model_dump()
-    for admin_id in _get_admin_ids(db):
+    for admin_id in _get_admin_ids(db, current_user.tenant_id):
         if admin_id == current_user.id:
             continue
         notification_service.create_notification(

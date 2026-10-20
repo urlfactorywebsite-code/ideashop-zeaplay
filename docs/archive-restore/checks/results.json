@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-20",
+  "feature_critical_checks": "PASS",
+  "production_certified": false,
+  "backend_regressions": {
+    "passed": 81,
+    "skipped": 1,
+    "failed": 0,
+    "seconds": 106.03
+  },
+  "backend_integrity": {
+    "passed": 99,
+    "skipped": 2,
+    "failed": 0,
+    "seconds": 312.14,
+    "overlaps_feature_cases_in_regression_suite": true
+  },
+  "frontend_node": {
+    "passed": 85,
+    "failed": 0
+  },
+  "browser": {
+    "scenarios": 19,
+    "errors": 0,
+    "http": "mocked",
+    "real_components": true
+  },
+  "rebuilt_linux_api_postgres": {
+    "result": "PASS",
+    "concurrent_client_restores": 6,
+    "concurrent_project_restores": 6,
+    "id_preservation": true,
+    "auth_tenant_integrity": "PASS"
+  },
+  "build": {
+    "result": "PASS",
+    "seconds": 24.11,
+    "existing_warnings": [
+      "minification annotation",
+      "large chunks"
+    ]
+  },
+  "typescript": {
+    "result": "FAIL",
+    "existing_diagnostics": 130,
+    "new_pages_dialog_diagnostics": 0
+  },
+  "lint": {
+    "result": "UNAVAILABLE",
+    "reason": "Missing frontend lint script/configuration"
+  },
+  "migration_required": false,
+  "application_data_modified_by_this_task": false,
+  "application_restarted_by_this_task": false,
+  "disposable_services_stopped": true,
+  "loopback_test_server_stopped": true,
+  "production_files": [
+    "backend/app/services/archive_state.py",
+    "backend/app/services/clients.py",
+    "backend/app/services/projects.py",
+    "backend/app/routers/clients.py",
+    "backend/app/routers/projects.py",
+    "frontend/services/mockApi.ts",
+    "frontend/pages/Clients.tsx",
+    "frontend/pages/Projects.tsx",
+    "frontend/components/RestoreConfirmation.tsx",
+    "frontend/components/RestoreConfirmation.css"
+  ],
+  "verification_files": [
+    "backend/tests/test_archive_restore.py",
+    "frontend/e2e/archiveRestoreFixture.tsx",
+    "frontend/e2e/archive-restore.mjs",
+    "ops/testing/archive_restore_runtime.py"
+  ],
+  "source_sha256": {
+    "backend/app/services/archive_state.py": "3abf9fb8f23ab6da381c34bfd0f8accf78d84831a7d9e06ca507ac3306f939de",
+    "backend/app/services/clients.py": "5795b6b12b4d8f4b895ae7df22e1dd070a8f8a9af6d66bf8a1df640912ab731c",
+    "backend/app/services/projects.py": "015f074f86b21cba1b45208ae71d848b9ec6e384fa8604a606436668b0e00b0e",
+    "backend/app/routers/clients.py": "5ea56697c67579b60f0d39cc955b93977cb3a12bcd2d6a0b80e04c5ed18ddc12",
+    "backend/app/routers/projects.py": "675e62b663615f644844d6ffc9b9fcf47a2e8bbd81f04d631df493b13977cfb9",
+    "frontend/services/mockApi.ts": "c93280734c049cd5bab8f7280afa3309b40e00c689f3875f537880170501a7bb",
+    "frontend/pages/Clients.tsx": "71a49bb70e09daa3792bb24c1c75d9a952b3d8c9a390a7202275122356921169",
+    "frontend/pages/Projects.tsx": "4a894f2666d279c0eca13f5667bac477873508038f60bb8787f64d137a578fc6",
+    "frontend/components/RestoreConfirmation.tsx": "913d0cc96a3b77cc7be5f72b88d5624699a96f4327db4475a3c93ba22e8cfef4",
+    "frontend/components/RestoreConfirmation.css": "56be260dd0ceb3b4e17c5f8477c2246dd3278331f1f3c57d6d13ce5e16533ee4",
+    "backend/tests/test_archive_restore.py": "e48bc94b25c9a1a28c5d30480a92415d59c55718100199486aab49c07fbc8b36",
+    "frontend/e2e/archiveRestoreFixture.tsx": "207827522be9089fb330b8e41d9c8c835d79002b11f673968fc87da0c3bd0228",
+    "frontend/e2e/archive-restore.mjs": "8b1fbeec1a241f0ead891b286620edf12d76108a467f186ca2b2af8f173c2155",
+    "ops/testing/archive_restore_runtime.py": "9d1f5970826be0f47d07c29054f437797699a55b6e3702e579fdf49e9904ccc7"
+  },
+  "backend_image_id": "sha256:c03454829879b728754bb2d98af50f5c045ca07fcd8a40cd1d61da281853e14c",
+  "limitations": [
+    "Existing TypeScript and lint release gates",
+    "No production/VPS deployment proof",
+    "No sustained load or cross-browser/screen-reader certification",
+    "Binary attachment storage not exercised",
+    "External-browser realtime cache freshness unchanged"
+  ]
+}

@@ -2572,19 +2572,38 @@ NotificationModule = Literal["tasks", "tickets", "users", "departments", "commen
 
 
 class PushSubscriptionKeys(BaseModel):
-    p256dh: str
-    auth: str
+    p256dh: str = Field(min_length=1, max_length=128)
+    auth: str = Field(min_length=1, max_length=64)
+
+    @field_validator("p256dh")
+    @classmethod
+    def validate_public_key(cls, value: str) -> str:
+        from .services.push_security import validate_push_public_key
+        return validate_push_public_key(value)
+
+    @field_validator("auth")
+    @classmethod
+    def validate_auth(cls, value: str) -> str:
+        from .services.push_security import validate_push_auth
+        return validate_push_auth(value)
 
 
 class PushSubscriptionCreate(BaseModel):
-    endpoint: str
+    endpoint: str = Field(min_length=1, max_length=4096)
     keys: PushSubscriptionKeys
-    user_agent: Optional[str] = None
-    device_label: Optional[str] = None
+    user_agent: Optional[str] = Field(default=None, max_length=1024)
+    device_label: Optional[str] = Field(default=None, max_length=255)
+
+    @field_validator("endpoint")
+    @classmethod
+    def validate_endpoint(cls, value: str) -> str:
+        from .services.push_security import validate_push_endpoint
+        return validate_push_endpoint(value)
 
 
 class PushSubscriptionDelete(BaseModel):
-    endpoint: str
+    # Permit old/unsupported endpoints here so users can still revoke them.
+    endpoint: str = Field(min_length=1, max_length=4096)
 
 
 class PushSubscriptionPublicKey(BaseModel):
@@ -2593,6 +2612,32 @@ class PushSubscriptionPublicKey(BaseModel):
 
 class PushTestResult(BaseModel):
     delivered: int
+    accepted: int
+    attempted: int
+    failed: int
+    revoked: int
+
+
+class PushTestRequest(BaseModel):
+    subscription_id: Optional[str] = Field(default=None, min_length=1, max_length=36)
+
+
+class PushSubscriptionRead(BaseModel):
+    id: str
+    endpoint_hash: str
+    device_label: Optional[str] = None
+    user_agent: Optional[str] = None
+    created_at: datetime
+    last_seen_at: Optional[datetime] = None
+
+
+class PushStatusRead(BaseModel):
+    configured: bool
+    public_key_configured: bool
+    private_key_configured: bool
+    subject_configured: bool
+    configuration_valid: bool
+    active_subscription_count: int
 
 
 class NotificationPreferenceRead(BaseModel):
@@ -2607,7 +2652,14 @@ class NotificationPreferenceUpdate(BaseModel):
 
 
 class NotificationPreferenceBatchUpdate(BaseModel):
-    preferences: List[NotificationPreferenceUpdate]
+    preferences: List[NotificationPreferenceUpdate] = Field(max_length=6)
+
+    @field_validator("preferences")
+    @classmethod
+    def unique_modules(cls, preferences: List[NotificationPreferenceUpdate]) -> List[NotificationPreferenceUpdate]:
+        if len({preference.module for preference in preferences}) != len(preferences):
+            raise ValueError("Each notification module may appear only once")
+        return preferences
 
 
 class ApprovalRead(BaseModel):

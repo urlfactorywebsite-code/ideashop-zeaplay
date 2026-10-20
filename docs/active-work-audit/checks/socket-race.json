@@ -1,0 +1,6 @@
+{
+  "configured_limit": 1,
+  "concurrent_handshakes": 6,
+  "baseline_accepted": 6,
+  "refined_accepted": 1
+}

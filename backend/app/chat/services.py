@@ -500,24 +500,18 @@ class MessageService:
                 mentioned_user_ids.append(member.user_id)
         for mentioned_user_id in dict.fromkeys(mentioned_user_ids):
             self.db.add(models.MessageMention(message_id=message.id, mentioned_user_id=mentioned_user_id))
-            _create_chat_notification(
-                self.db,
-                user_id=mentioned_user_id,
-                notification_type=models.NotificationTypeEnum.CHAT_MESSAGE,
-                title=f"{user.name} mentioned you",
-                message=f"{user.name}: {message.content[:140]}",
-                body=message.content[:240],
-                deep_link=f"/chat/{conversation.id}?message={message.id}",
-                related_chat_id=conversation.id,
-                actor_id=user.id,
-            )
         return list(dict.fromkeys(mentioned_user_ids))
 
     def _notify_recipients(self, conversation: models.ChatConversation, message: models.ChatMessage, user: models.User, mentioned_ids: list[str]) -> None:
         if conversation.type != models.ChatConversationTypeEnum.DIRECT and not mentioned_ids:
             return
         for member in conversation.participants:
-            if member.user_id == user.id or member.is_muted:
+            if (
+                member.user_id == user.id
+                or member.is_muted
+                or not member.user
+                or member.user.status != models.UserStatusEnum.ACTIVE
+            ):
                 continue
             if conversation.type != models.ChatConversationTypeEnum.DIRECT and member.user_id not in mentioned_ids:
                 continue
@@ -525,12 +519,13 @@ class MessageService:
                 self.db,
                 user_id=member.user_id,
                 notification_type=models.NotificationTypeEnum.CHAT_MESSAGE,
-                title=f"New message from {user.name}",
+                title=f"{user.name} mentioned you" if member.user_id in mentioned_ids else f"New message from {user.name}",
                 message=f"{user.name}: {message.content[:140]}",
                 body=message.content[:240],
                 deep_link=f"/chat/{conversation.id}?message={message.id}",
                 related_chat_id=conversation.id,
                 actor_id=user.id,
+                dedupe_key=f"chat-message:{message.id}:{member.user_id}",
             )
 
     def create_message(self, conversation_id: str, payload: schemas.ChatMessageCreate, user: models.User) -> schemas.ChatMessageRead:

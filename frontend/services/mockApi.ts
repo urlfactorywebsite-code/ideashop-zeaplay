@@ -225,6 +225,8 @@ import {
 import { storeTokens, getAccessToken, getRefreshToken, clearTokens } from './tokenStorage';
 import { augmentTaskWithPoints } from '../utils/taskPoints';
 import { AUTH_EXPIRED_EVENT } from '../utils/appEvents';
+import { clearPushSession } from './pushBrowser';
+import type { PushDevice, PushServerStatus, PushTestResult } from '../types/push';
 import {
   setProgress as setGlobalProgress,
   startProgressTask,
@@ -264,6 +266,7 @@ const DEFAULT_CACHE_TTL_MS = 60000;
 const DEFAULT_PERSISTED_CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_STORAGE_PREFIX = `zea-play-cache:${encodeURIComponent(NORMALIZED_API_BASE_URL)}:`;
 const responseCache = new Map<string, CacheEntry<unknown>>();
+const listCacheGeneration = { clients: 0, projects: 0 };
 const storageAvailable =
   typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
@@ -357,6 +360,9 @@ function setCached<T>(key: string, value: T, ttlMs: number = DEFAULT_CACHE_TTL_M
 }
 
 function invalidateCache(prefix: string): void {
+  for (const key of ['clients', 'projects'] as const) {
+    if (key.startsWith(prefix)) listCacheGeneration[key]++;
+  }
   responseCache.forEach((_value, key) => {
     if (key.startsWith(prefix)) {
       responseCache.delete(key);
@@ -1495,7 +1501,25 @@ type ApiVapidPublicKey = {
 
 type ApiPushTestResult = {
   delivered: number;
+  accepted: number;
+  attempted: number;
+  failed: number;
+  revoked: number;
 };
+
+type ApiPushDevice = {
+  id: string;
+  endpoint_hash: string;
+  device_label: string | null;
+  user_agent: string | null;
+  created_at: string;
+  last_seen_at: string | null;
+};
+
+const mapPushDevice = (device: ApiPushDevice): PushDevice => ({
+  id: device.id, endpointHash: device.endpoint_hash, deviceLabel: device.device_label,
+  userAgent: device.user_agent, createdAt: device.created_at, lastSeenAt: device.last_seen_at,
+});
 
 type ApiPushSubscriptionCreate = {
   endpoint: string;
@@ -3828,12 +3852,15 @@ const api = {
   logout(): void {
     const token = getAccessToken();
     clearTokens();
-    if (token) {
-      // Capture credentials before clearing; logout must never refresh/revive a session.
-      void axios.post(`${API_BASE_URL}/auth/logout`, {}, {
-        headers: { Authorization: `Bearer ${token}` }, timeout: 5000,
-      }).catch(() => undefined);
-    }
+    // Use the captured credential directly: cleanup must never refresh a signed-out session.
+    void clearPushSession(token ? endpoint => axios.post(`${API_BASE_URL}/push/unsubscribe`,
+      { endpoint }, { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 }) : undefined)
+      .catch(() => undefined)
+      .finally(() => {
+        if (token) void axios.post(`${API_BASE_URL}/auth/logout`, {}, {
+          headers: { Authorization: `Bearer ${token}` }, timeout: 5000,
+        }).catch(() => undefined);
+      });
   },
 
   async forgotPassword(email: string, signal?: AbortSignal): Promise<void> {
@@ -3886,6 +3913,7 @@ const api = {
       if (cached) {
         return cached;
       }
+      const generation = listCacheGeneration.clients;
       const { data } = await http.get<ApiClientListResponse>('/clients', { params });
       const mapped = {
         items: data.items.map(mapClient),
@@ -3894,7 +3922,7 @@ const api = {
         total: data.total,
         totalPages: data.total_pages,
       };
-      setCached(cacheKey, mapped);
+      if (generation === listCacheGeneration.clients) setCached(cacheKey, mapped);
       return mapped;
     } catch (error) {
       mapAxiosError(error);
@@ -3936,6 +3964,16 @@ const api = {
     } catch (error) {
       mapAxiosError(error);
     }
+  },
+
+  async restoreClient(clientId: string): Promise<Client> {
+    try {
+      const { data } = await http.post<ApiClient>(`/clients/${clientId}/restore`);
+      invalidateCache('clients');
+      invalidateCache(`client:${clientId}`);
+      invalidateCache('projects');
+      return mapClient(data);
+    } catch (error) { mapAxiosError(error); }
   },
 
   async archiveClient(clientId: string, reason?: string): Promise<Client> {
@@ -4063,6 +4101,7 @@ const api = {
       if (cached) {
         return cached;
       }
+      const generation = listCacheGeneration.projects;
       const { data } = await http.get<ApiProjectListResponse>('/projects', { params });
       const mapped = {
         items: data.items.map(mapProject),
@@ -4071,7 +4110,7 @@ const api = {
         total: data.total,
         totalPages: data.total_pages,
       };
-      setCached(cacheKey, mapped);
+      if (generation === listCacheGeneration.projects) setCached(cacheKey, mapped);
       return mapped;
     } catch (error) {
       mapAxiosError(error);
@@ -4124,6 +4163,15 @@ const api = {
     } catch (error) {
       mapAxiosError(error);
     }
+  },
+
+  async restoreProject(projectId: string): Promise<Project> {
+    try {
+      const { data } = await http.post<ApiProject>(`/projects/${projectId}/restore`);
+      invalidateCache('projects');
+      invalidateCache(`project:${projectId}`);
+      return mapProject(data);
+    } catch (error) { mapAxiosError(error); }
   },
 
   async archiveProject(projectId: string, reason?: string): Promise<Project> {
@@ -6614,7 +6662,7 @@ const api = {
     keys: { p256dh: string; auth: string };
     userAgent?: string;
     deviceLabel?: string;
-  }): Promise<void> {
+  }): Promise<PushDevice> {
     try {
       const body: ApiPushSubscriptionCreate = {
         endpoint: payload.endpoint,
@@ -6622,7 +6670,8 @@ const api = {
         user_agent: payload.userAgent,
         device_label: payload.deviceLabel,
       };
-      await http.post('/push/subscribe', body);
+      const { data } = await http.post<ApiPushDevice>('/push/subscribe', body, { timeout: 15000 });
+      return mapPushDevice(data);
     } catch (error) {
       mapAxiosError(error);
     }
@@ -6630,10 +6679,39 @@ const api = {
 
   async unsubscribePush(endpoint: string): Promise<void> {
     try {
-      await http.post('/push/unsubscribe', { endpoint });
+      await http.post('/push/unsubscribe', { endpoint }, { timeout: 10000 });
     } catch (error) {
       mapAxiosError(error);
     }
+  },
+
+  async getPushStatus(): Promise<PushServerStatus> {
+    try {
+      const { data } = await http.get('/push/status', { timeout: 10000, showGlobalProgress: false });
+      return {
+        configured: data.configured, publicKeyConfigured: data.public_key_configured,
+        privateKeyConfigured: data.private_key_configured, subjectConfigured: data.subject_configured,
+        configurationValid: data.configuration_valid, activeSubscriptionCount: data.active_subscription_count,
+      };
+    } catch (error) { mapAxiosError(error); }
+  },
+
+  async getPushDevices(): Promise<PushDevice[]> {
+    try {
+      const { data } = await http.get<ApiPushDevice[]>('/push/subscriptions',
+        { timeout: 10000, showGlobalProgress: false });
+      return data.map(mapPushDevice);
+    } catch (error) { mapAxiosError(error); }
+  },
+
+  async removePushDevice(id: string): Promise<void> {
+    try { await http.delete(`/push/subscriptions/${encodeURIComponent(id)}`, { timeout: 10000 }); }
+    catch (error) { mapAxiosError(error); }
+  },
+
+  async removeAllPushDevices(): Promise<void> {
+    try { await http.delete('/push/subscriptions', { timeout: 10000 }); }
+    catch (error) { mapAxiosError(error); }
   },
 
   async getNotificationPreferences(): Promise<NotificationPreference[]> {
@@ -6660,10 +6738,11 @@ const api = {
     }
   },
 
-  async sendPushTest(): Promise<{ delivered: number }> {
+  async sendPushTest(subscriptionId?: string): Promise<PushTestResult> {
     try {
-      const { data } = await http.post<ApiPushTestResult>('/push/test', {});
-      return { delivered: data.delivered };
+      const { data } = await http.post<ApiPushTestResult>('/push/test',
+        subscriptionId ? { subscription_id: subscriptionId } : {}, { timeout: 60000 });
+      return { accepted: data.accepted, attempted: data.attempted, failed: data.failed, revoked: data.revoked };
     } catch (error) {
       mapAxiosError(error);
     }

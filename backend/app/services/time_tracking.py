@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_, select, text, update, exists
+from sqlalchemy import or_, select, text, update, exists, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, load_only, selectinload
 
@@ -170,8 +170,8 @@ def _timer_changed(db: Session, actor: models.User) -> None:
 def _check_capacity(db: Session, actor: models.User) -> None:
     # Read role after acquiring the lock, so demotion takes effect on the next action.
     current_role = db.scalar(select(models.User.role).where(models.User.id == actor.id))
-    running = len(db.scalars(select(models.TimeEntry.id).where(
-        models.TimeEntry.user_id == actor.id, models.TimeEntry.stopped_at.is_(None))).all())
+    running = db.scalar(select(func.count()).select_from(models.TimeEntry).where(
+        models.TimeEntry.user_id == actor.id, models.TimeEntry.stopped_at.is_(None)))
     limit = timer_limit(actor, effective_role=current_role)
     if running >= limit:
         raise HTTPException(status_code=409, detail={"code": "ACTIVE_TIMER_LIMIT", "limit": limit,
@@ -196,6 +196,20 @@ def _lock_timer_user(db: Session, tenant_id, user_id: str) -> None:
         models.TimeEntry.stopped_at.is_(None)).limit(1))
     if other_tenant_timer is not None:
         raise HTTPException(status_code=409, detail="A timer from a previous tenant must be resolved before tracking work")
+
+
+def _refresh_timer_actor(db: Session, actor: models.User) -> models.User:
+    """Revalidate the principal after waiting for a timer lock, without writing roles."""
+    tenant_id, version = actor.tenant_id, actor.credentials_version or 0
+    current = db.scalar(select(models.User).where(models.User.id == actor.id)
+                        .execution_options(populate_existing=True))
+    if current is None or current.tenant_id != tenant_id:
+        raise HTTPException(status_code=404, detail="Timer user not found")
+    if (current.credentials_version or 0) != version:
+        raise HTTPException(status_code=401, detail="Credentials changed. Please sign in again.")
+    if current.status != models.UserStatusEnum.ACTIVE:
+        raise HTTPException(status_code=403, detail="User is inactive")
+    return current
 
 
 def _continuation(db: Session, actor: models.User, source_id: str, *, task_id, subtask_id) -> Optional[models.TimeEntry]:
@@ -287,6 +301,7 @@ def start_timer(
 ) -> models.TimeEntry:
     bind_actor(db, actor)
     _lock_timer_user(db, actor.tenant_id, actor.id)
+    actor = _refresh_timer_actor(db, actor)
     task, subtask = _resolve_target(db, actor, task_id=payload.task_id, subtask_id=payload.subtask_id)
     if continued_from_id:
         previous = _continuation(db, actor, continued_from_id, task_id=payload.task_id, subtask_id=payload.subtask_id)
@@ -355,6 +370,7 @@ def stop_timer(
 ) -> Optional[models.TimeEntry]:
     bind_actor(db, actor)
     _lock_timer_user(db, actor.tenant_id, actor.id)
+    actor = _refresh_timer_actor(db, actor)
     if not entry_id:
         ids = db.scalars(select(models.TimeEntry.id).where(models.TimeEntry.tenant_id == actor.tenant_id,
             models.TimeEntry.user_id == actor.id, models.TimeEntry.stopped_at.is_(None)).limit(2)).all()
@@ -415,6 +431,7 @@ def stop_timer(
 def resume_timer(db: Session, actor: models.User, entry_id: str, *, restart: bool = False) -> models.TimeEntry:
     bind_actor(db, actor)
     _lock_timer_user(db, actor.tenant_id, actor.id)
+    actor = _refresh_timer_actor(db, actor)
     source = db.scalar(select(models.TimeEntry).where(models.TimeEntry.id == entry_id, models.TimeEntry.tenant_id == actor.tenant_id))
     if not source:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found")
@@ -457,6 +474,11 @@ def correct_time_entry(
     if not can_manage_timer_corrections(root_task, actor):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Timer correction requires manager access")
     _lock_timer_user(db, entry.tenant_id, entry.user_id)
+    actor = _refresh_timer_actor(db, actor)
+    root_task = _get_task(db, _entry_root_task_id(db, entry), actor=actor, lock=True)
+    ensure_task_visible(root_task, actor)
+    if not can_manage_timer_corrections(root_task, actor):
+        raise HTTPException(status_code=403, detail="Timer correction requires manager access")
     entry = _entry_for_update(db, entry_id, actor.tenant_id)
     if entry is None:
         raise HTTPException(status_code=404, detail="Time entry not found")
@@ -466,6 +488,14 @@ def correct_time_entry(
     corrected_stopped_at = _as_utc(payload.stopped_at)
     if corrected_stopped_at <= corrected_started_at:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Correction stop time must be after start time")
+    neighbors = list(db.scalars(select(models.TimeEntry).where(
+        models.TimeEntry.tenant_id == entry.tenant_id, models.TimeEntry.user_id == entry.user_id,
+        or_(models.TimeEntry.id == entry.continued_from_id, models.TimeEntry.continued_from_id == entry.id))))
+    for neighbor in neighbors:
+        if neighbor.id == entry.continued_from_id and neighbor.stopped_at and corrected_started_at < _as_utc(neighbor.stopped_at):
+            raise HTTPException(status_code=409, detail="Correction cannot start before the preceding interval ended")
+        if neighbor.continued_from_id == entry.id and corrected_stopped_at > _as_utc(neighbor.started_at):
+            raise HTTPException(status_code=409, detail="Correction cannot end after the following interval started")
     if _overlapping_entry_exists(
         db,
         user_id=entry.user_id,

@@ -990,18 +990,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                 )}
                             </div>
                             <div className="flex flex-wrap items-center gap-3">
-                                <div className="theme-toggle hidden text-xs font-semibold md:flex">
-                                    {(['dark', 'colorful', 'light'] as ThemeMode[]).map((mode) => (
-                                        <button
-                                            key={mode}
-                                            type="button"
-                                            onClick={() => setThemeMode(mode)}
-                                            className={`min-w-[88px] px-3 py-1 transition duration-150 ${themeMode === mode ? 'active-theme' : ''}`}
-                                        >
-                                            {THEME_MODES[mode].name}
-                                        </button>
-                                    ))}
-                                </div>
                                 <button
                                     type="button"
                                     onClick={() => setIsAiModalOpen(true)}

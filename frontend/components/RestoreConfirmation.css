@@ -1,0 +1,21 @@
+.restore-dialog { position: relative; z-index: 100; }
+.restore-backdrop { position: fixed; inset: 0; background: #030712b8; }
+.restore-container { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+.restore-panel { width: 100%; max-width: 480px; padding: 24px; border: 1px solid #d1d5db; border-radius: 16px; background: #fff; color: #111827; box-shadow: 0 24px 64px #0006; overflow-wrap: anywhere; }
+.dark .restore-panel { background: #111827; border-color: #374151; color: #f3f4f6; }
+.restore-title { margin: 0; font-size: 20px; font-weight: 700; }
+.restore-name { margin: 12px 0; font-weight: 600; }
+.restore-description { margin: 0; font-size: 14px; line-height: 1.6; }
+.restore-error { color: #b91c1c; font-size: 14px; }
+.dark .restore-error { color: #fca5a5; }
+.restore-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.restore-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; min-height: 44px; border: 1px solid #9ca3af; border-radius: 8px; font: inherit; cursor: pointer; }
+.restore-actions svg { width: 18px; height: 18px; flex-shrink: 0; }
+.restore-cancel { color: inherit; background: transparent; }
+.restore-actions .restore-confirm { color: #fff; background: #0f766e; border-color: #0f766e; }
+.restore-actions .restore-confirm:hover { background: #115e59; }
+.restore-actions button:focus-visible { outline: 3px solid #22d3ee; outline-offset: 3px; }
+.restore-actions button:disabled { opacity: .6; cursor: wait; }
+.restore-spinner { animation: restore-spin 1s linear infinite; }
+@keyframes restore-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .restore-spinner { animation: none; } }

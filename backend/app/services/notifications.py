@@ -25,7 +25,7 @@ def create_notification(
     related_reward_id: Optional[str] = None,
     related_chat_id: Optional[str] = None,
     actor_id: Optional[str] = None,
-) -> models.Notification:
+) -> Optional[models.Notification]:
     return dispatch_notification(
         db,
         user_id=user_id,

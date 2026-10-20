@@ -21,6 +21,7 @@ class WorkEvent(BaseModel):
 
 
 class WorkSession(BaseModel):
+    target_accessible: bool = True
     id: str
     entry_id: str
     status: Literal["RUNNING", "PAUSED", "STOPPED"]

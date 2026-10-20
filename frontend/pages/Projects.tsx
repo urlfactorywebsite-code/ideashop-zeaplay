@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArchiveBoxIcon,
+  ArrowUturnLeftIcon,
   BriefcaseIcon,
   MagnifyingGlassIcon,
   PencilSquareIcon,
@@ -9,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 import PageLoader from '../components/loading/PageLoader';
+import RestoreConfirmation from '../components/RestoreConfirmation';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -312,6 +314,10 @@ const Projects: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [restoreTarget, setRestoreTarget] = useState<Project | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const restoring = useRef(false);
+  const listGeneration = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [formProject, setFormProject] = useState<Project | null>(null);
@@ -320,6 +326,7 @@ const Projects: React.FC = () => {
   const [taskDashboard, setTaskDashboard] = useState<ProjectTaskDashboardResponse | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const dashboardGeneration = useRef(0);
   const [dashboardFilters, setDashboardFilters] = useState<{
     page: number;
     pageSize: number;
@@ -333,39 +340,52 @@ const Projects: React.FC = () => {
   const canManage = user?.role === Role.OWNER || user?.role === Role.ADMIN || user?.role === Role.MANAGER;
 
   const fetchProjects = useCallback(async () => {
+    const generation = ++listGeneration.current;
     setLoading(true);
     setError(null);
     try {
       const response = await api.getProjects(filters);
+      if (generation !== listGeneration.current) return;
+      if ((filters.page ?? 1) > response.totalPages) {
+        setFilters(prev => ({ ...prev, page: response.totalPages }));
+        return;
+      }
       setProjects(response.items);
       setTotal(response.total);
       setTotalPages(response.totalPages);
       setSelectedProject((current) => response.items.find((project) => project.id === current?.id) ?? response.items[0] ?? null);
     } catch (err) {
+      if (generation !== listGeneration.current) return;
       setError(err instanceof Error ? err.message : 'Unable to load projects.');
     } finally {
-      setLoading(false);
+      if (generation === listGeneration.current) setLoading(false);
     }
   }, [filters]);
+
+  useEffect(() => () => { listGeneration.current++; dashboardGeneration.current++; }, []);
 
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
 
   const fetchTaskDashboard = useCallback(async () => {
+    const generation = ++dashboardGeneration.current;
     if (!selectedProject) {
       setTaskDashboard(null);
+      setDashboardLoading(false);
       return;
     }
     setDashboardLoading(true);
     setDashboardError(null);
     try {
       const response = await api.getProjectTaskDashboard(selectedProject.id, dashboardFilters);
+      if (generation !== dashboardGeneration.current) return;
       setTaskDashboard(response);
     } catch (err) {
+      if (generation !== dashboardGeneration.current) return;
       setDashboardError(err instanceof Error ? err.message : 'Unable to load project task dashboard.');
     } finally {
-      setDashboardLoading(false);
+      if (generation === dashboardGeneration.current) setDashboardLoading(false);
     }
   }, [selectedProject, dashboardFilters]);
 
@@ -435,6 +455,24 @@ const Projects: React.FC = () => {
     }
   };
 
+  const handleRestore = async () => {
+    if (!restoreTarget || restoring.current) return;
+    restoring.current = true;
+    setActionLoading(true); setRestoreError(null); setSuccess(null);
+    try {
+      const restored = await api.restoreProject(restoreTarget.id);
+      setSelectedProject(restored);
+      if (filters.status && filters.status !== restored.status) setTotal(count => Math.max(0, count - 1));
+      setProjects(rows => rows.flatMap(row => row.id !== restored.id ? [row]
+        : !filters.status || filters.status === restored.status ? [restored] : []));
+      setSuccess('Project restored.');
+      setRestoreTarget(null);
+      await fetchProjects();
+    } catch (err) {
+      setRestoreError(err instanceof Error ? err.message : 'Unable to restore project.');
+    } finally { restoring.current = false; setActionLoading(false); }
+  };
+
   const handleStatusOverride = async (task: ProjectDashboardTask, nextStatus: TaskStatus) => {
     if (!selectedProject || nextStatus === task.status) return;
     const reason = window.prompt(`Reason for overriding "${task.title}" to ${taskStatusLabel(nextStatus)}?`);
@@ -454,6 +492,8 @@ const Projects: React.FC = () => {
 
   const managers = selectedProject?.members.filter((member) => member.role === ProjectMemberRole.MANAGER) ?? [];
   const members = selectedProject?.members.filter((member) => member.role === ProjectMemberRole.MEMBER) ?? [];
+  const canManageSelected = Boolean(canManage && selectedProject && (user?.role !== Role.MANAGER
+    || selectedProject.members.some(member => member.userId === user.id && member.role === ProjectMemberRole.MANAGER)));
 
   if (loading && projects.length === 0) {
     return <PageLoader />;
@@ -479,7 +519,7 @@ const Projects: React.FC = () => {
             <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <input value={filters.q ?? ''} onChange={(event) => setFilters((prev) => ({ ...prev, q: event.target.value, page: 1 }))} placeholder="Search projects or clients" className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm dark:border-gray-700 dark:bg-gray-950" />
           </div>
-          <select value={filters.status ?? ''} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value as ProjectStatus | '', page: 1 }))} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950">
+          <select aria-label="Project status" value={filters.status ?? ''} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value as ProjectStatus | '', page: 1 }))} className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950">
             <option value="">All statuses</option>
             <option value={ProjectStatus.ACTIVE}>Active</option>
             <option value={ProjectStatus.ARCHIVED}>Archived</option>
@@ -495,8 +535,8 @@ const Projects: React.FC = () => {
         </div>
       </div>
 
-      {error && <div className="mx-6 mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{error}</div>}
-      {success && <div className="mx-6 mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">{success}</div>}
+      {error && <div role="alert" className="mx-6 mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{error}</div>}
+      {success && <div role="status" className="mx-6 mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">{success}</div>}
 
       <div className="grid min-h-0 flex-1 gap-6 p-6 lg:grid-cols-[minmax(360px,0.9fr)_minmax(420px,1.1fr)]">
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
@@ -689,7 +729,7 @@ const Projects: React.FC = () => {
                         <DashboardTaskRow
                           key={task.id}
                           task={task}
-                          canManage={canManage}
+                          canManage={canManageSelected && selectedProject.status === ProjectStatus.ACTIVE}
                           busy={statusOverrideBusy}
                           onOverride={handleStatusOverride}
                         />
@@ -717,7 +757,7 @@ const Projects: React.FC = () => {
                   </>
                 )}
               </section>
-              {canManage && (
+              {canManageSelected && (
                 <div className="mt-6 flex flex-wrap gap-3">
                   <button onClick={() => openEdit(selectedProject)} className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold dark:border-gray-700">
                     <PencilSquareIcon className="h-4 w-4" />
@@ -729,6 +769,11 @@ const Projects: React.FC = () => {
                       Archive
                     </button>
                   )}
+                  {selectedProject.status === ProjectStatus.ARCHIVED && (
+                    <button disabled={actionLoading} onClick={() => { setRestoreError(null); setRestoreTarget(selectedProject); }} className="inline-flex items-center gap-2 rounded-lg border border-teal-500 px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50 dark:text-teal-300 dark:hover:bg-teal-950">
+                      <ArrowUturnLeftIcon className="h-4 w-4" aria-hidden="true" />Restore Project
+                    </button>
+                  )}
                 </div>
               )}
             </>
@@ -738,6 +783,8 @@ const Projects: React.FC = () => {
         </div>
       </div>
 
+      {restoreTarget && canManage && <RestoreConfirmation kind="Project" name={restoreTarget.name} busy={actionLoading}
+        error={restoreError} onClose={() => setRestoreTarget(null)} onConfirm={() => void handleRestore()} />}
       {isFormOpen && (
         <ProjectFormModal
           project={formProject}

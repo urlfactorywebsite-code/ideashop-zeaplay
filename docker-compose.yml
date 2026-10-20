@@ -21,6 +21,8 @@ services:
     env_file:
       - path: ./.env.smtp.local
         required: false
+      - path: ./.env.push.local
+        required: false
     environment:
       VEE_DATABASE_URL: postgresql+psycopg://zeaplay:zeaplay@postgres:5432/zeaplay
       VEE_CACHE_REDIS_URL: redis://redis:6379

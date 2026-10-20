@@ -174,6 +174,17 @@ def replace_project_members(
     return project_service.to_read(project)
 
 
+@router.post("/{project_id}/restore", response_model=schemas.ProjectRead)
+def restore_project(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_admin),
+) -> schemas.ProjectRead:
+    project = project_service.restore_project(
+        db, tenant_id=current_user.tenant_id, project_id=project_id, actor=current_user)
+    return project_service.to_read(project, task_count=project_service.count_project_tasks(db, project_id=project.id))
+
+
 @router.post("/{project_id}/archive", response_model=schemas.ProjectRead)
 def archive_project(
     project_id: str,

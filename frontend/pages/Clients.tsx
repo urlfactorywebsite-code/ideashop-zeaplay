@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArchiveBoxIcon,
+  ArrowUturnLeftIcon,
   BuildingOffice2Icon,
   MagnifyingGlassIcon,
   PencilSquareIcon,
@@ -9,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 import PageLoader from '../components/loading/PageLoader';
+import RestoreConfirmation from '../components/RestoreConfirmation';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -380,6 +382,10 @@ const Clients: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [restoreTarget, setRestoreTarget] = useState<Client | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const restoring = useRef(false);
+  const listGeneration = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [formClient, setFormClient] = useState<Client | null>(null);
@@ -393,10 +399,16 @@ const Clients: React.FC = () => {
   const [contactFormError, setContactFormError] = useState<string | null>(null);
 
   const fetchClients = useCallback(async () => {
+    const generation = ++listGeneration.current;
     setLoading(true);
     setError(null);
     try {
       const response = await api.getClients(filters);
+      if (generation !== listGeneration.current) return;
+      if ((filters.page ?? 1) > response.totalPages) {
+        setFilters(prev => ({ ...prev, page: response.totalPages }));
+        return;
+      }
       setClients(response.items);
       setTotalPages(response.totalPages);
       setTotal(response.total);
@@ -405,11 +417,14 @@ const Clients: React.FC = () => {
         return response.items.find((client) => client.id === current.id) ?? response.items[0] ?? null;
       });
     } catch (err) {
+      if (generation !== listGeneration.current) return;
       setError(err instanceof Error ? err.message : 'Unable to load clients.');
     } finally {
-      setLoading(false);
+      if (generation === listGeneration.current) setLoading(false);
     }
   }, [filters]);
+
+  useEffect(() => () => { listGeneration.current++; }, []);
 
   useEffect(() => {
     fetchClients();
@@ -509,13 +524,29 @@ const Clients: React.FC = () => {
       setSelectedClient(archived);
       setSuccess('Client archived.');
       await fetchClients();
-      const response = await api.getClientContacts(client.id);
-      setClientContacts(response.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to archive client.');
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleRestore = async () => {
+    if (!restoreTarget || restoring.current) return;
+    restoring.current = true;
+    setActionLoading(true); setRestoreError(null); setSuccess(null);
+    try {
+      const restored = await api.restoreClient(restoreTarget.id);
+      setSelectedClient(restored);
+      if (filters.status && filters.status !== restored.status) setTotal(count => Math.max(0, count - 1));
+      setClients(rows => rows.flatMap(row => row.id !== restored.id ? [row]
+        : !filters.status || filters.status === restored.status ? [restored] : []));
+      setSuccess('Client restored.');
+      setRestoreTarget(null);
+      await fetchClients();
+    } catch (err) {
+      setRestoreError(err instanceof Error ? err.message : 'Unable to restore client.');
+    } finally { restoring.current = false; setActionLoading(false); }
   };
 
   const handleContactSubmit = async (payload: ContactCreatePayload | ContactUpdatePayload) => {
@@ -592,7 +623,7 @@ const Clients: React.FC = () => {
             />
           </div>
           <select
-            value={filters.status ?? ''}
+            aria-label="Client status" value={filters.status ?? ''}
             onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value as ClientStatus | '', page: 1 }))}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
           >
@@ -615,7 +646,7 @@ const Clients: React.FC = () => {
       </div>
 
       {(error || success) && (
-        <div className={`mx-6 mt-4 shrink-0 rounded-lg px-4 py-3 text-sm ${error ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200'}`}>
+        <div role={error ? "alert" : "status"} className={`mx-6 mt-4 shrink-0 rounded-lg px-4 py-3 text-sm ${error ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200'}`}>
           {error || success}
         </div>
       )}
@@ -682,7 +713,7 @@ const Clients: React.FC = () => {
               <div className="border-t border-gray-200 pt-4 dark:border-gray-800">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-sm font-semibold">Contacts</h3>
-                  {canManage && (
+                  {canManage && selectedClient.status === ClientStatus.ACTIVE && (
                     <button onClick={openCreateContact} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-2 py-1 text-xs font-semibold dark:border-gray-700">
                       <PlusIcon className="h-3.5 w-3.5" />
                       Add
@@ -709,7 +740,7 @@ const Clients: React.FC = () => {
                         <p className="mt-2 text-xs text-gray-500">
                           Companies: {contact.clients.map((linked) => linked.companyName).join(', ') || '-'}
                         </p>
-                        {canManage && (
+                        {canManage && selectedClient.status === ClientStatus.ACTIVE && (
                           <div className="mt-3 flex gap-2">
                             <button onClick={() => openEditContact(contact)} className="rounded-lg border border-gray-300 px-2 py-1 text-xs font-semibold dark:border-gray-700">Edit</button>
                             <button onClick={() => handleArchiveContact(contact)} className="rounded-lg border border-amber-300 px-2 py-1 text-xs font-semibold text-amber-700 dark:border-amber-700 dark:text-amber-300">Archive</button>
@@ -723,14 +754,19 @@ const Clients: React.FC = () => {
 
               {canManage && (
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => openEdit(selectedClient)} className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold dark:border-gray-700">
+                  {selectedClient.status === ClientStatus.ACTIVE && <button onClick={() => openEdit(selectedClient)} className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold dark:border-gray-700">
                     <PencilSquareIcon className="h-4 w-4" />
                     Edit
-                  </button>
+                  </button>}
                   {selectedClient.status !== ClientStatus.ARCHIVED && (
                     <button disabled={actionLoading} onClick={() => handleArchive(selectedClient)} className="inline-flex items-center gap-2 rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold text-amber-700 dark:border-amber-700 dark:text-amber-300">
                       <ArchiveBoxIcon className="h-4 w-4" />
                       Archive
+                    </button>
+                  )}
+                  {selectedClient.status === ClientStatus.ARCHIVED && (
+                    <button disabled={actionLoading} onClick={() => { setRestoreError(null); setRestoreTarget(selectedClient); }} className="inline-flex items-center gap-2 rounded-lg border border-teal-500 px-3 py-2 text-sm font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50 dark:text-teal-300 dark:hover:bg-teal-950">
+                      <ArrowUturnLeftIcon className="h-4 w-4" aria-hidden="true" />Restore Client
                     </button>
                   )}
                 </div>
@@ -750,6 +786,8 @@ const Clients: React.FC = () => {
         </div>
       </div>
 
+      {restoreTarget && canManage && <RestoreConfirmation kind="Client" name={restoreTarget.companyName} busy={actionLoading}
+        error={restoreError} onClose={() => setRestoreTarget(null)} onConfirm={() => void handleRestore()} />}
       {isFormOpen && (
         <ClientFormModal
           client={formClient}

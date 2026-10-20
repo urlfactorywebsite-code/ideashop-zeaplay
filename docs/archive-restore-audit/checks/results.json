@@ -1,0 +1,133 @@
+{
+  "audit": "Archive and Restore Regression Audit",
+  "date": "2026-10-20",
+  "local_end_to_end": "PASS",
+  "production_ready": false,
+  "production_files_modified": [
+    "backend/app/services/projects.py",
+    "backend/app/services/archive_state.py",
+    "frontend/pages/Clients.tsx",
+    "frontend/components/RestoreConfirmation.tsx"
+  ],
+  "verification_files_modified": [
+    "frontend/e2e/archive-restore.mjs",
+    "frontend/e2e/archiveRestoreFixture.tsx"
+  ],
+  "verification_files_added": [
+    "backend/tests/test_archive_restore_audit.py",
+    "frontend/e2e/archive-restore-live.mjs",
+    "ops/testing/archive_restore_e2e_server.py"
+  ],
+  "source_sha256": {
+    "backend/app/services/projects.py": "e70b3888c2cd5c0a283f71cd46a4687e919de835fd774e384d9a86a892df404a",
+    "backend/app/services/archive_state.py": "f79be13d4f62dc806049eff51797e5a517b83afbde784f7ca59644b0a3a8f7fe",
+    "frontend/pages/Clients.tsx": "77e6f184478ccb7bd9432f486cc9bc368b39d2a651cf22d189d0544268363772",
+    "frontend/components/RestoreConfirmation.tsx": "3f903cedff647e575ce35e005693046ba4b7d7f19bc233817a024e01f2b6c11a",
+    "frontend/e2e/archive-restore.mjs": "173c795959e0924a7611ea8959cdc8ac7bda02cb41da1f30ed997e4514889813",
+    "frontend/e2e/archiveRestoreFixture.tsx": "11ac55a7ae65e5f76d8ab7f9a51b38b29271c4b226a720c16e9ecd23c0f1a048",
+    "backend/tests/test_archive_restore_audit.py": "aed5233cc9cd599cd820b9e4e572a65013795a6707bd765f4735b253dc977368",
+    "frontend/e2e/archive-restore-live.mjs": "0f322990cac0942754f4496bd3c201ae99d65fc2967519f8af420b656887e086",
+    "ops/testing/archive_restore_e2e_server.py": "1c47e67e5c9786100daac2c566892ba09ab8d995422dc27ee469b9d97dd8b275"
+  },
+  "backend_image_id": "sha256:38f5bf23a601f198ed5df3a6a9db4d8f5d2723fb4059ef560bff8722ff51f063",
+  "validation": {
+    "backend": {
+      "result": "PASS",
+      "passed": 151,
+      "skipped": 11,
+      "seconds": 223.44,
+      "log": "backend-final.txt",
+      "skip_scope": "SQLite cases for PostgreSQL-specific timezone, lock wait and repeatable-read coverage"
+    },
+    "frontend_node": {
+      "result": "PASS",
+      "passed": 85,
+      "log": "frontend-tests.txt"
+    },
+    "component_browser": {
+      "result": "PASS",
+      "scenarios": 20,
+      "page_exceptions": 0,
+      "http_mocked": true,
+      "evidence": "browser.json"
+    },
+    "real_browser": {
+      "result": "PASS",
+      "scenarios": 7,
+      "page_exceptions": 0,
+      "api_mocked": false,
+      "engine": "Chrome",
+      "backend": "rebuilt Linux API",
+      "database": "isolated PostgreSQL",
+      "evidence": "live-browser.json"
+    },
+    "linux_api_concurrency": {
+      "platform": "rebuilt Linux backend",
+      "database": "isolated PostgreSQL schema",
+      "concurrent_client_restores": 6,
+      "concurrent_project_restores": 6,
+      "transition_events_per_entity": 2,
+      "rbac_tenant_integrity": "PASS",
+      "result": "PASS",
+      "log": "linux-runtime.txt"
+    },
+    "frontend_production_build": {
+      "result": "PASS",
+      "seconds": 13.3,
+      "log": "build.txt",
+      "warnings": "existing chunk size and minification annotations"
+    },
+    "typescript": {
+      "result": "FAIL",
+      "diagnostics": 130,
+      "log": "typescript.txt",
+      "scope": "outside changed production UI; previous feature report also recorded 130"
+    },
+    "frontend_lint": {
+      "result": "UNAVAILABLE",
+      "reason": "Missing npm lint script and configuration",
+      "log": "lint.txt"
+    },
+    "scoped_diff": {
+      "result": "PASS",
+      "log": "diff-check.txt"
+    }
+  },
+  "security": {
+    "unauthenticated": "401",
+    "regular_user_restore": "403",
+    "foreign_tenant": "404",
+    "assigned_manager": "PASS",
+    "cached_membership_revocation": "PASS SQLite and PostgreSQL",
+    "demotion_during_client_dependency_wait": "PASS create/update/restore PostgreSQL"
+  },
+  "data_integrity": {
+    "ids_and_related_business_rows": "PASS exact snapshots",
+    "attachment_bytes": "PASS synthetic file checksum",
+    "audit_idempotency": "PASS",
+    "audit_utc": "PASS non-UTC PostgreSQL session",
+    "no_cascading_restore": "PASS",
+    "dashboard": "1 task, 2 subtasks, 1 complete, 45 tracked seconds, 0 active timers"
+  },
+  "environment": {
+    "application_database_migrated_by_task": false,
+    "application_services_restarted_by_task": false,
+    "production_deployed": false,
+    "scratch_schema_count_after_cleanup": 0,
+    "synthetic_credentials_removed": true,
+    "audit_containers_removed": true,
+    "audit_vite_stopped": true,
+    "backend_image_retained_for_review": true
+  },
+  "release_blockers": [
+    "130 repository-wide TypeScript diagnostics",
+    "frontend lint unavailable"
+  ],
+  "limitations": [
+    "No production/VPS deployment or sustained load benchmark",
+    "No physical device, Safari/Firefox or screen reader certification",
+    "Historical audit timestamps unchanged",
+    "Synthetic attachment preservation does not certify object-storage upload/download authorization",
+    "Seeded signed sessions exercise genuine auth dependencies, not password-login UI"
+  ]
+}

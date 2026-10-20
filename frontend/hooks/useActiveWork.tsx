@@ -33,20 +33,22 @@ function ActiveWorkState({ children }: { children: React.ReactNode }) {
   const inflight = useRef<Promise<void> | null>(null);
   const dirty = useRef(false);
   const acting = useRef(false);
+  const followup = useRef<number | null>(null);
   // One shared task socket for the whole authenticated layout.
   const { status: connectionStatus } = useTaskWebSocket({ enabled: Boolean(user) });
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<void> => {
+    if (followup.current !== null) { window.clearTimeout(followup.current); followup.current = null; }
     dirty.current = true;
     if (inflight.current) return inflight.current;
     const generation = epoch.current;
     const promise = (async () => {
-      while (dirty.current && generation === epoch.current) {
+      let passes = 0;
+      while (dirty.current && generation === epoch.current && passes++ < 2) {
         dirty.current = false;
         try {
           const requestStart = performance.now();
           const data = await api.getActiveWork();
           if (generation !== epoch.current) return;
-          if (dirty.current) continue;
           if (data.user_id !== user?.id || data.tenant_id !== user?.tenantId) {
             setSnapshot(null);
             throw new Error('Work response does not match your signed-in account. Refresh your session.');
@@ -63,7 +65,15 @@ function ActiveWorkState({ children }: { children: React.ReactNode }) {
       }
     })();
     inflight.current = promise;
-    try { await promise; } finally { if (inflight.current === promise) inflight.current = null; }
+    try { await promise; } finally {
+      if (inflight.current === promise) inflight.current = null;
+      // Continuous invalidations must not starve rendering or keep actions busy forever.
+      // GETs are serialized; events carry no state, so applying each response cannot
+      // overwrite a response from a newer GET. Reconcile further bursts separately.
+      if (generation === epoch.current && dirty.current && followup.current === null) {
+        followup.current = window.setTimeout(() => { followup.current = null; void refresh(); }, 250);
+      }
+    }
   }, [user?.id, user?.tenantId]);
   useEffect(() => {
     epoch.current++; inflight.current = null; dirty.current = false;
@@ -73,7 +83,8 @@ function ActiveWorkState({ children }: { children: React.ReactNode }) {
     const reconcile = () => { if (document.visibilityState !== 'hidden') void refresh(); };
     const realtime = (event: Event) => {
       const notice = (event as CustomEvent<TaskRealtimeNotice>).detail;
-      if (notice?.userId === user.id && notice.tenantId === (user.tenantId ?? null)) reconcile();
+      if (notice?.userId === user.id && notice.tenantId === (user.tenantId ?? null)
+          && (notice.payload?.type !== 'timer.changed' || notice.payload.user_id === user.id)) reconcile();
     };
     const timer = window.setInterval(reconcile, 30000);
     window.addEventListener(TASK_REALTIME_EVENT, realtime);
@@ -81,6 +92,7 @@ function ActiveWorkState({ children }: { children: React.ReactNode }) {
     document.addEventListener('visibilitychange', reconcile);
     return () => {
       epoch.current++; window.clearInterval(timer);
+      if (followup.current !== null) { window.clearTimeout(followup.current); followup.current = null; }
       window.removeEventListener(TASK_REALTIME_EVENT, realtime);
       window.removeEventListener('online', reconcile); window.removeEventListener('focus', reconcile);
       document.removeEventListener('visibilitychange', reconcile);

@@ -1,13 +1,15 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 
 import { NavLink, NavLinkProps } from 'react-router-dom';
-import { Menu, PanelLeftClose } from 'lucide-react';
+import { Menu, PanelLeftClose, Pencil } from 'lucide-react';
 import { BuildingOffice2Icon } from '@heroicons/react/24/outline';
 
 import { useAuth, useTheme } from '../hooks/useAuth';
 import { getUserAvatarUrl } from '../utils/userAvatar';
 
 import { Role } from '../types';
+import SidebarEditor from './SidebarEditor';
+import { applySidebarPreferences, emptySidebarPreferences, parseSidebarPreferences, sidebarStorageKey, type SidebarPreferences } from '../utils/sidebarPreferences';
 
 import {
     ChartPieIcon,
@@ -85,6 +87,29 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
     const displayVersionLabel = versionLabel ?? 'Zea.Play V6.0.1';
     const profileAvatar = getUserAvatarUrl(user);
     const dropupRef = useRef<HTMLDivElement | null>(null);
+    const isOwner = user?.role === Role.OWNER;
+    const preferenceKey = isOwner && user ? sidebarStorageKey(user.tenantId, user.id) : null;
+    const [savedSidebar, setSavedSidebar] = useState<{ key: string | null; value: SidebarPreferences }>({ key: null, value: emptySidebarPreferences() });
+    const [unlock, setUnlock] = useState({ key: preferenceKey, clicks: 0 });
+    const [editorKey, setEditorKey] = useState<string | null>(null);
+    const canEdit = isOwner && unlock.key === preferenceKey && unlock.clicks >= 5;
+
+    useEffect(() => {
+        const read = () => {
+            let value = emptySidebarPreferences();
+            try { if (preferenceKey) value = parseSidebarPreferences(localStorage.getItem(preferenceKey)); } catch { /* Private browsers can disable storage. */ }
+            setSavedSidebar({ key: preferenceKey, value });
+        };
+        read();
+        const sync = (event: StorageEvent) => { if (event.key === preferenceKey || event.key === null) read(); };
+        window.addEventListener('storage', sync);
+        return () => window.removeEventListener('storage', sync);
+    }, [preferenceKey]);
+
+    const handleMoreClick = () => {
+        setDropupOpen(previous => !previous);
+        if (isOwner) setUnlock(previous => ({ key: preferenceKey, clicks: Math.min(5, (previous.key === preferenceKey ? previous.clicks : 0) + 1) }));
+    };
 
 
 
@@ -330,6 +355,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
 
 
 
+    const defaultLinks = getNavLinks();
+    const navLinks = applySidebarPreferences(defaultLinks, linkKey,
+        isOwner && savedSidebar.key === preferenceKey ? savedSidebar.value : emptySidebarPreferences());
+
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
         `sidebar-link flex items-center ${isCollapsed ? 'justify-center px-2' : 'space-x-3 px-4'} py-3 rounded-lg transition-all duration-300 ease-in-out ${
             isActive
@@ -383,26 +412,45 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
                 </div>
             </div>
             )}
-            <nav className={`flex-1 min-h-0 ${isCollapsed ? 'px-2 pt-16 pb-4' : 'px-4 pt-2 pb-6'} space-y-2 overflow-auto scrollbar-hide`} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <nav aria-label="Sidebar" className={`flex-1 min-h-0 ${isCollapsed ? 'px-2 pt-16 pb-4' : 'px-4 pt-2 pb-6'} space-y-2 overflow-auto scrollbar-hide`} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 <style>{`nav::-webkit-scrollbar { display: none; }`}</style>
-                {getNavLinks().map((link) => (
+                {navLinks.map((link) => (
                     <NavLink
                         key={linkKey(link)}
                         to={link.to}
                         className={navLinkClass}
                         title={isCollapsed ? link.label : undefined}
+                        aria-label={link.showUnreadDot ? `${link.label}, new chat messages` : link.label}
                     >
-                        <span className="relative flex h-6 w-6 shrink-0 items-center justify-center">
+                        <span className="relative flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden="true">
                             {link.icon}
                             {link.showUnreadDot && (
                                 <span className="zea-notification-dot absolute -right-1 -top-1 h-2 w-2 rounded-full" aria-hidden="true" />
                             )}
                         </span>
-                        {!isCollapsed && <span>{link.label}</span>}
+                        {!isCollapsed && <span className="min-w-0 break-words">{link.label}</span>}
                         {link.showUnreadDot && <span className="sr-only">New chat messages</span>}
                     </NavLink>
                 ))}
             </nav>
+
+            {canEdit && isCollapsed && <div className="flex justify-center pb-2">
+                <button type="button" aria-label="Edit sidebar" title="Edit sidebar" onClick={() => { setDropupOpen(false); setEditorKey(preferenceKey); }}
+                    className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-blue-400">
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
+                </button>
+            </div>}
+            {canEdit && preferenceKey && editorKey === preferenceKey && <SidebarEditor key={preferenceKey}
+                items={navLinks.map(link => ({ id: linkKey(link), label: link.label,
+                    originalLabel: defaultLinks.find(original => linkKey(original) === linkKey(link))!.label,
+                    defaultIndex: defaultLinks.findIndex(original => linkKey(original) === linkKey(link)) }))}
+                onClose={() => setEditorKey(null)}
+                onSave={value => {
+                    if (!isOwner || !preferenceKey) return;
+                    localStorage.setItem(preferenceKey, JSON.stringify(value));
+                    setSavedSidebar({ key: preferenceKey, value });
+                    setEditorKey(null);
+                }} />}
 
             {!isCollapsed && (
             <div className="relative mt-auto px-4 py-3 border-t border-gray-200 dark:border-gray-900 text-sm" ref={dropupRef}>
@@ -468,12 +516,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
                     >
                         Â© {displayVersionLabel}
                     </button>
+                    {canEdit && <button type="button" aria-label="Edit sidebar" title="Edit sidebar" onClick={() => { setDropupOpen(false); setEditorKey(preferenceKey); }}
+                        className="shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-blue-400">
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
+                    </button>}
                     <button
                         type="button"
-                        onClick={() => setDropupOpen((prev) => !prev)}
+                        onClick={handleMoreClick}
                         className="flex h-8 w-8 items-center justify-center rounded-full border border-sky-300/60 bg-slate-950/90 text-sky-100 shadow-[0_0_12px_rgba(56,189,248,0.35)] transition hover:scale-105 hover:border-sky-200/80 hover:text-white"
                         aria-expanded={isDropupOpen}
-                        aria-label="Open sidebar menu"
+                        aria-label="More"
+                        title="More"
                     >
                         <span className={`text-xs font-semibold transition ${isDropupOpen ? 'rotate-180' : ''}`}>{'^'}</span>
                     </button>

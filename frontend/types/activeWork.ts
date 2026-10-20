@@ -1,4 +1,5 @@
 export interface WorkSession {
+  target_accessible?: boolean;
   id: string; entry_id: string; status: 'RUNNING' | 'PAUSED' | 'STOPPED';
   task_id: string; subtask_id: string | null; project_name: string; task_title: string;
   subtask_title: string | null; subtask_status: string; started_at: string; stopped_at: string | null;

@@ -11,7 +11,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
-from . import security_audit
+from . import archive_state, security_audit
 
 
 SortField = Literal["company_name", "created_at", "updated_at", "country", "status"]
@@ -274,9 +274,11 @@ def archive_client(
     payload: schemas.ClientArchive,
     actor: models.User,
 ) -> models.Client:
-    client = get_client(db, tenant_id=tenant_id, client_id=client_id)
+    client = archive_state.locked_entity(db, models.Client, tenant_id=_tenant_uuid(tenant_id), entity_id=client_id)
+    actor = archive_state.management_actor(db, actor, client.tenant_id)
     if client.status == models.ClientStatusEnum.ARCHIVED:
         return client
+    previous = archive_state.state(client)
     client.status = models.ClientStatusEnum.ARCHIVED
     client.archived_at = datetime.utcnow()
     client.archived_by_id = actor.id
@@ -285,14 +287,31 @@ def archive_client(
         existing_notes = client.notes or ""
         note = f"Archive reason: {payload.reason}"
         client.notes = f"{existing_notes}\n{note}".strip() if existing_notes else note
-    security_audit.append_event(
-        db,
-        actor=actor,
-        event_type="client.archived",
-        entity_type="client",
-        entity_id=client.id,
-        payload={"reason_provided": bool(payload.reason)},
-    )
+    archive_state.audit_transition(db, record=client, actor=actor, entity_type="client",
+        action="archived", previous=previous, reason_provided=bool(payload.reason))
     db.commit()
+    db.refresh(client)
+    return client
+
+
+def restore_client(db: Session, *, tenant_id: uuid.UUID | str, client_id: str, actor: models.User) -> models.Client:
+    client = archive_state.locked_entity(db, models.Client, tenant_id=_tenant_uuid(tenant_id), entity_id=client_id)
+    actor = archive_state.management_actor(db, actor, client.tenant_id)
+    if client.status == models.ClientStatusEnum.ACTIVE:
+        return client
+    _ensure_no_active_duplicate(db, tenant_id=client.tenant_id,
+        normalized_company_name=client.normalized_company_name, gst_number=client.gst_number, exclude_id=client.id)
+    previous = archive_state.state(client)
+    client.status = models.ClientStatusEnum.ACTIVE
+    client.archived_at = None
+    client.archived_by_id = None
+    client.updated_by_id = actor.id
+    archive_state.audit_transition(db, record=client, actor=actor, entity_type="client",
+        action="restored", previous=previous)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        _raise_duplicate_conflict(exc)
     db.refresh(client)
     return client

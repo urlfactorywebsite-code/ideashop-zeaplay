@@ -286,24 +286,22 @@ def test_active_timer_survives_browser_refresh_and_server_restart_style_client_r
 def test_midnight_crossing_and_long_running_sessions_use_server_utc(monkeypatch):
     _, _, _, _, member_token, task = _timer_task(with_waiting_subtask=False)
     headers = {"Authorization": f"Bearer {member_token}"}
-    clock_values = iter(
-        [
-            datetime(2026, 10, 13, 23, 50, tzinfo=timezone.utc),
-            datetime(2026, 10, 14, 0, 10, tzinfo=timezone.utc),
-            datetime(2026, 9, 1, 8, 0, tzinfo=timezone.utc),
-            datetime(2026, 10, 1, 8, 0, tzinfo=timezone.utc),
-        ]
-    )
-    monkeypatch.setattr(time_tracking, "utc_now", lambda: next(clock_values))
+    # Response projections also read the server clock. Advance simulated time per
+    # action, independent of how many read-only projections that action performs.
+    clock = [datetime(2026, 9, 1, 23, 50, tzinfo=timezone.utc)]
+    monkeypatch.setattr(time_tracking, "utc_now", lambda: clock[0])
 
     started = client.post("/api/time-entries/start", json={"task_id": task["id"]}, headers=headers)
     assert started.status_code == 201, started.text
+    clock[0] = datetime(2026, 9, 2, 0, 10, tzinfo=timezone.utc)
     stopped = client.post("/api/time-entries/stop", json={"entry_id": started.json()["id"]}, headers=headers)
     assert stopped.status_code == 200, stopped.text
     assert stopped.json()["duration_seconds"] == 20 * 60
 
+    clock[0] = datetime(2026, 9, 3, 8, 0, tzinfo=timezone.utc)
     resumed = client.post(f"/api/time-entries/{started.json()['id']}/resume", headers=headers)
     assert resumed.status_code == 201, resumed.text
+    clock[0] += timedelta(days=30)
     long_stop = client.post("/api/time-entries/stop", json={"entry_id": resumed.json()["id"]}, headers=headers)
     assert long_stop.status_code == 200, long_stop.text
     assert long_stop.json()["duration_seconds"] == 30 * 24 * 60 * 60
