@@ -3,10 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from string import Template
 from typing import Any, Mapping
+from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
-from ..email_utils import send_notification_email
+from .. import models
+from ..services.notification_outbox import enqueue_email
 
 TEMPLATE_DIR = Path(__file__).resolve().parent / "templates"
 
@@ -136,10 +138,9 @@ def send_ticket_event_email(
     context: Mapping[str, Any],
 ) -> None:
     subject, body = _render_template(event_type, context)
-    send_notification_email(
-        db=db,
-        notification_type=event_type,
-        to_address=to_address,
-        subject=subject,
-        body=body,
-    )
+    recipient = db.get(models.User, context.get('recipient_id')) if context.get('recipient_id') else None
+    if not recipient or recipient.email != to_address or str(recipient.tenant_id) != str(context.get('recipient_tenant_id')):
+        return
+    event_id = str(context.get('event_id') or uuid4())
+    enqueue_email(db, tenant_id=recipient.tenant_id, recipient_user_id=recipient.id, event_type=event_type,
+        event_id=event_id, dedupe_key=f'ticket:{event_id}:{recipient.id}', subject=subject, body=body)

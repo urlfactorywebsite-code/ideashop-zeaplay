@@ -1,0 +1,62 @@
+[
+  {
+    "path": "backend/app/email_utils.py",
+    "sha256": "8308c8a162700ac5fe3ff4a9c33bdccfe891e2f2897b15dbff993f10c747d6db"
+  },
+  {
+    "path": "backend/app/routers/smtp.py",
+    "sha256": "86ff1e64c88dbcb1434c08139b3f3ab51a5b8a011bc5fcac373fd79a96096421"
+  },
+  {
+    "path": "backend/app/services/notification_outbox.py",
+    "sha256": "5f1bfff3ac052bb0b8f8935beebc15e5641d6e1558e9f8b076ba1a35c17f862d"
+  },
+  {
+    "path": "backend/app/services/smtp_management.py",
+    "sha256": "fa01d28ab70efa9dd673a415738dea8e14474063703312d6f64b6bce5e256d89"
+  },
+  {
+    "path": "backend/app/services/smtp_security.py",
+    "sha256": "b94b5942a9bd87f33386ad152e4842ede116365a5ba552d2a165e12d21e22211"
+  },
+  {
+    "path": "backend/tests/test_smtp_management.py",
+    "sha256": "e0459ada880ca96f7fd1a9a2e063fec0a37806a1bf0f81cda3af17e908616540"
+  },
+  {
+    "path": "frontend/components/SmtpManagement.tsx",
+    "sha256": "4e2d0cc56c607e99000ff69a1eb2108f791d0a6e0e9898ba8573362de93faf5e"
+  },
+  {
+    "path": "frontend/services/mockApi.ts",
+    "sha256": "6c9502aea41ff2a4e7efa1befc5236a96fb9f44dd6d8eed6def335dca03ae3b7"
+  },
+  {
+    "path": "frontend/types/smtp.ts",
+    "sha256": "80d8432a86b2d7ca1064c8504c850cfab8f4d69cccdeec0d736475723e2d8dd5"
+  },
+  {
+    "path": "frontend/utils/smtpProfiles.ts",
+    "sha256": "cbb1c3d04966370731c430ac92410c6fed16cdf5ebb5847ecf4336b11daa92d4"
+  },
+  {
+    "path": "frontend/test/smtp-profiles.test.ts",
+    "sha256": "da43df376a62bc9fb23ef1af949619eb10c97e3108147217578e3a9dacd9a14d"
+  },
+  {
+    "path": "frontend/e2e/smtp-management.mjs",
+    "sha256": "c2d70b260be3c53fecfce66c4dfae9f67f1ee56dd808373fa89875954a2a694d"
+  },
+  {
+    "path": "frontend/hooks/useToast.tsx",
+    "sha256": "605b68e73c9febfa9f9b69a7bdf00ade840963a8f7fd45819b26e29eade4cb0a"
+  },
+  {
+    "path": "backend/tests/test_smtp_refinement.py",
+    "sha256": "8f059a6585b8b9bdc798430c5b8703955617365259e373e6f7c43c37860c73bc"
+  },
+  {
+    "path": "docs/smtp-management/implementation-and-runbook.txt",
+    "sha256": "c489a3ba1969a33b2eb5dd7cfbcbd389e5aba2addb3c8910734bcb9c376d3a8a"
+  }
+]

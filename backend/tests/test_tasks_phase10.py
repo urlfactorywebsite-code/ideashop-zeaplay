@@ -1,4 +1,7 @@
 import uuid
+from cryptography.fernet import Fernet
+from backend.app.config import get_settings
+from backend.app.services import smtp_security
 from datetime import datetime, timedelta
 
 import pytest
@@ -53,6 +56,7 @@ def setup_function():
 
 @pytest.fixture(autouse=True)
 def disable_external_side_effects(monkeypatch):
+    monkeypatch.setattr(get_settings(), "smtp_secret_keys", [Fernet.generate_key().decode()])
     monkeypatch.setattr(tasks_module, "trigger_n8n_event", lambda *args, **kwargs: None)
     monkeypatch.setattr(notification_dispatcher, "trigger_n8n_event", lambda *args, **kwargs: None)
     monkeypatch.setattr(tasks_module, "_schedule_notification_outbox_delivery", lambda *args, **kwargs: None)
@@ -116,7 +120,7 @@ def test_email_retry_failure_does_not_undo_completed_workflow(monkeypatch):
     def flaky_send(**kwargs):
         attempts["count"] += 1
         if attempts["count"] == 1:
-            raise email_utils.EmailDeliveryError("SMTP password secret token leaked from provider")
+            raise email_utils.EmailDeliveryError('temporary_failure', retryable=True)
 
     monkeypatch.setattr(email_utils, "send_notification_email", flaky_send)
 
@@ -170,7 +174,7 @@ def test_delayed_worker_execution_and_duplicate_delivery_are_safe(monkeypatch):
         assert deliveries == [member.email]
 
 
-def test_stale_sending_rows_are_recovered_for_retry(monkeypatch):
+def test_stale_sending_rows_are_held_without_blind_resend(monkeypatch):
     _, owner_token, _, member, task = _workflow_task()
     predecessor = _subtask(task, "Predecessor")
     completed = client.patch(
@@ -189,14 +193,15 @@ def test_stale_sending_rows_are_recovered_for_retry(monkeypatch):
         outbox.updated_at = datetime.utcnow() - timedelta(seconds=notification_outbox.STALE_SENDING_SECONDS + 1)
         db.commit()
 
-        assert notification_outbox._run_due_notification_outbox(db, limit=10) == 1
+        assert notification_outbox._run_due_notification_outbox(db, limit=10) == 0
         recovered = db.get(models.NotificationOutbox, outbox.id)
-        assert recovered.status == models.NotificationOutboxStatusEnum.SENT
-        assert recovered.attempts == 1
-        assert deliveries == [member.email]
+        assert recovered.delivery_state == 'uncertain'
+        assert recovered.next_attempt_at is None
+        assert deliveries == []
 
 
 def test_email_failure_audit_redacts_provider_error_and_recipient(monkeypatch):
+    smtp_tenant = uuid.uuid4()
     captured: list[audit_logger.AuditLogInput] = []
     monkeypatch.setattr(audit_logger, "log_event", lambda entry: captured.append(entry))
 
@@ -209,10 +214,11 @@ def test_email_failure_audit_redacts_provider_error_and_recipient(monkeypatch):
         db.add(
             models.SmtpConfig(
                 id=1,
+                tenant_id=smtp_tenant, notification_types=["task_updates"], is_enabled=True,
                 host="smtp.example.test",
                 port=587,
                 username="mailer@example.test",
-                password="configured-secret",
+                password=smtp_security.encrypt_secret("configured-synthetic"),
                 encryption="tls",
             )
         )
@@ -221,7 +227,7 @@ def test_email_failure_audit_redacts_provider_error_and_recipient(monkeypatch):
         with pytest.raises(email_utils.EmailDeliveryError):
             email_utils.send_notification_email(
                 db=db,
-                notification_type="SUBTASK_ACTIVATED",
+                notification_type="SUBTASK_ACTIVATED", tenant_id=smtp_tenant,
                 to_address="person@example.com",
                 subject="Sensitive project subject",
                 body="Sensitive client details",

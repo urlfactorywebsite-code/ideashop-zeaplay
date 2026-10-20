@@ -18,6 +18,7 @@ from sqlalchemy import (
     Float,
     ForeignKeyConstraint,
     ForeignKey,
+    func,
     Index,
     Integer,
     JSON,
@@ -1262,19 +1263,24 @@ class TimeEntry(Base):
               postgresql_where=text("continued_from_id IS NOT NULL"),
               sqlite_where=text("continued_from_id IS NOT NULL")),
         Index(
-            "uq_time_entries_one_active_per_user",
+            "uq_time_entries_running_task",
             "tenant_id",
             "user_id",
+            "task_id",
             unique=True,
-            postgresql_where=text("stopped_at IS NULL"),
-            sqlite_where=text("stopped_at IS NULL"),
+            postgresql_where=text("stopped_at IS NULL AND task_id IS NOT NULL"),
+            sqlite_where=text("stopped_at IS NULL AND task_id IS NOT NULL"),
         ),
+        Index("uq_time_entries_running_subtask", "tenant_id", "user_id", "subtask_id", unique=True,
+              postgresql_where=text("stopped_at IS NULL AND subtask_id IS NOT NULL"),
+              sqlite_where=text("stopped_at IS NULL AND subtask_id IS NOT NULL")),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     continued_from_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     start_kind: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
     stop_reason: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    finalized_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
@@ -1903,6 +1909,8 @@ class NotificationOutbox(Base):
     )
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     max_attempts: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
+    delivery_state: Mapped[str] = mapped_column(String(20), default="queued", server_default="queued", nullable=False)
+    claim_token: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     next_attempt_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -2153,15 +2161,36 @@ class MessageMention(Base):
     mentioned_user: Mapped["User"] = relationship("User")
 
 
-class SmtpConfig(Base):
+class SmtpProfileFields:
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    provider: Mapped[str] = mapped_column(String(40), default="custom", server_default="custom", nullable=False)
+    priority: Mapped[int] = mapped_column(Integer, default=100, server_default="100", nullable=False)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="false", nullable=False)
+    auth_method: Mapped[str] = mapped_column(String(20), default="password", server_default="password", nullable=False)
+    sender_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    sender_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    reply_to: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    rate_limit_per_minute: Mapped[int] = mapped_column(Integer, default=60, server_default="60", nullable=False)
+    daily_limit: Mapped[int] = mapped_column(Integer, default=1000, server_default="1000", nullable=False)
+    last_test_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_test_ok: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    last_test_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+
+class SmtpConfig(SmtpProfileFields, Base):
     __tablename__ = "smtp_config"
+    __table_args__ = (UniqueConstraint("tenant_id", name="uq_primary_smtp_tenant"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
     host: Mapped[str] = mapped_column(String(255), nullable=False)
     port: Mapped[int] = mapped_column(Integer, nullable=False)
     username: Mapped[str] = mapped_column(String(255), nullable=False)
-    password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    password: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     encryption: Mapped[str] = mapped_column(String(50), default="tls", nullable=False)
+    notification_types: Mapped[List[str]] = mapped_column(JSON, default=lambda: ["general"], nullable=False)
+    name: Mapped[str] = mapped_column(String(120), default="Primary SMTP", server_default="Primary SMTP", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
 
@@ -2233,21 +2262,41 @@ class MultipleApiConfig(Base):
     )
 
 
-class MultipleSmtpConfig(Base):
+class MultipleSmtpConfig(SmtpProfileFields, Base):
     __tablename__ = "multiple_smtp_configs"
+    __table_args__ = (UniqueConstraint("tenant_id", "name", name="uq_smtp_tenant_name"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     host: Mapped[str] = mapped_column(String(255), nullable=False)
     port: Mapped[int] = mapped_column(Integer, nullable=False)
     username: Mapped[str] = mapped_column(String(255), nullable=False)
-    password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    password: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     encryption: Mapped[str] = mapped_column(String(50), default="tls", nullable=False)
     notification_types: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+
+
+Index('uq_smtp_tenant_name_ci', MultipleSmtpConfig.tenant_id, func.lower(MultipleSmtpConfig.name), unique=True)
+
+
+class SmtpDeliveryAttempt(Base):
+    __tablename__ = "smtp_delivery_attempts"
+    __table_args__ = (Index("ix_smtp_attempt_quota", "profile_key", "kind", "started_at"),
+                     Index("ix_smtp_attempt_tenant", "tenant_id", "started_at"))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    profile_key: Mapped[str] = mapped_column(String(60), nullable=False)
+    outbox_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    category: Mapped[str] = mapped_column(String(100), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(30), default="reserved", nullable=False)
+    code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class EmailTemplate(Base):

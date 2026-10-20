@@ -724,7 +724,7 @@ def request_reset_otp(
         db.add(token)
     db.commit()
 
-    smtp_config = resolve_smtp_config(db, "system_alerts")
+    smtp_config = resolve_smtp_config(db, "otp", current_owner.tenant_id)
     if not smtp_config:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -733,7 +733,8 @@ def request_reset_otp(
     try:
         send_notification_email(
             db=db,
-            notification_type="system_alerts",
+            notification_type="otp",
+            tenant_id=current_owner.tenant_id,
             to_address=current_owner.email,
             subject="Vee Task Manager reset OTP",
             body=(
@@ -745,7 +746,7 @@ def request_reset_otp(
     except EmailDeliveryError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to send verification email: {exc}",
+            detail="Verification email could not be accepted by the SMTP server. Check SMTP Management.",
         ) from exc
 
     return {"status": "otp_sent"}

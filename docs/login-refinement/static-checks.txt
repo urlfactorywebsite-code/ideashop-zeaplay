@@ -1,0 +1,4 @@
+Exit: 2
+Diagnostics: 131
+Changed diagnostic lines: 0
+Lint: no configured script

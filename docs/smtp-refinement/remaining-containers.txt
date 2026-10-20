@@ -1,0 +1,5 @@
+ideashop-zeaplay-v5-frontend-1 Up About an hour
+ideashop-zeaplay-v5-backend-1 Up 2 hours
+ideashop-zeaplay-v5-presence-1 Up 2 hours
+ideashop-zeaplay-v5-postgres-1 Up 2 hours
+ideashop-zeaplay-v5-redis-1 Up 2 hours

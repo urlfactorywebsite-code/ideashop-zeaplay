@@ -171,6 +171,7 @@ def emit_ticket_event(
         event_type=event_type,
         payload=payload_data,
     )
+    context['event_id'] = str(uuid.uuid4())
 
     created_notifications = []
     created_webhooks = []
@@ -204,19 +205,15 @@ def emit_ticket_event(
             data=webhook_data,
         )
 
-        if created_notifications or created_webhooks:
+        if recipients:
+            ticket_notifications.send_ticket_emails(
+                db, recipient_ids=recipients, event_type=event_type, context=context,
+            )
+        if created_notifications or created_webhooks or recipients:
             db.commit()
     except Exception:
         db.rollback()
         logger.exception("Failed to enqueue ticket event %s", event_type)
         return
-
-    if recipients:
-        ticket_notifications.send_ticket_emails(
-            db,
-            recipient_ids=recipients,
-            event_type=event_type,
-            context=context,
-        )
 
     # Webhooks are dispatched asynchronously by the background worker.

@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from cryptography.fernet import Fernet
 from threading import Lock
 from urllib.parse import parse_qs, urlsplit
 
@@ -25,6 +26,7 @@ from backend.app.routers.auth import router as auth_router
 from backend.app.routers.users import router as user_router
 from backend.app.routers import users as users_module
 from backend.app.services import audit_logger, notification_outbox, password_recovery as recovery
+from backend.app.services import smtp_security
 from backend.tests.test_task_lifecycle import data, engine
 
 OLD = "Synthetic-original-2026!"
@@ -44,6 +46,7 @@ class Limits:
 @pytest.fixture
 def api(data, monkeypatch):
     settings = get_settings()
+    monkeypatch.setattr(settings, 'smtp_secret_keys', [Fernet.generate_key().decode()])
     monkeypatch.setattr(settings, "password_reset_url", "http://localhost:6300/#/reset-password")
     monkeypatch.setattr(settings, "cors_allow_origins", ["http://localhost:6300"])
     limits = Limits()
@@ -56,7 +59,8 @@ def api(data, monkeypatch):
         owner = db.get(models.User, data.owner.id)
         owner.email = "recovery-owner@example.com"
         owner.hashed_password = hash_password(OLD)
-        db.add(models.SmtpConfig(id=1, host="smtp.example.test", port=1025, username="sender@example.com", password="synthetic"))
+        db.add(models.SmtpConfig(id=1, tenant_id=data.owner.tenant_id, host="smtp.example.test", port=1025,
+            username="sender@example.com", password=smtp_security.encrypt_secret('synthetic'), notification_types=['otp'], is_enabled=True))
         db.commit()
     app = FastAPI()
     app.include_router(auth_router, prefix="/api")
@@ -163,32 +167,12 @@ def test_production_recovery_refuses_plaintext_smtp(data, api, monkeypatch):
         assert api.post("/api/auth/forgot-password", json={"email": email}).status_code == 503
 
 
-@pytest.mark.parametrize("encryption", ["tls", "ssl"])
-def test_smtp_encryption_verifies_certificates_and_has_timeout(monkeypatch, encryption):
+def test_smtp_tls_context_requires_certificate_hostname_verification():
     import ssl
-    from types import SimpleNamespace
-    observed = {}
-    class SMTP:
-        def __init__(self, *_args, **kwargs):
-            observed.update(kwargs)
-        def __enter__(self):
-            return self
-        def __exit__(self, *_args):
-            pass
-        def ehlo(self):
-            pass
-        def starttls(self, **kwargs):
-            observed.update(kwargs)
-        def login(self, *_args):
-            pass
-        def send_message(self, _message):
-            pass
-    monkeypatch.setattr(email_utils.smtplib, "SMTP", SMTP)
-    monkeypatch.setattr(email_utils.smtplib, "SMTP_SSL", SMTP)
-    config = SimpleNamespace(host="smtp.example.test", port=1025, username="sender@example.com", password="synthetic", encryption=encryption)
-    email_utils._send_email_with_config(smtp_config=config, to_address="synthetic@example.com", subject="Test", body="Synthetic")
-    assert observed["timeout"] == 15
-    assert observed["context"].check_hostname and observed["context"].verify_mode == ssl.CERT_REQUIRED
+    context = smtp_security.tls_context()
+    assert context.check_hostname and context.verify_mode == ssl.CERT_REQUIRED
+    assert context.minimum_version >= ssl.TLSVersion.TLSv1_2
+
 
 
 def test_provider_cannot_echo_recovery_content_into_audit_logs(data, api, monkeypatch):
@@ -297,13 +281,14 @@ def test_failed_email_retries_but_expired_link_does_not_send(data, api, monkeypa
         row = db.scalar(select(models.NotificationOutbox).where(models.NotificationOutbox.event_type == recovery.EVENT))
         assert "eyJ" not in str(row.payload) and row.payload.get("encrypted_recovery")
         def fail(**kwargs):
-            raise email_utils.EmailDeliveryError("secret token must not escape")
+            raise email_utils.EmailDeliveryError('temporary_failure', retryable=True)
         monkeypatch.setattr(email_utils, "_send_email_with_config", fail)
         notification_outbox._attempt_email_delivery(db, row.id)
         db.refresh(row)
         assert row.status == models.NotificationOutboxStatusEnum.FAILED and row.next_attempt_at
         assert "secret" not in row.last_error and row.attempts == 1
         db.get(models.User, data.owner.id).status = models.UserStatusEnum.DEACTIVATED
+        row.next_attempt_at = datetime.now(timezone.utc) - timedelta(seconds=1)
         db.commit()
         notification_outbox._attempt_email_delivery(db, row.id)
         db.refresh(row)

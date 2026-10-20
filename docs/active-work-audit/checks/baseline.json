@@ -1,0 +1,16 @@
+{
+  "snapshot": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zeaplay-timer-refinement-7dy7ovwv",
+  "sha256": {
+    "backend/app/services/time_tracking.py": "05bcc4bf9effcc18c95f3ae154434b4e67d5f47db45108c53f936da4caff9135",
+    "backend/app/services/work_history.py": "f5945e8bb8f14000ea05b8b2bd4f8e929044ce56a4a49af7c7559c833dec0664",
+    "backend/app/lifecycle/report.py": "edfb32fd42f9e0ee9bdd04c4eec123571f81930cd0abbc620f577f6727176abb",
+    "backend/app/routers/time_entries.py": "070e9dbb6fc1b29f38b6ff6d7049a43ac1a6e0977fa647fa6411fc0301e2e64b",
+    "backend/app/ws/tasks.py": "886d24d94f5b395c6961b9ac219ff5ea218ae696660eb980caba4f4f436844bd",
+    "frontend/hooks/useActiveWork.tsx": "630c6940d6202c57a004ec559df0048ca9777c5f1fd6567a446f49d69aba30c4",
+    "frontend/components/ActiveWork.tsx": "e53620c4cfceef3c2aae3d3ea23df0a42746644cfbd61a2be0d347ceae16e719",
+    "frontend/utils/activeWork.ts": "82c293e0ff2708012a391b04c3188b6b0d600f706e030d05b15958e477f3c7b8",
+    "frontend/services/mockApi.ts": "a65318566ed9745688f636a09ccf59580b248f1259571b0f141b7c22ad9eca27",
+    "backend/tests/test_active_work.py": "c3bd9e794b9baa19f401712f1dbf06125f04d686d636e64159372e6893e9acfe",
+    "frontend/e2e/active-work.mjs": "0b849d4d49b71ab53a861d652bb64545b8d926798e929e1f3cf7b71861c4726f"
+  }
+}

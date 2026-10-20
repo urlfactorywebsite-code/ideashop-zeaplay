@@ -1,0 +1,108 @@
+SMTP VALIDATION - ACTUAL LOCAL EVIDENCE, 2026-10-19
+
+Environment: Windows PowerShell host, frontend Node/Vite, backend virtualenv Python;
+PostgreSQL 15 and Redis 7 in a separately named disposable Docker project. Tests use
+synthetic tenants, generated keys and a controlled loopback SMTP server/private CA.
+No application database was migrated. No external/provider mail was sent.
+
+PASS - Combined backend regression/integration run
+  backend/venv/Scripts/python.exe -m pytest
+    backend/tests/test_smtp_management.py
+    backend/tests/test_smtp_migration.py
+    backend/tests/test_password_recovery.py
+    backend/tests/test_tasks_phase10.py
+    -q -r s --tb=short --junitxml=docs/smtp-management/backend-results.xml
+  125 passed, 1 skipped, 1160 warnings; 177.75 seconds.
+  The single skip is the PostgreSQL-only credentials migration CLI test on SQLite.
+  Its PostgreSQL parameter passed. The SMTP migration test also executed actual
+  Alembic CLI upgrade/backfill/refused-unsafe-downgrade in a disposable schema.
+  Redis-backed password recovery rate limits passed on SQLite and PostgreSQL fixtures.
+  Warnings are existing SQLAlchemy/Pydantic/datetime deprecations, not hidden failures.
+
+PASS - Additional operator adoption/rotation tests after audit integration
+  pytest backend/tests/test_smtp_management.py::test_legacy_adoption_is_explicit_disabled_and_encrypted
+         backend/tests/test_smtp_management.py::test_operator_rotation_dry_run_then_apply_is_audited -q
+  4 passed, 44 warnings; 8.20 seconds. Dry run preserves ciphertext; apply rotates
+  into the new key, retains decryptability and records a secret-free audit event.
+  The rotation audit counter was renamed because the existing redactor intentionally
+  redacts any key containing credential; redaction policy was not weakened.
+
+PASS - Existing ticket permissions regression
+  pytest backend/tests/test_ticket_tenant_permissions.py -q
+  3 passed, 56 warnings; 17.24 seconds. The added SMTP suite separately verifies
+  ticket-event outbox persistence and foreign-tenant email recipient exclusion.
+
+PASS - Final SMTP suite after all transport/operator/workflow changes
+  pytest backend/tests/test_smtp_management.py -q --tb=short
+    --junitxml=docs/smtp-management/smtp-final-results.xml
+  77 passed, 0 skipped, 506 warnings; 88.98 seconds. Includes actual STARTTLS and
+  implicit TLS, EHLO/auth/sender/recipient rejection, uncertain DATA acceptance,
+  real API->controlled TLS SMTP mail, SSRF/pinned DNS, quota/worker races,
+  audited operator rotation/adoption and durable tenant-scoped ticket email.
+  Evidence: smtp-final-tests.txt and smtp-final-results.xml.
+
+PASS - Frontend unit suite
+  cd frontend; npm test
+  81 passed, 0 failed/skipped; 1.28 seconds. Includes preset/edit-preservation,
+  regional/auth limitations and blank/replacement password payload tests.
+  Evidence: frontend-tests.txt.
+
+PASS - Headless Chrome interaction/layout checks
+  ZEAPLAY_PLAYWRIGHT_MODULE points to the installed @playwright/test/index.mjs.
+  ZEAPLAY_TEST_TAILWIND_PATH points to a temporary copy of the existing dashboard's
+  CDN script, served locally by the test harness. No SMTP request reaches a real API.
+  node frontend/e2e/smtp-management.mjs
+  Six passing groups: empty/no-auto-send; create/edit/secret/double-click/presets;
+  honest connection failure/explicit recipient/enable; queue/metric semantics;
+  cancel/API errors/Owner SMTP tab/layout at 320,390,768,1440; Admin route/Manager denial.
+  No page runtime errors; SMTP bounds fit each viewport and tables scroll internally.
+  Evidence: browser-tests.txt, browser-results.json, ui-*.png.
+  These are intercepted synthetic API tests, not proof of a deployed backend.
+  Separate real controlled SMTP API tests exercise database->TLS->DATA->attempts/health.
+  Nonessential external dashboard images are blocked; broken external icons visible
+  in screenshots are test-harness isolation, not new SMTP asset failures.
+
+PASS - Frontend production build
+  cd frontend; npm run build
+  Vite production build succeeded, 12.06 seconds. Existing >500kB bundle warnings
+  remain (main bundle approximately 2.78MB / 805kB gzip); this SMTP screen adds no
+  heavy library. Docker frontend production build also succeeded.
+  Evidence: build.txt, frontend-image-build.txt.
+
+PASS - Backend and frontend Linux container image builds
+  docker build -t zeaplay-smtp-audit-backend:local backend
+  docker build -t zeaplay-smtp-audit-frontend:local frontend
+  Evidence: backend-image-build.txt, frontend-image-build.txt, image-ids.txt.
+  A network-disabled ephemeral backend image run verified SMTP route imports,
+  required certificate/hostname verification and fail-closed missing encryption keys.
+  Evidence: linux-image-smoke.txt. This is not a Linux full-suite/load test or VPS proof.
+
+FAIL (PRE-EXISTING) - Whole frontend TypeScript check
+  cd frontend; npx tsc --noEmit
+  Exit 2; 131 errors before and after SMTP work. No new SMTP file diagnostics.
+  Per-file/error-code counts are unchanged. Raw differences are moved source line
+  numbers and ordering of union members in three existing Settings diagnostics.
+  Existing errors include Ballpit, AvatarCropModal, task/seed types and Settings.
+  They were not suppressed or changed as part of SMTP-only work.
+  Evidence: typescript-baseline.txt, typescript.txt, typecheck-summary.json,
+  typescript-comparison.json. Production acceptance cannot be called wholly green.
+
+UNAVAILABLE - Frontend lint
+  No lint script or configured lint tool exists in frontend/package.json.
+  No lint PASS is claimed. Changed Python files passed AST syntax parsing;
+  scoped tracked git diff --check passed. Evidence: static-checks.txt.
+
+Performance improvements verified in implementation/tests:
+  Indexed SQL aggregation replaces missing/unbounded application-side history reads;
+  consistent tenant snapshot, bounded log/queue responses, separate quota reservation
+  transactions, concurrent claim/limit tests, visible-page polling and abort/interval
+  cleanup. No load-test throughput, long-run memory profile or provider latency SLO
+  was measured. Attempt retention/archiving remains an operator decision.
+
+Remaining release gates:
+  Reconcile the actual application's missing Alembic baseline; rehearse backup/restore;
+  provision private keyring; approve legacy tenant mappings and sender/OTP profiles;
+  deploy coordinated backend/UI with delivery disabled until queue review; explicitly
+  approve any real provider test recipient; verify actual provider authentication and
+  egress policy. SMTP OAuth/inbox confirmation are not implemented. Unowned legacy
+  plaintext is not magically encrypted by schema migration. See implementation-and-runbook.txt.

@@ -1,0 +1,62 @@
+SMTP MANAGEMENT BASELINE - 2026-10-19
+
+Scope: F:/Projects/ideashop-zeaplay-v5, React/Vite/TypeScript frontend;
+FastAPI/Pydantic/SQLAlchemy backend; PostgreSQL; Alembic; Python smtplib.
+No screenshot was attached to this turn. Repository behavior is authoritative.
+
+Relevant files
+frontend/pages/ApiOverview.tsx - SMTP tab button exists; no SMTP content branch.
+frontend/pages/Settings.tsx - unused SMTP constants/form initializer remain.
+frontend/services/mockApi.ts - primary and multiple-profile API adapters.
+frontend/types.ts - SMTP response/input shapes.
+backend/app/routers/config.py - primary/multiple SMTP CRUD and direct test email.
+backend/app/models.py, schemas.py - SMTP profiles, templates, notification outbox.
+backend/app/email_utils.py - category selection and direct SMTP transport.
+backend/app/services/notification_outbox.py - existing durable database queue/worker.
+backend/app/services/password_recovery.py - encrypted recovery body and mail preflight.
+backend/app/emails/smtp.py - ticket email templates and delivery wrapper.
+backend/app/notifications/service.py - ticket recipients and delivery dispatch.
+backend/app/routers/users.py - welcome email dispatch.
+backend/app/routers/data_admin.py - system-reset OTP delivery.
+backend/tests/test_tasks_phase10.py, test_password_recovery.py - existing mail checks.
+
+Confirmed problems (source evidence)
+1. SmtpConfigRead inherits password from SmtpConfigBase; MultipleSmtpConfigRead
+   likewise inherits password. Both database columns are ordinary String(255).
+   Stored SMTP credentials can be returned to browser clients in plaintext.
+2. config.py uses get_current_admin (Owner/Admin/Manager) and unscoped db.get/all
+   for profiles. Neither SMTP table carries tenant ownership.
+3. email_utils.resolve_smtp_config sorts category matches by updated_at, not
+   priority; falls back to global id=1; no enabled/quota/tenant checks.
+4. smtplib connects directly to arbitrary stored host/port. No IP policy, DNS
+   validation or pinned connection exists. TLS verification and 15s timeout ARE
+   already present and should be retained.
+5. Test-email endpoint echoes raw exceptions. Provider errors can contain secrets,
+   message bodies and unsafe line breaks. No stored connection-test freshness.
+6. NotificationOutbox already provides durable jobs, unique dedupe keys, attempts,
+   conditional claims and a 30s polling thread. It MUST be extended, not replaced.
+   Existing FAILED mixes retryable and terminal states. Stale SENDING becomes
+   retryable automatically, even when SMTP acceptance could have occurred.
+   Claim predicate does not recheck due time/attempt limit. No provider attempts,
+   per-profile quota accounting or consistent health/queue aggregation exists.
+7. Screenshot metrics cannot be reconciled to this source: no health endpoint or
+   provider delivery statistics implementation was found.
+8. Direct welcome/ticket/system-OTP callers coexist with the outbox; tenant context
+   and safe routing must be propagated through every SMTP delivery entry point.
+
+Implementation plan
+Preserve existing endpoint paths, templates, native SMTP and database outbox.
+Add explicit tenant ownership, profile metadata, encrypted credential replacement,
+keyring rotation and a safe legacy-adoption command. Quarantine unowned legacy
+profiles; never infer ownership or expose them to arbitrary tenant administrators.
+Use exact server-side destination exceptions, DNS validation, pinned socket peers,
+verified STARTTLS/implicit TLS and safe typed errors. No new OAuth flow: disclose
+unsupported Microsoft SMTP OAuth rather than pretending password auth is universal.
+Add deterministic category/priority selection, atomic attempt reservations/quotas,
+connection-test records and retained attempt outcomes. Distinguish retries, terminal
+failures and uncertain acceptance; never automatically resend ambiguous attempts.
+Add an SMTP-only component to the existing API Management tab, preserving OAuth.
+Verify synthetic tenant CRUD, secret handling, routing, concurrency and transport
+against disposable databases and a loopback controlled SMTP server, never external
+mailboxes. Build and typecheck frontend; compare preexisting diagnostics. Document
+safe migration, key rotation, deployment and forward-fix/rollback constraints.

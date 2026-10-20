@@ -18,6 +18,7 @@ import {
 } from '../components/icons';
 import MultiSelect from '../components/ui/MultiSelect';
 import api from '../services/mockApi';
+import SmtpManagement from '../components/SmtpManagement';
 import type { WebhookSubscription, WebhookTestResult } from '../types';
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -2194,6 +2195,7 @@ const ApiOverview: React.FC = () => {
                 </header>
 
                 {/* Overview Tab */}
+                {activeTab === 'smtp' && <SmtpManagement />}
                 {activeTab === 'overview' && (
                     <>
                         <section className="grid grid-cols-1 md:grid-cols-4 gap-6">

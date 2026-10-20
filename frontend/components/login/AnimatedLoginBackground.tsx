@@ -6,16 +6,18 @@ import login3 from '../../images/favicon/login3.png';
 
 const scenes = [login3, login1, login2];
 
-const AnimatedLoginBackground = memo(function AnimatedLoginBackground() {
+const AnimatedLoginBackground = memo(function AnimatedLoginBackground({ reducedMotion = false }: { reducedMotion?: boolean }) {
     const container = useRef<HTMLDivElement>(null);
     const [ready, setReady] = useState(false);
     useEffect(() => {
         let mounted = true;
+        setReady(false);
         const decodeScenes = async () => {
             const images = container.current?.querySelectorAll<HTMLImageElement>('.login-scene');
             if (!images) return;
             for (const image of images) {
                 if (!mounted) return;
+                if (reducedMotion && image !== images[0]) continue;
                 await image.decode();
             }
             if (mounted) setReady(true);
@@ -23,12 +25,12 @@ const AnimatedLoginBackground = memo(function AnimatedLoginBackground() {
         // Keep the first scene static if another image is slow or unavailable.
         void decodeScenes().catch(() => undefined);
         return () => { mounted = false; };
-    }, []);
+    }, [reducedMotion]);
 
     return (
         <div className="login-environment" aria-hidden="true" data-ready={ready} ref={container}>
             <div className="login-scenes">
-                {scenes.map((src, index) => <img key={src} src={src} alt="" className={`login-scene login-scene-${index + 1}`}
+                {scenes.map((src, index) => <img key={src} src={reducedMotion && index > 0 ? undefined : src} alt="" className={`login-scene login-scene-${index + 1}`}
                     decoding="async" fetchPriority={index === 0 ? 'high' : 'low'} draggable={false} />)}
             </div>
             <div className="login-vignette" />

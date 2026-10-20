@@ -1,0 +1,2 @@
+[zeaplay-smtp-refinement-backend:local] sha256:78623710fba2dee2804bd45139d378195dad15afb66de7bf684da9362ecbc575
+[zeaplay-smtp-refinement-frontend:local] sha256:0bac7e8cace307c65a4e3aa6472734b026457ef3d745fbefe714a1c5d1f78ffc

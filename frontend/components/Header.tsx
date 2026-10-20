@@ -30,6 +30,7 @@ import GlobalProgressBar from './loading/GlobalProgressBar';
 
 // ✅ NEW IMPORT
 import ClockButton from './ClockAssistant/ClockButton';
+import ActiveWork from './ActiveWork';
 
 const notificationIconMap: Record<NotificationType, React.FC<React.SVGProps<SVGSVGElement>>> = {
   [NotificationType.TASK_CREATED]: BellIcon,
@@ -348,7 +349,7 @@ const themePresentation = {
   },
 };
 
-const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick }) => {
+const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick, onOpenWork = onNotificationClick }) => {
   const { user, logout } = useAuth();
   const { searchQuery, setSearchQuery } = useSearch();
   const { theme, setTheme } = useTheme();
@@ -577,8 +578,9 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
             <img
               src="https://storage.googleapis.com/msgsndr/bsexF0htDBOfNeCh7844/media/6971f5bb4a646444cb4b5be4.png"
               alt="Zea.Play"
-              className="h-12 w-auto scale-110 origin-left object-contain"
+              className="h-10 max-w-[25vw] w-auto origin-left object-contain"
             />
+            <ActiveWork onOpenTask={onOpenWork} />
             <button
               type="button"
               ref={mobileMenuButtonRef}
@@ -826,6 +828,7 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
 
       {/* RIGHT: TIME + DROPDOWNS */}
       <div className="flex items-center gap-3 lg:gap-4">
+        <ActiveWork onOpenTask={onOpenWork} />
         {/* ⏰ Time, Country & Smart Clock Assistant */}
         <div className="flex items-center gap-3">
           <div className="zea-header-time-pill rounded-full px-3 py-1.5 font-mono text-sm tracking-[0.2em]">

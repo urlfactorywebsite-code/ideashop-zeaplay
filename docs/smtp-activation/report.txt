@@ -1,0 +1,90 @@
+SMTP PROFILE VISIBILITY FIX - LOCAL APPLICATION - 2026-10-19
+
+Root cause
+The browser used the new SMTP component against the older running backend.
+The older backend exposed profile CRUD but lacked health, queue and attempt routes.
+Promise.all rejected on their 404 response, so the saved profile was not rendered.
+The profile was not lost. Metadata inspection found one saved "Global smtp" profile
+and a single tenant in this local database. No password values were displayed.
+
+Completed
+1. Added a guarded PostgreSQL legacy installer reusing the existing Alembic revision
+   ff7a8b9c0d1e through Alembic Operations in a transaction. It checks the expected
+   legacy tables, refuses partial/versioned layouts, verifies installed indexes and
+   requires bootstrap=false. It does not stamp or assert a global Alembic baseline.
+2. Rehearsed upgrade, idempotence, data preservation and rejection guards using only
+   synthetic credentials in disposable PostgreSQL schemas: 5 tests passed, including
+   the existing real Alembic CLI migration test.
+3. Stopped the old local backend and created a private full PostgreSQL custom-format
+   backup outside the repository. Validated its 655 archive catalog entries and
+   recorded a checksum. This was archive validation, not a full restore rehearsal.
+4. Generated a dedicated Fernet keyring in .env.smtp.local, excluded by Git and
+   protected with a current-user/SYSTEM file ACL. Values were never printed.
+   The backend loads this optional private file through local Compose.
+5. Applied only the reviewed SMTP revision to the verified legacy SMTP/outbox tables.
+   No unrelated historical migrations or global version stamping were performed.
+6. Explicitly adopted profile 4078a9b3-0c7d-4344-9686-d1d03df341fc into the sole local
+   tenant 2f3a9c0e-9ce4-507f-8d87-a7c211616a1c, encrypted its existing credential,
+   and preserved its host, port, TLS selection, name and categories.
+7. Rebuilt/recreated the local backend and frontend. All three other application
+   services were retained. Improved the frontend's missing-management-API message
+   so future backend version mismatches do not appear merely as "Not Found".
+
+Actual running-application verification
+Authenticated read-only HTTP checks used a one-minute token created inside the local
+backend; no token or signing key was printed or persisted. All these endpoints returned
+HTTP 200 and Cache-Control: no-store:
+  /api/config/smtp/multiple - one profile, Global smtp, encrypted credential flag;
+                            no password field; currently disabled.
+  /api/config/smtp/health   - profiles=1, enabled=0, accepted=0.
+  /api/config/smtp/queue    - four existing terminal failed jobs, none requeued.
+  /api/config/smtp/attempts - zero attempts; no external mail/connection tests performed.
+Frontend http://localhost:6300 returned 200; both application containers are running.
+Evidence: running-api-checks.json, container-build.txt, backend-final-build.txt.
+
+Validation
+Migration/guard tests: 5 passed (migration-tests.txt).
+Frontend unit tests: 82 passed (frontend-tests.txt).
+Frontend/backend container production builds: passed.
+Ruff critical-error checks on installer/tests: passed.
+This task did not rerun the full earlier SMTP suite or fix its pre-existing global
+TypeScript/lint-configuration limitations. No provider authentication success or
+inbox delivery is claimed.
+
+Files changed in this task
+  backend/app/services/smtp_install.py (new guarded maintenance CLI)
+  backend/tests/test_smtp_legacy_install.py (new)
+  docker-compose.yml (optional private SMTP env file)
+  frontend/services/mockApi.ts (clear backend/schema mismatch message)
+  docs/smtp-management/implementation-and-runbook.txt (activation cross-reference)
+  docs/smtp-activation/* (this report and non-secret evidence)
+Private .env.smtp.local was created but remains ignored, not source controlled.
+Private backup location and checksum are recorded separately; do not publish backups.
+
+Current operational state
+The profile is visible and remains disabled deliberately. SMTP delivery is available
+for explicit administrator actions, but no routing profile is enabled. The four old
+failed jobs remain terminal. Enabling this profile later permits normal email sending
+under its categories/quotas; do not enable it merely to test page visibility.
+No SMTP settings were guessed or changed: saved port=465, encryption=tls (STARTTLS).
+Review the provider's required security mode before connecting; implicit TLS is a
+separate selection in the form. No provider connection/password verification was done.
+
+Maintenance / rollback
+Preserve .env.smtp.local securely: losing its keyring makes the adopted password
+unreadable. Do not commit it, print Compose's resolved environment, or copy it into
+frontend runtime/build configuration. Production deployment uses its own secret store.
+
+The local database still has NO global Alembic baseline. SMTP ff7a8b9c0d1e is already
+installed; the guarded CLI reports already_compatible on repeat. Do not stamp head
+or blindly rerun historical migrations. Future global baseline reconciliation must
+account for this already-applied feature revision. Versioned deployments must use
+the normal Alembic path, not this legacy-only installer.
+
+Prefer a compatible forward fix with delivery disabled during investigation. Never
+run the old global/plaintext SMTP backend against the adopted encrypted rows.
+The former backend's image ID was recorded, but Docker could no longer resolve that
+image after rebuilding, so it is NOT a verified rollback image. For a full restore,
+quiesce workers and use the private database backup with a compatible application;
+reconcile any accepted/uncertain mail since the backup before allowing replay.
+No production/VPS database or service was changed by this local activation.

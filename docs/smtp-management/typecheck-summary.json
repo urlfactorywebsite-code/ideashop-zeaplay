@@ -1,0 +1,11 @@
+{
+    "new_smtp_diagnostics":  [
+
+                             ],
+    "after_errors":  131,
+    "note":  "Raw comparison differs in three pre-existing Settings union-member orderings and source line offsets only.",
+    "before_errors":  131,
+    "file_and_error_code_count_changes":  [
+
+                                          ]
+}

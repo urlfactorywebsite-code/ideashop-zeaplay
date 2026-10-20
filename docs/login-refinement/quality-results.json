@@ -1,22 +1,28 @@
 {
   "results": [
+    "PASS: sampled desktop/4x-CPU mobile p95 frame interval <34ms, no long tasks",
     "PASS: exact border centerline/radius at three sizes; all sampled points stay on the perimeter",
+    "PASS: smoke fades to transparency at the cycle seam; feathered mask without blur filter",
     "PASS: every login control has a 44px target; effects hidden from accessibility tree and input events",
+    "PASS: sampled essential text/input/placeholder contrast >=4.5:1 on all three scenes at desktop/mobile sizes",
     "PASS: typing does not mutate the memoized background/effect DOM",
-    "PASS: eight SPA unmount/remount cycles; heap/listener/node counts recorded after GC",
-    "PASS: reduced motion leaves no running descendant animations"
+    "PASS: visibility listener pauses hidden-page effects and restores the visible state",
+    "PASS: system reduced-motion change cancels an in-flight CSS ripple",
+    "PASS: sixteen SPA mount cycles; listener count stable and second-batch post-GC heap growth <1MiB",
+    "PASS: reduced motion leaves no running descendant animations",
+    "PASS: initial reduced motion fetches only the static scene; enabling motion loads the other two"
   ],
   "measurements": {
     "desktop": {
       "frames": 217,
       "medianMs": 16.699999999999818,
-      "p95Ms": 16.899999999999636,
+      "p95Ms": 16.899999999999864,
       "gapsOver34ms": 0,
       "longTasks": 0,
-      "heapMiB": 16.567626953125,
-      "taskSeconds": 0.586478,
+      "heapMiB": 16.572322845458984,
+      "taskSeconds": 0.43427799999999994,
       "layouts": 0,
-      "styleRecalculations": 219,
+      "styleRecalculations": 218,
       "elements": 125,
       "viewport": {
         "width": 1440,
@@ -30,8 +36,8 @@
       "p95Ms": 16.800000000000182,
       "gapsOver34ms": 0,
       "longTasks": 0,
-      "heapMiB": 16.611583709716797,
-      "taskSeconds": 2.0977889999999997,
+      "heapMiB": 16.613277435302734,
+      "taskSeconds": 1.750347,
       "layouts": 0,
       "styleRecalculations": 219,
       "elements": 125,
@@ -97,6 +103,15 @@
         "pathTransform": "none"
       }
     ],
+    "smokeLoop": {
+      "samples": [
+        0,
+        0.81875,
+        0.00222222
+      ],
+      "mask": "radial-gradient(rgb(0, 0, 0) 25%, rgba(0, 0, 0, 0) 72%)",
+      "filter": "none"
+    },
     "touchTargets": [
       {
         "name": "Enable interaction sound",
@@ -134,14 +149,390 @@
         "height": 56
       }
     ],
+    "contrast": [
+      {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scene": 1,
+        "ratios": [
+          {
+            "name": ".login-eyebrow",
+            "minimumRatio": 10.329612166446829
+          },
+          {
+            "name": "#login-title",
+            "minimumRatio": 13.47752774453968
+          },
+          {
+            "name": "#login-title span",
+            "minimumRatio": 11.152250872608112
+          },
+          {
+            "name": ".login-welcome",
+            "minimumRatio": 7.621814515378761
+          },
+          {
+            "name": "label[for=\"email-address\"]",
+            "minimumRatio": 13.78129333785049
+          },
+          {
+            "name": "label[for=\"password\"]",
+            "minimumRatio": 15.066957471981148
+          },
+          {
+            "name": ".login-forgot",
+            "minimumRatio": 11.909953121730135
+          },
+          {
+            "name": ".login-card-signoff",
+            "minimumRatio": 6.90359354200263
+          },
+          {
+            "name": ".login-submit > span:not([aria-hidden])",
+            "minimumRatio": 8.61124444358288
+          },
+          {
+            "name": "#email-address text",
+            "minimumRatio": 16.047159649911766
+          },
+          {
+            "name": "#email-address placeholder",
+            "minimumRatio": 8.15929925845095
+          },
+          {
+            "name": "#password text",
+            "minimumRatio": 15.700732348678319
+          },
+          {
+            "name": "#password placeholder",
+            "minimumRatio": 7.983155686396641
+          }
+        ]
+      },
+      {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scene": 2,
+        "ratios": [
+          {
+            "name": ".login-eyebrow",
+            "minimumRatio": 10.599781081857762
+          },
+          {
+            "name": "#login-title",
+            "minimumRatio": 13.673632935827898
+          },
+          {
+            "name": "#login-title span",
+            "minimumRatio": 11.196251115491446
+          },
+          {
+            "name": ".login-welcome",
+            "minimumRatio": 7.672987017547321
+          },
+          {
+            "name": "label[for=\"email-address\"]",
+            "minimumRatio": 13.938334311091474
+          },
+          {
+            "name": "label[for=\"password\"]",
+            "minimumRatio": 15.228989704871351
+          },
+          {
+            "name": ".login-forgot",
+            "minimumRatio": 12.110124525274959
+          },
+          {
+            "name": ".login-card-signoff",
+            "minimumRatio": 7.0760504943341385
+          },
+          {
+            "name": ".login-submit > span:not([aria-hidden])",
+            "minimumRatio": 8.61124444358288
+          },
+          {
+            "name": "#email-address text",
+            "minimumRatio": 16.065526233532015
+          },
+          {
+            "name": "#email-address placeholder",
+            "minimumRatio": 8.16863788630674
+          },
+          {
+            "name": "#password text",
+            "minimumRatio": 15.73574004104851
+          },
+          {
+            "name": "#password placeholder",
+            "minimumRatio": 8.000955611406907
+          }
+        ]
+      },
+      {
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "scene": 3,
+        "ratios": [
+          {
+            "name": ".login-eyebrow",
+            "minimumRatio": 10.470558954949544
+          },
+          {
+            "name": "#login-title",
+            "minimumRatio": 13.805238054560942
+          },
+          {
+            "name": "#login-title span",
+            "minimumRatio": 11.162357327981562
+          },
+          {
+            "name": ".login-welcome",
+            "minimumRatio": 7.552830380408146
+          },
+          {
+            "name": "label[for=\"email-address\"]",
+            "minimumRatio": 13.78129333785049
+          },
+          {
+            "name": "label[for=\"password\"]",
+            "minimumRatio": 15.19567350385306
+          },
+          {
+            "name": ".login-forgot",
+            "minimumRatio": 11.867375235458663
+          },
+          {
+            "name": ".login-card-signoff",
+            "minimumRatio": 6.788402264474717
+          },
+          {
+            "name": ".login-submit > span:not([aria-hidden])",
+            "minimumRatio": 8.61124444358288
+          },
+          {
+            "name": "#email-address text",
+            "minimumRatio": 16.065526233532015
+          },
+          {
+            "name": "#email-address placeholder",
+            "minimumRatio": 8.16863788630674
+          },
+          {
+            "name": "#password text",
+            "minimumRatio": 15.73574004104851
+          },
+          {
+            "name": "#password placeholder",
+            "minimumRatio": 8.000955611406907
+          }
+        ]
+      },
+      {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scene": 1,
+        "ratios": [
+          {
+            "name": ".login-eyebrow",
+            "minimumRatio": 9.869750240324162
+          },
+          {
+            "name": "#login-title",
+            "minimumRatio": 11.520908554835183
+          },
+          {
+            "name": "#login-title span",
+            "minimumRatio": 11.038246576170224
+          },
+          {
+            "name": ".login-welcome",
+            "minimumRatio": 6.295895447182934
+          },
+          {
+            "name": "label[for=\"email-address\"]",
+            "minimumRatio": 13.725685018306983
+          },
+          {
+            "name": "label[for=\"password\"]",
+            "minimumRatio": 13.833725787290106
+          },
+          {
+            "name": ".login-forgot",
+            "minimumRatio": 11.76983797426204
+          },
+          {
+            "name": ".login-card-signoff",
+            "minimumRatio": 6.479717997350845
+          },
+          {
+            "name": ".login-submit > span:not([aria-hidden])",
+            "minimumRatio": 8.517731474228075
+          },
+          {
+            "name": "#email-address text",
+            "minimumRatio": 16.200363082022918
+          },
+          {
+            "name": "#email-address placeholder",
+            "minimumRatio": 8.237196698078126
+          },
+          {
+            "name": "#password text",
+            "minimumRatio": 15.87335313051665
+          },
+          {
+            "name": "#password placeholder",
+            "minimumRatio": 8.070926023825448
+          }
+        ]
+      },
+      {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scene": 2,
+        "ratios": [
+          {
+            "name": ".login-eyebrow",
+            "minimumRatio": 10.330751476928123
+          },
+          {
+            "name": "#login-title",
+            "minimumRatio": 13.318145352684134
+          },
+          {
+            "name": "#login-title span",
+            "minimumRatio": 11.169299256250326
+          },
+          {
+            "name": ".login-welcome",
+            "minimumRatio": 7.545650510390651
+          },
+          {
+            "name": "label[for=\"email-address\"]",
+            "minimumRatio": 13.906116622050659
+          },
+          {
+            "name": "label[for=\"password\"]",
+            "minimumRatio": 15.099940923060418
+          },
+          {
+            "name": ".login-forgot",
+            "minimumRatio": 11.899785458826475
+          },
+          {
+            "name": ".login-card-signoff",
+            "minimumRatio": 6.776286000678317
+          },
+          {
+            "name": ".login-submit > span:not([aria-hidden])",
+            "minimumRatio": 8.517731474228075
+          },
+          {
+            "name": "#email-address text",
+            "minimumRatio": 16.200363082022918
+          },
+          {
+            "name": "#email-address placeholder",
+            "minimumRatio": 8.237196698078126
+          },
+          {
+            "name": "#password text",
+            "minimumRatio": 16.00916270890832
+          },
+          {
+            "name": "#password placeholder",
+            "minimumRatio": 8.139979427445558
+          }
+        ]
+      },
+      {
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "scene": 3,
+        "ratios": [
+          {
+            "name": ".login-eyebrow",
+            "minimumRatio": 9.781776008985515
+          },
+          {
+            "name": "#login-title",
+            "minimumRatio": 11.140622717814447
+          },
+          {
+            "name": "#login-title span",
+            "minimumRatio": 11.152250872608112
+          },
+          {
+            "name": ".login-welcome",
+            "minimumRatio": 7.420087995376566
+          },
+          {
+            "name": "label[for=\"email-address\"]",
+            "minimumRatio": 13.63731907307318
+          },
+          {
+            "name": "label[for=\"password\"]",
+            "minimumRatio": 15.066957471981148
+          },
+          {
+            "name": ".login-forgot",
+            "minimumRatio": 11.885193828860693
+          },
+          {
+            "name": ".login-card-signoff",
+            "minimumRatio": 6.674000173026102
+          },
+          {
+            "name": ".login-submit > span:not([aria-hidden])",
+            "minimumRatio": 8.517731474228075
+          },
+          {
+            "name": "#email-address text",
+            "minimumRatio": 16.200363082022918
+          },
+          {
+            "name": "#email-address placeholder",
+            "minimumRatio": 8.237196698078126
+          },
+          {
+            "name": "#password text",
+            "minimumRatio": 15.892237567334508
+          },
+          {
+            "name": "#password placeholder",
+            "minimumRatio": 8.080527958042204
+          }
+        ]
+      }
+    ],
     "mountCycles": {
-      "count": 8,
-      "beforeHeapMiB": 17.789134979248047,
-      "afterHeapMiB": 18.181503295898438,
-      "beforeListeners": 213,
-      "afterListeners": 226,
-      "beforeNodes": 276,
-      "afterNodes": 430
+      "beforeHeapMiB": 17.895519256591797,
+      "batches": [
+        {
+          "mounts": 8,
+          "heapMiB": 18.137569427490234,
+          "listeners": 230,
+          "nodes": 458
+        },
+        {
+          "mounts": 16,
+          "heapMiB": 18.36288833618164,
+          "listeners": 230,
+          "nodes": 458
+        }
+      ]
     }
   },
   "scope": "Headless Chrome on this Windows host; emulated viewport/CPU, not physical mobile hardware. APIs/CDNs intercepted. Heap is JS-only; not GPU/process memory."

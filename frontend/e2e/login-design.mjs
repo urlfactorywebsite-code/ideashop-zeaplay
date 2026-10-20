@@ -7,7 +7,7 @@ if (!modulePath) throw new Error('Set ZEAPLAY_PLAYWRIGHT_MODULE to an installed 
 const base = process.env.ZEAPLAY_LOGIN_TEST_URL || 'http://127.0.0.1:6302';
 if (!['127.0.0.1', 'localhost'].includes(new URL(base).hostname)) throw new Error('Loopback only');
 const { chromium, expect } = await import(pathToFileURL(modulePath).href);
-const output = new URL('../../docs/login-phase2/checks/', import.meta.url);
+const output = new URL(process.env.ZEAPLAY_LOGIN_CHECKS_PATH || '../../docs/login-phase2/checks/', import.meta.url);
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const results = [];
@@ -189,9 +189,11 @@ try {
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     assert.equal(submissions.length, 0);
     await page.getByRole('button', { name: 'Show password', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Hide password', exact: true })).toHaveAttribute('aria-pressed', 'true');
     assert.equal(await page.locator('#password').getAttribute('type'), 'text');
     assert.equal(await page.locator('#password').inputValue(), 'synthetic-password');
     await page.getByRole('button', { name: 'Hide password', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Show password', exact: true })).toHaveAttribute('aria-pressed', 'false');
     assert.equal(await page.locator('#password').getAttribute('type'), 'password');
     await page.locator('#email-address').focus();
     await page.keyboard.press('Tab');

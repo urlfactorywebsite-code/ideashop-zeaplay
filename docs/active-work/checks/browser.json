@@ -1,0 +1,19 @@
+{
+  "passed": [
+    "three starts and cross-tab invalidation",
+    "elapsed display uses a local clock without per-second requests",
+    "offline controls preserve running sessions and recover online",
+    "capacity error, independent pause and resume",
+    "refresh recovery",
+    "socket reconnect triggers backend reconciliation",
+    "stop synchronization and chronological history",
+    "mobile drawer and reduced motion",
+    "mismatched tenant responses clear private state",
+    "revoked account access clears previously loaded work",
+    "unmount closes shared sockets"
+  ],
+  "errors": [],
+  "activeConnections": 0,
+  "requests": 57,
+  "note": "Mocked API/WebSocket component integration; database and real transport tested separately."
+}

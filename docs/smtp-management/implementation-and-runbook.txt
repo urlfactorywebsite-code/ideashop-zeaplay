@@ -1,0 +1,306 @@
+ZEA.PLAY SMTP MANAGEMENT - IMPLEMENTATION AND OPERATOR RUNBOOK
+Workspace: F:/Projects/ideashop-zeaplay-v5
+Date: 2026-10-19
+
+Follow-up production refinement: ../smtp-refinement/report.txt contains the latest
+regression fixes, validation results and file inventory. Quota-only waits now defer
+to reset without consuming delivery attempts; the queue policy below reflects this.
+Subsequent LOCAL activation to fix the missing saved profile is recorded in
+../smtp-activation/report.txt. Its guarded SMTP-only legacy upgrade does not establish
+a global Alembic baseline. Production deployments still require their own baseline review.
+
+STATUS AND EVIDENCE BOUNDARY
+Source implementation, synthetic API/database/SMTP tests and local production
+builds are provided. This is not a claim that a deployed provider or mailbox has
+been validated. No external test email was sent. No application database migration,
+credential adoption, key installation or application-container replacement was run.
+The running legacy application still requires the activation procedure below.
+See validation-results.txt for actual final commands/results and limitations.
+
+1. ARCHITECTURE AND CONFIRMED ROOT CAUSES
+The baseline investigation was written before implementation to architecture-before.txt.
+Stack: React/Vite/TypeScript, FastAPI/Pydantic, SQLAlchemy/PostgreSQL, Alembic,
+Python smtplib and the existing persistent notification_outbox polling worker.
+There is no new mail queue technology or SMTP OAuth integration.
+
+The actual checked-out API Management page had an SMTP tab button without a
+rendering branch. Its health cards and screenshot totals could not be traced to
+this source: no health aggregation API or provider attempt ledger existed.
+Therefore the screenshot's historic 9/7 counts cannot honestly be reconciled.
+The new implementation starts evidence-based provider accounting at migration.
+
+Both SMTP read schemas inherited password fields; credentials were stored in
+ordinary VARCHAR columns. Routes were global and included Manager permission.
+Selection used update time and a global primary fallback, without enabled status,
+tenant ownership, priority, quotas or connection-test freshness. Arbitrary outbound
+SMTP hosts lacked SSRF checks. The old test endpoint returned raw provider errors.
+TLS certificate verification and socket timeouts already existed and were retained.
+Queue claims omitted due/max-attempt rechecks; stale sending jobs were resent even
+when acceptance might already have happened. FAILED mixed retryable/terminal jobs.
+
+2. EXACT FILE INVENTORY
+files-modified.txt lists every SMTP source/configuration/test file changed or added.
+Evidence and documentation artifacts are under docs/smtp-management/; artifacts.txt
+lists them. Existing login-refinement work was preserved and is outside this inventory.
+No commit, broad reset, database stamp or cleanup of unrelated changes was performed.
+
+3. API CONTRACT AND UI
+Existing /api/config/smtp and /api/config/smtp/multiple CRUD/test paths remain.
+Read responses intentionally remove password: this security correction overrides
+backward compatibility with clients that previously consumed stored credentials.
+Primary GET returns an unconfigured non-secret template when no owned primary exists;
+it does not create a global profile. Owned primary IDs use primary:<integer> in the
+unified list and profile operations. Multiple profile IDs retain their existing IDs.
+
+Additional SMTP-only capabilities:
+GET /api/config/smtp/multiple/{id}
+POST /api/config/smtp/multiple/{id}/connection
+GET /api/config/smtp/health?hours=24 (1..168)
+GET /api/config/smtp/attempts?limit=50 (maximum 100)
+GET /api/config/smtp/queue?state=all&offset=0&limit=50 (maximum 100)
+POST /api/config/smtp/queue/retry with explicit ids (maximum 100)
+Enable/disable uses the existing PATCH operation. Explicit test mail uses the
+existing POST /multiple/{id}/test and requires to_address. There is no automatic
+SMTP test, network send or stored credential retrieval on page load.
+
+Only authenticated active tenant Owners/Admins can manage SMTP. Managers and Users
+are rejected. Every profile, queue, attempt, test and metric lookup is tenant scoped.
+Unknown/foreign profile IDs return 404. Client-supplied ownership fields are rejected.
+Owner entry: API Management > SMTP. Admin entry: SMTP navigation at /#/api/smtp.
+The existing Owner-only API/OAuth page access policy remains unchanged.
+
+Create and edit are explicit modes. New clears the transient password. Edit copies
+only allowed non-secret fields; blank password is omitted/preserved; replacement is
+write-only. Cancel discards draft data. An action lock prevents duplicate submissions;
+tenant/name uniqueness also guards duplicate creation. Errors and success depend on
+actual responses. Test connection and recipient-based message submission are separate.
+There are accessible labels, focus outlines, 44px controls, mobile stacking/scrolling,
+loading/empty/error states, a visible-window 30-second refresh and cleanup on unmount.
+There are no added animation loops or heavy UI dependencies.
+
+4. CREDENTIAL AND TRANSPORT SECURITY
+New/replacement secrets are Fernet-encrypted in Text columns, prefixed smtp:v1:.
+VEE_SMTP_SECRET_KEYS is a private server JSON list of Fernet keys: first key encrypts,
+all keys decrypt. It has no default usable key and is excluded from Settings repr.
+Keys are not derived from the application's JWT secret and never sent to the browser.
+Missing/wrong keys fail closed. DTOs contain has_password/secret_encrypted only.
+Validation errors omit submitted input/context; provider failures use fixed safe codes.
+Credential changes/deletions/operator adoption/rotation use the existing audit store
+without secret values, bodies or authorization headers. Browser storage/cache is not
+used for SMTP credentials. A draft password exists only in the current form state.
+
+Hosts reject schemes, paths, ports, malformed labels and control characters. Every
+A/AAAA result is checked. Private/loopback destinations need an exact trusted server
+host:port exception. Link-local/metadata, multicast and unspecified IPs remain blocked.
+IPv4-mapped IPv6 is normalized. A mixed public/private answer fails closed. Sockets
+connect to the validated sockaddr, check the peer and never re-resolve the host.
+Verified TLS uses the original hostname, mandatory certificate/hostname validation
+and minimum TLS 1.2. Optional VEE_SMTP_CA_FILE adds a private CA trust source; it
+does not disable verification. Connection phases use a 15-second socket timeout.
+DNS resolution itself is synchronous and has no application-wide wall-clock deadline;
+multiple addresses and protocol phases can exceed one 15-second period. Apply network
+egress/DNS controls for defense in depth and bound operational request concurrency.
+
+Plaintext is denied unless the exact destination is in
+VEE_SMTP_PLAINTEXT_HOST_ALLOWLIST. Private destinations also require
+VEE_SMTP_PRIVATE_HOST_ALLOWLIST. An unauthenticated relay requires an explicit trusted
+destination policy. Never add broad subnet/unreviewed exceptions. All sender/reply-to
+addresses are validated; profile changes reset health. Provider-side verified-domain,
+SPF/DKIM/DMARC and sender authorization still require provider administration.
+
+Legacy rows are quarantined: disabled and unowned, hidden from tenant APIs and
+ineligible for transport. Migration does not guess their owner or silently invent
+an encryption key. Their existing plaintext remains a database/backup risk until an
+operator explicitly adopts/encrypts or securely retires them. Review old access logs
+and rotate provider credentials that may have been exposed by the former read API.
+
+5. PROVIDER SUPPORT MATRIX (SMTP RELAY, NOT HTTP API DELIVERY)
+Gmail: smtp.gmail.com:587 STARTTLS; app password only when account policy permits.
+Outlook.com: smtp-mail.outlook.com:587 STARTTLS; preset indicates OAuth is unavailable.
+Microsoft 365: smtp.office365.com:587 STARTTLS; same explicit OAuth limitation.
+Microsoft account/service/authentication policy is authoritative. Do not assume basic
+mailbox passwords work. Unsupported OAuth profiles can be stored disabled only; this
+change does not implement mailbox consent, token acquisition, refresh or XOAUTH2.
+An existing application OAuth registration is not SMTP mailbox authorization.
+Zoho: editable smtp/smtppro presets for US/EU/India/Australia/Japan; service/region
+selection preserves edited values. Other regions use the exact account endpoint.
+Account server configuration is authoritative, especially paid organization accounts.
+Mailgun: smtp.mailgun.org or smtp.eu.mailgun.org:587 STARTTLS; SMTP domain credentials.
+SendGrid: smtp.sendgrid.net or smtp.eu.sendgrid.net:587 STARTTLS; literal username
+apikey and a provider API key used as the SMTP password; authorized sender required.
+EU SendGrid availability depends on account/region setup. This is not SendGrid's HTTP API.
+Custom: administrator-supplied host/port, STARTTLS or implicit TLS (usually 465),
+subject to the same destination/authentication policies. Plaintext is not a default.
+Presets fill untouched fields. Explicit Apply selected provider defaults is the only
+action that replaces edited transport/auth defaults; password/sender stay unchanged.
+No provider account was contacted during automated tests.
+
+Primary provider references checked during implementation:
+https://support.google.com/a/answer/176600?authuser=2&hl=en
+https://support.microsoft.com/en-us/outlook/pop-imap-and-smtp-settings-for-outlook-com
+https://learn.microsoft.com/en-us/exchange/client-developer/legacy-protocols/how-to-authenticate-an-imap-pop-smtp-application-by-using-oauth/
+https://www.zoho.com/mail/help/zoho-smtp.html
+https://documentation.mailgun.com/docs/mailgun/api-reference/api-overview
+https://documentation.mailgun.com/docs/mailgun/user-manual/sending-messages/send-smtp
+https://www.twilio.com/docs/sendgrid/for-developers/sending-email/integrating-with-the-smtp-api
+https://help.twilio.com/articles/47588342964379-How-to-Add-EU-IP-s-to-Twilio-SendGrid-Accounts
+SSRF policy reference:
+https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html
+
+6. CATEGORY ROUTING AND QUOTAS
+Canonical categories: general, notifications, otp, rewards, system_alerts,
+task_updates and welcome. Profiles accept one or more categories. Existing task,
+subtask, ticket and project events map to task_updates; reward events to rewards;
+password_reset/password_changed/credentials_changed to otp; welcome_password to
+welcome; unknown ordinary notification events to notifications. Canonical explicit
+system_alerts/general/notifications values remain unchanged. Jobs retain categories.
+
+Only owned, enabled, complete profiles participate. Exact category matches sort by
+ascending priority then stable profile key. They precede same-tenant general fallback
+profiles. OTP NEVER uses general/global fallback. Disabled, unowned and unsupported
+OAuth profiles cannot silently become fallback destinations. Disabled owned profiles
+may be explicitly connection-tested or sent one admin-requested test message.
+
+Before each message attempt a separate transaction locks the current profile, checks
+UTC fixed-minute/day limits and commits an attempt reservation. PostgreSQL row locks
+serialize quota races; SQLite uses its write lock. This never commits the caller's
+business transaction. All reservations, including failures/tests/uncertain results,
+count conservatively toward limits; connection tests have a separate rolling-minute
+cap of min(10, configured per-minute limit). No quota is refunded after uncertain mail.
+
+7. QUEUE, FAILOVER, RETRY AND WORKFLOW INTEGRATION
+The existing notification_outbox remains the durable job source and worker. Its
+status enum remains compatible; delivery_state adds queued/sending/retrying/sent/
+failed/uncertain. Conditional claims recheck state, due time and maximum attempts;
+unique claim tokens prevent an old worker from overwriting a recovered outcome.
+The dedupe key is unique and a cross-tenant dedupe collision is rejected.
+
+Temporary pre-acceptance failures retry with exponential backoff and 20% jitter,
+starting around 60 seconds, bounded by max_attempts (default 5 worker cycles).
+A cycle may try several eligible providers; each transport reservation is counted.
+Configuration failures remain bounded by the job retry limit. If all candidates
+are blocked before SMTP by quotas, retry is deferred to the earliest eligible UTC
+reset plus jitter, without consuming a transport retry cycle. A real attempted
+provider failure still consumes its cycle even if a fallback is quota blocked.
+Sustained quota overload can keep jobs waiting; monitor capacity and queue age.
+Authentication/configuration/transient provider failures can fail over before known
+acceptance. Recipient/content permanent rejection is terminal. A 4xx recipient
+failure retries later without trying another provider in the same cycle.
+
+Disconnect/timeout during DATA is uncertain. SMTP final 250 means accepted, not inbox
+delivered. Unknown transport failures, acceptance-ledger failure and stale SENDING
+after 10 minutes are held, never blindly resent. A stable outbox Message-ID supports
+investigation across attempts but does not provide exactly-once delivery. An
+in-progress reservation can remain after a process/ledger failure; inspect provider
+logs before any operator reconciliation. No user button bypasses this duplicate risk.
+
+Manual retry selects explicit tenant-owned, due, retryable jobs below their original
+attempt limit using row locks. It does not reset attempts or quotas. Permanent,
+uncertain, future-due and exhausted jobs are skipped; requested/selected/skipped
+counts are returned honestly. The worker can claim a queued job only once.
+
+Welcome and ticket emails now use this existing outbox. Ticket enqueue shares the
+event transaction and filters recipient tenant; welcome enqueue commits after the
+already committed user creation. Failures do not undo that user creation. Ticket
+events use an event ID per emission; callers that emit the same business event under
+different IDs are not globally exactly-once. Existing password recovery body encryption,
+link validation and credential revocation remain; SMTP preflight/routing is tenant/OTP
+aware. The existing direct system-reset OTP path retains its flow and now uses the
+same tenant routing, reservations and transport. No OTP is sent in these tests.
+
+8. HEALTH AND ANALYTICS DEFINITIONS
+All statistics are tenant scoped. A health response uses a consistent read snapshot
+(PostgreSQL REPEATABLE READ), SQL aggregates and indexed attempts; it does not load
+all historical job bodies into application memory. The UI polls while visible only.
+The selected 1/24/168-hour window is UTC and applies to message attempts by start time.
+Queue counts are current job states across all time, explicitly labelled separately.
+Latest jobs/attempts lists are bounded; the API offers queue pagination.
+
+Profiles = current owned profiles; enabled profiles = enabled flag; healthy profiles
+= real successful connection/auth tests <=15 minutes old. Successful tests 15..60m
+old are degraded; recent failed tests unhealthy; missing/>60m tests untested; disabled
+overrides. A concurrent settings edit prevents a stale successful test marking new
+settings healthy. Message acceptance never independently establishes connection health.
+
+SMTP accepted = message attempts with final 250, including explicit tests and retired
+profile history. Failed attempts = known temporary/permanent transport failures in the
+window. Unknown/reserved attempts are separate; connections are excluded from message
+statistics. Success = accepted/(accepted+failed), null when denominator is zero.
+Rate = reserved message attempts started in the trailing minute. Average processing
+time = elapsed reservation-to-recorded-finish for finished message attempts, excluding
+queue waiting/inbox delivery. A job can produce multiple attempts; thus failed jobs
+and failed attempts are deliberately different numbers. No historic provider counts
+are fabricated from pre-migration outbox records. Deleted profiles retain attempt
+history, included in overall totals and visible with a retired profile identifier.
+
+9. MIGRATION AND SAFE ACTIVATION (NOT EXECUTED ON THE APPLICATION DATABASE)
+Revision ff7a8b9c0d1e follows fe6f7a8b9c0d. It adds tenant/profile metadata and indexes,
+widens password columns, adds smtp_delivery_attempts, delivery_state and claim_token.
+Old rows remain disabled/unowned. Existing queued/sent/retryable/terminal states are
+backfilled; old SENDING becomes FAILED/uncertain with no retry date.
+Existing users, templates, messages and SMTP rows are retained. No key or ownership
+is inferred. Migration was rehearsed with actual Alembic CLI in a disposable schema.
+
+Activation must use the deployment's actual Compose project/env-file names, not a
+similarly named checkout. First inventory pending mail, current schema/revision,
+container image identifiers and profile IDs without selecting password values.
+Take a verified backup and rehearse restoration on an isolated database.
+Stop/quiesce all backend mail workers before migration/adoption. Keep frontend and
+backend versions coordinated; do not serve the new panel against the old contract.
+
+Set private server VEE_BOOTSTRAP_SCHEMA=false and VEE_SMTP_DELIVERY_ENABLED=false.
+Provision VEE_SMTP_SECRET_KEYS through the deployment's private environment/secret
+manager, outside Git, VITE_* build variables, chat logs and browser runtime config.
+Keep exact private/plaintext exceptions empty unless explicitly approved for a relay.
+
+From a maintenance container using the new backend image and private environment:
+  python -m alembic current
+  python -m alembic upgrade ff7a8b9c0d1e
+Only run upgrade after confirming the actual prior revision/schema is compatible.
+The observed local legacy application database has no Alembic revision metadata.
+STOP for an audited baseline reconciliation in that case. Do not stamp head, run
+create_all as a migration substitute, or blindly execute historical migrations.
+The test fixture's stamp operates only on its uniquely owned synthetic schema.
+
+Explicit reviewed legacy mapping, default dry run:
+  python -m app.services.smtp_admin adopt --tenant <UUID> --profile-id <ID>
+  python -m app.services.smtp_admin adopt --tenant <UUID> --profile-id <ID> --apply
+Add --primary only for a primary integer ID. It refuses a foreign-owned profile,
+checks that the tenant exists via its users, encrypts existing credentials, maps
+categories and leaves the profile disabled. Do not guess a global profile's owner.
+Review sender identity, categories (especially OTP), limits and provider auth policy.
+
+Restart the new backend with delivery still disabled; verify authorized non-secret
+CRUD and tenant isolation. Provision/review profiles while disabled. When ready for
+an approved controlled test, enable SMTP delivery under operator control, test an
+owned DISABLED profile's connection, and send mail only to the explicitly approved
+recipient. Enabling delivery also permits normal eligible queued jobs to run: keep
+unreviewed profiles disabled and inspect the queue first. Enable reviewed profiles
+only when prepared to release their queued workflow mail. Check health, attempts,
+queue state transitions and application workflows. Then serve the coordinated UI.
+No external/manual message or this activation sequence was performed in this task.
+
+Key rotation: retain old keys while all processes receive [new, old...] server-side.
+  python -m app.services.smtp_admin rotate --tenant <UUID>
+  python -m app.services.smtp_admin rotate --tenant <UUID> --apply
+Run for every tenant containing credentials; validate decryptability/transport under
+the new key, then remove old keys only after all instances and profiles are rotated.
+Backups encrypted under old keys still need controlled old-key retention. Losing the
+keyring makes stored credentials unusable; the UI must accept credential replacement.
+
+10. ROLLBACK AND REMAINING OPERATIONS
+Prefer a compatible forward fix. Disable delivery and quiesce workers before any
+rollback investigation. Never run the old global/plaintext backend against adopted
+encrypted/tenant-owned rows: it can expose ciphertext and bypass new policies.
+The downgrade refuses nonempty attempt history or owned/encrypted profiles. It only
+permits an unused schema rollback; do not delete history/ownership to bypass this.
+A full pre-migration restore is a maintenance incident: reconcile all accepted or
+uncertain messages after the backup before re-enabling mail, to prevent duplicates.
+Do not replay accepted jobs from a restored queue without provider-log reconciliation.
+
+Outstanding limitations: SMTP OAuth; real provider/account and inbox verification;
+live application schema-baseline adoption; deployment/key provisioning; long-run load
+and real egress/network policy verification; operator retention/archive policy for the
+growing attempt ledger; existing unrelated TypeScript/build/deprecation warnings.
+No provider delivery webhook, bounce tracking or inbox confirmation was added.
+No production migration, VPS deployment or production readiness certification is claimed.

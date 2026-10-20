@@ -52,9 +52,21 @@ def reset_url():
     return value
 
 
-def check_delivery_configuration(db):
+def check_delivery_configuration(db, tenant_id=None):
     url = reset_url()
-    config = email_utils.resolve_smtp_config(db, "welcome_password")
+    from . import smtp_management
+    from .smtp_security import keyring, SmtpError
+    if tenant_id is None:
+        # Public preflight reveals only site-wide availability, not an email's tenant.
+        rows = list(db.scalars(select(models.MultipleSmtpConfig).where(models.MultipleSmtpConfig.is_enabled.is_(True))))
+        rows.extend(db.scalars(select(models.SmtpConfig).where(models.SmtpConfig.is_enabled.is_(True))))
+        config = next((row for row in rows if smtp_management.complete(row) and 'otp' in row.notification_types), None)
+    else:
+        config = email_utils.resolve_smtp_config(db, "otp", tenant_id)
+    try:
+        keyring()
+    except SmtpError:
+        config = None
     if (not config or not email_utils._is_config_complete(config)
             or get_settings().environment.lower() == "production" and str(config.encryption).lower() not in {"tls", "ssl"}):
         raise HTTPException(503, "Password recovery is not configured. Contact your administrator.")
@@ -106,6 +118,8 @@ def token_user(db, token):
 
 
 def queue_link(db, user, base):
+    if not email_utils.resolve_smtp_config(db, 'otp', user.tenant_id):
+        return
     _, token = create_link(user, base)
     ciphertext = Fernet(base64.urlsafe_b64encode(_key("mail"))).encrypt(token.encode()).decode()
     event_id = str(uuid4())
@@ -113,7 +127,7 @@ def queue_link(db, user, base):
         event_type=EVENT, event_id=event_id, dedupe_key=f"recovery:{event_id}", subject="Zea.Play password reset", body="")
     if row is None:
         return
-    row.payload = {**row.payload, "notification_type": "welcome_password", "encrypted_recovery": ciphertext,
+    row.payload = {**row.payload, "notification_type": "otp", "encrypted_recovery": ciphertext,
                    "reset_url": base}
 
 
@@ -122,7 +136,7 @@ def delivery_body(db, outbox):
     try:
         token = Fernet(base64.urlsafe_b64encode(_key("mail"))).decrypt(payload["encrypted_recovery"].encode()).decode()
         user = token_user(db, token)
-        base = check_delivery_configuration(db)
+        base = check_delivery_configuration(db, user.tenant_id)
         if (user.id != outbox.recipient_user_id or user.tenant_id != outbox.tenant_id
                 or user.email != payload.get("to_address") or payload.get("reset_url") != base):
             raise ValueError()
@@ -150,4 +164,4 @@ def replace_password(db, user, password, *, actor, reason):
         event_type="password_changed", event_id=event_id, dedupe_key=f"credential-change:{event_id}",
         subject="Zea.Play password changed", body="Your Zea.Play password was changed. If this was not you, contact your administrator immediately.")
     if row:
-        row.payload = {**row.payload, "notification_type": "welcome_password"}
+        row.payload = {**row.payload, "notification_type": "otp"}

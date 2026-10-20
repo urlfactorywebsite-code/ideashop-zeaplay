@@ -429,7 +429,17 @@ const Settings: React.FC = () => {
         }
     };
 
+    const isColorfulThemeEnabled =
+        ((import.meta.env.VITE_ENABLE_COLORFUL_THEME ?? 'false').trim().toLowerCase() === 'true');
+    const themeOptions = (isColorfulThemeEnabled
+        ? (['light', 'dark', 'colorful', 'system'] as const)
+        : (['light', 'dark', 'system'] as const));
+
     const handleThemeChange = (value: 'light' | 'dark' | 'colorful' | 'system') => {
+        if (value === 'colorful' && !isColorfulThemeEnabled) {
+            setTheme('light');
+            return;
+        }
         setTheme(value);
     };
 
@@ -1325,7 +1335,7 @@ const Settings: React.FC = () => {
                             <div>
                                 <p className="text-sm font-medium text-text-secondary">Theme preset</p>
                                 <div className="mt-3 grid grid-cols-2 gap-3">
-                                    {(['light', 'dark', 'colorful', 'system'] as const).map((option) => (
+                                    {themeOptions.map((option) => (
                                         <button
                                             key={option}
                                             type="button"

@@ -8,7 +8,6 @@ from typing import List
 from .. import models, schemas
 from ..database import get_db
 from ..dependencies import get_current_active_user, get_current_admin, get_current_owner
-from ..email_utils import EmailDeliveryError, send_email_with_config
 from ..integrations import trigger_n8n_event
 from ..services import audit_logger
 
@@ -40,16 +39,6 @@ DEFAULT_EMAIL_TEMPLATES: dict[str, dict[str, str]] = {
         "body": "This is a test email for support requests and helpdesk notifications.",
     },
 }
-
-
-def _get_or_create_smtp(db: Session) -> models.SmtpConfig:
-    smtp = db.get(models.SmtpConfig, 1)
-    if not smtp:
-        smtp = models.SmtpConfig(id=1, host="smtp.example.com", port=587, username="noreply@example.com")
-        db.add(smtp)
-        db.commit()
-        db.refresh(smtp)
-    return smtp
 
 
 def _get_or_create_api_config(db: Session) -> models.ApiConfig:
@@ -98,52 +87,6 @@ def _ensure_email_templates(db: Session) -> None:
         created = True
     if created:
         db.commit()
-
-
-def _ensure_multiple_smtp_schema(db: Session) -> None:
-    inspector = inspect(db.bind)
-    if "multiple_smtp_configs" not in inspector.get_table_names():
-        models.MultipleSmtpConfig.__table__.create(bind=db.bind, checkfirst=True)
-
-
-@router.get("/smtp", response_model=schemas.SmtpConfigRead)
-def get_smtp_config(
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    return _get_or_create_smtp(db)
-
-
-@router.patch("/smtp", response_model=schemas.SmtpConfigRead)
-def update_smtp_config(
-    payload: schemas.SmtpConfigUpdate,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    smtp = _get_or_create_smtp(db)
-    if payload.host is not None:
-        smtp.host = payload.host
-    if payload.port is not None:
-        smtp.port = payload.port
-    if payload.username is not None:
-        smtp.username = payload.username
-    if payload.password is not None:
-        smtp.password = payload.password
-    if payload.encryption is not None:
-        smtp.encryption = payload.encryption
-
-    db.commit()
-    db.refresh(smtp)
-    update_fields = [key for key, value in payload.model_dump(exclude_unset=True).items()]
-    audit_logger.log_event(
-        audit_logger.AuditLogInput(
-            action="SMTP_CONFIG_UPDATED",
-            category=models.AuditLogCategoryEnum.SYSTEM,
-            source=models.AuditLogSourceEnum.MANUAL,
-            metadata={"fields": update_fields},
-        )
-    )
-    return smtp
 
 
 @router.get("/api", response_model=schemas.ApiConfigRead)
@@ -215,103 +158,6 @@ def update_points_table_config(
 # ---------------------------------------------------------------------------#
 # Multiple SMTP Configurations
 # ---------------------------------------------------------------------------#
-
-
-@router.get("/smtp/multiple", response_model=List[schemas.MultipleSmtpConfigRead])
-def get_multiple_smtp_configs(
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    _ensure_multiple_smtp_schema(db)
-    return db.query(models.MultipleSmtpConfig).all()
-
-
-@router.post("/smtp/multiple", response_model=schemas.MultipleSmtpConfigRead)
-def create_multiple_smtp_config(
-    payload: schemas.MultipleSmtpConfigCreate,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    _ensure_multiple_smtp_schema(db)
-    smtp_config = models.MultipleSmtpConfig(**payload.model_dump())
-    db.add(smtp_config)
-    db.commit()
-    db.refresh(smtp_config)
-    return smtp_config
-
-
-@router.patch("/smtp/multiple/{config_id}", response_model=schemas.MultipleSmtpConfigRead)
-def update_multiple_smtp_config(
-    config_id: str,
-    payload: schemas.MultipleSmtpConfigUpdate,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    _ensure_multiple_smtp_schema(db)
-    smtp_config = db.get(models.MultipleSmtpConfig, config_id)
-    if not smtp_config:
-        raise HTTPException(status_code=404, detail="SMTP config not found")
-
-    for key, value in payload.model_dump(exclude_unset=True).items():
-        setattr(smtp_config, key, value)
-
-    db.commit()
-    db.refresh(smtp_config)
-    return smtp_config
-
-
-@router.delete("/smtp/multiple/{config_id}")
-def delete_multiple_smtp_config(
-    config_id: str,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    _ensure_multiple_smtp_schema(db)
-    smtp_config = db.get(models.MultipleSmtpConfig, config_id)
-    if not smtp_config:
-        raise HTTPException(status_code=404, detail="SMTP config not found")
-
-    db.delete(smtp_config)
-    db.commit()
-    return {"message": "SMTP config deleted"}
-
-
-@router.post("/smtp/multiple/{config_id}/test", status_code=status.HTTP_202_ACCEPTED)
-def test_multiple_smtp_config(
-    config_id: str,
-    payload: schemas.SmtpTestPayload,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    _ensure_multiple_smtp_schema(db)
-    smtp_config = db.get(models.MultipleSmtpConfig, config_id)
-    if not smtp_config:
-        raise HTTPException(status_code=404, detail="SMTP config not found")
-
-    _ensure_email_templates(db)
-    template = (
-        db.query(models.EmailTemplate)
-        .filter(models.EmailTemplate.notification_type == payload.notification_type)
-        .first()
-    )
-
-    subject = payload.subject or (template.subject if template else "SMTP test")
-    body = payload.body or (template.body if template else "This is a test email.")
-
-    try:
-        send_email_with_config(
-            smtp_config=smtp_config,
-            to_address=payload.to_address,
-            subject=subject,
-            body=body,
-        )
-    except EmailDeliveryError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to send test email: {exc}",
-        ) from exc
-
-    return {"status": "sent"}
 
 
 @router.get("/email-templates", response_model=List[schemas.EmailTemplateRead])
@@ -492,3 +338,8 @@ def delete_oauth_config(
 
     db.delete(oauth_config)
     db.commit()
+
+
+# Retain the existing public SMTP namespace with its own secret-safe validation.
+from .smtp import router as smtp_router
+router.include_router(smtp_router)

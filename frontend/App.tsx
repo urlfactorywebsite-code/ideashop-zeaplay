@@ -23,6 +23,7 @@ const Reports = React.lazy(() => import('./pages/Reports'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const Achievements = React.lazy(() => import('./pages/Achievements'));
 const ApiOverview = React.lazy(() => import('./pages/ApiOverview'));
+const SmtpManagement = React.lazy(() => import('./components/SmtpManagement'));
 const MediaLibraryPage = React.lazy(() => import('./pages/MediaLibrary'));
 const Tickets = React.lazy(() => import('./pages/TicketPage'));
 const Chat = React.lazy(() => import('./pages/Chat'));
@@ -75,6 +76,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="chat/:conversationId" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><Chat /></ProtectedRoute>} />
                 <Route path="template-editor" element={<ProtectedRoute roles={[Role.OWNER]}><Navigate to="/achievements?tab=templates" replace /></ProtectedRoute>} />
                 <Route path="api/overview" element={<ProtectedRoute roles={[Role.OWNER]}><ApiOverview /></ProtectedRoute>} />
+                <Route path="api/smtp" element={<ProtectedRoute roles={[Role.ADMIN, Role.OWNER]}><SmtpManagement /></ProtectedRoute>} />
                 <Route path="master-control" element={<ProtectedRoute roles={[Role.OWNER]}><MasterControl /></ProtectedRoute>} />
 
 

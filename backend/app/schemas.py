@@ -1048,6 +1048,7 @@ class TimeEntryRead(BaseModel):
     subtask_id: Optional[str] = None
     started_at: datetime
     stopped_at: Optional[datetime] = None
+    finalized_at: Optional[datetime] = None
     duration_seconds: Optional[int] = None
     status: TimeEntryStatusEnum
     note: Optional[str] = None
@@ -1058,7 +1059,7 @@ class TimeEntryRead(BaseModel):
     corrected_by_id: Optional[str] = None
     corrected_at: Optional[datetime] = None
 
-    @field_validator("started_at", "stopped_at", "original_started_at", "original_stopped_at", "corrected_at")
+    @field_validator("started_at", "stopped_at", "finalized_at", "original_started_at", "original_stopped_at", "corrected_at")
     @classmethod
     def normalize_utc(cls, value: Optional[datetime]) -> Optional[datetime]:
         if value is None:
@@ -2722,8 +2723,13 @@ class SmtpConfigUpdate(BaseModel):
     encryption: Optional[str] = None
 
 
-class SmtpConfigRead(SmtpConfigBase):
+class SmtpConfigRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+    host: str
+    port: int
+    username: str
+    encryption: str
+    has_password: bool = False
 
 
 class ApiConfigBase(BaseModel):
@@ -2819,8 +2825,10 @@ class MultipleSmtpConfigUpdate(BaseModel):
     notification_types: Optional[List[str]] = None
 
 
-class MultipleSmtpConfigRead(MultipleSmtpConfigBase):
+class MultipleSmtpConfigRead(SmtpConfigRead):
     model_config = ConfigDict(from_attributes=True)
+    name: str
+    notification_types: List[str]
 
     id: str
     created_at: datetime

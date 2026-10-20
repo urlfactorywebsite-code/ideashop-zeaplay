@@ -91,7 +91,7 @@ const Login: React.FC = () => {
 
     return (
         <div className="zeaplay-login" ref={pageRoot} data-motion-paused={isMotionPaused}>
-            <AnimatedLoginBackground />
+            <AnimatedLoginBackground reducedMotion={reducedMotion} />
             <header className="login-topbar">
                 <div className="login-wordmark"><span className="login-brand-icon"><Gamepad2 size={22} aria-hidden="true" /></span>Zea.Play</div>
                 <div className="login-topbar-actions">

@@ -1,0 +1,1787 @@
+{
+  "results": [
+    {
+      "name": "heading, recorded transitions, reopens and exact timestamps",
+      "result": "PASS"
+    },
+    {
+      "name": "only the current task stage glows, and the normal-motion glow actually animates",
+      "result": "PASS"
+    },
+    {
+      "name": "subtask timeline and persisted timer actions",
+      "result": "PASS"
+    },
+    {
+      "name": "live clocks advance independently of browser wall clock",
+      "result": "PASS"
+    },
+    {
+      "name": "desktop, mobile, light theme and reduced motion layout",
+      "result": "PASS"
+    },
+    {
+      "name": "focus is trapped, Escape closes and focus returns to trigger",
+      "result": "PASS"
+    },
+    {
+      "name": "paginated events do not imply a complete current duration",
+      "result": "PASS"
+    },
+    {
+      "name": "partial session pages retain snapshot totals until reconciliation",
+      "result": "PASS"
+    },
+    {
+      "name": "background invalidation preserves loaded event pages",
+      "result": "PASS"
+    },
+    {
+      "name": "event bursts during slow refresh coalesce without overlapping snapshots",
+      "result": "PASS"
+    },
+    {
+      "name": "many subtasks stay lazy, keep stable closed rows and do not add per-child requests",
+      "result": "PASS"
+    },
+    {
+      "name": "timer sessions are ordered by actual start, locally paged and retain correction evidence",
+      "result": "PASS"
+    },
+    {
+      "name": "all eleven backend statuses render exactly one active main-task stage",
+      "result": "PASS"
+    },
+    {
+      "name": "long unbroken titles remain inside the 320px popup",
+      "result": "PASS"
+    },
+    {
+      "name": "stale responses cannot replace a newer task scope",
+      "result": "PASS"
+    },
+    {
+      "name": "foreign realtime notices are ignored and scoped notices refresh",
+      "result": "PASS"
+    },
+    {
+      "name": "permission revocation clears already rendered private history",
+      "result": "PASS"
+    },
+    {
+      "name": "tenant switching never retains the previous scope history",
+      "result": "PASS"
+    },
+    {
+      "name": "legacy, empty and unavailable states",
+      "result": "PASS"
+    },
+    {
+      "name": "invalid server clock and conflicting status snapshots fail visibly instead of rendering blank data",
+      "result": "PASS"
+    },
+    {
+      "name": "stale live estimates pause after 60 seconds without fabricating additional work",
+      "result": "PASS"
+    },
+    {
+      "name": "repeated open and close removes polling, clock intervals and scoped listeners",
+      "result": "PASS"
+    },
+    {
+      "name": "closing during a queued slow refresh cannot start orphan requests",
+      "result": "PASS"
+    },
+    {
+      "name": "task details opens the journey without replacing status editing",
+      "result": "PASS"
+    },
+    {
+      "name": "report: lazy loading, recorded identities and reopened completion metrics",
+      "result": "PASS"
+    },
+    {
+      "name": "report: completion attempts preserve rejected history in chronological order",
+      "result": "PASS"
+    },
+    {
+      "name": "report: private image preview and object URL cleanup",
+      "result": "PASS"
+    },
+    {
+      "name": "report: secure download and missing, deleted, unverified evidence states",
+      "result": "PASS"
+    },
+    {
+      "name": "report: validated PDF opens in native viewer with no persistent object URLs",
+      "result": "PASS"
+    },
+    {
+      "name": "report: pagination and refresh preserve loaded evidence and completion attempts",
+      "result": "PASS"
+    },
+    {
+      "name": "report: responsive large datasets, keyboard tabs and reduced motion",
+      "result": "PASS"
+    },
+    {
+      "name": "report: errors, recovery, realtime invalidation and close cleanup",
+      "result": "PASS"
+    },
+    {
+      "name": "report: normal summary and gallery fit mobile and light theme",
+      "result": "PASS"
+    },
+    {
+      "name": "report: revocation clears visible files and stale responses cannot cross task scope",
+      "result": "PASS"
+    },
+    {
+      "name": "review: forged event/session payloads and stale task metadata fail closed",
+      "result": "PASS"
+    },
+    {
+      "name": "review: evidence with the wrong subtask association is never rendered",
+      "result": "PASS"
+    },
+    {
+      "name": "review: selected tab text retains readable light-theme contrast",
+      "result": "PASS"
+    },
+    {
+      "name": "logout closes the private popup and removes its history",
+      "result": "PASS"
+    },
+    {
+      "name": "no business writes or additional sockets, no browser exceptions",
+      "result": "PASS"
+    }
+  ],
+  "measurements": {
+    "peakConcurrentAnalytics": 1,
+    "slowBurstSnapshotRequests": 2,
+    "readsFor250Subtasks": 4,
+    "pdfFrames": [
+      {
+        "url": "http://127.0.0.1:6302/__journey-test"
+      },
+      {
+        "url": "blob:http://127.0.0.1:6302/6dd0f5c2-92dc-4dda-9992-cd76dd04e937"
+      },
+      {
+        "url": "chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/index.html"
+      },
+      {
+        "url": "blob:http://127.0.0.1:6302/6dd0f5c2-92dc-4dda-9992-cd76dd04e937"
+      }
+    ]
+  },
+  "pageErrors": [],
+  "sockets": [
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/",
+    "ws://127.0.0.1:6302/"
+  ],
+  "requests": [
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=3&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=cursor-a&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=3&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=3&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/websocket-ticket",
+      "search": "?scope=tasks",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/transfer-requests",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/time-entries/work/active",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/group",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/comments/task/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "PATCH"
+    },
+    {
+      "path": "/api/tasks/task-a/group",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/screenshot",
+      "search": "?preview=true",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/screenshot",
+      "search": "?preview=false",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/screenshot",
+      "search": "?preview=true",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/acceptance",
+      "search": "?preview=true",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=attempt-a&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=screenshot&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/screenshot",
+      "search": "?preview=true",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence/completion/screenshot",
+      "search": "?preview=true",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-b/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/completions",
+      "search": "?after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=completion&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-report/evidence",
+      "search": "?source=linked&after_id=&limit=24",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/me",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/journey",
+      "search": "?after_id=0&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/analytics",
+      "search": "",
+      "method": "GET"
+    },
+    {
+      "path": "/api/tasks/task-a/execution-sessions",
+      "search": "?after_id=&limit=100",
+      "method": "GET"
+    },
+    {
+      "path": "/api/auth/logout",
+      "search": "",
+      "method": "POST"
+    }
+  ]
+}

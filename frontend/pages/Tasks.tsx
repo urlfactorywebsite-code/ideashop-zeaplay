@@ -4,7 +4,7 @@ import { Task, User, TaskStatus, TaskPriority, CUSTOM_STATUS_NAMES, Role, TaskKa
 import { useAuth, useSearch, useTheme } from '../hooks/useAuth';
 import { useTaskList } from '../hooks/useTaskList';
 import { useTaskPrefetch } from '../hooks/useTaskPrefetch';
-import { useTaskWebSocket } from '../hooks/useTaskWebSocket';
+import { TASK_REALTIME_EVENT } from '../services/taskRealtimeEvents';
 import { buildTaskKanbanKey, getTaskCaches, invalidateTaskCaches } from '../hooks/useTaskCache';
 import api from '../services/mockApi';
 import { loadPointsConfig, POINTS_CONFIG_UPDATED_EVENT } from '../utils/pointsConfigStorage';
@@ -822,10 +822,10 @@ const Tasks: React.FC = () => {
         }
     }, []);
 
-    useTaskWebSocket({
-        enabled: Boolean(user),
-        onEvent: handleTaskEvent,
-    });
+    useEffect(() => {
+        window.addEventListener(TASK_REALTIME_EVENT, handleTaskEvent);
+        return () => window.removeEventListener(TASK_REALTIME_EVENT, handleTaskEvent);
+    }, [handleTaskEvent]);
     useEffect(() => {
         if (typeof window === 'undefined') {
             return;

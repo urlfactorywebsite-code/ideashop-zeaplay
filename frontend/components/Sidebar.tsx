@@ -42,7 +42,10 @@ interface SidebarProps {
 
 type ThemeKey = 'light' | 'dark' | 'colorful';
 
-const THEME_ORDER: ThemeKey[] = ['dark', 'light', 'colorful'];
+const isColorfulThemeEnabled =
+  ((import.meta.env.VITE_ENABLE_COLORFUL_THEME ?? 'false').trim().toLowerCase() === 'true');
+
+const THEME_ORDER: ThemeKey[] = isColorfulThemeEnabled ? ['dark', 'light', 'colorful'] : ['dark', 'light'];
 
 const THEME_ICON_URLS: Record<ThemeKey, string> = {
   dark: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770343927/moon_3_gy8i0p.png',
@@ -97,7 +100,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
         return () => mediaQuery.removeEventListener('change', updateResolvedTheme);
     }, [theme]);
 
-    const activeTheme = (theme === 'system' ? resolvedTheme : theme) as ThemeKey;
+    const activeTheme = ((theme === 'system' ? resolvedTheme : theme) === 'colorful' && !isColorfulThemeEnabled
+        ? 'light'
+        : (theme === 'system' ? resolvedTheme : theme)) as ThemeKey;
     const handleThemeToggle = () => {
         const currentIndex = THEME_ORDER.indexOf(activeTheme);
         setTheme(THEME_ORDER[(currentIndex + 1) % THEME_ORDER.length]);
@@ -299,6 +304,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
                 ),
                 label: 'API',
             });
+        }
+        if (user?.role === Role.ADMIN) {
+            links.push({ to: '/api/smtp', label: 'SMTP', icon: <span aria-hidden="true">✉</span> });
         }
         const seen = new Set<string>();
 

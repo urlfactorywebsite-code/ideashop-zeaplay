@@ -1,3 +1,5 @@
+import type { SmtpProfile, SmtpProfileInput, SmtpHealth, SmtpJob, SmtpAttempt } from '../types/smtp';
+import type { WorkSnapshot } from '../types/activeWork';
 ﻿ import axios, { AxiosInstance, AxiosHeaders } from 'axios';
 import { TaskCategory } from '../types';
 import type { TaskJourney, TaskAnalytics, TaskExecutionSessions } from '../types/taskLifecycle';
@@ -373,6 +375,17 @@ function invalidateCache(prefix: string): void {
     }
   } catch {
   }
+}
+
+// Retire pre-security-fix SMTP cache entries without reading or displaying them.
+invalidateCache('smtp-');
+if (storageAvailable) {
+  try {
+    for (let index = window.localStorage.length - 1; index >= 0; index--) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith('zea-play-cache:') && /:smtp-(?:multiple|config)(?:$|:)/.test(key)) window.localStorage.removeItem(key);
+    }
+  } catch { /* Storage may be blocked; no SMTP cache is used by the new screen. */ }
 }
 
 type ApiUser = {
@@ -1894,6 +1907,15 @@ http.interceptors.response.use(
   }
 );
 
+function mapSmtpError(error: unknown): never {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+    if (typeof detail?.message === 'string') throw new Error(detail.message);
+    if (!error.response || error.response.status >= 500) throw new Error('SMTP request status is unknown. Refresh the attempt log before retrying a test message.');
+  }
+  mapAxiosError(error);
+}
+
 function mapAxiosError(err: unknown): never {
   if (axios.isAxiosError(err)) {
     const responseData = err.response?.data as any;
@@ -1901,7 +1923,7 @@ function mapAxiosError(err: unknown): never {
     if (Array.isArray(detail)) {
       throw new Error(detail.map((item) => item.msg ?? String(item)).join(', '));
     }
-    throw new Error(typeof detail === 'string' ? detail : err.message);
+    throw new Error(typeof detail === 'string' ? detail : typeof detail?.message === 'string' ? detail.message : err.message);
   }
   throw err;
 }
@@ -4656,6 +4678,28 @@ const api = {
     }
   },
 
+  async getActiveWork(): Promise<WorkSnapshot> {
+    try { return (await http.get('/time-entries/work/active', { showGlobalProgress: false })).data; }
+    catch (error) {
+      if (axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0)) {
+        throw Object.assign(new Error('Active Work access is no longer available. Please sign in again.'), { clearWorkState: true });
+      }
+      mapAxiosError(error);
+    }
+  },
+
+  async getWorkHistory(params: Record<string, string | number>): Promise<WorkSnapshot> {
+    try { return (await http.get('/time-entries/work/history', { params, showGlobalProgress: false })).data; }
+    catch (error) { mapAxiosError(error); }
+  },
+
+  async controlWorkTimer(entryId: string, action: 'pause' | 'resume' | 'stop'): Promise<void> {
+    try {
+      await http.post(`/time-entries/${encodeURIComponent(entryId)}/${action}`);
+      invalidateCache('tasks'); invalidateCache('task:');
+    } catch (error) { mapAxiosError(error); }
+  },
+
   async startTimeEntry(target: { taskId?: string | null; subtaskId?: string | null; note?: string | null }): Promise<TimeEntry> {
     try {
       const { data } = await http.post<ApiTimeEntry>('/time-entries/start', {
@@ -5311,15 +5355,9 @@ const api = {
 
   async getSmtpConfig(_currentUserId: string): Promise<SmtpConfig> {
     try {
-      const cacheKey = 'smtp-config';
-      const cached = getCached<SmtpConfig>(cacheKey);
-      if (cached) {
-        return cached;
-      }
+      invalidateCache('smtp-config');
       const { data } = await http.get<ApiSmtpConfig>('/config/smtp');
-      const mapped = mapSmtpConfig(data);
-      setCached(cacheKey, mapped);
-      return mapped;
+      return mapSmtpConfig(data);
     } catch (error) {
       mapAxiosError(error);
     }
@@ -6728,16 +6766,52 @@ const api = {
     }
   },
 
+  async getSmtpManagement(signal?: AbortSignal, hours = 24): Promise<{ profiles: SmtpProfile[]; health: SmtpHealth; jobs: SmtpJob[]; attempts: SmtpAttempt[] }> {
+    try {
+      const [profiles, health, queue, attempts] = await Promise.all([
+        http.get<SmtpProfile[]>('/config/smtp/multiple', { signal }),
+        http.get<SmtpHealth>('/config/smtp/health', { signal, params: { hours } }),
+        http.get<{ items: SmtpJob[] }>('/config/smtp/queue', { signal }),
+        http.get<{ items: SmtpAttempt[] }>('/config/smtp/attempts', { signal }),
+      ]);
+      return { profiles: profiles.data, health: health.data, jobs: queue.data.items, attempts: attempts.data.items };
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        throw new Error('SMTP Management is unavailable on this backend. Update the backend and apply the SMTP schema upgrade, then refresh.');
+      }
+      mapSmtpError(error);
+    }
+  },
+
+  async saveSmtpProfile(id: string | null, payload: Partial<SmtpProfileInput>): Promise<SmtpProfile> {
+    try {
+      const response = id ? await http.patch<SmtpProfile>(`/config/smtp/multiple/${encodeURIComponent(id)}`, payload)
+        : await http.post<SmtpProfile>('/config/smtp/multiple', payload);
+      invalidateCache('smtp-multiple');
+      return response.data;
+    } catch (error) { mapSmtpError(error); }
+  },
+
+  async testSmtpConnection(id: string): Promise<{ message: string }> {
+    try { return (await http.post(`/config/smtp/multiple/${encodeURIComponent(id)}/connection`, undefined, { timeout: 65000 })).data; }
+    catch (error) { mapSmtpError(error); }
+  },
+
+  async sendSmtpTestMessage(id: string, recipient: string): Promise<{ message: string }> {
+    try { return (await http.post(`/config/smtp/multiple/${encodeURIComponent(id)}/test`, { to_address: recipient, notification_type: 'general' }, { timeout: 65000 })).data; }
+    catch (error) { mapSmtpError(error); }
+  },
+
+  async retrySmtpJobs(ids: string[]): Promise<{ requested: number; selected: number; skipped: number }> {
+    try { return (await http.post('/config/smtp/queue/retry', { ids })).data; }
+    catch (error) { mapSmtpError(error); }
+  },
+
   // Multiple SMTP Config CRUD
   async getMultipleSmtpConfigs(): Promise<MultipleSmtpConfig[]> {
     try {
-      const cacheKey = 'smtp-multiple';
-      const cached = getCached<MultipleSmtpConfig[]>(cacheKey);
-      if (cached) {
-        return cached;
-      }
+      invalidateCache('smtp-multiple');
       const { data } = await http.get<MultipleSmtpConfig[]>('/config/smtp/multiple');
-      setCached(cacheKey, data);
       return data;
     } catch (error) {
       mapAxiosError(error);

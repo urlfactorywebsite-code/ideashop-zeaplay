@@ -18,6 +18,9 @@ services:
   backend:
     build:
       context: ./backend
+    env_file:
+      - path: ./.env.smtp.local
+        required: false
     environment:
       VEE_DATABASE_URL: postgresql+psycopg://zeaplay:zeaplay@postgres:5432/zeaplay
       VEE_CACHE_REDIS_URL: redis://redis:6379

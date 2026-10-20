@@ -1,0 +1,153 @@
+{
+  "modifiedSourceFiles": [
+    "frontend/components/login/AnimatedLoginBackground.tsx",
+    "frontend/components/login/LoginConsoleEffects.tsx",
+    "frontend/components/login/loginAudio.ts",
+    "frontend/e2e/login-design.mjs",
+    "frontend/pages/Login.css",
+    "frontend/pages/Login.tsx",
+    "frontend/test/login-audio.test.ts"
+  ],
+  "createdSourceFiles": [
+    "frontend/e2e/login-quality.mjs"
+  ],
+  "validation": {
+    "unitTests": {
+      "passed": 79,
+      "failed": 0
+    },
+    "regressionBrowserChecks": 13,
+    "qualityBrowserChecks": 11,
+    "productionBuild": "PASS",
+    "typecheck": {
+      "exit": 2,
+      "existingDiagnostics": 131,
+      "changedDiagnosticLines": 0
+    },
+    "lint": "No configured script"
+  },
+  "minimumSampledContrast": 6.295895447182934,
+  "performance": {
+    "desktop": {
+      "frames": 217,
+      "medianMs": 16.699999999999818,
+      "p95Ms": 16.899999999999864,
+      "gapsOver34ms": 0,
+      "longTasks": 0,
+      "heapMiB": 16.572322845458984,
+      "taskSeconds": 0.43427799999999994,
+      "layouts": 0,
+      "styleRecalculations": 218,
+      "elements": 125,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "cpuSlowdown": 1
+    },
+    "mobileCpu4x": {
+      "frames": 217,
+      "medianMs": 16.699999999999818,
+      "p95Ms": 16.800000000000182,
+      "gapsOver34ms": 0,
+      "longTasks": 0,
+      "heapMiB": 16.613277435302734,
+      "taskSeconds": 1.750347,
+      "layouts": 0,
+      "styleRecalculations": 219,
+      "elements": 125,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "cpuSlowdown": 4
+    },
+    "mountCycles": {
+      "beforeHeapMiB": 17.895519256591797,
+      "batches": [
+        {
+          "mounts": 8,
+          "heapMiB": 18.137569427490234,
+          "listeners": 230,
+          "nodes": 458
+        },
+        {
+          "mounts": 16,
+          "heapMiB": 18.36288833618164,
+          "listeners": 230,
+          "nodes": 458
+        }
+      ]
+    }
+  },
+  "deferredReducedMotionAssetBytes": 3826548,
+  "scope": "Frontend UI only. Auth/session/API/backend/schema logic unchanged. Browser API responses intercepted; no real login or email delivery validated.",
+  "limitations": [
+    "Headless Chrome with viewport/CPU emulation; physical devices and other browser engines untested.",
+    "JS heap measurements exclude decoded-image, GPU and full process memory.",
+    "Normal-motion background PNG set remains about 6.2 MB.",
+    "Existing Lottie eval/bundle-size build warnings and 131 baseline TypeScript diagnostics remain."
+  ],
+  "containerSmoke": {
+    "status": "PASS",
+    "url": "http://localhost:6300/#/login",
+    "checks": [
+      "HTTP 200",
+      "compiled exact-radius border",
+      "no smoke/button blur/filter animation",
+      "reduced motion fetches one PNG; enabling motion fetches three",
+      "no autoplay audio context; opt-in/mute works",
+      "no uncaught page errors"
+    ],
+    "scope": "Actual rebuilt local Nginx frontend; business APIs and external CDNs intercepted."
+  },
+  "backendStatus": {
+    "backendContainerUnchanged": true,
+    "health": 200,
+    "forgotPasswordUnknownSyntheticEmail": {
+      "status": 503,
+      "body": {
+        "detail": "Password recovery is not configured. Contact your administrator."
+      }
+    },
+    "scope": "No real account, login, password change or mailbox delivery exercised."
+  },
+  "evidenceFiles": [
+    "docs/login-refinement/audit-summary.json",
+    "docs/login-refinement/backend-status.json",
+    "docs/login-refinement/border-0.png",
+    "docs/login-refinement/border-1499.png",
+    "docs/login-refinement/border-3000.png",
+    "docs/login-refinement/border-4500.png",
+    "docs/login-refinement/border-5999.png",
+    "docs/login-refinement/border-6000.png",
+    "docs/login-refinement/build.txt",
+    "docs/login-refinement/container-build.txt",
+    "docs/login-refinement/container-desktop.png",
+    "docs/login-refinement/container-smoke.json",
+    "docs/login-refinement/glass-1440.png",
+    "docs/login-refinement/glass-390.png",
+    "docs/login-refinement/performance-before.json",
+    "docs/login-refinement/quality-results.json",
+    "docs/login-refinement/quality-run.txt",
+    "docs/login-refinement/regression-run.txt",
+    "docs/login-refinement/regression/browser-results.json",
+    "docs/login-refinement/regression/desktop-scene-1.png",
+    "docs/login-refinement/regression/desktop-scene-2.png",
+    "docs/login-refinement/regression/desktop-scene-3.png",
+    "docs/login-refinement/regression/energy-border-1.png",
+    "docs/login-refinement/regression/energy-border-2.png",
+    "docs/login-refinement/regression/energy-border-3.png",
+    "docs/login-refinement/regression/energy-border-4.png",
+    "docs/login-refinement/regression/reduced-motion.png",
+    "docs/login-refinement/regression/viewport-1024x768.png",
+    "docs/login-refinement/regression/viewport-1920x1080.png",
+    "docs/login-refinement/regression/viewport-320x568.png",
+    "docs/login-refinement/regression/viewport-390x844.png",
+    "docs/login-refinement/regression/viewport-768x1024.png",
+    "docs/login-refinement/regression/viewport-844x390.png",
+    "docs/login-refinement/static-checks.txt",
+    "docs/login-refinement/typescript.txt",
+    "docs/login-refinement/unit-tests.txt"
+  ]
+}

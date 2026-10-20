@@ -1,0 +1,12 @@
+{
+  "results": [
+    "PASS empty state and no automatic SMTP tests",
+    "PASS create/edit separation, provider preserves edits, blank secret omitted, duplicate click guarded",
+    "PASS connection failure shown honestly, explicit recipient test, enable/disable",
+    "PASS metrics distinguish acceptance and job states; retry selection excludes uncertain jobs",
+    "PASS 320/390/768/1440 layout, cancel, load errors, existing API SMTP tab, no runtime errors",
+    "PASS Admin SMTP-only route; Manager blocked without opening OAuth access"
+  ],
+  "externalMessages": 0,
+  "transport": "intercepted synthetic API; real transport covered by backend suite"
+}

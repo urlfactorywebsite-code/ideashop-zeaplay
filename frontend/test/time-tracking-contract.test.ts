@@ -9,6 +9,7 @@ test('phase 8 time-entry contract exposes lifecycle statuses and persisted times
 
   const entry: TimeEntry = {
     id: 'entry-1',
+    tenantId: 'tenant-1',
     userId: 'user-1',
     taskId: 'task-1',
     subtaskId: null,
@@ -55,8 +56,10 @@ test('phase 8 frontend calls the timer APIs and renders timer controls', () => {
   assert.match(mockApiSource, /task_id/);
   assert.match(mockApiSource, /subtask_id/);
 
-  assert.match(taskDetailSource, /Start timer/);
-  assert.match(taskDetailSource, /Stop timer/);
+  const controls = readFileSync(new URL('../components/ActiveWork.tsx', import.meta.url), 'utf8');
+  assert.match(taskDetailSource, /WorkTimerControls/);
+  assert.match(controls, /Start timer/);
+  assert.match(controls, /'stop'/);
   assert.match(taskDetailSource, /totalTrackedSeconds/);
   assert.match(taskDetailSource, /SubtaskStatus\.WAITING/);
 });

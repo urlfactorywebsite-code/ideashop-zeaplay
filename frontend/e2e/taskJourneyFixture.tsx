@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from '../hooks/useAuth';
 import TaskJourneyModal from '../components/TaskJourneyModal';
 import TaskDetailModal from '../components/TaskDetailModal';
 import { ToastProvider } from '../hooks/useToast';
+import { ActiveWorkProvider } from '../hooks/useActiveWork';
 import { UserStatus, Role, type User } from '../types';
 
 const reviewer = { id: 'reviewer', name: 'Asha Reviewer', tenantId: 'tenant-a', role: Role.OWNER,
@@ -30,7 +31,7 @@ function Fixture() {
   }, [updateUserInContext, logout]);
   const users = new Map([[reviewer.id, reviewer], [worker.id, worker]]);
   if (new URLSearchParams(location.search).has('details')) return <ToastProvider>
-    <TaskDetailModal taskId={taskId} isOpen onClose={() => {}} usersMap={users} />
+    <ActiveWorkProvider><TaskDetailModal taskId={taskId} isOpen onClose={() => {}} usersMap={users} /></ActiveWorkProvider>
   </ToastProvider>;
   return <><button id="open-journey" onClick={() => setOpen(true)}>Open journey</button>
     {open && <TaskJourneyModal taskId={taskId} usersMap={users} onClose={() => setOpen(false)} />}</>;

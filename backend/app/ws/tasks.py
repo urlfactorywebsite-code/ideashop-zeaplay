@@ -78,7 +78,9 @@ class TaskConnectionManager:
             return
         async with self._lock:
             if tenant_id:
-                recipients = list(self._connections.get(tenant_id, set()))
+                recipients = [socket for socket in self._connections.get(tenant_id, set())
+                              if message.get("type") != "timer.changed" or
+                              self._socket_users.get(socket) == message.get("user_id")]
             else:
                 recipients = [socket for sockets in self._connections.values() for socket in sockets]
         for socket in recipients:

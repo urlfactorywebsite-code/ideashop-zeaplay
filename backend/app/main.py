@@ -801,6 +801,8 @@ def initialize_schema() -> None:
     ensure_task_manager_table_schema()
     with engine.begin() as connection:
         ensure_execution_columns(connection)
+        from .work_timer_schema import upgrade as upgrade_work_timers
+        upgrade_work_timers(connection)
     Base.metadata.create_all(bind=engine, tables=[table for table in Base.metadata.sorted_tables if table.name not in {"realtime_outbox", "realtime_aggregates"}])
     ensure_task_status_enum()
     ensure_reward_schema()

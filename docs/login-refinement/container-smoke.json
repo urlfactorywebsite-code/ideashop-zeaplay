@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "url": "http://localhost:6300/#/login",
+  "checks": [
+    "HTTP 200",
+    "compiled exact-radius border",
+    "no smoke/button blur/filter animation",
+    "reduced motion fetches one PNG; enabling motion fetches three",
+    "no autoplay audio context; opt-in/mute works",
+    "no uncaught page errors"
+  ],
+  "scope": "Actual rebuilt local Nginx frontend; business APIs and external CDNs intercepted."
+}

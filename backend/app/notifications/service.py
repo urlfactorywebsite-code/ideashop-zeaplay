@@ -133,8 +133,12 @@ def send_ticket_emails(
     if not recipients:
         return
 
+    try:
+        tenant_id = uuid.UUID(str(context['tenant_id']))
+    except (KeyError, ValueError, TypeError):
+        return
     recipient_lookup = [str(user_id) for user_id in recipients]
-    users = db.execute(select(User).where(User.id.in_(recipient_lookup))).scalars().all()
+    users = db.execute(select(User).where(User.id.in_(recipient_lookup), User.tenant_id == tenant_id)).scalars().all()
 
     for user in users:
         if not user.email:
@@ -145,6 +149,7 @@ def send_ticket_emails(
                 "recipient_name": user.name or user.email,
                 "recipient_email": user.email,
                 "recipient_id": user.id,
+                "recipient_tenant_id": str(user.tenant_id),
             }
         )
         try:

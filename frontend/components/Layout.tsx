@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { NavLink } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { ActiveWorkProvider } from '../hooks/useActiveWork';
 import TaskDetailModal from './TaskDetailModal';
 import SupportFormModal from './SupportFormModal';
 import api from '../services/mockApi';
@@ -26,6 +27,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { theme } = useTheme();
   const { hasUnreadChat } = useChatUnreadIndicator();
   const [modalTaskId, setModalTaskId] = useState<string | null>(null);
+  const [workSubtaskId, setWorkSubtaskId] = useState<string | null>(null);
   const [viewingRewardId, setViewingRewardId] = useState<string | null>(null);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
@@ -170,6 +172,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { to: '/api/overview', label: 'API', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241421/api_bhcggn.png' },
       );
     }
+    if (user?.role === Role.ADMIN) {
+      links.push({ to: '/api/smtp', label: 'SMTP', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241421/api_bhcggn.png' });
+    }
     links.push(
       { to: '/achievements', label: 'Achievements', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241421/achivement_ckvs6i.png' },
       { to: '/levels', label: 'Levels', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241421/level-up_l6lcwq.png' },
@@ -222,9 +227,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <ToastProvider>
+      <ActiveWorkProvider>
       <div className="flex h-screen flex-col bg-background text-text-primary">
         <Header 
-        onNotificationClick={(taskId) => taskId && setModalTaskId(taskId)}
+        onNotificationClick={(taskId) => { setWorkSubtaskId(null); if (taskId) setModalTaskId(taskId); }}
+        onOpenWork={(taskId, subtaskId) => { setWorkSubtaskId(subtaskId ?? null); setModalTaskId(taskId); }}
         onRewardNotificationClick={(rewardId) => rewardId && setViewingRewardId(rewardId)}
         onSupportClick={() => setIsSupportOpen(true)}
       />
@@ -348,6 +355,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
        {modalTaskId && (
         <TaskDetailModal
           taskId={modalTaskId}
+          focusSubtaskId={workSubtaskId}
           isOpen={!!modalTaskId}
           onClose={handleCloseModal}
           usersMap={usersMap}
@@ -389,6 +397,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
       <Chatbot />
     </div>
+      </ActiveWorkProvider>
   </ToastProvider>
 );
 };

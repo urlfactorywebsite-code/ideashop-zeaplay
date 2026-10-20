@@ -1,0 +1,15 @@
+backend/app/email_utils.py
+backend/app/routers/smtp.py
+backend/app/services/notification_outbox.py
+backend/app/services/smtp_management.py
+backend/app/services/smtp_security.py
+backend/tests/test_smtp_management.py
+frontend/components/SmtpManagement.tsx
+frontend/services/mockApi.ts
+frontend/types/smtp.ts
+frontend/utils/smtpProfiles.ts
+frontend/test/smtp-profiles.test.ts
+frontend/e2e/smtp-management.mjs
+frontend/hooks/useToast.tsx
+backend/tests/test_smtp_refinement.py
+docs/smtp-management/implementation-and-runbook.txt

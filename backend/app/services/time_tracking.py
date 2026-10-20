@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_, select, text, update
+from sqlalchemy import or_, select, text, update, exists
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, load_only, selectinload
 
@@ -146,6 +146,39 @@ def get_active_timer(db: Session, user: models.User) -> Optional[models.TimeEntr
     return _active_entry(db, user)
 
 
+def timer_limit(user: models.User, *, effective_role: models.RoleEnum | None = None) -> int:
+    from ..config import get_settings
+    settings = get_settings()
+    return {models.RoleEnum.USER: 3, models.RoleEnum.MANAGER: 5,
+            models.RoleEnum.ADMIN: settings.active_timer_admin_limit,
+            models.RoleEnum.OWNER: settings.active_timer_owner_limit}[effective_role or user.role]
+
+
+def _timer_changed(db: Session, actor: models.User) -> None:
+    # Invalidation only: work-session data is fetched through authenticated APIs.
+    from ..realtime.contracts import Event, durable_enabled
+    from ..realtime.capture import stage_after_commit
+    from ..realtime.outbox import enqueue
+    envelope = Event(tenant_id=str(actor.tenant_id), resource_type="task", resource_id=actor.id,
+                     event_type="timer.changed", payload={"type": "timer.changed", "user_id": actor.id})
+    if durable_enabled("task"):
+        enqueue(db.connection(), envelope)
+    else:
+        stage_after_commit(db, envelope)
+
+
+def _check_capacity(db: Session, actor: models.User) -> None:
+    # Read role after acquiring the lock, so demotion takes effect on the next action.
+    current_role = db.scalar(select(models.User.role).where(models.User.id == actor.id))
+    running = len(db.scalars(select(models.TimeEntry.id).where(
+        models.TimeEntry.user_id == actor.id, models.TimeEntry.stopped_at.is_(None))).all())
+    limit = timer_limit(actor, effective_role=current_role)
+    if running >= limit:
+        raise HTTPException(status_code=409, detail={"code": "ACTIVE_TIMER_LIMIT", "limit": limit,
+            "running_count": running, "open_active_work": True,
+            "message": f"You have reached your active timer limit ({running}/{limit}). Pause or stop one of your running subtasks to start another."})
+
+
 def _lock_timer_user(db: Session, tenant_id, user_id: str) -> None:
     # A timer-only lock avoids inversion with task completion's task -> XP-user locks.
     if db.get_bind().dialect.name == "sqlite":
@@ -202,6 +235,8 @@ def _resolve_target(
     if subtask is None:
         raise HTTPException(status_code=404, detail="Subtask not found")
     ensure_task_visible(task, actor)
+    if task.status in TERMINAL_TASK_STATUSES:
+        raise HTTPException(status_code=409, detail="Cannot start a timer for a terminal task")
     if subtask.status not in ACTIONABLE_SUBTASK_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -257,13 +292,28 @@ def start_timer(
         previous = _continuation(db, actor, continued_from_id, task_id=payload.task_id, subtask_id=payload.subtask_id)
         if previous:
             return previous
-    active = _active_entry(db, actor)
     target_task_id = task.id if subtask is None else None
     target_subtask_id = subtask.id if subtask is not None else None
+    active = db.scalar(select(models.TimeEntry).where(
+        models.TimeEntry.tenant_id == actor.tenant_id, models.TimeEntry.user_id == actor.id,
+        models.TimeEntry.task_id == target_task_id, models.TimeEntry.subtask_id == target_subtask_id,
+        models.TimeEntry.stopped_at.is_(None)))
     if active:
         if not continued_from_id and _target_matches(active, task_id=target_task_id, subtask_id=target_subtask_id):
             return active
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already has an active timer")
+        raise HTTPException(status_code=409, detail="This target already has a running timer")
+
+    if not continued_from_id:
+        from sqlalchemy.orm import aliased
+        child = aliased(models.TimeEntry)
+        paused = db.scalar(select(models.TimeEntry).where(
+            models.TimeEntry.tenant_id == actor.tenant_id, models.TimeEntry.user_id == actor.id,
+            models.TimeEntry.task_id == target_task_id, models.TimeEntry.subtask_id == target_subtask_id,
+            models.TimeEntry.stop_reason == "paused", models.TimeEntry.finalized_at.is_(None),
+            ~exists(select(child.id).where(child.continued_from_id == models.TimeEntry.id))))
+        if paused:
+            return resume_timer(db, actor, paused.id)
+    _check_capacity(db, actor)
 
     entry = models.TimeEntry(
         tenant_id=actor.tenant_id,
@@ -278,6 +328,8 @@ def start_timer(
     )
     db.add(entry)
     try:
+        db.flush()
+        _timer_changed(db, actor)
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -303,7 +355,13 @@ def stop_timer(
 ) -> Optional[models.TimeEntry]:
     bind_actor(db, actor)
     _lock_timer_user(db, actor.tenant_id, actor.id)
-    entry = _entry_for_update(db, entry_id, actor.tenant_id) if entry_id else _active_entry(db, actor)
+    if not entry_id:
+        ids = db.scalars(select(models.TimeEntry.id).where(models.TimeEntry.tenant_id == actor.tenant_id,
+            models.TimeEntry.user_id == actor.id, models.TimeEntry.stopped_at.is_(None)).limit(2)).all()
+        if len(ids) > 1:
+            raise HTTPException(status_code=409, detail="Choose a specific timer to stop")
+        entry_id = ids[0] if ids else None
+    entry = _entry_for_update(db, entry_id, actor.tenant_id) if entry_id else None
     if not entry:
         if entry_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found")
@@ -313,6 +371,21 @@ def stop_timer(
     if entry.user_id != actor.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot stop another user's timer")
     if entry.stopped_at is not None:
+        if reason == "stopped" and entry.stop_reason == "paused" and entry.finalized_at is None:
+            if _continuation(db, actor, entry.id, task_id=entry.task_id, subtask_id=entry.subtask_id):
+                raise HTTPException(status_code=409, detail="Session changed; refresh Active Work")
+            entry.finalized_at = _as_utc(utc_now())
+            db.add(models.TaskLifecycleEvent(tenant_id=entry.tenant_id,
+                task_id=_entry_root_task_id(db, entry), subtask_id=entry.subtask_id,
+                time_entry_id=entry.id, event_type="timer.stopped", actor_id=actor.id,
+                occurred_at=entry.finalized_at, recorded_at=entry.finalized_at,
+                details={"user_id": actor.id, "paused_interval_ended_at": _as_utc(entry.stopped_at).isoformat(),
+                         "finalized_at": entry.finalized_at.isoformat()}))
+            # Preserve the interval's paused stop_reason for the immutable task timeline.
+            db.flush()
+            _timer_changed(db, actor)
+            if commit:
+                db.commit()
         return entry
     stopped_at = _as_utc(utc_now())
     # Conditional write also makes concurrent SQLite/retry stops a single event.
@@ -321,6 +394,7 @@ def stop_timer(
             stopped_at=stopped_at,
             duration_seconds=_duration_seconds(entry.started_at, stopped_at),
             status=models.TimeEntryStatusEnum.STOPPED, stop_reason=reason,
+            finalized_at=stopped_at if reason == "stopped" else None,
         ).execution_options(synchronize_session=False))
     db.refresh(entry)
     # A conditional Core write bypasses after_flush; retain the existing task outbox contract.
@@ -332,6 +406,7 @@ def stop_timer(
         if envelope:
             enqueue(db.connection(), envelope)
     if commit:
+        _timer_changed(db, actor)
         db.commit()
     db.refresh(entry)
     return entry
@@ -354,6 +429,8 @@ def resume_timer(db: Session, actor: models.User, entry_id: str, *, restart: boo
     previous = _continuation(db, actor, source.id, task_id=source.task_id, subtask_id=source.subtask_id)
     if previous:
         return previous
+    if source.finalized_at is not None and source.stop_reason == "paused":
+        raise HTTPException(status_code=409, detail="Stopped session cannot be resumed")
     if source.stopped_at is None:
         if not restart:
             return source
@@ -400,6 +477,8 @@ def correct_time_entry(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Corrected timer overlaps existing task work")
     if corrected_stopped_at > _as_utc(utc_now()):
         raise HTTPException(status_code=422, detail="Correction cannot record work in the future")
+    if entry.stop_reason == "paused" and entry.finalized_at and corrected_stopped_at > _as_utc(entry.finalized_at):
+        raise HTTPException(status_code=409, detail="Corrected interval cannot end after the session was finalized")
 
     if entry.original_started_at is None:
         entry.original_started_at = entry.started_at
@@ -407,6 +486,8 @@ def correct_time_entry(
         entry.original_duration_seconds = entry.duration_seconds
     entry.started_at = corrected_started_at
     entry.stopped_at = corrected_stopped_at
+    if entry.finalized_at and entry.stop_reason != "paused":
+        entry.finalized_at = corrected_stopped_at
     entry.duration_seconds = _duration_seconds(corrected_started_at, corrected_stopped_at)
     entry.status = models.TimeEntryStatusEnum.CORRECTED
     entry.note = payload.note

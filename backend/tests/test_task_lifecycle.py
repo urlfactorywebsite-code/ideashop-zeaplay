@@ -331,7 +331,8 @@ def test_timer_stop_preserves_transactional_realtime_invalidation(data, monkeypa
         assert db.get(models.TimeEntry, entry.id).stopped_at is None
         time_tracking.stop_timer(db, data.owner, entry_id=entry.id)
         time_tracking.stop_timer(db, data.owner, entry_id=entry.id)
-        assert db.query(models.RealtimeOutbox).count() == before + 1
+        assert db.query(models.RealtimeOutbox).count() == before + 2
+        assert db.query(models.RealtimeOutbox).filter_by(event_type="timer.changed").count() == 2
 
 
 def test_postgres_analytics_snapshot_is_repeatable_and_read_only(data, engine):

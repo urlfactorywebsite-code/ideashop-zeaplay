@@ -112,6 +112,7 @@ await page.route('**/*', async route => {
   if (statusEdit) taskStatus = route.request().postDataJSON().status;
   if (route.request().method() !== 'GET' && !statusEdit) return route.abort();
   if (url.pathname === '/api/auth/me') return route.fulfill({ json: apiUser });
+  if (url.pathname === '/api/time-entries/work/active') return route.fulfill({ json: { items: [], user_id: apiUser.id, tenant_id: apiUser.tenant_id, server_time: asOf, limit: 5, running_count: 0, next_offset: null } });
   const capturedMode = mode;
   const capturedDelay = delay;
   const responseSequence = ++sequence;

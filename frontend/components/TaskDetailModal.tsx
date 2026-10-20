@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import api from '../services/mockApi';
-import { Task, User, TaskPriority, Comment, UserStatus, KanbanColumn, TaskStatus, SubtaskStatus, Role, CUSTOM_STATUS_NAMES, TaskTransferWorkflowRead, TimeEntry, CompletionSubmissionStatus, Subtask } from '../types';
+import { Task, User, TaskPriority, Comment, UserStatus, KanbanColumn, TaskStatus, SubtaskStatus, Role, CUSTOM_STATUS_NAMES, TaskTransferWorkflowRead, CompletionSubmissionStatus, Subtask } from '../types';
 import { formatDate, timeAgo, formatRecurrenceRule, formatTaskStatus } from '../utils';
 import { loadPointsConfig, POINTS_CONFIG_UPDATED_EVENT } from '../utils/pointsConfigStorage';
 import { augmentTaskWithPoints, summarizeTaskPoints, formatPointsValue, TaskPointsTone } from '../utils/taskPoints';
@@ -15,6 +15,8 @@ import MultiSelect from './ui/MultiSelect';
 import { StarIcon, PaperClipIcon, TagIcon, TrashIcon } from './icons';
 import SameTaskLogModal from './SameTaskLogModal';
 import { History } from 'lucide-react';
+import { WorkTimerControls } from './ActiveWork';
+import { WORK_UPDATED_EVENT } from '../hooks/useActiveWork';
 
 const TaskJourneyModal = React.lazy(() => import('./TaskJourneyModal'));
 
@@ -77,6 +79,7 @@ const countCompletionWords = (value: string): number => {
     return (value.trim().match(/[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)?/g) ?? []).length;
 };
 interface TaskDetailModalProps {
+    focusSubtaskId?: string | null;
   taskId: string;
   isOpen: boolean;
   initialTask?: Task | null;
@@ -212,7 +215,7 @@ const resolvePointsToneClasses = (tone: TaskPointsTone | undefined) => {
     }
 };
 
-const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initialTask = null, onClose, usersMap, onTaskDeleted, onTaskUpdated, notes = [] }) => {
+const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initialTask = null, onClose, usersMap, onTaskDeleted, onTaskUpdated, notes = [], focusSubtaskId = null }) => {
     const statusSelectId = React.useId();
     const [task, setTask] = useState<Task | null>(initialTask);
     const [loading, setLoading] = useState(!initialTask);
@@ -246,8 +249,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     const [transferPopupVisible, setTransferPopupVisible] = useState(false);
     const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
     const [showFollowerDropdown, setShowFollowerDropdown] = useState(false);
-    const [activeTimer, setActiveTimer] = useState<TimeEntry | null>(null);
-    const [timerBusy, setTimerBusy] = useState(false);
     const [completionDialogSubtaskId, setCompletionDialogSubtaskId] = useState<string | null>(null);
     const [completionDescription, setCompletionDescription] = useState('');
     const [completionFiles, setCompletionFiles] = useState<File[]>([]);
@@ -257,13 +258,21 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     const { user } = useAuth();
     const { notify } = useToast();
     useEffect(() => {
+        if (!isOpen || !focusSubtaskId || loading || task?.id !== taskId) return;
+        const frame = window.requestAnimationFrame(() => {
+            const target = document.getElementById(`work-subtask-${focusSubtaskId}`);
+            target?.scrollIntoView({ block: 'center', behavior: 'instant' });
+            target?.focus({ preventScroll: true });
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [isOpen, focusSubtaskId, loading, task?.id, taskId]);
+    useEffect(() => {
         if (isOpen && taskId) {
             if (initialTask) {
                 setTask(initialTask);
                 setLoading(false);
             }
             fetchTask();
-            fetchActiveTimer();
             setPendingUpdates({});
         }
     }, [isOpen, taskId, initialTask]);
@@ -413,46 +422,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
             setGroupLoading(false);
         }
     };
-    const fetchActiveTimer = async () => {
-        try {
-            setActiveTimer(await api.getActiveTimeEntry());
-        } catch (err) {
-            console.error('Failed to load active timer', err);
-        }
-    };
-
-    const refreshTaskAndTimer = async () => {
-        await Promise.allSettled([fetchTask(), fetchActiveTimer()]);
-    };
-
-    const handleStartTimer = async (target: { taskId?: string; subtaskId?: string }) => {
-        setTimerBusy(true);
-        try {
-            const entry = await api.startTimeEntry(target);
-            setActiveTimer(entry);
-            notify('Timer started.');
-        } catch (err) {
-            console.error('Failed to start timer', err);
-            notify('Unable to start timer.', 'error');
-        } finally {
-            setTimerBusy(false);
-        }
-    };
-
-    const handleStopTimer = async () => {
-        setTimerBusy(true);
-        try {
-            await api.stopTimeEntry(activeTimer?.id ?? null);
-            setActiveTimer(null);
-            await refreshTaskAndTimer();
-            notify('Timer stopped.');
-        } catch (err) {
-            console.error('Failed to stop timer', err);
-            notify('Unable to stop timer.', 'error');
-        } finally {
-            setTimerBusy(false);
-        }
-    };
+    const refreshTaskAndTimer = async () => { await fetchTask(); };
+    useEffect(() => {
+        if (!isOpen) return;
+        const update = () => { void fetchTask(); };
+        window.addEventListener(WORK_UPDATED_EVENT, update);
+        return () => window.removeEventListener(WORK_UPDATED_EVENT, update);
+    }, [isOpen, taskId]);
     const handleUpdateTask = async (updates: Partial<Task>) => {
         if (!task) return;
         try {
@@ -1111,28 +1087,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                 )}
                                 <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white/80">
                                     <span className="font-semibold text-white">Tracked {formatTrackedTime(task.totalTrackedSeconds ?? 0)}</span>
-                                    {activeTimer?.taskId === task.id ? (
-                                        <button
-                                            type="button"
-                                            disabled={timerBusy}
-                                            onClick={handleStopTimer}
-                                            className="rounded-full border border-rose-400/50 bg-rose-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-rose-100 disabled:opacity-50"
-                                        >
-                                            Stop
-                                        </button>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            disabled={timerBusy || Boolean(activeTimer)}
-                                            onClick={() => handleStartTimer({ taskId: task.id })}
-                                            className="rounded-full border border-emerald-400/50 bg-emerald-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100 disabled:opacity-50"
-                                        >
-                                            Start
-                                        </button>
-                                    )}
-                                    {activeTimer && activeTimer.taskId !== task.id && (
-                                        <span className="text-xs text-amber-200">Another timer is active.</span>
-                                    )}
+                                    <WorkTimerControls taskId={task.id} />
                                 </div>
                             </section>
 
@@ -1174,6 +1129,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                             {task.subtasks.map((sub) => (
                                                 <div
                                                     key={sub.id}
+                                                    id={`work-subtask-${sub.id}`}
+                                                    tabIndex={-1}
                                                     className={`rounded-2xl border border-white/10 bg-black/30 px-4 py-3 ${sub.completed ? 'opacity-80' : ''}`}
                                                 >
                                                     <div className="flex items-start gap-3">
@@ -1197,28 +1154,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                                         </div>
                                                     </div>
                                                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                                                        {activeTimer?.subtaskId === sub.id ? (
-                                                            <button
-                                                                type="button"
-                                                                disabled={timerBusy}
-                                                                onClick={handleStopTimer}
-                                                                className="rounded-full border border-rose-400/50 bg-rose-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-rose-100 disabled:opacity-50"
-                                                            >
-                                                                Stop timer
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                type="button"
-                                                                disabled={timerBusy || Boolean(activeTimer) || sub.status === SubtaskStatus.WAITING || sub.status === SubtaskStatus.DONE}
-                                                                onClick={() => handleStartTimer({ subtaskId: sub.id })}
-                                                                className="rounded-full border border-emerald-400/50 bg-emerald-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100 disabled:opacity-50"
-                                                            >
-                                                                Start timer
-                                                            </button>
-                                                        )}
-                                                        {activeTimer && activeTimer.subtaskId !== sub.id && (
-                                                            <span className="text-xs text-amber-200">Timer active elsewhere.</span>
-                                                        )}
+                                                        <WorkTimerControls taskId={task.id} subtaskId={sub.id} disabled={sub.status === SubtaskStatus.WAITING || sub.status === SubtaskStatus.DONE}
+                                                            canForceStart={sub.status === SubtaskStatus.WAITING && (sub.assignedToId === user?.id || canManageTask)} />
                                                         <button
                                                             type="button"
                                                             disabled={!canSubmitCompletion(sub)}

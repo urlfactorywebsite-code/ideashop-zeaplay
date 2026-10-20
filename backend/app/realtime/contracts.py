@@ -27,7 +27,7 @@ class Event(BaseModel):
         self.occurred_at = self.occurred_at.astimezone(timezone.utc)
         allowed = {
             "chat": {"message:new", "message:updated", "message:deleted", "reaction:added", "reaction:removed", "message:read", "typing:started", "typing:stopped", "presence:changed", "unread:updated"},
-            "task": {"task.changed", "subtask.workflow"},
+            "task": {"task.changed", "subtask.workflow", "timer.changed"},
             "ticket": {"ticket.changed", "comment", "typing"},
         }
         if self.event_type not in allowed[self.resource_type]:

@@ -1,0 +1,26 @@
+[
+    {
+        "InputObject":  "pages/Settings.tsx(LINE,COL): error TS2367: This comparison appears to be unintentional because the types \u0027\"tasks\" | \"users\" | DataExportScope.USERS | DataExportScope.TASKS | DataExportScope.ALL | \"notifications\" | \"rewards\" | \"kanban-columns\" | \"achievements\" | \"user-rewards\" | \"user-achievements\"\u0027 and \u0027DataExportScope.DEPARTMENTS\u0027 have no overlap.",
+        "SideIndicator":  "=\u003e"
+    },
+    {
+        "InputObject":  "pages/Settings.tsx(LINE,COL): error TS2367: This comparison appears to be unintentional because the types \u0027\"tasks\" | DataExportScope.TASKS | DataExportScope.ALL | \"notifications\" | \"rewards\" | \"kanban-columns\" | \"achievements\" | \"user-rewards\" | \"user-achievements\"\u0027 and \u0027DataExportScope.USERS\u0027 have no overlap.",
+        "SideIndicator":  "=\u003e"
+    },
+    {
+        "InputObject":  "pages/Settings.tsx(LINE,COL): error TS2367: This comparison appears to be unintentional because the types \u0027DataExportScope.ALL | \"notifications\" | \"rewards\" | \"kanban-columns\" | \"achievements\" | \"user-rewards\" | \"user-achievements\"\u0027 and \u0027DataExportScope.TASKS\u0027 have no overlap.",
+        "SideIndicator":  "=\u003e"
+    },
+    {
+        "InputObject":  "pages/Settings.tsx(LINE,COL): error TS2367: This comparison appears to be unintentional because the types \u0027\"tasks\" | \"users\" | DataExportScope.USERS | DataExportScope.TASKS | DataExportScope.ALL | \"kanban-columns\" | \"achievements\" | \"rewards\" | \"notifications\" | \"user-rewards\" | \"user-achievements\"\u0027 and \u0027DataExportScope.DEPARTMENTS\u0027 have no overlap.",
+        "SideIndicator":  "\u003c="
+    },
+    {
+        "InputObject":  "pages/Settings.tsx(LINE,COL): error TS2367: This comparison appears to be unintentional because the types \u0027\"tasks\" | DataExportScope.TASKS | DataExportScope.ALL | \"kanban-columns\" | \"achievements\" | \"rewards\" | \"notifications\" | \"user-rewards\" | \"user-achievements\"\u0027 and \u0027DataExportScope.USERS\u0027 have no overlap.",
+        "SideIndicator":  "\u003c="
+    },
+    {
+        "InputObject":  "pages/Settings.tsx(LINE,COL): error TS2367: This comparison appears to be unintentional because the types \u0027DataExportScope.ALL | \"kanban-columns\" | \"achievements\" | \"rewards\" | \"notifications\" | \"user-rewards\" | \"user-achievements\"\u0027 and \u0027DataExportScope.TASKS\u0027 have no overlap.",
+        "SideIndicator":  "\u003c="
+    }
+]

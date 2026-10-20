@@ -14,7 +14,6 @@ from ..avatar_utils import (
 )
 from ..database import get_db
 from ..dependencies import get_current_active_user, get_current_admin
-from ..email_utils import send_notification_email
 from ..integrations import trigger_n8n_event
 from ..services import audit_logger
 from ..services import password_recovery
@@ -274,14 +273,16 @@ You can now log in with your email: {user.email}
 Best regards,
 The Task Management Team
 """
-        send_notification_email(
-            db=db,
-            notification_type="welcome_password",
-            to_address=user.email,
+        from ..services.notification_outbox import enqueue_email
+        enqueue_email(
+            db, tenant_id=user.tenant_id, recipient_user_id=user.id,
+            event_type='welcome', event_id=user.id, dedupe_key=f'welcome:{user.id}',
             subject=subject,
             body=body,
         )
+        db.commit()
     except Exception:
+        db.rollback()
         # Don't fail user creation if email sending fails
         pass
 

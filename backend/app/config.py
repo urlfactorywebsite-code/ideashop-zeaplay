@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     password_reset_expire_minutes: int = Field(default=15, ge=5, le=60)
     password_reset_requests_per_email: int = Field(default=3, ge=1, le=20)
     password_reset_requests_per_ip: int = Field(default=100, ge=1, le=1000)
+    smtp_secret_keys: List[str] = Field(default_factory=list, repr=False)
+    smtp_private_host_allowlist: List[str] = Field(default_factory=list)
+    smtp_plaintext_host_allowlist: List[str] = Field(default_factory=list)
+    smtp_ca_file: Optional[str] = None
+    smtp_delivery_enabled: bool = True
     bcrypt_rounds: int = 12
     default_tenant_id: str = "00000000-0000-0000-0000-000000000000"
 
@@ -125,6 +130,8 @@ class Settings(BaseSettings):
     realtime_outbox_max_pending: int = Field(default=100000, ge=1)
     realtime_outbox_retention_days: int = Field(default=7, ge=1, le=3650)
     bootstrap_schema: bool = True
+    active_timer_admin_limit: int = Field(default=5, ge=1, le=100)
+    active_timer_owner_limit: int = Field(default=5, ge=1, le=100)
 
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.local"),

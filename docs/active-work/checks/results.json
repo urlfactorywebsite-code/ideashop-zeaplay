@@ -1,0 +1,71 @@
+{
+  "verified_on": "2026-10-20",
+  "backend_regression": {
+    "passed": 227,
+    "skipped": 5,
+    "log": "backend-final.txt"
+  },
+  "active_work_matrix": {
+    "passed": 26,
+    "log": "api-final.txt"
+  },
+  "final_role_history_api_delta": {
+    "passed": 14,
+    "deselected": 12,
+    "log": "final-delta.txt"
+  },
+  "migration_bootstrap_readiness": {
+    "passed": 28,
+    "skipped": 2,
+    "log": "migrations-postgres.txt"
+  },
+  "frontend_tests": {
+    "passed": 85,
+    "log": "frontend-tests.txt"
+  },
+  "browser": {
+    "passed": 11,
+    "errors": [],
+    "active_connections_after_cleanup": 0,
+    "log": "browser.json"
+  },
+  "existing_journey_browser": {
+    "passed": 39,
+    "log": "journey-browser.txt"
+  },
+  "linux_runtime": {
+    "result": "PASS",
+    "parallel_starts": 7,
+    "running_slots": 3,
+    "real_websockets": 2,
+    "log": "linux-runtime.txt"
+  },
+  "frontend_build": {
+    "result": "PASS",
+    "log": "build.txt"
+  },
+  "typecheck": {
+    "result": "FAIL",
+    "errors": 130,
+    "new_active_work_file_diagnostics": [],
+    "log": "typescript.txt"
+  },
+  "frontend_lint": {
+    "result": "UNAVAILABLE",
+    "reason": "Missing lint script/configuration",
+    "log": "lint.txt"
+  },
+  "release_gate": "BLOCKED",
+  "application_database_migrated": false,
+  "public_deployment_performed": false,
+  "history_retention": "Existing hard-delete cascade remains; immutable audit observations survive, panel shows retained sessions only.",
+  "notes": [
+    "Intermediate native Windows SQLite/Python crash retained in timer-final.txt; passing broad run uses disposable file-based global SQLite.",
+    "Initial obsolete assertions are retained in backend-regression.txt; final broad run passed."
+  ],
+  "cleanup": {
+    "disposable_containers_and_network": "REMOVED",
+    "loopback_test_server": "STOPPED",
+    "local_backend_image": "zeaplay-active-work-backend:local retained"
+  }
+}

@@ -13,10 +13,11 @@ type ToastTone = 'success' | 'error' | 'info';
 interface ToastState {
   message: string;
   tone: ToastTone;
+  placement: 'default' | 'above-navigation';
 }
 
 interface ToastContextValue {
-  notify: (message: string, tone?: ToastTone, duration?: number) => void;
+  notify: (message: string, tone?: ToastTone, duration?: number, placement?: ToastState['placement']) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
@@ -25,8 +26,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [toast, setToast] = useState<ToastState | null>(null);
   const durationRef = useRef<number | null>(null);
 
-  const notify = useCallback((message: string, tone: ToastTone = 'success', duration = 3200) => {
-    setToast({ message, tone });
+  const notify = useCallback((message: string, tone: ToastTone = 'success', duration = 3200, placement: ToastState['placement'] = 'default') => {
+    setToast({ message, tone, placement });
     if (durationRef.current) {
       window.clearTimeout(durationRef.current);
     }
@@ -49,8 +50,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={value}>
       {children}
       {toast && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+        <div data-app-toast className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
+          style={toast.placement === 'above-navigation' ? { bottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' } : undefined}>
           <div
+            style={toast.placement === 'above-navigation' ? { backgroundColor: toast.tone === 'error' ? '#38202c' : toast.tone === 'info' ? '#102c41' : '#123b31' } : undefined}
             className={`max-w-sm rounded-2xl border px-4 py-3 text-sm font-medium shadow-2xl transition ${
               toast.tone === 'error'
                 ? 'bg-rose-500/10 border-rose-400/70 text-rose-200'

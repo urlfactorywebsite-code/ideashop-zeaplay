@@ -1,0 +1,11 @@
+{
+  "backendContainerUnchanged": true,
+  "health": 200,
+  "forgotPasswordUnknownSyntheticEmail": {
+    "status": 503,
+    "body": {
+      "detail": "Password recovery is not configured. Contact your administrator."
+    }
+  },
+  "scope": "No real account, login, password change or mailbox delivery exercised."
+}

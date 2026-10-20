@@ -140,7 +140,7 @@ def test_stop_without_start_returns_no_active_timer():
     assert response.json() is None
 
 
-def test_start_rejects_invalid_targets_and_another_active_timer():
+def test_start_rejects_invalid_targets_and_allows_independent_timers():
     _, _, _, _, member_token, task = _timer_task(with_waiting_subtask=False)
     headers = {"Authorization": f"Bearer {member_token}"}
     subtask_id = _subtask(task, "Active subtask")["id"]
@@ -157,7 +157,9 @@ def test_start_rejects_invalid_targets_and_another_active_timer():
     active = client.post("/api/time-entries/start", json={"task_id": task["id"]}, headers=headers)
     assert active.status_code == 201, active.text
     second_target = client.post("/api/time-entries/start", json={"subtask_id": subtask_id}, headers=headers)
-    assert second_target.status_code == 409
+    assert second_target.status_code == 201, second_target.text
+    snapshot = client.get("/api/time-entries/work/active", headers=headers).json()
+    assert snapshot["running_count"] == 2
 
 
 def test_legacy_projectless_task_timer_enforces_creator_tenant_boundary():
@@ -197,14 +199,14 @@ def test_legacy_projectless_task_timer_enforces_creator_tenant_boundary():
     assert allowed.status_code == 201, allowed.text
 
 
-def test_one_active_timer_per_user_globally_and_database_constraint():
+def test_independent_targets_run_concurrently_and_duplicate_target_is_constrained():
     _, _, _, _, member_token, task = _timer_task()
     headers = {"Authorization": f"Bearer {member_token}"}
     active_subtask = _subtask(task, "Active subtask")
     first = client.post("/api/time-entries/start", json={"task_id": task["id"]}, headers=headers)
     assert first.status_code == 201, first.text
     second = client.post("/api/time-entries/start", json={"subtask_id": active_subtask["id"]}, headers=headers)
-    assert second.status_code == 409
+    assert second.status_code == 201, second.text
 
     db = TestingSessionLocal()
     try:

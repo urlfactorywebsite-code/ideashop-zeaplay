@@ -1,0 +1,146 @@
+[
+  {
+    "sha256": "0C16A09D86E35FBF54D30383037733E8DFD31D49DA6F6EE8044600DA978AC005",
+    "path": ".env.production.example"
+  },
+  {
+    "sha256": "4441A185662FFDE7E56D0D69120CB89F62D7F41A0EF34B2C2DEFA73F37EF441C",
+    "path": "backend/app/config.py"
+  },
+  {
+    "sha256": "D2FE22D3F9263BDBE33C9CA36825297B9BD768EBDE44E3FB27FEB07248FB3B93",
+    "path": "backend/app/email_utils.py"
+  },
+  {
+    "sha256": "74F2785F553EC93FA602108030BBB818C004E884CF3A7E0647548D1D5C56FFFB",
+    "path": "backend/app/emails/smtp.py"
+  },
+  {
+    "sha256": "9A1377FB62BDE5993BCE1DDEA921D77CA44C621E1062C52A67FD1822302540F4",
+    "path": "backend/app/events/bus.py"
+  },
+  {
+    "sha256": "91A6AFFB3E3F1D9ED6BD5D611581BA84251A45C056358D97CD70675A37F37166",
+    "path": "backend/app/models.py"
+  },
+  {
+    "sha256": "1EACD74546E8680FDE0AF91A323B7B179D603AFE74D9044956E225FEF230192A",
+    "path": "backend/app/notifications/service.py"
+  },
+  {
+    "sha256": "3802CC66E2C4F468DE250350F1BAD0CDA121DF21FA45EF44C3AA0FF5F6518058",
+    "path": "backend/app/routers/config.py"
+  },
+  {
+    "sha256": "DFB5A36A4F1DB8978047B0EB28E52646FF31401A2EB3D87FF5FBBDCBDBFFD467",
+    "path": "backend/app/routers/data_admin.py"
+  },
+  {
+    "sha256": "B69BF15BEDA9055CE78CB03C85EE1B7F0F248F0852AA6D8B7D8A2B81B2ECA3F2",
+    "path": "backend/app/routers/smtp.py"
+  },
+  {
+    "sha256": "60C3C366B620E1411451C642C45B2D8AA9E1592C6E7440930C6C17FC4884E091",
+    "path": "backend/app/routers/users.py"
+  },
+  {
+    "sha256": "A5575C15CE590E5425AEDD4BACFF504757D9D0B5551F45D0E97DDEBAD0B1A512",
+    "path": "backend/app/schemas.py"
+  },
+  {
+    "sha256": "9B0777AFB0BDA991B9A15D460EC0692814D98038893262DC0B0D4654AEDA3E4E",
+    "path": "backend/app/services/notification_outbox.py"
+  },
+  {
+    "sha256": "ADA907FF76975008686F519F9AA118676F8ACD662B8A3F344B1A2FFA1D588B73",
+    "path": "backend/app/services/password_recovery.py"
+  },
+  {
+    "sha256": "CB4E0ACBEE76D2918EF3FEA9ECAB075C6E1FB1AAEDAC491220D6DC11971B8DE1",
+    "path": "backend/app/services/smtp_admin.py"
+  },
+  {
+    "sha256": "303137A34CB7B2A9EC46A3DB3FE1E9BDB34967ADAF90D3021D142362C1549595",
+    "path": "backend/app/services/smtp_categories.py"
+  },
+  {
+    "sha256": "C1F0B57E9C2A20432A6BD30CC15D8158CCB13F70F191CD20EE9340C7C42A6850",
+    "path": "backend/app/services/smtp_management.py"
+  },
+  {
+    "sha256": "54B2717A69A69B80F72C8DCAA87E8DEEBA1828804FCC64759F77B5C3ADFBA3FF",
+    "path": "backend/app/services/smtp_security.py"
+  },
+  {
+    "sha256": "6D2CA193A7944AAB3741CE2045DDFED18617BF9D0066348D0F28702073E3986B",
+    "path": "backend/app/smtp_schemas.py"
+  },
+  {
+    "sha256": "1E5006FD855537D9C0B318258D0770290800C9BBB9C9C9877CDA4BA3BFFC8E5C",
+    "path": "backend/alembic/versions/ff7a8b9c0d1e_smtp_management.py"
+  },
+  {
+    "sha256": "67C813C41887D0C780EF911D9A110F7B84F9AF9000F1DA64E2F1A90BD21FD832",
+    "path": "backend/tests/test_password_recovery.py"
+  },
+  {
+    "sha256": "42F19D000E9CA05C2FADC82CF586B6072DADCA4F8094961EC3E2FC2784DBA3BD",
+    "path": "backend/tests/test_tasks_phase10.py"
+  },
+  {
+    "sha256": "00EC7D6CCD4C9497E5CBCB0C34FCBE7E5F211CF0B4F5FE68DABB7B08BCF5AC3E",
+    "path": "backend/tests/test_smtp_management.py"
+  },
+  {
+    "sha256": "01A121FDDCE8BA5E7F26E41BBF0D71F0FCA684EC4F278160209CC62AF8331428",
+    "path": "backend/tests/test_smtp_migration.py"
+  },
+  {
+    "sha256": "1F0A5D839E6694FF5332FCB8BAF3AAA8FECAB7E3523D5111C2F78D21BE784EA1",
+    "path": "frontend/App.tsx"
+  },
+  {
+    "sha256": "BE180A60B55BD464791C22BD0892D97706E3FA80755B788ED3067226B2DC6754",
+    "path": "frontend/components/Layout.tsx"
+  },
+  {
+    "sha256": "EFB5DAF62C95D57582FD4EB4ABE53CF171E5D9A6351D1B054D55E75BAA5F423E",
+    "path": "frontend/components/Sidebar.tsx"
+  },
+  {
+    "sha256": "94E9E8B4AD17024B57D4EA231E737EAC96CC529139730CDB65EC7C685749D5A1",
+    "path": "frontend/components/SmtpManagement.tsx"
+  },
+  {
+    "sha256": "5B3B6B611FE3197A99142782426E7528259FDB26F294658A1049F2FF3558B10A",
+    "path": "frontend/components/SmtpManagement.css"
+  },
+  {
+    "sha256": "B396B8F17B4BFE88809A7A719E2347469E62BC7350FEBDDF5446D26BAF8CE52D",
+    "path": "frontend/pages/ApiOverview.tsx"
+  },
+  {
+    "sha256": "070F5445AD0B37E5F6E924FD83A83515417F1E6CDEFDB35169D5D934B76368E0",
+    "path": "frontend/services/mockApi.ts"
+  },
+  {
+    "sha256": "29420C64E1F2C5F1A5C42C4159596F10B57B0DFED4743F02F7E70C954FDDD6C0",
+    "path": "frontend/types/smtp.ts"
+  },
+  {
+    "sha256": "FA5D31A2923787EF1CC82EA30E68CF142C3B98B29F6B49262CF38C6AE103AC35",
+    "path": "frontend/utils/smtpProfiles.ts"
+  },
+  {
+    "sha256": "2C1C4D2B7D81ED2C7D5E931C81DFBCA4B8B87DB449824D4D71AB524BDCDF025C",
+    "path": "frontend/test/smtp-profiles.test.ts"
+  },
+  {
+    "sha256": "D05E6542EB46D251797E72B3DE0285232AF8500CC1192418216BF352F75F9FEF",
+    "path": "frontend/e2e/smtp-management.mjs"
+  },
+  {
+    "sha256": "CB3DBA18DA0CA1B7A2E8B296094063098BBCE4E3C2ED1AD1F94EA6CA1E4EE1D8",
+    "path": "frontend/hooks/useToast.tsx"
+  }
+]
