@@ -98,7 +98,7 @@ def test_three_assignees_receive_named_handoff_and_parent_completes_once(api, da
             models.Notification.related_task_id == data.task.id,
             models.Notification.type == models.NotificationTypeEnum.TASK_COMPLETED,
         )).all()
-        assert sorted(completed_recipients) == sorted([data.owner.id, chain.users[0].id])
+        assert sorted(completed_recipients) == sorted([data.owner.id, *(user.id for user in chain.users)])
 
     reopened = patch_child(api, data, chain.children[1], chain.users[1], "TODO")
     assert reopened.status_code == 200, reopened.text

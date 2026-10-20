@@ -24,7 +24,7 @@ from ..database import get_db
 from ..dependencies import get_current_active_user
 from ..integrations import trigger_n8n_event
 from ..services import notifications as notification_service
-from ..services import audit_logger, task_events
+from ..services import audit_logger, task_events, task_notifications
 from ..tickets import task_link_service
 from ..tickets.models import Ticket
 from ..services.gamification import (
@@ -1874,7 +1874,7 @@ def create_task(
     for task_snapshot in task_snapshots:
         assignee_id = task_snapshot["assigned_to_id"]
         assignee = assignee_cache.get(assignee_id) if assignee_id else None
-        if assignee and assignee.id != current_user.id:
+        if assignee:
             notification_service.create_notification(
                 db,
                 user_id=assignee.id,
@@ -2497,7 +2497,7 @@ def update_task(
     follower_ids = update_data.pop("follower_ids", None)
     subtasks_provided = "subtasks" in update_data
     subtask_workflow_events: list[subtask_workflow.WorkflowDomainEvent] = []
-    parent_completed_by_subtasks = False
+    parent_changed_by_subtasks = False
 
     if "project_id" in update_data:
         next_project_id = update_data["project_id"]
@@ -2692,7 +2692,7 @@ def update_task(
             db.delete(stale_subtask)
         db.flush()
         parent_changed = subtask_workflow.synchronize_parent_completion(db, task, actor=current_user)
-        parent_completed_by_subtasks = parent_changed and task.status in COMPLETED_STATUSES
+        parent_changed_by_subtasks = parent_changed
 
     if update_data.get("status") in COMPLETED_STATUSES and any(
         subtask.status != models.SubtaskStatusEnum.DONE for subtask in task.subtasks
@@ -2703,7 +2703,7 @@ def update_task(
     if should_award_points:
         if task.completed_at is None:
             task.completed_at = datetime.utcnow()
-        completion_points_awarded = award_task_completion_points(db, task)
+        completion_points_awarded = award_task_completion_points(db, task, notify_creator=False)
 
     if (
         "clarity_rating" in update_data
@@ -2725,17 +2725,27 @@ def update_task(
             for field, value in shared_updates.items():
                 setattr(peer, field, value)
 
-    if assignee_notification_target and assignee_notification_target.id != current_user.id:
+    if assignee_notification_target:
         notification_service.create_notification(
             db,
             user_id=assignee_notification_target.id,
             actor_id=str(current_user.id),
             notification_type=models.NotificationTypeEnum.TASK_ASSIGNED,
             message=f"You have been assigned task: '{task.title}'.",
+            title="Task assigned",
+            body=f"You have been assigned task: '{task.title}'.",
+            entity_type=models.NotificationEntityTypeEnum.TASK,
+            entity_id=task.id,
+            deep_link=f"/tasks/{task.id}",
             related_task_id=task.id,
         )
 
-    if task.created_by_id and task.created_by_id != current_user.id and not parent_completed_by_subtasks:
+    status_changed = task.status != previous_status
+    if status_changed and not parent_changed_by_subtasks:
+        task_notifications.notify_status_change(db, task=task, actor=current_user, previous_status=previous_status)
+
+    other_fields_updated = bool(set(update_fields) - {"status"})
+    if task.created_by_id and task.created_by_id != current_user.id and not parent_changed_by_subtasks and not status_changed and other_fields_updated:
         notification_service.create_notification(
             db,
             user_id=task.created_by_id,
@@ -2750,19 +2760,17 @@ def update_task(
             related_task_id=task.id,
         )
 
-    if update_fields and not parent_completed_by_subtasks:
-        just_completed = task.status in COMPLETED_STATUSES and previous_status not in COMPLETED_STATUSES
+    if other_fields_updated and not parent_changed_by_subtasks and not status_changed:
         _notify_task_participants(
             db,
             task=task,
             current_user=current_user,
-            title="Task completed" if just_completed else "Task updated",
-            message=f"Task '{task.title}' was {'completed' if just_completed else 'updated'}.",
+            title="Task updated",
+            message=f"Task '{task.title}' was updated.",
             exclude_ids={assignee_notification_target.id} if assignee_notification_target else None,
-            notification_type=models.NotificationTypeEnum.TASK_COMPLETED if just_completed else models.NotificationTypeEnum.TASK_UPDATED,
+            notification_type=models.NotificationTypeEnum.TASK_UPDATED,
         )
 
-    status_changed = task.status != previous_status
     priority_changed = task.priority != previous_priority
     assignee_changed = task.assigned_to_id != previous_assignee_id
     now = datetime.utcnow()
@@ -2956,12 +2964,8 @@ def complete_task(
     should_award_points = previous_status not in COMPLETED_STATUSES and task.status in COMPLETED_STATUSES
     completion_points_awarded = False
     if should_award_points:
-        completion_points_awarded = award_task_completion_points(db, task)
-        _notify_task_participants(
-            db, task=task, current_user=current_user, title="Task completed",
-            message=f"Task '{task.title}' was completed.",
-            notification_type=models.NotificationTypeEnum.TASK_COMPLETED,
-        )
+        completion_points_awarded = award_task_completion_points(db, task, notify_creator=False)
+    task_notifications.notify_status_change(db, task=task, actor=current_user, previous_status=previous_status)
 
     db.add(
         models.AuditEvent(

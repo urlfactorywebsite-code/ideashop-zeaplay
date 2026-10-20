@@ -12,7 +12,6 @@ import {
     Department,
     EmailTemplate,
     MultipleSmtpConfig,
-    OAuthConfig,
     Reward,
     Role,
 } from '../types';
@@ -177,16 +176,6 @@ const initialSmtpFormState = (): MultipleSmtpConfigInput & { id?: number; passwo
     notification_types: [],
 });
 
-const initialOAuthFormState = (): OAuthConfigInput & { id?: number } => ({
-    id: undefined,
-    name: '',
-    redirect_url: '',
-    scopes: ['tasks.read'],
-    n8n_integration: true,
-    client_id: undefined,
-    client_secret: undefined,
-    api_key: undefined,
-});
 const Settings: React.FC = () => {
     const { user, updateUserInContext } = useAuth();
     const { theme, setTheme } = useTheme();

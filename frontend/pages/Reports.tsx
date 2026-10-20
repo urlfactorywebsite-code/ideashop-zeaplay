@@ -1,1085 +1,446 @@
-
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { GoogleGenAI } from '@google/genai';
-import { 
-    LineChart, 
-    Line, 
-    XAxis, 
-    YAxis, 
-    Tooltip, 
-    ResponsiveContainer 
-} from 'recharts';
-import { Task, User, Role, TaskStatus, CUSTOM_STATUS_NAMES } from '../types';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAuth } from '../hooks/useAuth';
-import api from '../services/mockApi';
-import { withGeminiKey } from '../utils/geminiClient';
-import { formatDate } from '../utils';
-import PageLoader from '../components/loading/PageLoader';
+import { TaskStatus, CUSTOM_STATUS_NAMES } from '../types';
+import { reportingApi } from '../services/reportingApi';
+import type { ReportingFilters, ReportingMeta, ReportingOverview, ReportingQuery, ReportingRow, ReportPreset, ReportSection } from '../types/reporting';
+import { numberValue, previousReportingPeriod, reportError, reportingDates, reportingDuration, reportingFiltersFromUrl, reportingSearchParams, reportingTaskLink, reportSections, reportTimezone, validateReportingDates } from '../utils/reporting';
+import './Reports.css';
 
-const StatCard: React.FC<{ title: string; value: number | string; delta?: string }> = ({ title, value, delta }) => (
-    <div className="bg-surface p-6 rounded-lg border border-border-color">
-        <h3 className="text-sm font-medium text-text-secondary uppercase tracking-wider">{title}</h3>
-        <p className="mt-2 text-3xl font-semibold text-text-primary">{value}</p>
-        {delta && <p className="text-xs text-text-secondary mt-1">{delta}</p>}
+const LABELS: Record<ReportSection, string> = {
+  overview: 'Overview', employees: 'Employees', tasks: 'Tasks & assignments', statuses: 'Task statuses',
+  projects: 'Projects', activity: 'Date-wise activity', time: 'Time tracking',
+};
+const PRESETS: { id: ReportPreset; label: string }[] = [
+  { id: 'today', label: 'Today' }, { id: 'yesterday', label: 'Yesterday' }, { id: 'last7', label: 'Last 7 days' },
+  { id: 'week', label: 'This week' }, { id: 'month', label: 'This month' }, { id: 'lastMonth', label: 'Last month' },
+  { id: 'custom', label: 'Custom date range' },
+];
+const STATUS_COLOR: Record<string, string> = Object.fromEntries(Object.entries({
+  WAITING_FOR_REQUIREMENT: 'battle', TODO: 'case', IN_PROGRESS: 'progress', BUG_FIXING: 'boss',
+  BLOCKED: 'boss', IN_REVIEW: 'tactical', ON_HOLD: 'hold', DONE: 'conquered', DEPLOYED: 'conquered',
+  FAILED: 'fallen', GRAVEYARD: 'graveyard',
+}).map(([status, token]) => [status, `var(--color-stage-${token})`]));
+const statusLabel = (status: string) => `${status.replace(/_/g, ' ')}${CUSTOM_STATUS_NAMES[status as TaskStatus]?.name ? ` · ${CUSTOM_STATUS_NAMES[status as TaskStatus].name}` : ''}`;
+const int = (value: unknown) => numberValue(value).toLocaleString();
+const present = (value: unknown) => value === null || value === undefined || value === '' ? 'Not recorded' : String(value);
+interface Column { key: string; label: string; sort?: boolean; kind?: 'status' | 'date' | 'percent' | 'duration' | 'people' | 'boolean' }
+const c = (key: string, label: string, sort = false, kind?: Column['kind']): Column => ({ key, label, sort, kind });
+const COLUMNS: Record<Exclude<ReportSection, 'overview'>, Column[]> = {
+  employees: [
+    c('name', 'Employee', true), c('email', 'Email'), c('status', 'Account'),
+    c('assigned_parent_tasks', 'Parent assignments', true), c('assigned_subtasks', 'Subtask assignments'),
+    c('completed_parent_tasks', 'Completed', true), c('in_progress_parent_tasks', 'In progress'),
+    c('pending_parent_tasks', 'Pending'), c('blocked_parent_tasks', 'Blocked'), c('overdue_parent_tasks', 'Overdue', true),
+    c('completion_percentage', 'Completion', false, 'percent'), c('project_count', 'Projects'),
+    c('recorded_effort_seconds', 'Recorded effort', true, 'duration'),
+    c('active_assignments', 'Active assignments'), c('completed_assignments', 'Completed assignments'),
+  ],
+  tasks: [
+    c('title', 'Parent task', true), c('status', 'Persisted status', true, 'status'),
+    c('assignee_name', 'Assigned employee'), c('project_name', 'Project'), c('project_status', 'Project status'),
+    c('created_at', 'Created', true, 'date'), c('assigned_at', 'Assigned', true, 'date'),
+    c('due_at', 'Due', true, 'date'), c('completed_at', 'Completed', false, 'date'),
+    c('total_subtasks', 'Subtasks'), c('completed_subtasks', 'Completed subtasks'), c('overdue', 'Overdue', false, 'boolean'),
+  ],
+  statuses: [
+    c('status', 'Persisted parent status', true, 'status'), c('count', 'Unique tasks', true),
+    c('percentage', 'Share', false, 'percent'), c('project_count', 'Projects'),
+    c('employee_count', 'Employees'), c('overdue_tasks', 'Overdue'),
+  ],
+  projects: [
+    c('name', 'Project', true), c('client_name', 'Client / company'), c('status', 'Project status'),
+    c('manager_count', 'Manager count'), c('managers', 'Managers (preview)', false, 'people'), c('member_count', 'Member count'), c('members', 'Members (preview)', false, 'people'),
+    c('members_truncated', 'Name preview truncated', false, 'boolean'),
+    c('start_date', 'Start', false, 'date'), c('end_date', 'End', false, 'date'),
+    c('total_tasks', 'Unique tasks', true), c('completed_tasks', 'Completed', true),
+    c('in_progress_tasks', 'In progress'), c('pending_tasks', 'Pending'), c('blocked_tasks', 'Blocked'),
+    c('overdue_tasks', 'Overdue', true), c('completion_percentage', 'Completion', false, 'percent'),
+    c('total_subtasks', 'Subtasks'), c('completed_subtasks', 'Completed subtasks'),
+    c('recorded_effort_seconds', 'Recorded effort', true, 'duration'),
+  ],
+  activity: [
+    c('date', 'Period', true), c('tasks_created', 'Tasks created', true),
+    c('tasks_started', 'Tasks started'), c('tasks_completed', 'Task completions'), c('tasks_reopened', 'Tasks reopened'),
+    c('subtasks_completed', 'Subtask completions'), c('work_sessions_started', 'Sessions started'), c('work_intervals_started', 'Active intervals started'),
+    c('recorded_effort_seconds', 'Recorded effort', false, 'duration'), c('unique_working_seconds', 'Unique working time', false, 'duration'),
+  ],
+  time: [
+    c('name', 'Employee', true), c('recorded_effort_seconds', 'Recorded task effort', true, 'duration'),
+    c('unique_working_seconds', 'Unique working time', true, 'duration'), c('interval_count', 'Active intervals', true),
+    c('running_interval_count', 'Running intervals', true), c('paused_interval_count', 'Paused intervals', true), c('resumed_interval_count', 'Resumed intervals', true),
+  ],
+};
+const SESSION_COLUMNS: Column[] = [
+  c('employee_name', 'Employee', true), c('task_title', 'Parent task', true), c('subtask_title', 'Subtask'), c('project_name', 'Project'),
+  c('state', 'Session state'), c('started_at', 'Started', true, 'date'), c('stopped_at', 'Stopped', false, 'date'),
+  c('recorded_effort_seconds', 'Recorded effort', true, 'duration'), c('start_kind', 'Start / resume'),
+  c('stop_reason', 'Stop reason'), c('resumed_at', 'Resumed', false, 'date'), c('paused_seconds', 'Observed pause', false, 'duration'),
+];
+
+function useReportResource<T>(key: string, enabled: boolean, request: (signal: AbortSignal) => Promise<T>) {
+  const [state, setState] = useState<{ key: string; data: T | null; busy: boolean; error: string | null }>({ key, data: null, busy: enabled, error: null });
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    if (!enabled) { setState({ key, data: null, busy: false, error: null }); return; }
+    setState({ key, data: null, busy: true, error: null });
+    request(controller.signal).then(data => {
+      if (!controller.signal.aborted) setState({ key, data, busy: false, error: null });
+    }).catch(error => {
+      if (!controller.signal.aborted) setState({ key, data: null, busy: false, error: reportError(error) });
+    });
+    return () => controller.abort();
+  }, [key, enabled, retry]);
+  return { ...(state.key === key ? state : { data: null, busy: enabled, error: null }), retry: () => setRetry(n => n + 1) };
+}
+
+function ErrorBox({ message, retry }: { message: string; retry?: () => void }) {
+  return <div role="alert" className="report-error"><span>{message}</span>{retry && <button type="button" onClick={retry}>Try again</button>}</div>;
+}
+function Loading({ label = 'Loading report' }: { label?: string }) {
+  return <div className="report-loading" role="status" aria-live="polite"><span>{label}…</span><div /><div /><div /></div>;
+}
+function Empty({ text = 'No records match these filters.' }: { text?: string }) {
+  return <div className="report-empty"><strong>No report data</strong><p>{text}</p></div>;
+}
+function Meta({ meta }: { meta?: ReportingMeta }) {
+  if (!meta) return null;
+  return <div className="report-meta">
+    <p>Snapshot: {new Date(meta.as_of).toLocaleString(undefined, { timeZone: meta.timezone })} · {meta.timezone} · {meta.from} through {meta.to}</p>
+    {meta.limitations?.length ? <details><summary>Data coverage and limitations</summary><ul>{meta.limitations.map(text => <li key={text}>{text}</li>)}</ul></details> : null}
+  </div>;
+}
+function displayCell(row: ReportingRow, column: Column, timezone: string): React.ReactNode {
+  const value = row[column.key];
+  if (column.key === 'assignee_name' && row.assigned_to_id === null && !row.assignment_redacted) return 'Unassigned';
+  if (value === undefined || value === null) return <span className="report-muted">Not recorded</span>;
+  if (column.kind === 'people') return Array.isArray(value) ? value.map(person => person.name).join(', ') || 'None' : present(value);
+  if (column.kind === 'duration') return reportingDuration(numberValue(value));
+  if (column.kind === 'percent') return `${numberValue(value).toFixed(1)}%`;
+  if (column.kind === 'boolean') return value ? 'Yes' : 'No';
+  if (column.kind === 'date') {
+    const text = String(value);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+    const date = new Date(text);
+    return Number.isNaN(date.getTime()) ? 'Not recorded' : date.toLocaleString(undefined, { timeZone: timezone, dateStyle: 'medium', timeStyle: 'short' });
+  }
+  if (column.kind === 'status') return <span className="report-status" style={{ borderColor: STATUS_COLOR[String(value)] || 'var(--color-border-color)' }}>{statusLabel(String(value))}</span>;
+  if (typeof value === 'number') return int(value);
+  if (value === 'ARCHIVED' || value === 'INACTIVE') return <span className="report-archived">{value}</span>;
+  return present(value);
+}
+function DataTable({ items, columns, timezone, sort = '', direction = 'asc', onSort, onRow, rowLabel }: {
+  items: ReportingRow[]; columns: Column[]; timezone: string; sort?: string; direction?: string;
+  onSort?: (key: string) => void; onRow?: (row: ReportingRow) => void; rowLabel?: string;
+}) {
+  const location = useLocation();
+  if (!items.length) return <Empty />;
+  return <div className="report-table-scroll" tabIndex={0} aria-label="Report table; scroll horizontally for more columns">
+    <table className="report-table"><thead><tr>{columns.map(column => <th key={column.key} scope="col"
+      aria-sort={sort === column.key ? direction === 'asc' ? 'ascending' : 'descending' : undefined}>
+      {column.sort && onSort ? <button type="button" onClick={() => onSort(column.key)}>{column.label}<span aria-hidden="true">{sort === column.key ? direction === 'asc' ? ' ↑' : ' ↓' : ' ↕'}</span></button> : column.label}
+    </th>)}</tr></thead><tbody>{items.map((row, index) => <tr key={String(row.id || row.employee_id || row.project_id || row.status || row.date || index)}>
+      {columns.map((column, columnIndex) => <td key={column.key}>{columnIndex === 0 && onRow
+        ? <button type="button" className="report-link" onClick={() => onRow(row)} aria-label={`${rowLabel || 'View details for'} ${present(row[column.key])}`}>{displayCell(row, column, timezone)}</button>
+        : column.key === 'title' && row.id ? <Link className="report-link" to={reportingTaskLink(location.search, row)}>{displayCell(row, column, timezone)}</Link>
+          : displayCell(row, column, timezone)}</td>)}
+    </tr>)}</tbody></table>
+  </div>;
+}
+function Pagination({ page, pageSize, total, totalPages, onPage, onSize }: {
+  page: number; pageSize: number; total: number; totalPages: number; onPage: (page: number) => void; onSize?: (size: number) => void;
+}) {
+  return <div className="report-pagination">
+    <span>{int(total)} records · Page {page} of {Math.max(1, totalPages)}</span>
+    <div>{onSize && <label>Rows <select aria-label="Rows per page" value={pageSize} onChange={event => onSize(Number(event.target.value))}>{[10, 25, 50, 100].map(size => <option key={size}>{size}</option>)}</select></label>}
+      <button type="button" disabled={page <= 1} onClick={() => onPage(page - 1)}>Previous</button>
+      <button type="button" disabled={page >= totalPages} onClick={() => onPage(page + 1)}>Next</button></div>
+  </div>;
+}
+function SearchPicker({ label, selected, onChange, options, total, busy, search, setSearch, page, setPage }: {
+  label: string; selected?: string; onChange: (id: string) => void;
+  options: { id: string; name: string; status: string }[]; total: number; busy: boolean;
+  search: string; setSearch: (text: string) => void; page: number; setPage: (page: number) => void;
+}) {
+  return <div className="report-picker">
+    <label>{label}<input aria-label={`Search ${label.toLowerCase()}`} placeholder={`Search ${label.toLowerCase()}…`} value={search}
+      onChange={event => { setSearch(event.target.value); setPage(1); }} /></label>
+    <select aria-label={label} value={selected || ''} onChange={event => onChange(event.target.value)}>
+      <option value="">All authorized {label.toLowerCase()}</option>
+      {selected && !options.some(option => option.id === selected) && <option value={selected}>Selected record</option>}
+      {options.map(option => <option key={option.id} value={option.id}>{option.name}{option.status !== 'ACTIVE' ? ` (${option.status.toLowerCase()})` : ''}</option>)}
+    </select>
+    <div className="report-picker-meta"><span>{busy ? 'Searching…' : `${options.length} of ${total}`}</span>
+      <button type="button" aria-label={`Previous ${label.toLowerCase()}`} disabled={page <= 1 || busy} onClick={() => setPage(page - 1)}>‹</button>
+      <button type="button" aria-label={`More ${label.toLowerCase()}`} disabled={!options.length || page * 100 >= total || busy} onClick={() => setPage(page + 1)}>›</button>
     </div>
-);
-
-const BarChart: React.FC<{ data: { label: string, value: number }[], title: string }> = ({ data, title }) => {
-    const maxValue = Math.max(...data.map(d => d.value), 0);
-    return (
-        <div className="bg-surface p-6 rounded-lg border border-border-color">
-            <h3 className="text-lg font-semibold text-text-primary mb-4">{title}</h3>
-            <div className="space-y-2">
-                {data.length > 0 ? data.map(item => {
-                    const percentage = maxValue > 0 ? (item.value / maxValue) * 100 : 0;
-                    return (
-                        <div key={item.label} className="flex items-center">
-                            <span className="w-28 text-sm text-text-secondary truncate">{item.label}</span>
-                            <div className="flex-1 bg-gray-700 rounded-full h-4 mr-2">
-                                <div
-                                    className="bg-primary h-4 rounded-full"
-                                    style={{ width: `${percentage}%` }}
-                                ></div>
-                            </div>
-                            <span className="text-sm font-semibold">{item.value}</span>
-                        </div>
-                    );
-                }) : <p className="text-text-secondary text-sm">No data to display for the current filters.</p>}
-            </div>
-        </div>
-    );
-};
-
-const normalizeDepartmentKey = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-const startOfDay = (value: Date): Date => {
-    const copy = new Date(value);
-    copy.setHours(0, 0, 0, 0);
-    return copy;
-};
-
-const endOfDay = (value: Date): Date => {
-    const copy = new Date(value);
-    copy.setHours(23, 59, 59, 999);
-    return copy;
-};
-
-const resolvePeriodRange = (period: string, referenceDate: string, customStart: string, customEnd: string): { start?: Date; end?: Date } => {
-    if (period === 'all') {
-        return {};
-    }
-
-    if (period === 'custom') {
-        if (!customStart || !customEnd) {
-            return {};
-        }
-        const start = startOfDay(new Date(customStart));
-        const end = endOfDay(new Date(customEnd));
-        return Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) ? {} : { start, end };
-    }
-
-    const reference = referenceDate ? new Date(referenceDate) : new Date();
-    if (Number.isNaN(reference.getTime())) {
-        return {};
-    }
-
-    if (period === 'daily') {
-        return { start: startOfDay(reference), end: endOfDay(reference) };
-    }
-
-    if (period === 'weekly') {
-        const day = reference.getDay();
-        const diff = (day + 6) % 7;
-        const start = startOfDay(new Date(reference));
-        start.setDate(reference.getDate() - diff);
-        const end = endOfDay(new Date(start));
-        end.setDate(start.getDate() + 6);
-        return { start, end };
-    }
-
-    if (period === 'monthly') {
-        const start = new Date(reference.getFullYear(), reference.getMonth(), 1);
-        const end = new Date(reference.getFullYear(), reference.getMonth() + 1, 0);
-        return { start: startOfDay(start), end: endOfDay(end) };
-    }
-
-    return {};
-};
-
-const formatCsvValue = (value: string | number | null | undefined): string => {
-    const text = value === null || value === undefined ? '' : String(value);
-    return `"${text.replace(/"/g, '""')}"`;
-};
-
-const downloadCsv = (filename: string, rows: Array<Array<string | number | null | undefined>>): void => {
-    if (typeof window === 'undefined') {
-        return;
-    }
-    const content = rows.map((row) => row.map(formatCsvValue).join(',')).join('\n');
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    link.click();
-    window.URL.revokeObjectURL(url);
-};
-
-const Reports: React.FC = () => {
-    const [tasks, setTasks] = useState<Task[]>([]);
-    const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
-    const [departments, setDepartments] = useState<string[]>([]);
-    const [loadingData, setLoadingData] = useState(true);
-    const [insight, setInsight] = useState('');
-    const [insightLoading, setInsightLoading] = useState(false);
-    const [error, setError] = useState('');
-
-    // Filter states
-    const [reportScope, setReportScope] = useState<'overall' | 'department' | 'person' | 'department_person' | 'detail'>('overall');
-    const [dateRangeFilter, setDateRangeFilter] = useState('all'); // 'daily', 'weekly', 'monthly', 'custom', 'all'
-    const [teamFilter, setTeamFilter] = useState('all');
-    const [personFilter, setPersonFilter] = useState('all');
-    const [taskTypeFilter, setTaskTypeFilter] = useState('all');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [referenceDate, setReferenceDate] = useState(() => new Date().toISOString().slice(0, 10));
-    const [reportGeneratedAt, setReportGeneratedAt] = useState<Date | null>(null);
-    const [compareDeptA, setCompareDeptA] = useState('');
-    const [compareDeptB, setCompareDeptB] = useState('');
-    const [comparePersonA, setComparePersonA] = useState('');
-    const [comparePersonB, setComparePersonB] = useState('');
-    const [aiPeriod, setAiPeriod] = useState<'full' | 'today' | 'weekly' | 'monthly'>('full');
-    const [aiDepartment, setAiDepartment] = useState('all');
-    const [aiPerson, setAiPerson] = useState('all');
-
-    const { user } = useAuth();
-
-const RechartsLine: React.FC<{ 
-    data: { period: string; created: number; completed?: number }[]; 
-    title: string; 
-    yKey: 'created' | 'completed';
-}> = ({ data, title, yKey }) => (
-    <motion.div
-        className="bg-gradient-to-r from-purple-900 via-indigo-900 to-blue-900 p-6 rounded-lg border border-cyan-400/50 animate-saber-glow shadow-cyan-500/50"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-    >
-        <h3 className="text-lg font-semibold text-white mb-4">{title}</h3>
-        <div className="w-full h-64">
-            {data.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                        <XAxis dataKey="period" stroke="#94a3b8" />
-                        <YAxis stroke="#94a3b8" />
-                        <Tooltip />
-                        <Line 
-                            type="monotone" 
-                            dataKey={yKey} 
-                            stroke="#60a5fa" 
-                            strokeWidth={2}
-                            dot={{ fill: '#60a5fa', strokeWidth: 2 }} 
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
-            ) : (
-                <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-400">No data available for the selected period</p>
-                </div>
-            )}
-        </div>
-    </motion.div>
-);
-
-const fetchData = useCallback(async () => {
-        if (user && [Role.MANAGER, Role.ADMIN, Role.OWNER].includes(user.role)) {
-            setLoadingData(true);
-            try {
-                const [fetchedTasks, allUsers] = await Promise.all([
-                    api.getTasks(user.id, user.role),
-                    api.getUsers(),
-                ]);
-                setTasks(fetchedTasks);
-                const map = new Map<string, User>();
-                allUsers.forEach(u => map.set(u.id, u));
-                setUsersMap(map);
-                try {
-                    const deptData = await api.getDepartments();
-                    const departmentNames = Array.from(
-                        new Set(
-                            (deptData ?? [])
-                                .map((dept) => dept.name)
-                                .filter((name): name is string => Boolean(name)),
-                        ),
-                    ).sort((a, b) => a.localeCompare(b));
-                    setDepartments(departmentNames);
-                } catch (deptError) {
-                    console.error('Failed to load departments for reports', deptError);
-                    setDepartments([]);
-                }
-            } catch (err) {
-                console.error("Failed to fetch report data:", err);
-                setError("Could not load report data.");
-            } finally {
-                setLoadingData(false);
-            }
-        } else {
-             setLoadingData(false);
-        }
-    }, [user]);
-
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
-    const getAssigneeEntries = useCallback(
-        (assigneeIds: string[] | null): Array<{ id: string | null; name: string; user?: User }> => {
-            if (!assigneeIds || assigneeIds.length === 0) {
-                return [{ id: null, name: 'Unassigned' }];
-            }
-
-            return assigneeIds.map((id) => {
-                const assignee = usersMap.get(id);
-                return { id, name: assignee?.name ?? 'Unknown', user: assignee };
-            });
-        },
-        [usersMap]
-    );
-
-    const formatAssigneeNames = useCallback(
-        (assigneeIds: string[] | null) => {
-            if (!assigneeIds || assigneeIds.length === 0) {
-                return 'Unassigned';
-            }
-            const names = assigneeIds
-                .map((id) => usersMap.get(id)?.name ?? '')
-                .filter((name) => name.length > 0);
-            return names.length > 0 ? names.join(', ') : 'Unassigned';
-        },
-        [usersMap]
-    );
-
-    const availableDepartments = useMemo(() => {
-        if (departments.length > 0) {
-            return departments;
-        }
-        const uniqueTeams = Array.from(new Set(tasks.map((task) => task.team).filter(Boolean)));
-        return uniqueTeams.sort((a, b) => a.localeCompare(b));
-    }, [departments, tasks]);
-
-    const availablePeople = useMemo(
-        () => Array.from(usersMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
-        [usersMap]
-    );
-
-    const periodRange = useMemo(
-        () => resolvePeriodRange(dateRangeFilter, referenceDate, startDate, endDate),
-        [dateRangeFilter, referenceDate, startDate, endDate]
-    );
-
-    const aiPeriodRange = useMemo(() => {
-        const mapping: Record<string, string> = {
-            full: 'all',
-            today: 'daily',
-            weekly: 'weekly',
-            monthly: 'monthly',
-        };
-        const normalized = mapping[aiPeriod] ?? 'all';
-        return resolvePeriodRange(normalized, new Date().toISOString().slice(0, 10), '', '');
-    }, [aiPeriod]);
-
-    const periodFilteredTasks = useMemo(() => {
-        if (!periodRange.start || !periodRange.end) {
-            return tasks;
-        }
-        return tasks.filter((task) => {
-            const created = new Date(task.createdAt);
-            return created >= periodRange.start! && created <= periodRange.end!;
-        });
-    }, [tasks, periodRange]);
-
-    const baseFilteredTasks = useMemo(() => {
-        if (taskTypeFilter === 'all') {
-            return periodFilteredTasks;
-        }
-        return periodFilteredTasks.filter((task) => task.priority === taskTypeFilter);
-    }, [periodFilteredTasks, taskTypeFilter]);
-
-    const aiFilteredTasks = useMemo(() => {
-        let scoped = tasks;
-        if (aiPeriodRange.start && aiPeriodRange.end) {
-            scoped = scoped.filter((task) => {
-                const created = new Date(task.createdAt);
-                return created >= aiPeriodRange.start! && created <= aiPeriodRange.end!;
-            });
-        }
-        if (aiDepartment !== 'all') {
-            const normalized = normalizeDepartmentKey(aiDepartment);
-            scoped = scoped.filter((task) => normalizeDepartmentKey(task.team) === normalized);
-        }
-        if (aiPerson !== 'all') {
-            scoped = scoped.filter((task) => task.assignedTo?.includes(aiPerson) || task.createdBy === aiPerson);
-        }
-        return scoped;
-    }, [tasks, aiPeriodRange, aiDepartment, aiPerson]);
-
-    const filteredTasks = useMemo(() => {
-        let scoped = baseFilteredTasks;
-        const useDepartment = reportScope === 'department' || reportScope === 'department_person' || reportScope === 'detail';
-        const usePerson = reportScope === 'person' || reportScope === 'department_person' || reportScope === 'detail';
-
-        if (useDepartment && teamFilter !== 'all') {
-            const normalized = normalizeDepartmentKey(teamFilter);
-            scoped = scoped.filter((task) => normalizeDepartmentKey(task.team) === normalized);
-        }
-
-        if (usePerson && personFilter !== 'all') {
-            scoped = scoped.filter((task) => task.assignedTo?.includes(personFilter));
-        }
-
-        return scoped;
-    }, [baseFilteredTasks, reportScope, teamFilter, personFilter]);
-
-    const summarizeTasks = useCallback((items: Task[]) => {
-        const total = items.length;
-        const completed = items.filter((task) => task.status === TaskStatus.DONE || task.status === TaskStatus.DEPLOYED || task.status === TaskStatus.FAILED);
-        const completedCount = completed.length;
-        const onTimeCompleted = completed.filter(
-            (task) => task.completedAt && task.dueAt && new Date(task.completedAt) <= new Date(task.dueAt)
-        ).length;
-        const completionRate = completedCount > 0 ? Math.round((onTimeCompleted / completedCount) * 100) : 0;
-        const inProgress = items.filter((task) => task.status === TaskStatus.IN_PROGRESS).length;
-        const overdue = items.filter((task) => task.status !== TaskStatus.DONE && task.status !== TaskStatus.DEPLOYED && task.dueAt && new Date(task.dueAt) < new Date()).length;
-        const avgCompletionDays = (() => {
-            const completedTasks = items.filter((task) => task.completedAt);
-            if (completedTasks.length === 0) {
-                return 0;
-            }
-            const totalDays = completedTasks.reduce((sum, task) => {
-                const completedTime = new Date(task.completedAt as string).getTime();
-                const createdTime = new Date(task.createdAt).getTime();
-                return sum + (completedTime - createdTime) / (1000 * 60 * 60 * 24);
-            }, 0);
-            return Math.round((totalDays / completedTasks.length) * 10) / 10;
-        })();
-
-        return {
-            total,
-            completedCount,
-            completionRate,
-            inProgress,
-            overdue,
-            avgCompletionDays,
-        };
-    }, []);
-
-    const reportLabel = useMemo(() => {
-        const scopeLabel = reportScope.replace('_', '-');
-        const periodLabel = dateRangeFilter;
-        const deptLabel = teamFilter !== 'all' ? teamFilter : 'all-departments';
-        const personLabel = personFilter !== 'all' ? usersMap.get(personFilter)?.name ?? personFilter : 'all-people';
-        return `${scopeLabel}-${periodLabel}-${deptLabel}-${personLabel}`.toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-    }, [reportScope, dateRangeFilter, teamFilter, personFilter, usersMap]);
-
-    const showDepartmentFilter = reportScope === 'department' || reportScope === 'department_person' || reportScope === 'detail';
-    const showPersonFilter = reportScope === 'person' || reportScope === 'department_person' || reportScope === 'detail';
-
-    const stats = useMemo(() => {
-        const summary = summarizeTasks(filteredTasks);
-        return {
-            totalTasks: summary.total,
-            completionRate: summary.completedCount > 0 ? `${summary.completionRate}%` : 'N/A',
-            inProgressTasks: summary.inProgress,
-            overdueTasks: summary.overdue,
-        };
-    }, [filteredTasks, summarizeTasks]);
-
-    const emptySummary = useMemo(
-        () => ({
-            total: 0,
-            completedCount: 0,
-            completionRate: 0,
-            inProgress: 0,
-            overdue: 0,
-            avgCompletionDays: 0,
-        }),
-        []
-    );
-
-    const departmentComparison = useMemo(() => {
-        const leftTasks = compareDeptA
-            ? baseFilteredTasks.filter((task) => normalizeDepartmentKey(task.team) === normalizeDepartmentKey(compareDeptA))
-            : [];
-        const rightTasks = compareDeptB
-            ? baseFilteredTasks.filter((task) => normalizeDepartmentKey(task.team) === normalizeDepartmentKey(compareDeptB))
-            : [];
-        return {
-            left: compareDeptA ? summarizeTasks(leftTasks) : emptySummary,
-            right: compareDeptB ? summarizeTasks(rightTasks) : emptySummary,
-        };
-    }, [compareDeptA, compareDeptB, baseFilteredTasks, summarizeTasks, emptySummary]);
-
-    const personComparison = useMemo(() => {
-        const leftTasks = comparePersonA ? baseFilteredTasks.filter((task) => task.assignedTo?.includes(comparePersonA)) : [];
-        const rightTasks = comparePersonB ? baseFilteredTasks.filter((task) => task.assignedTo?.includes(comparePersonB)) : [];
-        return {
-            left: comparePersonA ? summarizeTasks(leftTasks) : emptySummary,
-            right: comparePersonB ? summarizeTasks(rightTasks) : emptySummary,
-        };
-    }, [comparePersonA, comparePersonB, baseFilteredTasks, summarizeTasks, emptySummary]);
-    
-    const workloadData = useMemo(() => {
-        const counts = filteredTasks.reduce<Record<string, number>>((acc, task) => {
-            const entries = getAssigneeEntries(task.assignedTo);
-            entries.forEach(({ name }) => {
-                acc[name] = (acc[name] || 0) + 1;
-            });
-            return acc;
-        }, {});
-
-        interface ChartDataItem { 
-            label: string; 
-            value: number; 
-        }
-        
-        return Object.entries(counts)
-            .map(([label, value]) => ({ 
-                label, 
-                value: value as number 
-            }))
-            .sort((a, b) => b.value - a.value);
-
-    }, [filteredTasks, getAssigneeEntries]);
-
-    const trendData = useMemo(() => {
-        const periods: Record<string, {created: number, completed: number}> = {};
-        filteredTasks.forEach(task => {
-            const createdDate = new Date(task.createdAt);
-            const period = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}`;
-            if (!periods[period]) periods[period] = {created: 0, completed: 0};
-            periods[period].created++;
-            if (task.completedAt) {
-                const completedDate = new Date(task.completedAt);
-                const compPeriod = `${completedDate.getFullYear()}-${String(completedDate.getMonth() + 1).padStart(2, '0')}`;
-                if (!periods[compPeriod]) periods[compPeriod] = {created: 0, completed: 0};
-                periods[compPeriod].completed++;
-            }
-        });
-        return Object.entries(periods).map(([period, counts]) => ({period, ...counts})).sort((a,b) => a.period.localeCompare(b.period));
-    }, [filteredTasks]);
-
-    const avgCompletionTime = useMemo(() => {
-        const completedTasks = filteredTasks.filter(t => t.completedAt);
-        if (completedTasks.length === 0) return 0;
-        const totalDays = completedTasks.reduce((sum, t) => {
-            const completedTime = new Date(t.completedAt!).getTime();
-            const createdTime = new Date(t.createdAt).getTime();
-            const days = (completedTime - createdTime) / (1000 * 60 * 60 * 24);
-            return sum + days;
-        }, 0);
-        return Math.round((totalDays / completedTasks.length) * 10) / 10;
-    }, [filteredTasks]);
-
-    const topPerformers = useMemo(() => {
-        const userStats: Record<string, { total: number; onTime: number }> = {};
-        filteredTasks.forEach((task) => {
-            if (!(task.status === TaskStatus.DONE || task.status === TaskStatus.DEPLOYED || task.status === TaskStatus.FAILED)) {
-                return;
-            }
-
-            const entries = getAssigneeEntries(task.assignedTo).filter((entry) => entry.id && entry.user);
-            entries.forEach(({ id }) => {
-                if (!id) return;
-                if (!userStats[id]) {
-                    userStats[id] = { total: 0, onTime: 0 };
-                }
-                userStats[id].total++;
-                if (task.completedAt && task.dueAt && new Date(task.completedAt) <= new Date(task.dueAt)) {
-                    userStats[id].onTime++;
-                }
-            });
-        });
-
-        return Object.entries(userStats)
-            .map(([userId, stats]) => ({
-                name: usersMap.get(userId)?.name || 'Unknown',
-                rate: stats.total > 0 ? stats.onTime / stats.total : 0
-            }))
-            .sort((a, b) => b.rate - a.rate);
-    }, [filteredTasks, getAssigneeEntries, usersMap]);
-
-    const bottleneckTasks: { title: string; daysStuck: number }[] = useMemo(() => {
-        const inProgress = filteredTasks.filter(t => t.status === TaskStatus.IN_PROGRESS);
-        const mapped: { title: string; daysStuck: number }[] = inProgress.map(t => {
-            const now = Date.now();
-            const created = new Date(t.createdAt).getTime();
-            const diff = now - created;
-            const days = diff / (1000 * 60 * 60 * 24);
-            return {
-                title: t.title,
-                daysStuck: Math.floor(days)
-            };
-        });
-        return mapped.sort((a, b) => b.daysStuck - a.daysStuck);
-    }, [filteredTasks]);
-
-    const memberComparison = useMemo(() => {
-        const data: Record<string, { name: string; load: number; completed: number }> = {};
-        filteredTasks.forEach((task) => {
-            const entries = getAssigneeEntries(task.assignedTo);
-            entries.forEach(({ id, name }) => {
-                const key = id ?? `unassigned:${name}`;
-                if (!data[key]) {
-                    data[key] = { name, load: 0, completed: 0 };
-                }
-                data[key].load++;
-                if (task.status === TaskStatus.DONE || task.status === TaskStatus.DEPLOYED || task.status === TaskStatus.FAILED) {
-                    data[key].completed++;
-                }
-            });
-        });
-        return Object.values(data);
-    }, [filteredTasks, getAssigneeEntries]);
-
-    const utilizationHeatmap = useMemo(() => {
-        const dayCounts: Record<string, number> = {};
-        filteredTasks.forEach(task => {
-            const date = new Date(task.createdAt).toISOString().split('T')[0];
-            dayCounts[date] = (dayCounts[date] || 0) + 1;
-        });
-        return Object.entries(dayCounts).map(([date, count]) => ({date, count})).sort((a,b) => a.date.localeCompare(b.date));
-    }, [filteredTasks]);
-
-    const roleBasedView = useMemo(() => {
-        const roleStats: Record<string, { total: number; completed: number; onTime: number }> = {};
-        filteredTasks.forEach((task) => {
-            const entries = getAssigneeEntries(task.assignedTo).filter((entry) => entry.user);
-            entries.forEach(({ user }) => {
-                if (!user) return;
-                const role = user.role || 'Unknown';
-                if (!roleStats[role]) {
-                    roleStats[role] = { total: 0, completed: 0, onTime: 0 };
-                }
-                if (task.status === TaskStatus.DONE || task.status === TaskStatus.DEPLOYED || task.status === TaskStatus.FAILED) {
-                    roleStats[role].total++;
-                    roleStats[role].completed++;
-                    if (task.completedAt && task.dueAt && new Date(task.completedAt) <= new Date(task.dueAt)) {
-                        roleStats[role].onTime++;
-                    }
-                }
-            });
-        });
-        return Object.entries(roleStats).map(([role, stats]) => ({ role, ...stats }));
-    }, [filteredTasks, getAssigneeEntries]);
-
-    const generateInsight = async () => {
-        setInsightLoading(true);
-        setInsight('');
-        setError('');
-        if (aiFilteredTasks.length === 0) {
-            setError("Cannot generate insights without data. Adjust AI filters or create tasks.");
-            setInsightLoading(false);
-            return;
-        }
-
-        try {
-            const response = await withGeminiKey(async (apiKey) => {
-                const ai = new GoogleGenAI({ apiKey });
-
-                const tasksWithAssigneeNames = aiFilteredTasks.map(task => ({
-                    title: task.title,
-                    status: CUSTOM_STATUS_NAMES[task.status]?.name ?? task.status,
-                    priority: task.priority,
-                    assigneeName: (() => {
-                        const names = getAssigneeEntries(task.assignedTo).map((entry) => entry.name);
-                        return names.length > 0 ? names.join(', ') : 'Unassigned';
-                    })(),
-                    dueDate: task.dueAt,
-                    createdAt: task.createdAt,
-                }));
-
-                const aiScopeLabel = aiPeriod === 'full' ? 'Full report' : aiPeriod;
-                const aiDepartmentLabel = aiDepartment !== 'all' ? aiDepartment : 'All departments';
-                const aiPersonLabel = aiPerson !== 'all' ? usersMap.get(aiPerson)?.name ?? aiPerson : 'All people';
-
-                const prompt = `
-                    Analyze the following project task data and provide a brief, actionable insight for a project manager in 2-3 short paragraphs.
-                    Focus on potential risks (like bottlenecks or overdue tasks), team workload distribution, and suggestions for improvement based on this specific data slice.
-                    The current date is ${new Date().toISOString()}.
-                    Report period: ${aiScopeLabel}. Department: ${aiDepartmentLabel}. Person: ${aiPersonLabel}.
-
-                    Task Data (JSON Summary):
-                    ${JSON.stringify(tasksWithAssigneeNames.slice(0, 50), null, 2)}
-                    ${tasksWithAssigneeNames.length > 50 ? `\n... and ${tasksWithAssigneeNames.length - 50} more tasks.` : ''}
-                `;
-
-                return ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                    config: {
-                        systemInstruction: 'You are a helpful and concise project management assistant. Provide data-driven insights in a professional tone.',
-                        temperature: 0.5,
-                    }
-                });
-            });
-
-            setInsight(response.text);
-
-        } catch (err) {
-            console.error("Error generating insight:", err);
-            const message = err instanceof Error ? err.message : 'An error occurred while generating the AI insight. Please check your API key and try again.';
-            const displayMessage =
-                message.includes('AI features are disabled') || message.includes('Gemini API keys')
-                    ? message
-                    : 'An error occurred while generating the AI insight. Please check your API key and try again.';
-            setError(displayMessage);
-        } finally {
-            setInsightLoading(false);
-        }
-    };
-
-    const rangeLabel = useMemo(() => {
-        if (dateRangeFilter === 'all') {
-            return 'All time';
-        }
-        if (dateRangeFilter === 'custom') {
-            return startDate && endDate ? `${startDate} to ${endDate}` : 'Custom';
-        }
-        if (dateRangeFilter === 'daily') {
-            return referenceDate ? `Day of ${referenceDate}` : 'Daily';
-        }
-        if (dateRangeFilter === 'weekly') {
-            if (periodRange.start && periodRange.end) {
-                return `${periodRange.start.toISOString().slice(0, 10)} to ${periodRange.end.toISOString().slice(0, 10)}`;
-            }
-            return 'Weekly';
-        }
-        if (dateRangeFilter === 'monthly') {
-            return referenceDate ? `Month of ${referenceDate.slice(0, 7)}` : 'Monthly';
-        }
-        return 'All time';
-    }, [dateRangeFilter, startDate, endDate, referenceDate, periodRange]);
-
-    const handleGenerateReport = () => {
-        setReportGeneratedAt(new Date());
-    };
-
-    const handleDownloadSummary = () => {
-        const summary = summarizeTasks(filteredTasks);
-        const rows: Array<Array<string | number | null | undefined>> = [
-            ['Report Item', 'Value'],
-            ['Scope', reportScope],
-            ['Period', rangeLabel],
-            ['Department', teamFilter !== 'all' ? teamFilter : 'All'],
-            ['Person', personFilter !== 'all' ? usersMap.get(personFilter)?.name ?? personFilter : 'All'],
-            ['Priority', taskTypeFilter !== 'all' ? taskTypeFilter : 'All'],
-            ['Total Tasks', summary.total],
-            ['Completed Tasks', summary.completedCount],
-            ['Completion Rate %', summary.completedCount > 0 ? summary.completionRate : 'N/A'],
-            ['In Progress', summary.inProgress],
-            ['Overdue', summary.overdue],
-            ['Avg Completion Days', summary.avgCompletionDays],
-        ];
-        downloadCsv(`report-summary-${reportLabel}.csv`, rows);
-    };
-
-    const handleDownloadDetail = () => {
-        const rows: Array<Array<string | number | null | undefined>> = [
-            ['Title', 'Status', 'Priority', 'Department', 'Assignees', 'Created At', 'Due At', 'Completed At'],
-            ...filteredTasks.map((task) => [
-                task.title,
-                task.status,
-                task.priority,
-                task.team,
-                formatAssigneeNames(task.assignedTo),
-                task.createdAt,
-                task.dueAt ?? '',
-                task.completedAt ?? '',
-            ]),
-        ];
-        downloadCsv(`report-detail-${reportLabel}.csv`, rows);
-    };
-    
-    if (loadingData) {
-        return <PageLoader />;
-    }
-
-    return (
-        <div>
-            <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-                <h1 className="text-3xl font-bold text-text-primary">Reports & Insights</h1>
-                <div className="flex flex-col gap-3 bg-surface p-3 rounded-lg border border-border-color">
-                    <div className="flex flex-wrap items-center gap-3">
-                        <select
-                            value={reportScope}
-                            onChange={(e) => setReportScope(e.target.value as typeof reportScope)}
-                            className="bg-background border-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                        >
-                            <option value="overall">Overall report</option>
-                            <option value="department">Department report</option>
-                            <option value="person">Person report</option>
-                            <option value="department_person">Department + person report</option>
-                            <option value="detail">Detailed report</option>
-                        </select>
-                        <select
-                            value={dateRangeFilter}
-                            onChange={(e) => setDateRangeFilter(e.target.value)}
-                            className="bg-background border-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                        >
-                            <option value="all">All Time</option>
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                            <option value="custom">Custom Range</option>
-                        </select>
-                        {dateRangeFilter !== 'all' && dateRangeFilter !== 'custom' && (
-                            <input
-                                type="date"
-                                value={referenceDate}
-                                onChange={(e) => setReferenceDate(e.target.value)}
-                                className="bg-background border border-border-color rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                                aria-label="Report reference date"
-                            />
-                        )}
-                        {dateRangeFilter === 'custom' && (
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={e => setStartDate(e.target.value)}
-                                    className="bg-background border border-border-color rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                                    placeholder="Start Date"
-                                />
-                                <input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={e => setEndDate(e.target.value)}
-                                    className="bg-background border border-border-color rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                                    placeholder="End Date"
-                                />
-                            </div>
-                        )}
-                        <select
-                            value={taskTypeFilter}
-                            onChange={e => setTaskTypeFilter(e.target.value)}
-                            className="bg-background border-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                        >
-                            <option value="all">All Priorities</option>
-                            <option value="LOW">Low</option>
-                            <option value="MEDIUM">Medium</option>
-                            <option value="HIGH">High</option>
-                            <option value="URGENT">Urgent</option>
-                        </select>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        {showDepartmentFilter && (
-                            <select
-                                value={teamFilter}
-                                onChange={(e) => setTeamFilter(e.target.value)}
-                                className="bg-background border-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                            >
-                                <option value="all">All Departments</option>
-                                {availableDepartments.map((department) => (
-                                    <option key={department} value={department}>{department}</option>
-                                ))}
-                            </select>
-                        )}
-                        {showPersonFilter && (
-                            <select
-                                value={personFilter}
-                                onChange={(e) => setPersonFilter(e.target.value)}
-                                className="bg-background border-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                            >
-                                <option value="all">All People</option>
-                                {availablePeople.map((person) => (
-                                    <option key={person.id} value={person.id}>{person.name}</option>
-                                ))}
-                            </select>
-                        )}
-                        <button
-                            type="button"
-                            onClick={handleGenerateReport}
-                            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
-                        >
-                            Generate report
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleDownloadSummary}
-                            className="rounded-md border border-border-color px-3 py-2 text-sm text-text-secondary hover:text-text-primary"
-                        >
-                            Download summary
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleDownloadDetail}
-                            className="rounded-md border border-border-color px-3 py-2 text-sm text-text-secondary hover:text-text-primary"
-                        >
-                            Download detail
-                        </button>
-                        {reportGeneratedAt && (
-                            <span className="text-xs text-text-secondary">
-                                Generated {reportGeneratedAt.toLocaleString()}
-                            </span>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <StatCard title="Total Tasks" value={stats.totalTasks} />
-                <StatCard title="On-Time Completion" value={stats.completionRate} />
-                <StatCard title="In Progress" value={stats.inProgressTasks} />
-                <StatCard title="Overdue" value={stats.overdueTasks} />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                 <BarChart data={workloadData} title="Workload Distribution" />
-                <div className="bg-surface p-6 rounded-lg border border-border-color">
-                    <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
-                        <h2 className="text-xl font-semibold text-text-primary">AI-Powered Insight</h2>
-                        <button
-                            onClick={generateInsight}
-                            disabled={insightLoading}
-                            className="bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <span>{insightLoading ? 'Analyzing...' : 'Generate Insight'}</span>
-                        </button>
-                    </div>
-                    <div className="flex flex-wrap gap-3 mb-4">
-                        <select
-                            value={aiPeriod}
-                            onChange={(e) => setAiPeriod(e.target.value as typeof aiPeriod)}
-                            className="bg-background border border-border-color rounded-md py-2 px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                            <option value="full">Full report</option>
-                            <option value="today">Today report</option>
-                            <option value="weekly">Weekly report</option>
-                            <option value="monthly">Monthly report</option>
-                        </select>
-                        <select
-                            value={aiDepartment}
-                            onChange={(e) => setAiDepartment(e.target.value)}
-                            className="bg-background border border-border-color rounded-md py-2 px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                            <option value="all">All departments</option>
-                            {availableDepartments.map((department) => (
-                                <option key={department} value={department}>{department}</option>
-                            ))}
-                        </select>
-                        <select
-                            value={aiPerson}
-                            onChange={(e) => setAiPerson(e.target.value)}
-                            className="bg-background border border-border-color rounded-md py-2 px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                            <option value="all">All people</option>
-                            {availablePeople.map((person) => (
-                                <option key={person.id} value={person.id}>{person.name}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {error && <p className="text-red-400 my-4 p-3 bg-red-900/50 border border-red-700 rounded-md text-sm">{error}</p>}
-
-                    <div className="min-h-[10rem] py-4">
-                        {insightLoading && (
-                            <div className="text-center text-text-secondary animate-pulse">
-                                Generating analysis based on your filters...
-                            </div>
-                        )}
-                        {insight && (
-                            <div className="text-text-secondary space-y-4 text-sm">
-                                {insight.split('\n').filter(p => p.trim() !== '').map((paragraph, index) => (
-                                    <p key={index}>{paragraph}</p>
-                                ))}
-                            </div>
-                        )}
-                        {!insight && !insightLoading && !error && (
-                            <div className="flex items-center justify-center h-full text-center text-text-secondary">
-                                <p>Click the button to get an AI summary of the filtered data.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div className="mb-8">
-                <h2 className="text-2xl font-bold text-text-primary mb-6">Task Analytics</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <StatCard title="Avg Completion Time" value={avgCompletionTime ? `${avgCompletionTime} days` : 'N/A'} />
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <BarChart data={topPerformers.slice(0,10).map(p => ({label: p.name, value: Math.round(p.rate * 100)}))} title="Top Performers (On-Time Rate %)" />
-                    <BarChart data={bottleneckTasks.slice(0,10).map(t => ({label: t.title.length > 20 ? t.title.slice(0,20) + '...' : t.title, value: t.daysStuck}))} title="Bottleneck Tasks (Days Stuck)" />
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <BarChart data={trendData.map(d => ({label: d.period, value: d.created}))} title="Tasks Created Over Time" />
-                    <BarChart data={trendData.map(d => ({label: d.period, value: d.completed}))} title="Tasks Completed Over Time" />
-                </div>
-            </div>
-
-            <div className="mb-8">
-                <h2 className="text-2xl font-bold text-text-primary mb-6">Team Performance</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <BarChart data={memberComparison.map(m => ({label: m.name, value: m.load}))} title="Task Load per Member" />
-                    <BarChart data={memberComparison.map(m => ({label: m.name, value: m.completed}))} title="Completed Tasks per Member" />
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <BarChart data={utilizationHeatmap.slice(-10).map(u => ({label: u.date, value: u.count}))} title="Tasks per Day (Last 10 Days)" />
-                    <BarChart data={roleBasedView.map(r => ({label: r.role, value: r.total > 0 ? Math.round((r.onTime / r.total) * 100) : 0}))} title="On-Time Completion Rate by Role %" />
-                </div>
-            </div>
-
-            {reportScope === 'detail' && (
-                <div className="mb-8">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-2xl font-bold text-text-primary">Detailed Report</h2>
-                        <button
-                            type="button"
-                            onClick={handleDownloadDetail}
-                            className="rounded-md border border-border-color px-3 py-2 text-sm text-text-secondary hover:text-text-primary"
-                        >
-                            Download CSV
-                        </button>
-                    </div>
-                    <div className="overflow-x-auto border border-border-color rounded-lg bg-surface">
-                        <table className="min-w-full text-sm">
-                            <thead className="bg-background/60 text-text-secondary">
-                                <tr>
-                                    <th className="px-4 py-3 text-left">Title</th>
-                                    <th className="px-4 py-3 text-left">Status</th>
-                                    <th className="px-4 py-3 text-left">Priority</th>
-                                    <th className="px-4 py-3 text-left">Department</th>
-                                    <th className="px-4 py-3 text-left">Assignees</th>
-                                    <th className="px-4 py-3 text-left">Created</th>
-                                    <th className="px-4 py-3 text-left">Due</th>
-                                    <th className="px-4 py-3 text-left">Completed</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border-color">
-                                {filteredTasks.length === 0 && (
-                                    <tr>
-                                        <td colSpan={8} className="px-4 py-6 text-center text-text-secondary">
-                                            No tasks match the selected report filters.
-                                        </td>
-                                    </tr>
-                                )}
-                                {filteredTasks.map((task) => (
-                                    <tr key={task.id} className="hover:bg-background/40">
-                                        <td className="px-4 py-3 text-text-primary">{task.title}</td>
-                                        <td className="px-4 py-3 text-text-secondary">{CUSTOM_STATUS_NAMES[task.status]?.name ?? task.status}</td>
-                                        <td className="px-4 py-3 text-text-secondary">{task.priority}</td>
-                                        <td className="px-4 py-3 text-text-secondary">{task.team}</td>
-                                        <td className="px-4 py-3 text-text-secondary">{formatAssigneeNames(task.assignedTo)}</td>
-                                        <td className="px-4 py-3 text-text-secondary">{formatDate(task.createdAt, true)}</td>
-                                        <td className="px-4 py-3 text-text-secondary">{task.dueAt ? formatDate(task.dueAt, true) : '--'}</td>
-                                        <td className="px-4 py-3 text-text-secondary">{task.completedAt ? formatDate(task.completedAt, true) : '--'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
-
-            <div className="mb-8">
-                <h2 className="text-2xl font-bold text-text-primary mb-2">Comparisons</h2>
-                <p className="text-sm text-text-secondary mb-6">
-                    Compare two departments or two people using the current period and priority filters.
-                </p>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-surface border border-border-color rounded-lg p-6">
-                        <h3 className="text-lg font-semibold text-text-primary mb-4">Department Comparison</h3>
-                        <div className="flex flex-wrap gap-3 mb-4">
-                            <select
-                                value={compareDeptA}
-                                onChange={(e) => setCompareDeptA(e.target.value)}
-                                className="bg-background border-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                            >
-                                <option value="">Select department A</option>
-                                {availableDepartments.map((department) => (
-                                    <option key={department} value={department}>{department}</option>
-                                ))}
-                            </select>
-                            <select
-                                value={compareDeptB}
-                                onChange={(e) => setCompareDeptB(e.target.value)}
-                                className="bg-background border-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                            >
-                                <option value="">Select department B</option>
-                                {availableDepartments.map((department) => (
-                                    <option key={department} value={department}>{department}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-text-secondary">
-                            <div>
-                                <p className="font-semibold text-text-primary">{compareDeptA || 'Department A'}</p>
-                                <p>Total tasks: {departmentComparison.left.total}</p>
-                                <p>Completed: {departmentComparison.left.completedCount}</p>
-                                <p>Completion rate: {departmentComparison.left.completedCount > 0 ? `${departmentComparison.left.completionRate}%` : 'N/A'}</p>
-                                <p>Overdue: {departmentComparison.left.overdue}</p>
-                                <p>Avg completion: {departmentComparison.left.avgCompletionDays} days</p>
-                            </div>
-                            <div>
-                                <p className="font-semibold text-text-primary">{compareDeptB || 'Department B'}</p>
-                                <p>Total tasks: {departmentComparison.right.total}</p>
-                                <p>Completed: {departmentComparison.right.completedCount}</p>
-                                <p>Completion rate: {departmentComparison.right.completedCount > 0 ? `${departmentComparison.right.completionRate}%` : 'N/A'}</p>
-                                <p>Overdue: {departmentComparison.right.overdue}</p>
-                                <p>Avg completion: {departmentComparison.right.avgCompletionDays} days</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-surface border border-border-color rounded-lg p-6">
-                        <h3 className="text-lg font-semibold text-text-primary mb-4">Person Comparison</h3>
-                        <div className="flex flex-wrap gap-3 mb-4">
-                            <select
-                                value={comparePersonA}
-                                onChange={(e) => setComparePersonA(e.target.value)}
-                                className="bg-background border-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                            >
-                                <option value="">Select person A</option>
-                                {availablePeople.map((person) => (
-                                    <option key={person.id} value={person.id}>{person.name}</option>
-                                ))}
-                            </select>
-                            <select
-                                value={comparePersonB}
-                                onChange={(e) => setComparePersonB(e.target.value)}
-                                className="bg-background border-none rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                            >
-                                <option value="">Select person B</option>
-                                {availablePeople.map((person) => (
-                                    <option key={person.id} value={person.id}>{person.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-text-secondary">
-                            <div>
-                                <p className="font-semibold text-text-primary">{usersMap.get(comparePersonA)?.name ?? 'Person A'}</p>
-                                <p>Total tasks: {personComparison.left.total}</p>
-                                <p>Completed: {personComparison.left.completedCount}</p>
-                                <p>Completion rate: {personComparison.left.completedCount > 0 ? `${personComparison.left.completionRate}%` : 'N/A'}</p>
-                                <p>Overdue: {personComparison.left.overdue}</p>
-                                <p>Avg completion: {personComparison.left.avgCompletionDays} days</p>
-                            </div>
-                            <div>
-                                <p className="font-semibold text-text-primary">{usersMap.get(comparePersonB)?.name ?? 'Person B'}</p>
-                                <p>Total tasks: {personComparison.right.total}</p>
-                                <p>Completed: {personComparison.right.completedCount}</p>
-                                <p>Completion rate: {personComparison.right.completedCount > 0 ? `${personComparison.right.completionRate}%` : 'N/A'}</p>
-                                <p>Overdue: {personComparison.right.overdue}</p>
-                                <p>Avg completion: {personComparison.right.avgCompletionDays} days</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export default Reports;
+  </div>;
+}
+function Overview({ data, onFilter }: { data: ReportingOverview; onFilter: (key: 'status' | 'employee_id' | 'project_id', value: string) => void }) {
+  const metricLabels: [string, string][] = [
+    ['total_tasks', 'Unique parent tasks'], ['assigned_tasks', 'Assigned tasks'], ['unassigned_tasks', 'Unassigned tasks'],
+    ['completed_tasks', 'Completed tasks'], ['in_progress_tasks', 'In progress'], ['pending_tasks', 'Pending tasks'],
+    ['blocked_tasks', 'Blocked tasks'], ['overdue_tasks', 'Overdue tasks'], ['completion_percentage', 'Completion'],
+    ['total_projects', 'Projects in scope'], ['employees_with_assigned_work', 'Employees with work'], ['assignment_count', 'Assignment records'],
+  ];
+  return <>
+    <div className="report-kpis">{metricLabels.map(([key, label]) => <article key={key}><span>{label}</span><strong>{key === 'completion_percentage' ? `${numberValue(data.metrics[key]).toFixed(1)}%` : int(data.metrics[key])}</strong></article>)}</div>
+    <div className="report-chart-grid">
+      <section className="report-panel"><h2>Parent task status</h2><p>Persisted task status; click a segment or status to filter.</p>
+        {data.status_distribution.some(row => row.count > 0) ? <>
+          <div className="report-chart"><ResponsiveContainer width="100%" height="100%"><PieChart>
+            <Pie data={data.status_distribution} dataKey="count" nameKey="status" innerRadius={62} outerRadius={95} paddingAngle={2}
+              isAnimationActive={false} onClick={entry => onFilter('status', entry.status)}>
+              {data.status_distribution.map(row => <Cell key={row.status} fill={STATUS_COLOR[row.status]} />)}
+            </Pie><Tooltip contentStyle={{ background: 'var(--color-surface)', borderColor: 'var(--color-border-color)', color: 'var(--color-text-primary)' }} />
+          </PieChart></ResponsiveContainer></div>
+          <div className="report-legend">{data.status_distribution.filter(row => row.count).map(row => <button key={row.status} type="button" onClick={() => onFilter('status', row.status)}>
+            <i style={{ background: STATUS_COLOR[row.status] }} />{row.status.replace(/_/g, ' ')} <strong>{int(row.count)}</strong>
+          </button>)}</div>
+        </> : <Empty />}
+      </section>
+      <section className="report-panel"><h2>Employee workload</h2><p>Parent assignment records per employee.</p>
+        {data.employee_workload.length ? <><div className="report-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data.employee_workload.slice(0, 10)} layout="vertical" margin={{ left: 15, right: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-color)" horizontal={false} /><XAxis type="number" allowDecimals={false} stroke="var(--color-text-secondary)" />
+          <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} stroke="var(--color-text-secondary)" /><Tooltip contentStyle={{ background: 'var(--color-surface)', borderColor: 'var(--color-border-color)' }} />
+          <Bar dataKey="assigned_parent_tasks" name="Assigned parent tasks" fill="#38bdf8" maxBarSize={32} radius={[0, 4, 4, 0]} isAnimationActive={false} onClick={(_, index) => onFilter('employee_id', data.employee_workload[index].employee_id)} />
+        </BarChart></ResponsiveContainer></div><div className="report-chart-links">{data.employee_workload.slice(0, 10).map(row => <button key={row.employee_id} type="button" onClick={() => onFilter('employee_id', row.employee_id)}>{row.name}</button>)}</div></> : <Empty />}
+      </section>
+      <section className="report-panel report-wide"><h2>Project completion</h2><p>Completed persisted parent tasks divided by project task count. Archived does not mean completed.</p>
+        {data.project_completion.length ? <div className="report-project-progress">{data.project_completion.map(row => <button key={row.project_id} type="button" onClick={() => onFilter('project_id', row.project_id)}>
+          <span>{row.name}</span><progress max="100" value={row.completion_percentage} aria-label={`${row.name} completion`} /><strong>{row.completion_percentage.toFixed(1)}%</strong><small>{row.completed_tasks} / {row.total_tasks}</small>
+        </button>)}</div> : <Empty />}
+      </section>
+    </div>
+  </>;
+}
+function ActivityChart({ rows }: { rows: ReportingRow[] }) {
+  if (!rows.length) return <Empty />;
+  return <div className="report-chart report-chart-large"><ResponsiveContainer width="100%" height="100%"><LineChart data={rows} margin={{ left: 0, right: 20, bottom: 5 }}>
+    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-color)" /><XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--color-text-secondary)" />
+    <YAxis allowDecimals={false} stroke="var(--color-text-secondary)" /><Tooltip contentStyle={{ background: 'var(--color-surface)', borderColor: 'var(--color-border-color)' }} />
+    <Line dataKey="tasks_created" name="Created" stroke="#38bdf8" strokeWidth={2} isAnimationActive={false} />
+    <Line dataKey="tasks_completed" name="Completion events" stroke="#4ade80" strokeWidth={2} isAnimationActive={false} />
+    <Line dataKey="tasks_reopened" name="Reopened" stroke="#f59e0b" isAnimationActive={false} />
+  </LineChart></ResponsiveContainer></div>;
+}
+function ActivityComparison({ filters, totals }: { filters: ReportingFilters; totals?: Record<string, number> }) {
+  const previous = previousReportingPeriod(filters);
+  const resource = useReportResource(JSON.stringify(previous), true, signal => reportingApi.page('activity', { ...previous, page_size: 1 }, signal));
+  return <div className="report-comparison"><h3>Compared with the previous period</h3><p>{previous.from} through {previous.to} · same filters and number of calendar days</p>
+    {resource.busy && <Loading label="Loading comparison" />}{resource.error && <ErrorBox message={resource.error} retry={resource.retry} />}
+    {resource.data && totals && <div className="report-comparison-grid">{[['tasks_created', 'Tasks created'], ['tasks_completed', 'Completion events'], ['tasks_reopened', 'Reopen events']].map(([key, label]) => {
+      const current = numberValue(totals[key]); const prior = numberValue(resource.data?.totals?.[key]); const delta = current - prior;
+      return <article key={key}><span>{label}</span><strong>{current} <small>vs {prior}</small></strong><span>{delta > 0 ? '+' : ''}{delta} observed events</span></article>;
+    })}</div>}
+    <p>History coverage applies to both periods; missing legacy events are not reconstructed.</p>
+  </div>;
+}
+function WorkSessions({ query }: { query: ReportingQuery }) {
+  const [page, setPage] = useState(1);
+  const [active, setActive] = useState(false);
+  const [sort, setSort] = useState('started_at');
+  const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
+  const params = { ...query, active, page, page_size: 10, sort, direction };
+  const resource = useReportResource(JSON.stringify(params), true, signal => reportingApi.sessions(params, signal));
+  return <section className="report-panel">
+    <div className="report-panel-heading"><div><h2>Work-session history</h2><p>Active intervals and observed pause / resume links. Multiple running timers are shown independently.</p></div>
+      <label><input type="checkbox" checked={active} onChange={event => { setActive(event.target.checked); setPage(1); }} /> Active timers only</label></div>
+    {resource.busy && <Loading />}{resource.error && <ErrorBox message={resource.error} retry={resource.retry} />}
+    {resource.data && <>
+      <DataTable items={resource.data.items} columns={SESSION_COLUMNS} timezone={query.timezone} sort={sort} direction={direction}
+        onSort={key => { setSort(key); setDirection(sort === key && direction === 'asc' ? 'desc' : 'asc'); setPage(1); }} />
+      <Pagination page={page} pageSize={10} total={resource.data.total} totalPages={resource.data.total_pages} onPage={setPage} />
+      <Meta meta={resource.data.meta} />
+    </>}
+  </section>;
+}
+function TimeSummary({ values }: { values?: Record<string, number> }) {
+  if (!values) return null;
+  return <div className="report-kpis report-time-kpis">
+    <article><span>Recorded task effort</span><strong>{reportingDuration(values.recorded_effort_seconds)}</strong></article>
+    <article><span>Unique working time</span><strong>{reportingDuration(values.unique_working_seconds)}</strong></article>
+    <article><span>Active intervals</span><strong>{int(values.interval_count)}</strong></article>
+    <article><span>Running intervals</span><strong>{int(values.running_interval_count)}</strong></article>
+  </div>;
+}
+function DetailPanel({ target, query, onClose, onExplore }: { target: { section: 'employees' | 'projects'; id: string }; query: ReportingQuery; onClose: () => void; onExplore: (section: 'activity' | 'time') => void }) {
+  const [page, setPage] = useState(1);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const detailQuery = { ...query, page, page_size: 10, sort: '' };
+  const resource = useReportResource(JSON.stringify([target, detailQuery]), true, signal => reportingApi.detail(target.section, target.id, detailQuery, signal));
+  const timeQuery: ReportingQuery = { ...query, [target.section === 'employees' ? 'employee_id' : 'project_id']: target.id, page: 1, page_size: 10, sort: '', group_by: 'task' };
+  const work = useReportResource(JSON.stringify([target, timeQuery]), true, signal => reportingApi.page('time', timeQuery, signal));
+  useEffect(() => { closeRef.current?.focus(); }, []);
+  const data = resource.data;
+  const entity = data?.employee || data?.project;
+  return <section className="report-panel report-detail" aria-label={`${target.section === 'employees' ? 'Employee' : 'Project'} detail`}>
+    <div className="report-panel-heading"><div><span className="report-eyebrow">Detailed report</span><h2>{entity ? present(entity.name) : 'Loading details'}</h2></div><div className="report-export"><button type="button" onClick={() => onExplore('activity')}>View date-wise activity</button><button type="button" onClick={() => onExplore('time')}>View work breakdown</button><button type="button" ref={closeRef} onClick={onClose}>Close details</button></div></div>
+    {resource.busy && <Loading />}
+    {resource.error && <ErrorBox message={resource.error} retry={resource.retry} />}
+    {data && <>
+      {entity && <DataTable items={[entity]} columns={COLUMNS[target.section]} timezone={query.timezone} />}
+      {data.projects && <div className="report-detail-projects"><h3>Associated projects ({data.projects_total ?? data.projects.length})</h3>{data.projects.length ? data.projects.map(project => <span key={String(project.id)}>{present(project.name)} {project.status === 'ARCHIVED' ? '(archived)' : ''}</span>) : <p>No projects in this report scope.</p>}{data.projects_truncated && <p>Showing the first 100 authorized projects. Use the project filter to narrow this report.</p>}</div>}
+      <h3>Parent tasks in scope</h3>{target.section === 'employees' && <p>Includes directly assigned tasks and parents of assigned subtasks. Parent assignment counts use direct task assignments only.</p>}<DataTable items={data.tasks.items} columns={COLUMNS.tasks} timezone={query.timezone} />
+      <Pagination page={page} pageSize={10} total={data.tasks.total} totalPages={data.tasks.total_pages} onPage={setPage} />
+      {data.subtasks && <><h3>Assigned subtasks · workflow status is separate</h3><DataTable items={data.subtasks.items}
+        columns={[c('title', 'Subtask'), c('status', 'Workflow status'), c('task_title', 'Parent task')]} timezone={query.timezone} />
+        <p>Subtask creation dates are not stored in the existing subtask record.</p>
+        <Pagination page={page} pageSize={10} total={data.subtasks.total} totalPages={data.subtasks.total_pages} onPage={setPage} /></>}
+      {data.employees && <><h3>Employee workload</h3><DataTable items={data.employees.items} columns={COLUMNS.employees} timezone={query.timezone} />
+        <Pagination page={page} pageSize={10} total={data.employees.total} totalPages={data.employees.total_pages} onPage={setPage} /></>}
+      {data.statuses && <><h3>Parent status breakdown</h3><DataTable items={data.statuses} columns={COLUMNS.statuses} timezone={query.timezone} /></>}
+      <h3>Recorded work in this period</h3><p>This section uses session interval dates, independent of parent creation date.</p>
+      {work.busy && <Loading />}{work.error && <ErrorBox message={work.error} retry={work.retry} />}
+      {work.data && <TimeSummary values={work.data.summary} />}
+      <WorkSessions key={JSON.stringify(timeQuery)} query={timeQuery} />
+      <Meta meta={data.meta} />
+    </>}
+  </section>;
+}
+
+export default function Reports() {
+  const { user } = useAuth();
+  const [url, setUrl] = useSearchParams();
+  const timezone = reportTimezone(user?.timezone);
+  const filters = useMemo(() => reportingFiltersFromUrl(url, timezone), [url, timezone]);
+  const section = reportSections.includes(url.get('tab') as ReportSection) ? url.get('tab') as ReportSection : 'overview';
+  const preset = PRESETS.some(item => item.id === url.get('preset')) ? url.get('preset') as ReportPreset : 'month';
+  const page = Math.max(1, Number.parseInt(url.get('page') || '1', 10) || 1);
+  const pageSize = [10, 25, 50, 100].includes(Number(url.get('page_size'))) ? Number(url.get('page_size')) : 25;
+  const sort = url.get('sort') || '';
+  const direction = url.get('direction') === 'desc' ? 'desc' : 'asc';
+  const grouping = ['daily', 'weekly', 'monthly'].includes(url.get('grouping') || '') ? url.get('grouping') as 'daily' | 'weekly' | 'monthly' : 'daily';
+  const groupBy = ['employee', 'task', 'subtask', 'project', 'daily'].includes(url.get('group_by') || '') ? url.get('group_by') as ReportingQuery['group_by'] : 'employee';
+  const [draft, setDraft] = useState<ReportingFilters>(filters);
+  const [draftPreset, setDraftPreset] = useState<ReportPreset>(preset);
+  const [validation, setValidation] = useState<string | null>(null);
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [projectSearch, setProjectSearch] = useState('');
+  const [employeePage, setEmployeePage] = useState(1);
+  const [projectPage, setProjectPage] = useState(1);
+  const [optionSearch, setOptionSearch] = useState({ employee: '', project: '' });
+  const [detail, setDetail] = useState<{ section: 'employees' | 'projects'; id: string } | null>(null);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('xlsx');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
+  const query: ReportingQuery = { ...filters, page, page_size: pageSize, sort, direction, group_by: groupBy, grouping };
+  const identity = `${user?.tenantId}:${user?.id}:${user?.role}`;
+  const scopeKey = JSON.stringify([identity, filters, revision]);
+  const invalid = validateReportingDates(filters.from, filters.to, filters.timezone);
+  useEffect(() => { setDraft(filters); setDraftPreset(preset); setValidation(null); setDetail(null); setExportError(null); }, [scopeKey, preset]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setOptionSearch({ employee: employeeSearch, project: projectSearch }), 250);
+    return () => window.clearTimeout(timer);
+  }, [employeeSearch, projectSearch]);
+  const optionsQuery = { timezone: filters.timezone, from: filters.from, to: filters.to, employee_id: filters.employee_id, project_id: filters.project_id };
+  const employeeOptions = useReportResource(JSON.stringify([identity, optionSearch.employee, employeePage, optionsQuery]), !invalid,
+    signal => reportingApi.options({ ...optionsQuery, employee_search: optionSearch.employee, options_page: employeePage }, signal));
+  const projectOptions = useReportResource(JSON.stringify([identity, optionSearch.project, projectPage, optionsQuery]), !invalid,
+    signal => reportingApi.options({ ...optionsQuery, project_search: optionSearch.project, options_page: projectPage }, signal));
+  const overview = useReportResource(scopeKey, !invalid, signal => reportingApi.overview(filters, signal));
+  const table = useReportResource(JSON.stringify([scopeKey, section, page, pageSize, sort, direction, groupBy, grouping]), !invalid && section !== 'overview',
+    signal => reportingApi.page(section as Exclude<ReportSection, 'overview'>, query, signal));
+  const activity = useReportResource(JSON.stringify([scopeKey, grouping]), !invalid && section === 'overview',
+    signal => reportingApi.page('activity', { ...filters, page: 1, page_size: 31, grouping }, signal));
+  const updateUrl = (next: ReportingQuery, tab = section, nextPreset = preset) => setUrl(reportingSearchParams(next, tab, nextPreset));
+  const apply = (event: React.FormEvent) => {
+    event.preventDefault();
+    const error = validateReportingDates(draft.from, draft.to, draft.timezone);
+    setValidation(error);
+    if (!error) updateUrl({ ...draft, page: 1, page_size: pageSize, group_by: groupBy, grouping }, section, draftPreset);
+  };
+  const changeSection = (next: ReportSection) => { setDetail(null); setExportError(null); updateUrl({ ...filters, page: 1, page_size: pageSize, group_by: groupBy, grouping }, next); };
+  const quickFilter = (key: 'status' | 'employee_id' | 'project_id', value: string) =>
+    updateUrl({ ...filters, [key]: value, page: 1, page_size: pageSize, group_by: groupBy, grouping }, key === 'employee_id' ? 'employees' : key === 'project_id' ? 'projects' : 'tasks');
+  const exportReport = async () => {
+    setExporting(true); setExportError(null);
+    try {
+      const result = await reportingApi.export(section === 'overview' ? 'tasks' : section, exportFormat, query);
+      const blobUrl = URL.createObjectURL(result.blob);
+      const link = document.createElement('a'); link.href = blobUrl; link.download = result.filename; link.click();
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (error) { setExportError(reportError(error)); }
+    finally { setExporting(false); }
+  };
+  const meta = section === 'overview' ? overview.data?.meta : table.data?.meta;
+  const employeeList = employeeOptions.data?.employees || [];
+  const projectList = projectOptions.data?.projects || [];
+  const onSort = (key: string) => updateUrl({ ...query, page: 1, sort: key, direction: sort === key && direction === 'asc' ? 'desc' : 'asc' });
+  return <main className="reports-page">
+    <header className="report-header"><div><span className="report-eyebrow">Zea.Play analytics</span><h1>Reporting & Analytics</h1><p>Task inventory, current assignments, project delivery and recorded work.</p></div>
+      <div className="report-export"><button type="button" onClick={() => setRevision(n => n + 1)}>Refresh</button>
+        <select aria-label="Export format" value={exportFormat} onChange={event => setExportFormat(event.target.value as 'csv' | 'xlsx')}><option value="xlsx">Excel (.xlsx)</option><option value="csv">CSV</option></select>
+        <button className="report-primary" type="button" disabled={exporting || !!invalid || !meta} onClick={exportReport}>{exporting ? 'Preparing export…' : `Export ${section === 'overview' ? 'tasks' : LABELS[section].toLowerCase()}`}</button>
+      </div>
+    </header>
+    {exportError && <ErrorBox message={exportError} />}
+    <form className="report-panel report-filters" onSubmit={apply}>
+      <div className="report-filter-heading"><h2>Global filters</h2><span>{filters.timezone} · all tabs and exports use applied filters</span></div>
+      <div className="report-filter-grid">
+        <label>Date range<select aria-label="Date range" value={draftPreset} onChange={event => {
+          const next = event.target.value as ReportPreset; setDraftPreset(next);
+          if (next !== 'custom') setDraft(previous => ({ ...previous, ...reportingDates(next, previous.timezone) }));
+        }}>{PRESETS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+        <label>From<input aria-label="From" type="date" value={draft.from} onChange={event => { setDraftPreset('custom'); setDraft({ ...draft, from: event.target.value }); }} /></label>
+        <label>Through<input aria-label="Through" type="date" value={draft.to} onChange={event => { setDraftPreset('custom'); setDraft({ ...draft, to: event.target.value }); }} /></label>
+        <label>Parent task status<select aria-label="Parent task status" value={draft.status || ''} onChange={event => setDraft({ ...draft, status: event.target.value as TaskStatus || undefined })}>
+          <option value="">All persisted statuses</option>{(employeeOptions.data?.statuses || Object.values(TaskStatus)).map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}
+        </select></label>
+        <SearchPicker label="Employees" selected={draft.employee_id} onChange={id => setDraft({ ...draft, employee_id: id || undefined })}
+          options={employeeList} total={employeeOptions.data?.employees_total || 0} busy={employeeOptions.busy} search={employeeSearch} setSearch={setEmployeeSearch} page={employeePage} setPage={setEmployeePage} />
+        <SearchPicker label="Projects" selected={draft.project_id} onChange={id => setDraft({ ...draft, project_id: id || undefined })}
+          options={projectList} total={projectOptions.data?.projects_total || 0} busy={projectOptions.busy} search={projectSearch} setSearch={setProjectSearch} page={projectPage} setPage={setProjectPage} />
+        <label className="report-search">Search tasks<input placeholder="Task title…" value={draft.search || ''} onChange={event => setDraft({ ...draft, search: event.target.value || undefined })} /></label>
+        <div className="report-filter-actions"><button className="report-primary" type="submit">Apply filters</button><button type="button" onClick={() => {
+          setEmployeeSearch(''); setProjectSearch(''); setEmployeePage(1); setProjectPage(1);
+          const defaults = { ...reportingDates('month', timezone), timezone };
+          setDraft(defaults); setDraftPreset('month'); setValidation(null);
+          updateUrl({ ...defaults, page: 1, page_size: 25 }, section, 'month');
+        }}>Reset</button></div>
+      </div>
+      {(validation || invalid) && <ErrorBox message={validation || invalid!} />}
+      {(employeeOptions.error || projectOptions.error) && <ErrorBox message={employeeOptions.error || projectOptions.error!} retry={() => { employeeOptions.retry(); projectOptions.retry(); }} />}
+    </form>
+    <nav className="report-tabs" aria-label="Reporting sections">{reportSections.map(tab => <button key={tab} type="button" aria-current={section === tab ? 'page' : undefined} onClick={() => changeSection(tab)}>{LABELS[tab]}</button>)}</nav>
+    <div className="report-definition"><strong>{section === 'activity' ? 'Event dates' : section === 'time' ? 'Session intervals' : 'Task inventory'}</strong>
+      <p>{section === 'activity' ? 'Events are counted by their recorded timestamp in the selected timezone. Historical events before capture began may be unavailable.'
+        : section === 'time' ? 'Recorded task effort sums session durations. Unique working time merges overlapping intervals per employee. Neither metric is attendance or payroll time.'
+          : 'The date range applies to parent task creation. Completed: DONE or DEPLOYED. In progress: IN_PROGRESS, BUG_FIXING or IN_REVIEW. Pending: WAITING_FOR_REQUIREMENT, TODO or ON_HOLD. Subtask progress is separate from saved parent status.'}</p>
+      {section !== 'activity' && section !== 'time' && <p>Counts use persisted task IDs. Legacy multi-assignee work may use separate task records linked by a group; assignment and group totals are distinct.</p>}
+      {(section === 'employees' || section === 'projects') && <p>Recorded effort sums concurrent work on the filtered task inventory, clipped to the report period. The Time tracking tab reports historical work independently of task creation.</p>}
+      {section === 'activity' && <p>Assignment event totals are unavailable because complete assignment history was not recorded.</p>}
+      {section === 'projects' && <p>Member and manager counts include authorized memberships. Name previews show at most 25 people.</p>}
+    </div>
+    {section === 'overview' ? <>
+      {overview.busy && <Loading label="Loading overview" />}{overview.error && <ErrorBox message={overview.error} retry={overview.retry} />}
+      {overview.data && <Overview data={overview.data} onFilter={quickFilter} />}
+      <section className="report-panel"><div className="report-panel-heading"><div><h2>Date-wise task activity</h2><p>Recorded events in the report period, independent of task creation date.</p></div><button type="button" onClick={() => changeSection('activity')}>View full activity</button></div>
+        {activity.busy && <Loading label="Loading activity" />}{activity.error && <ErrorBox message={activity.error} retry={activity.retry} />}{activity.data && <ActivityChart rows={activity.data.series || activity.data.items} />}
+      </section>
+    </> : <section className="report-panel">
+      <div className="report-panel-heading"><div><h2>{LABELS[section]}</h2><p>{section === 'employees' ? 'Open an employee to inspect assigned tasks, subtasks and projects.' : section === 'projects' ? 'Open a project to inspect delivery and employee workload.' : 'Sort supported columns to inspect the complete filtered report.'}</p></div>
+        {section === 'activity' && <label>Group by <select aria-label="Group by" value={grouping} onChange={event => updateUrl({ ...query, page: 1, grouping: event.target.value as ReportingQuery['grouping'] })}>
+          <option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>}
+        {section === 'time' && <label>Group work by <select aria-label="Group work by" value={groupBy} onChange={event => updateUrl({ ...query, page: 1, sort: '', group_by: event.target.value as ReportingQuery['group_by'] })}>
+          <option value="employee">Employee</option><option value="task">Parent task</option><option value="subtask">Subtask</option><option value="project">Project</option><option value="daily">Day</option></select></label>}
+      </div>
+      {table.busy && <Loading />}{table.error && <ErrorBox message={table.error} retry={table.retry} />}
+      {table.data && <>
+        {section === 'activity' && <><ActivityChart rows={table.data.series || table.data.items} /><ActivityComparison filters={filters} totals={table.data.totals} /></>}
+        {section === 'time' && <TimeSummary values={table.data.summary} />}
+        <DataTable items={table.data.items} columns={section === 'time' ? COLUMNS.time.filter(column => groupBy !== 'daily' || !['running_interval_count', 'paused_interval_count', 'resumed_interval_count'].includes(column.key)).map(column => column.key === 'name' ? { ...column, label: groupBy === 'daily' ? 'Day' : groupBy === 'task' ? 'Parent task' : groupBy === 'subtask' ? 'Subtask' : groupBy === 'project' ? 'Project' : 'Employee' } : column) : COLUMNS[section]} timezone={filters.timezone} sort={sort} direction={direction} onSort={onSort}
+          onRow={section === 'employees' || section === 'projects' ? row => setDetail({ section, id: String(row[section === 'employees' ? 'employee_id' : 'project_id']) }) : section === 'statuses' ? row => quickFilter('status', String(row.status)) : undefined} />
+        <Pagination page={page} pageSize={pageSize} total={table.data.total} totalPages={table.data.total_pages}
+          onPage={next => updateUrl({ ...query, page: next })} onSize={size => updateUrl({ ...query, page: 1, page_size: size })} />
+      </>}
+    </section>}
+    {section === 'time' && !invalid && <WorkSessions key={scopeKey} query={query} />}
+    {detail && <DetailPanel key={`${scopeKey}:${detail.section}:${detail.id}`} target={detail} query={query} onClose={() => setDetail(null)}
+      onExplore={tab => updateUrl({ ...filters, [detail.section === 'employees' ? 'employee_id' : 'project_id']: detail.id, page: 1, page_size: pageSize, group_by: 'employee', grouping }, tab)} />}
+    <Meta meta={meta} />
+  </main>;
+}

@@ -1,0 +1,13 @@
+{
+  "results": [
+    "Existing login, OAuth tab and memory-only credentials PASS",
+    "Client registration and one-time credential dialog PASS",
+    "Separate-origin browser reads scoped profile with real CORS and no cookies PASS",
+    "Real browser consent → callback state/issuer → PKCE exchange → profile → refresh rotation PASS",
+    "User grant revocation enforces access denial PASS",
+    "Confidential machine flow and secret dismissal PASS",
+    "Responsive 1440/768/375, reduced motion, keyboard dialog and no token persistence PASS",
+    "Failed logout stays signed out across reload; explicit login recovers PASS"
+  ],
+  "pageErrors": []
+}

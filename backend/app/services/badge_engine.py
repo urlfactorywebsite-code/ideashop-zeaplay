@@ -158,6 +158,9 @@ def _tier_requirement_met(
 
 
 def process_badge_event(db: Session, *, event: BadgeEvent) -> None:
+    # Sessions disable autoflush. Make progress from earlier events in this
+    # transaction visible before looking it up again (e.g. multi-user tasks).
+    db.flush()
     occurred_at = event.occurred_at or datetime.utcnow()
     badges = (
         db.execute(

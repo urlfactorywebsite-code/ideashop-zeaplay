@@ -1,0 +1,15 @@
+{
+  "results": [
+    "PASS regular user can reach reporting and real API response metrics render",
+    "PASS combined date, employee, archived project and persisted status filters reach APIs and URL",
+    "PASS task deep links, server sorting, pagination and filter-matched download requests",
+    "PASS employee detail keeps parent and subtask status separate and exposes session history",
+    "PASS recorded effort and unique working time remain distinct; grouping and active-session filter work",
+    "PASS event grouping and previous-period trend comparison are populated from report APIs",
+    "PASS forbidden responses clear old records; empty reports have explicit empty states",
+    "PASS reset removes prior filters and invalid date ranges are rejected before querying",
+    "PASS 390px responsive layout, keyboard focus and reduced-motion rendering",
+    "PASS no uncaught browser errors"
+  ],
+  "scope": "Deterministic intercepted API UI tests; no production or live database proof."
+}

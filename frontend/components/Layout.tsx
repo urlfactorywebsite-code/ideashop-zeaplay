@@ -200,6 +200,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (user?.role === Role.ADMIN) {
       links.push({ to: '/api/smtp', label: 'SMTP', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241421/api_bhcggn.png' });
     }
+    if (user?.role === Role.USER) {
+      links.push({ to: '/reports', label: 'Reports', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770343494/report_boqlo0.png' });
+    }
     links.push(
       { to: '/achievements', label: 'Achievements', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241421/achivement_ckvs6i.png' },
       { to: '/levels', label: 'Levels', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241421/level-up_l6lcwq.png' },

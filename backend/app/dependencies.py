@@ -3,7 +3,7 @@
 import uuid
 from typing import Any, Iterable
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
@@ -58,10 +58,14 @@ def _normalize_roles(raw_roles: Any) -> list[str]:
 
 
 async def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
     """Return the authenticated user from the JWT bearer token."""
+    if token.startswith('zoa_'):
+        from .services.oauth import delegated_user
+        return delegated_user(db, token, request)
     payload = _decode_access_token(token)
     user_id = _extract_user_id(payload)
     user = db.get(User, user_id)

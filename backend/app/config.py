@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import List, Literal, Optional
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,9 +18,33 @@ class Settings(BaseSettings):
 
     access_token_expire_minutes: int = 60 * 24  # 24 hours
     refresh_token_expire_minutes: int = 60 * 24 * 7  # 7 days
-    jwt_secret_key: str = "change_me"
-    jwt_refresh_secret_key: str = "change_me_refresh"
+    jwt_secret_key: str = Field(default="change_me", repr=False)
+    jwt_refresh_secret_key: str = Field(default="change_me_refresh", repr=False)
     jwt_algorithm: str = "HS256"
+    oauth_issuer: Optional[str] = None
+    oauth_ui_url: Optional[str] = None
+    oauth_audience: str = "zeaplay-api"
+
+    @model_validator(mode='after')
+    def validate_oauth_urls(self):
+        if self.environment == 'production':
+            keys = [self.jwt_secret_key, self.jwt_refresh_secret_key]
+            if (any(len(key.encode()) < 32 or key.startswith(('change_me', 'replace-with')) for key in keys)
+                    or keys[0] == keys[1]):
+                raise ValueError('Production JWT signing keys must be independent, non-default secrets of at least 32 bytes')
+            if not self.cors_allow_origins or any(not origin.startswith('https://') or '*' in origin for origin in self.cors_allow_origins):
+                raise ValueError('Production CORS origins must be explicit HTTPS origins')
+        from urllib.parse import urlsplit
+        for value, consent in [(self.oauth_issuer, False), (self.oauth_ui_url, True)]:
+            if not value:
+                continue
+            parsed = urlsplit(value)
+            if (not parsed.hostname or parsed.username or parsed.password or parsed.query
+                    or ('#' in value and not consent) or value.endswith('/') or '\\' in value
+                    or parsed.scheme not in {'http', 'https'}
+                    or (parsed.scheme == 'http' and (self.environment == 'production' or parsed.hostname not in {'localhost', '127.0.0.1', '::1'}))):
+                raise ValueError('OAuth URLs require HTTPS (loopback HTTP only in development), no credentials/query/trailing slash')
+        return self
     password_reset_url: Optional[str] = None
     password_reset_expire_minutes: int = Field(default=15, ge=5, le=60)
     password_reset_requests_per_email: int = Field(default=3, ge=1, le=20)
@@ -134,6 +158,7 @@ class Settings(BaseSettings):
     active_timer_owner_limit: int = Field(default=5, ge=1, le=100)
 
     model_config = SettingsConfigDict(
+        hide_input_in_errors=True,
         env_file=(".env", ".env.local"),
         env_prefix="VEE_",
         extra="ignore",

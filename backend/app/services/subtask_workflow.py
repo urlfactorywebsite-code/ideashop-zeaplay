@@ -388,6 +388,7 @@ def synchronize_parent_completion(db: Session, task: models.Task, *, actor: mode
     from .gamification import COMPLETED_STATUSES, award_task_completion_points
     from .badge_engine import BadgeEvent, process_badge_event
     from .notifications import create_notification
+    from .task_notifications import notify_status_change
 
     db.flush()
     children = db.execute(select(models.Subtask).where(models.Subtask.task_id == task.id)).scalars().all()
@@ -402,18 +403,6 @@ def synchronize_parent_completion(db: Session, task: models.Task, *, actor: mode
             models.TaskApprovalStatusEnum.PENDING if task.approval_required else models.TaskApprovalStatusEnum.APPROVED
         )
         awarded = award_task_completion_points(db, task, notify_creator=False)
-        recipients = {task.created_by_id, task.assigned_to_id, *(follower.id for follower in task.followers)}
-        if task.project:
-            recipients.update(member.user_id for member in task.project.members if member.role == models.ProjectMemberRoleEnum.MANAGER)
-        recipients.discard(None)
-        recipients.discard(actor.id)
-        for recipient_id in sorted(recipients):
-            create_notification(
-                db, user_id=recipient_id, actor_id=actor.id,
-                notification_type=models.NotificationTypeEnum.TASK_COMPLETED,
-                message=f"All subtasks are complete. Task '{task.title}' is completed.",
-                related_task_id=task.id,
-            )
         if task.approval_required and task.approver_id and task.approver_id != actor.id:
             create_notification(
                 db, user_id=task.approver_id, actor_id=actor.id,
@@ -435,6 +424,7 @@ def synchronize_parent_completion(db: Session, task: models.Task, *, actor: mode
         event_type = "task.reopened"
     else:
         return False
+    notify_status_change(db, task=task, actor=actor, previous_status=previous)
     db.add(models.AuditEvent(
         actor_id=actor.id, event_type=event_type, entity_type="task", entity_id=task.id,
         payload={"reason": "subtask_status", "previous_status": previous.value, "status": task.status.value},

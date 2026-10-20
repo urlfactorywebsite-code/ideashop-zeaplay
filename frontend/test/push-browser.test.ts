@@ -6,6 +6,8 @@ import {
   publicKeyBytes, subscriptionMatchesKey, supportsBrowserPush, syncPushAccount,
 } from '../services/pushBrowser.ts';
 
+import { storeTokens, clearTokens } from '../services/tokenStorage.ts';
+
 const events: string[] = [];
 let accountMessages: unknown[] = [];
 let values: Map<string, string>;
@@ -15,10 +17,12 @@ let serviceWorker: any;
 beforeEach(() => {
   events.length = 0;
   accountMessages = [];
-  values = new Map([['vee_access_token', 'synthetic-A']]);
+  values = new Map();
+  storeTokens('synthetic-A', 'synthetic-refresh');
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
     getItem: (key: string) => values.get(key) ?? null,
     setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
   } });
   const window = Object.assign(new EventTarget(), { isSecureContext: true, PushManager: class {}, Notification: class {} });
   Object.defineProperty(globalThis, 'window', { configurable: true, value: window });
@@ -62,14 +66,14 @@ test('bound account is acknowledged before registration is considered ready', as
 });
 
 test('stale authenticated tab cannot bind a prior account after token change', async () => {
-  values.set('vee_access_token', 'synthetic-B');
+  storeTokens('synthetic-B', 'synthetic-refresh-B');
   await assert.rejects(syncPushAccount({ userId: 'user-A', tenantId: 'tenant-A' }, 'synthetic-A'), /account changed/);
   assert.deepEqual(accountMessages, []);
 });
 
 test('a token change during registration prevents late stale account binding', async () => {
   serviceWorker.register = async () => {
-    values.set('vee_access_token', 'synthetic-B');
+    storeTokens('synthetic-B', 'synthetic-refresh-B');
     return registration;
   };
   await syncPushAccount({ userId: 'user-A', tenantId: 'tenant-A' }, 'synthetic-A');
@@ -86,7 +90,7 @@ test('logout clears worker before server revoke and browser unsubscribe', async 
 });
 
 test('passive signed-out tab preserves the endpoint for the initiating logout to revoke', async () => {
-  values.delete('vee_access_token');
+  clearTokens();
   await syncPushAccount(null);
   assert.deepEqual(events, ['clear']);
   await clearPushSession(async endpoint => {

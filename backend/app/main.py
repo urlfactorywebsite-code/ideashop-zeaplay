@@ -2,7 +2,6 @@
 from pathlib import Path
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import ProgrammingError
@@ -33,6 +32,7 @@ from .routers import (
     notification_preferences,
     oauth2_server,
     projects,
+    reports,
     rewards,
     media,
     tasks,
@@ -694,13 +694,8 @@ def ensure_kanban_columns() -> None:
 class CorsFastAPI(FastAPI):
     def build_middleware_stack(self):
         # Keep FastAPI's public API while placing CORS outside its 500 handler.
-        return CORSMiddleware(
-            super().build_middleware_stack(),
-            allow_origins=settings.cors_allow_origins,
-            allow_credentials=settings.cors_allow_credentials,
-            allow_methods=settings.cors_allow_methods,
-            allow_headers=settings.cors_allow_headers,
-        )
+        from .oauth_cors import build_cors_stack
+        return build_cors_stack(super().build_middleware_stack(), settings)
 
 
 app = CorsFastAPI(title=settings.app_name)
@@ -852,6 +847,7 @@ app.include_router(clients.router)
 app.include_router(contacts.router)
 app.include_router(contacts.client_contacts_router)
 app.include_router(projects.router)
+app.include_router(reports.router)
 app.include_router(users.router)
 app.include_router(departments.router)
 app.include_router(kanban.router)
@@ -871,6 +867,10 @@ app.include_router(feature_flags.router)
 app.include_router(n8n.router)
 app.include_router(data_admin.router)
 app.include_router(oauth2_server.router)
+from .oauth_logging import install as install_oauth_log_filter
+install_oauth_log_filter()
+from .routers.oauth_management import discovery_router
+app.include_router(discovery_router)
 app.include_router(avatars.router)
 app.include_router(media.router)
 app.include_router(media.router, prefix="/api")
@@ -892,6 +892,7 @@ app.include_router(clients.router, prefix="/api")
 app.include_router(contacts.router, prefix="/api")
 app.include_router(contacts.client_contacts_router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
+app.include_router(reports.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(departments.router, prefix="/api")
 app.include_router(kanban.router, prefix="/api")

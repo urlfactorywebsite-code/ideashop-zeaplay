@@ -1,0 +1,113 @@
+﻿{
+    "status":  "PASS",
+    "generated_at_utc":  "2026-10-20T11:44:41.2056580Z",
+    "scope":  "Windows backend venv against isolated SQLite and disposable Docker PostgreSQL 16; not live VPS certification",
+    "runs":  [
+                 {
+                     "artifact":  "backend-final-isolated",
+                     "tests":  121,
+                     "passed":  119,
+                     "failures":  0,
+                     "errors":  0,
+                     "skipped":  2,
+                     "seconds":  262.103
+                 },
+                 {
+                     "artifact":  "backend-final-sqlite",
+                     "tests":  38,
+                     "passed":  37,
+                     "failures":  0,
+                     "errors":  0,
+                     "skipped":  1,
+                     "seconds":  74.721
+                 },
+                 {
+                     "artifact":  "backend-postgres-recovered-final",
+                     "tests":  37,
+                     "passed":  37,
+                     "failures":  0,
+                     "errors":  0,
+                     "skipped":  0,
+                     "seconds":  50.15
+                 }
+             ],
+    "coverage_note":  "The combined 119-pass run covers inventory, effort, exports, frontend API/CSV contracts, index planning and selected workflow. Later SQLite and PostgreSQL runs cover full lifecycle plus all time tests including the zero-duration correction. Runs overlap; do not sum as unique test counts.",
+    "global_engine_isolation":  {
+                                    "VEE_BOOTSTRAP_SCHEMA":  "false",
+                                    "VEE_DATABASE_URL":  "sqlite://"
+                                },
+    "final_container":  {
+                            "container_id":  "ca0feaac62e0cc7e68a7b5ef108636eac85c568d25c616dfb5ee8f53c3a83e43",
+                            "name":  "zeaplay-reporting-verify-a59a685bc325",
+                            "created_at_utc":  "2026-10-20T11:42:36.0007255Z",
+                            "database":  "rt3_test_reporting",
+                            "cleanup_succeeded":  true
+                        },
+    "reporting_helpers_remaining":  0,
+    "application_containers_running":  [
+                                           "frontend",
+                                           "backend",
+                                           "presence",
+                                           "postgres",
+                                           "redis"
+                                       ],
+    "interrupted_artifact":  "backend-verified-final.txt (superseded; Docker daemon unavailable, no passing result)",
+    "source_sha256_after_final_run":  [
+                                          {
+                                              "path":  "backend/app/reporting/filters.py",
+                                              "sha256":  "25d4280beea15fe460f131f7323b8d560d0f873e245fd5d1f2186e7714f43a33"
+                                          },
+                                          {
+                                              "path":  "backend/app/reporting/scope.py",
+                                              "sha256":  "42f188efcaee37252c27add571ab8821af150d7659b2a8b40cc4726f8f156816"
+                                          },
+                                          {
+                                              "path":  "backend/app/reporting/inventory.py",
+                                              "sha256":  "2105c9a167195b13e6cd2901e014ab0ce8d924744a2a4d6a57d617aff0600a52"
+                                          },
+                                          {
+                                              "path":  "backend/app/reporting/work.py",
+                                              "sha256":  "2f3b621268c8205ba681a407a90e373afcfa4e7ef171dcfce17de525e712e4fe"
+                                          },
+                                          {
+                                              "path":  "backend/app/reporting/activity.py",
+                                              "sha256":  "e1f7a6099698905f14f4c1a298de0b6b196cedb0e26907559efdb01b2e793806"
+                                          },
+                                          {
+                                              "path":  "backend/app/reporting/exports.py",
+                                              "sha256":  "6f65d8dfc311c2934b3af981ce29754a1e810bb03b94e1563663224d44dec68c"
+                                          },
+                                          {
+                                              "path":  "backend/app/routers/reports.py",
+                                              "sha256":  "dbeeba7fe2a9bad095052f7a79b59d7d1c0110c8ae28c9c3a25a9a3fe6830768"
+                                          },
+                                          {
+                                              "path":  "backend/tests/test_reporting_inventory.py",
+                                              "sha256":  "824e1d4cf75c0ad85afcb1410049fee34a9282b21d42534e90683c57114f21ea"
+                                          },
+                                          {
+                                              "path":  "backend/tests/test_advanced_reporting_time.py",
+                                              "sha256":  "ab1c964555e8cc1f8410f9d19025812f3e32fe22ffe8de63a59aea52b6227416"
+                                          },
+                                          {
+                                              "path":  "backend/tests/test_reporting_exports.py",
+                                              "sha256":  "28b7376cb087964fea1e995714fa6cc91976337bcc5751726674acc4d733a13a"
+                                          },
+                                          {
+                                              "path":  "backend/tests/test_reporting_frontend_contract.py",
+                                              "sha256":  "818044b8e93fc1ccd8bf21abb2ff92b702d8d4f5a536a38864ebf20b0e26fdcd"
+                                          },
+                                          {
+                                              "path":  "backend/tests/test_task_lifecycle.py",
+                                              "sha256":  "6796b14096ee61ceea454675a1cc77cac340d2f890e7f3215d2057c322d30c55"
+                                          },
+                                          {
+                                              "path":  "backend/tests/test_reporting_index.py",
+                                              "sha256":  "1ee0783ba813d492a8f1b1da26b69fe0d5ab6d56cc50e66680f28bda8cb041dd"
+                                          },
+                                          {
+                                              "path":  "ops/verify-reporting.ps1",
+                                              "sha256":  "e3237d2cfdb37bb7a74d5d208a588916cd1b4d03f2a2130d45dd0673d586f9d1"
+                                          }
+                                      ]
+}

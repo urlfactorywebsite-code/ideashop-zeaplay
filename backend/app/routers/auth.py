@@ -3,7 +3,7 @@ import uuid
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -121,7 +121,12 @@ async def _extract_credentials(request: Request) -> tuple[str, str]:
 
 
 @router.post("/login", response_model=schemas.AuthResponse)
-async def login(request: Request, db: Session = Depends(get_db)) -> schemas.AuthResponse:
+async def login(request: Request, response: Response, db: Session = Depends(get_db)) -> schemas.AuthResponse:
+    if request.headers.get('x-zea-browser') == '1':
+        from ..services.browser_session import check_origin
+        from ..services.oauth import rate_limit
+        check_origin(request)
+        rate_limit(db, request)
     username, password = await _extract_credentials(request)
     user = db.execute(select(models.User).where(models.User.email == username)).scalar_one_or_none()
     if not user or not verify_password(password, user.hashed_password):
@@ -164,6 +169,9 @@ async def login(request: Request, db: Session = Depends(get_db)) -> schemas.Auth
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated")
 
     extra_claims = _build_token_claims(user)
+    if request.headers.get('x-zea-browser') == '1':
+        from ..services.browser_session import start
+        start(db, user, request, response)
     token = schemas.Token(
         access_token=create_access_token(user.id, extra_claims=extra_claims),
         refresh_token=create_refresh_token(user.id, extra_claims=extra_claims),
@@ -218,6 +226,24 @@ def refresh_token(
         access_token=create_access_token(user.id, extra_claims=extra_claims),
         refresh_token=create_refresh_token(user.id, extra_claims=extra_claims),
     )
+
+
+@router.post('/browser-session/refresh', response_model=schemas.Token)
+def restore_browser_session(request: Request, response: Response, db: Session = Depends(get_db)):
+    from ..services.browser_session import check_origin, current
+    from ..services.oauth import rate_limit
+    check_origin(request)
+    rate_limit(db, request)
+    user = current(db, request)
+    response.headers['Cache-Control'] = 'no-store'
+    return schemas.Token(access_token=create_access_token(user.id, extra_claims=_build_token_claims(user)),
+                         refresh_token='browser-session')
+
+
+@router.post('/browser-session/logout', status_code=204)
+def logout_browser_session(request: Request, response: Response, db: Session = Depends(get_db)):
+    from ..services.browser_session import end
+    end(db, request, response)
 
 
 @router.get("/me", response_model=schemas.UserRead)

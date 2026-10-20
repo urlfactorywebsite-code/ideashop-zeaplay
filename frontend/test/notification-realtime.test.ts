@@ -1,3 +1,4 @@
+import { storeTokens, getAccessToken } from '../services/tokenStorage.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createNotificationEventParser, startNotificationStream } from '../services/notificationRealtime';
@@ -143,10 +144,12 @@ test('token refresh preserves current session and cannot overwrite an account sw
     setItem: (key: string, value: string) => values.set(key, value),
   } });
   try {
+    storeTokens('old', 'refresh-old');
     assert.equal(storeRefreshedTokens('old', 'refresh-old', 'new', 'refresh-new'), true);
     assert.equal(rotations, 1);
     assert.equal(storeRefreshedTokens('old', 'refresh-old', 'late', 'refresh-late'), false);
-    assert.equal(values.get('vee_access_token'), 'new');
+    assert.equal(getAccessToken(), 'new');
+    assert.notEqual(values.get('vee_access_token'), 'new');
     assert.equal(rotations, 1);
   } finally {
     if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);

@@ -19,9 +19,10 @@ import {
 import MultiSelect from '../components/ui/MultiSelect';
 import api from '../services/mockApi';
 import SmtpManagement from '../components/SmtpManagement';
+import OAuthManagement from '../components/OAuthManagement';
 import type { WebhookSubscription, WebhookTestResult } from '../types';
 
-type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 interface EndpointDoc {
     id: string;
@@ -1110,59 +1111,8 @@ const ENDPOINT_GROUPS: EndpointGroup[] = [
                 },
             },
             {
-                id: 'config-oauth-list',
-                method: 'GET',
-                path: '/config/oauth',
-                title: 'List OAuth Clients',
-                summary: 'Return all registered OAuth applications and credentials.',
-                requiresAuth: true,
-                scopes: ['config.oauth.manage'],
-            },
-            {
-                id: 'config-oauth-create',
-                method: 'POST',
-                path: '/config/oauth',
-                title: 'Create OAuth Client',
-                summary: 'Create an OAuth client with optional custom credentials.',
-                requiresAuth: true,
-                scopes: ['config.oauth.manage'],
-                bodyExample: {
-                    name: 'n8n automation',
-                    redirect_url: 'https://n8n.example.com/oauth/callback',
-                    scopes: ['tasks.read', 'tasks.write', 'integrations.n8n.trigger'],
-                    n8n_integration: true,
-                },
-            },
-            {
-                id: 'config-oauth-update',
-                method: 'PATCH',
-                path: '/config/oauth/{config_id}',
-                title: 'Update OAuth Client',
-                summary: 'Edit OAuth client metadata or allowed scopes.',
-                requiresAuth: true,
-                scopes: ['config.oauth.manage'],
-            },
-            {
-                id: 'config-oauth-rotate',
-                method: 'POST',
-                path: '/config/oauth/{config_id}/rotate',
-                title: 'Rotate OAuth Credentials',
-                summary: 'Regenerate client ID, secret, or API key.',
-                requiresAuth: true,
-                scopes: ['config.oauth.manage'],
-                bodyExample: {
-                    rotate_client_secret: true,
-                    rotate_api_key: true,
-                },
-            },
-            {
-                id: 'config-oauth-delete',
-                method: 'DELETE',
-                path: '/config/oauth/{config_id}',
-                title: 'Delete OAuth Client',
-                summary: 'Remove an OAuth client and revoke its credentials.',
-                requiresAuth: true,
-                scopes: ['config.oauth.manage'],
+                id: 'oauth-management', method: 'GET', path: '/oauth2/clients', title: 'OAuth client management',
+                summary: 'Tenant-scoped client metadata; use the OAuth tab for registration and one-time credentials. Legacy /config/oauth endpoints are retired.', requiresAuth: true,
             },
         ],
     },
@@ -1259,25 +1209,12 @@ const ENDPOINT_GROUPS: EndpointGroup[] = [
     },
     {
         category: 'OAuth 2.0',
-        description: 'Standard OAuth token issuance for third-party clients.',
+        description: 'Use the OAuth tab documentation for verified PKCE, machine credentials, refresh and revocation examples.',
         endpoints: [
-            {
-                id: 'oauth-token',
-                method: 'POST',
-                path: '/oauth2/token',
-                title: 'Token Endpoint',
-                summary: 'Issue access tokens using OAuth grant types (authorization_code, refresh_token).',
-                requiresAuth: false,
-                scopes: ['oauth.tokens.issue'],
-                headers: [{ key: 'Content-Type', value: 'application/x-www-form-urlencoded' }],
-                bodyExample: {
-                    grant_type: 'authorization_code',
-                    client_id: '{{client_id}}',
-                    client_secret: '{{client_secret}}',
-                    code: '{{auth_code}}',
-                    redirect_uri: 'https://app.example.com/oauth/callback',
-                },
-            },
+            { id: 'oauth-token', method: 'POST', path: '/oauth2/token', title: 'OAuth token exchange',
+              summary: 'Form-encoded authorization_code (S256 PKCE), refresh_token or confidential client_credentials. See OAuth documentation.', requiresAuth: false },
+            { id: 'oauth-clients', method: 'GET', path: '/oauth2/clients', title: 'Tenant OAuth clients',
+              summary: 'Owner/admin-only metadata. Existing secrets are never returned.', requiresAuth: true },
         ],
     },
 ];
@@ -1526,46 +1463,7 @@ const ApiOverview: React.FC = () => {
     const [showAdvancedExpiry, setShowAdvancedExpiry] = useState(false);
     const [expiryError, setExpiryError] = useState<string | null>(null);
     const [hasHydratedFromHistory, setHasHydratedFromHistory] = useState(false);
-    const [keyHistory, setKeyHistory] = useState<GeneratedKeyRecord[]>(() => {
-        if (typeof window === 'undefined') {
-            return [];
-        }
-        try {
-            const stored = window.localStorage.getItem(KEY_HISTORY_STORAGE_KEY);
-            if (!stored) {
-                return [];
-            }
-            const parsed = JSON.parse(stored) as unknown;
-            if (!Array.isArray(parsed)) {
-                return [];
-            }
-            return parsed
-                .filter(
-                    (item): item is Record<string, unknown> =>
-                        typeof item === 'object' && item !== null && typeof item.id === 'string' && typeof item.key === 'string',
-                )
-                .map((item) => ({
-                    id: item.id as string,
-                    label:
-                        typeof item.label === 'string' && item.label.trim().length > 0 ? (item.label as string) : 'Saved integration key',
-                    key: item.key as string,
-                    scopes: Array.isArray(item.scopes)
-                        ? item.scopes.filter((scope): scope is string => typeof scope === 'string')
-                        : [],
-                    baseUrl:
-                        typeof item.baseUrl === 'string' && (item.baseUrl as string).trim().length > 0
-                            ? (item.baseUrl as string)
-                            : defaultBaseUrl,
-                    createdAt:
-                        typeof item.createdAt === 'string' && item.createdAt ? (item.createdAt as string) : new Date().toISOString(),
-                    expiresAt: typeof item.expiresAt === 'string' && item.expiresAt ? (item.expiresAt as string) : undefined,
-                    subject: typeof item.subject === 'string' && item.subject ? (item.subject as string) : undefined,
-                }));
-        } catch (error) {
-            console.warn('Failed to parse stored bearer keys', error);
-            return [];
-        }
-    });
+    const [keyHistory, setKeyHistory] = useState<GeneratedKeyRecord[]>([]);
     const [activeKeyId, setActiveKeyId] = useState<string | null>(null);
     const [webhooks, setWebhooks] = useState<WebhookSubscription[]>([]);
     const [isLoadingWebhooks, setIsLoadingWebhooks] = useState(false);
@@ -1643,7 +1541,7 @@ const ApiOverview: React.FC = () => {
         if (typeof window === 'undefined') {
             return;
         }
-        window.localStorage.setItem(KEY_HISTORY_STORAGE_KEY, JSON.stringify(keyHistory));
+        window.localStorage.removeItem(KEY_HISTORY_STORAGE_KEY);
     }, [keyHistory]);
 
     useEffect(() => {
@@ -2196,6 +2094,7 @@ const ApiOverview: React.FC = () => {
 
                 {/* Overview Tab */}
                 {activeTab === 'smtp' && <SmtpManagement />}
+                {activeTab === 'oauth' && <OAuthManagement />}
                 {activeTab === 'overview' && (
                     <>
                         <section className="grid grid-cols-1 md:grid-cols-4 gap-6">

@@ -180,6 +180,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
             label: 'Chat',
             showUnreadDot: hasUnreadChat,
         },
+        { to: '/oauth/applications', icon: <CodeBracketSquareIcon className="h-6 w-6" />, label: 'Authorized apps' },
         {
             to: '/projects',
             icon: (
@@ -303,6 +304,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
 
         }
 
+        if (user?.role === Role.USER) {
+            const reportsLink = adminLinks.find(link => link.to === '/reports');
+            if (reportsLink) links.push(reportsLink);
+        }
+
 
 
         links.push({
@@ -331,6 +337,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
             });
         }
         if (user?.role === Role.ADMIN) {
+            links.push({ to: '/api/oauth-apps', label: 'OAuth', icon: <CodeBracketSquareIcon className="h-6 w-6" /> });
             links.push({ to: '/api/smtp', label: 'SMTP', icon: <span aria-hidden="true">✉</span> });
         }
         const seen = new Set<string>();

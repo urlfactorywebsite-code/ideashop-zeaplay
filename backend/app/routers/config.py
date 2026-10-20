@@ -1,7 +1,5 @@
-from secrets import token_urlsafe
-
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -212,132 +210,13 @@ def update_email_template(
 # ---------------------------------------------------------------------------#
 
 
-def _rotate_if_requested(oauth_config: models.OAuthConfig, rotate: schemas.OAuthCredentialsRotate) -> None:
-    if rotate.rotate_client_id:
-        oauth_config.client_id = token_urlsafe(18)
-    if rotate.rotate_client_secret:
-        oauth_config.client_secret = token_urlsafe(36)
-    if rotate.rotate_api_key:
-        oauth_config.api_key = token_urlsafe(24)
-
-
-def _ensure_oauth_schema(db: Session) -> None:
-    """Ensure legacy databases are upgraded with the multi-client OAuth columns."""
-    inspector = inspect(db.bind)
-    table_names = inspector.get_table_names()
-    dialect = db.bind.dialect.name
-
-    if "oauth_config" not in table_names:
-        models.OAuthConfig.__table__.create(bind=db.bind, checkfirst=True)
-        return
-
-    existing_columns = {column["name"] for column in inspector.get_columns("oauth_config")}
-    with db.begin_nested():
-        if "name" not in existing_columns:
-            db.execute(text("ALTER TABLE oauth_config ADD COLUMN name VARCHAR(255) DEFAULT ''"))
-        if "redirect_url" not in existing_columns:
-            db.execute(text("ALTER TABLE oauth_config ADD COLUMN redirect_url VARCHAR(500) DEFAULT ''"))
-        if "client_id" not in existing_columns:
-            db.execute(text("ALTER TABLE oauth_config ADD COLUMN client_id VARCHAR(255) DEFAULT ''"))
-        if "client_secret" not in existing_columns:
-            db.execute(text("ALTER TABLE oauth_config ADD COLUMN client_secret VARCHAR(255) DEFAULT ''"))
-        if "api_key" not in existing_columns:
-            db.execute(text("ALTER TABLE oauth_config ADD COLUMN api_key VARCHAR(255)"))
-        if "scopes" not in existing_columns:
-            db.execute(text("ALTER TABLE oauth_config ADD COLUMN scopes JSON DEFAULT '[]'"))
-        if "n8n_integration" not in existing_columns:
-            default_value = "FALSE" if dialect == "postgresql" else "0"
-            db.execute(text(f"ALTER TABLE oauth_config ADD COLUMN n8n_integration BOOLEAN DEFAULT {default_value}"))
-        if "created_at" not in existing_columns:
-            timestamp_type = "TIMESTAMPTZ" if dialect == "postgresql" else "DATETIME"
-            db.execute(text(f"ALTER TABLE oauth_config ADD COLUMN created_at {timestamp_type} DEFAULT CURRENT_TIMESTAMP"))
-        if "updated_at" not in existing_columns:
-            timestamp_type = "TIMESTAMPTZ" if dialect == "postgresql" else "DATETIME"
-            db.execute(text(f"ALTER TABLE oauth_config ADD COLUMN updated_at {timestamp_type} DEFAULT CURRENT_TIMESTAMP"))
-
-
-@router.get("/oauth", response_model=List[schemas.OAuthConfigRead])
-def list_oauth_configs(
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    _ensure_oauth_schema(db)
-    return db.query(models.OAuthConfig).order_by(models.OAuthConfig.created_at.desc()).all()
-
-
-@router.post("/oauth", response_model=schemas.OAuthConfigRead, status_code=status.HTTP_201_CREATED)
-def create_oauth_config(
-    payload: schemas.OAuthConfigCreate,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    _ensure_oauth_schema(db)
-    oauth_config = models.OAuthConfig(
-        name=payload.name,
-        redirect_url=payload.redirect_url,
-        scopes=payload.scopes,
-        n8n_integration=payload.n8n_integration,
-        client_id=payload.client_id or token_urlsafe(18),
-        client_secret=payload.client_secret or token_urlsafe(36),
-        api_key=payload.api_key or token_urlsafe(24),
-    )
-    db.add(oauth_config)
-    db.commit()
-    db.refresh(oauth_config)
-    return oauth_config
-
-
-@router.patch("/oauth/{config_id}", response_model=schemas.OAuthConfigRead)
-def update_oauth_config(
-    config_id: int,
-    payload: schemas.OAuthConfigUpdate,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    _ensure_oauth_schema(db)
-    oauth_config = db.get(models.OAuthConfig, config_id)
-    if not oauth_config:
-        raise HTTPException(status_code=404, detail="OAuth configuration not found")
-
-    for key, value in payload.model_dump(exclude_unset=True).items():
-        setattr(oauth_config, key, value)
-
-    db.commit()
-    db.refresh(oauth_config)
-    return oauth_config
-
-
-@router.post("/oauth/{config_id}/rotate", response_model=schemas.OAuthConfigRead)
-def rotate_oauth_credentials(
-    config_id: int,
-    payload: schemas.OAuthCredentialsRotate,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-):
-    _ensure_oauth_schema(db)
-    oauth_config = db.get(models.OAuthConfig, config_id)
-    if not oauth_config:
-        raise HTTPException(status_code=404, detail="OAuth configuration not found")
-
-    _rotate_if_requested(oauth_config, payload)
-    db.commit()
-    db.refresh(oauth_config)
-    return oauth_config
-
-
-@router.delete("/oauth/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_oauth_config(
-    config_id: int,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
-) -> None:
-    _ensure_oauth_schema(db)
-    oauth_config = db.get(models.OAuthConfig, config_id)
-    if not oauth_config:
-        raise HTTPException(status_code=404, detail="OAuth configuration not found")
-
-    db.delete(oauth_config)
-    db.commit()
+# Legacy OAuth rows lack tenant ownership and contain recoverable credentials.
+# They are retained for operator migration but may never be served to browsers.
+@router.api_route('/oauth', methods=['GET', 'POST'], deprecated=True)
+@router.api_route('/oauth/{config_id}', methods=['GET', 'PATCH', 'DELETE'], deprecated=True)
+@router.post('/oauth/{config_id}/rotate', deprecated=True)
+def retired_oauth_config(_: models.User = Depends(get_current_active_user)):
+    raise HTTPException(410, 'Legacy OAuth configuration is retired. Use /oauth2/clients; re-register with tenant-bound credentials.')
 
 
 # Retain the existing public SMTP namespace with its own secret-safe validation.

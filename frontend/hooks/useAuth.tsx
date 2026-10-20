@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useRef, useCallb
 import { useNavigate } from 'react-router-dom';
 import { User, Role } from '../types';
 import api from '../services/mockApi';
-import { AUTH_TOKEN_REFRESHED_EVENT, getAccessToken } from '../services/tokenStorage';
+import { AUTH_TOKEN_REFRESHED_EVENT, getAccessToken, tokenGeneration } from '../services/tokenStorage';
 import { AUTH_EXPIRED_EVENT } from '../utils/appEvents';
 import PageLoader from '../components/loading/PageLoader';
 import { clearPushSession, syncPushAccount } from '../services/pushBrowser';
@@ -24,12 +24,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const authenticatedToken = useRef<string | null>(null);
+  const authenticatedGeneration = useRef(0);
   const navigate = useNavigate();
   useEffect(() => {
     const rotated = (event: Event) => {
-      const detail = (event as CustomEvent<{ previousAccessToken: string | null; accessToken: string }>).detail;
-      if (detail && authenticatedToken.current === detail.previousAccessToken && getAccessToken() === detail.accessToken) {
-        authenticatedToken.current = detail.accessToken;
+      const detail = (event as CustomEvent<{ previousGeneration: number; generation: number }>).detail;
+      if (detail && authenticatedToken.current && authenticatedGeneration.current === detail.previousGeneration && tokenGeneration() === detail.generation) {
+        authenticatedToken.current = getAccessToken();
+        authenticatedGeneration.current = detail.generation;
       }
     };
     window.addEventListener(AUTH_TOKEN_REFRESHED_EVENT, rotated);
@@ -42,10 +44,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true;
     const checkLoggedIn = async () => {
       const currentRequest = ++request;
-      const token = getAccessToken();
+      let token = getAccessToken();
       console.log('useAuth.tsx: Checking if user is logged in');
       setLoading(true);
       try {
+        if (!token) {
+          await api.restoreBrowserSession();
+          if (!mounted || request !== currentRequest) return;
+          token = getAccessToken();
+        }
         if (!token) {
           authenticatedToken.current = null;
           setUser(null);
@@ -61,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         authenticatedToken.current = getAccessToken();
+        authenticatedGeneration.current = tokenGeneration();
         setUser(currentUser);
       } catch (error) {
         if (!mounted || request !== currentRequest || token !== getAccessToken()) return;
@@ -71,7 +79,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
     const storageChanged = (event: StorageEvent) => {
-      if (event.key !== 'vee_access_token' && event.key !== null) return;
+      if (event.key !== 'zea_session_changed' && event.key !== 'vee_access_token' && event.key !== null) return;
+      if (event.key === 'zea_session_changed') api.clearBrowserMemory();
       authenticatedToken.current = null;
       setUser(null);
       void checkLoggedIn();
@@ -108,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, pass: string) => {
     const loggedInUser = await api.login(email, pass);
     authenticatedToken.current = getAccessToken();
+    authenticatedGeneration.current = tokenGeneration();
     setUser(loggedInUser);
   };
 

@@ -222,7 +222,8 @@ import {
   MediaSortOption,
   StorageProvider,
 } from '../types';
-import { storeTokens, storeRefreshedTokens, getAccessToken, getRefreshToken, clearTokens } from './tokenStorage';
+import { storeTokens, storeRefreshedTokens, getAccessToken, getRefreshToken, clearTokens, tokenGeneration } from './tokenStorage';
+import { browserSessionIntent, nextBrowserSessionIntent, isBrowserSignedOut, markBrowserSignedOut, notifyBrowserSessionChanged, serializeBrowserSession } from './browserSession';
 import { augmentTaskWithPoints } from '../utils/taskPoints';
 import { AUTH_EXPIRED_EVENT } from '../utils/appEvents';
 import { clearPushSession } from './pushBrowser';
@@ -1855,8 +1856,9 @@ type ApiChatDirectoryPage = {
   next_cursor?: string | null;
 };
 
-const http: AxiosInstance = axios.create({
+export const http: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
 });
 
 http.interceptors.request.use((config) => {
@@ -1889,16 +1891,18 @@ function notifyAuthExpired(): void {
 }
 
 async function refreshAccessToken(): Promise<string | null> {
+  const intent = browserSessionIntent();
   const previousAccessToken = getAccessToken();
   const refreshToken = getRefreshToken();
-  if (!refreshToken) {
+  if (!refreshToken || isBrowserSignedOut()) {
     notifyAuthExpired();
     return null;
   }
   try {
-    const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-      refresh_token: refreshToken,
+    const { data } = await axios.post(`${API_BASE_URL}/auth/browser-session/refresh`, {}, {
+      withCredentials: true, headers: { 'X-Zea-Browser': '1' },
     });
+    if (intent !== browserSessionIntent() || isBrowserSignedOut()) return null;
     if (!storeRefreshedTokens(previousAccessToken, refreshToken, data.access_token, data.refresh_token)) return null;
     return data.access_token as string;
   } catch (error) {
@@ -1917,7 +1921,7 @@ http.interceptors.response.use(
   async (error) => {
     const { response, config } = error;
     stopGlobalLoadingTask(config?.globalProgressTaskId);
-    if (response?.status === 401 && !config.__isRetryRequest) {
+    if (response?.status === 401 && !config.__isRetryRequest && !String(config?.url).includes('/auth/login')) {
       const requestToken = config.headers?.Authorization;
       const currentToken = getAccessToken();
       if (requestToken && requestToken !== `Bearer ${currentToken}`) return Promise.reject(error);
@@ -3559,14 +3563,35 @@ async function resolveDepartmentId(departmentName?: string | null): Promise<stri
 }
 
 const api = {
+  clearBrowserMemory(): void { clearTokens(); },
+  async restoreBrowserSession(): Promise<boolean> {
+    if (isBrowserSignedOut()) return false;
+    const intent = browserSessionIntent();
+    const before = tokenGeneration();
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/auth/browser-session/refresh`, {}, {
+        withCredentials: true, headers: { 'X-Zea-Browser': '1' }, timeout: 8000,
+      });
+      if (tokenGeneration() !== before || intent !== browserSessionIntent() || isBrowserSignedOut()) return false;
+      storeTokens(data.access_token, data.refresh_token);
+      return true;
+    } catch { return false; }
+  },
   invalidateNotificationCaches(): void {
     for (const prefix of ['tasks', 'task:', 'task-group:', 'comments:', 'project', 'client']) invalidateCache(prefix);
   },
   async login(email: string, pass: string): Promise<User> {
+    const intent = nextBrowserSessionIntent();
     try {
-      const { data } = await http.post<AuthResponse>('/auth/login', { email, password: pass });
-      storeTokens(data.token.access_token, data.token.refresh_token);
-      return mapUser(data.user);
+      return await serializeBrowserSession(async () => {
+        if (intent !== browserSessionIntent()) throw new Error('Sign-in was superseded by another session action.');
+        const { data } = await http.post<AuthResponse>('/auth/login', { email, password: pass }, { headers: { 'X-Zea-Browser': '1' }, timeout: 15000 });
+        if (intent !== browserSessionIntent()) throw new Error('Sign-in was cancelled by another session action.');
+        storeTokens(data.token.access_token, data.token.refresh_token);
+        markBrowserSignedOut(false);
+        notifyBrowserSessionChanged();
+        return mapUser(data.user);
+      });
     } catch (error) {
       mapAxiosError(error);
     }
@@ -3863,8 +3888,14 @@ const api = {
     },
 
   logout(): void {
+    nextBrowserSessionIntent();
+    markBrowserSignedOut(true);
     const token = getAccessToken();
     clearTokens();
+    notifyBrowserSessionChanged();
+    void serializeBrowserSession(() => axios.post(`${API_BASE_URL}/auth/browser-session/logout`, {}, {
+      withCredentials: true, headers: { 'X-Zea-Browser': '1' }, timeout: 5000,
+    })).catch(() => undefined).finally(notifyBrowserSessionChanged);
     // Use the captured credential directly: cleanup must never refresh a signed-out session.
     void clearPushSession(token ? endpoint => axios.post(`${API_BASE_URL}/push/unsubscribe`,
       { endpoint }, { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 }) : undefined)

@@ -23,6 +23,9 @@ const Reports = React.lazy(() => import('./pages/Reports'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const Achievements = React.lazy(() => import('./pages/Achievements'));
 const ApiOverview = React.lazy(() => import('./pages/ApiOverview'));
+const OAuthManagement = React.lazy(() => import('./components/OAuthManagement'));
+const OAuthAuthorization = React.lazy(() => import('./pages/OAuthAuthorization'));
+const OAuthApplications = React.lazy(() => import('./pages/OAuthApplications'));
 const SmtpManagement = React.lazy(() => import('./components/SmtpManagement'));
 const MediaLibraryPage = React.lazy(() => import('./pages/MediaLibrary'));
 const Tickets = React.lazy(() => import('./pages/TicketPage'));
@@ -50,6 +53,7 @@ const AppRoutes: React.FC = () => {
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/reset-password" element={<PasswordReset />} />
+            <Route path="/oauth/authorize" element={<Suspense fallback={<PageLoader />}><OAuthAuthorization /></Suspense>} />
             
             <Route path="/" element={<ProtectedLayout />}>
                 <Route index element={<Navigate to={user?.role === Role.USER ? "/dashboard" : "/tasks"} replace />} />
@@ -65,7 +69,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="media" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><MediaLibraryPage /></ProtectedRoute>} />
                 <Route path="calendar" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><CalendarView /></ProtectedRoute>} />
                 <Route path="gantt" element={<ProtectedRoute roles={[Role.MANAGER, Role.ADMIN, Role.OWNER]}><GanttView /></ProtectedRoute>} />
-                <Route path="reports" element={<ProtectedRoute roles={[Role.MANAGER, Role.ADMIN, Role.OWNER]}><Reports /></ProtectedRoute>} />
+                <Route path="reports" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><Reports /></ProtectedRoute>} />
                 <Route path="logs" element={<ProtectedRoute roles={[Role.MANAGER, Role.ADMIN, Role.OWNER]}><Logs /></ProtectedRoute>} />
                 <Route path="tool-library" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><ToolLibrary /></ProtectedRoute>} />
                 <Route path="settings" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><Settings /></ProtectedRoute>} />
@@ -76,6 +80,8 @@ const AppRoutes: React.FC = () => {
                 <Route path="chat/:conversationId" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><Chat /></ProtectedRoute>} />
                 <Route path="template-editor" element={<ProtectedRoute roles={[Role.OWNER]}><Navigate to="/achievements?tab=templates" replace /></ProtectedRoute>} />
                 <Route path="api/overview" element={<ProtectedRoute roles={[Role.OWNER]}><ApiOverview /></ProtectedRoute>} />
+                <Route path="api/oauth-apps" element={<ProtectedRoute roles={[Role.ADMIN, Role.OWNER]}><OAuthManagement /></ProtectedRoute>} />
+                <Route path="oauth/applications" element={<OAuthApplications />} />
                 <Route path="api/smtp" element={<ProtectedRoute roles={[Role.ADMIN, Role.OWNER]}><SmtpManagement /></ProtectedRoute>} />
                 <Route path="master-control" element={<ProtectedRoute roles={[Role.OWNER]}><MasterControl /></ProtectedRoute>} />
 

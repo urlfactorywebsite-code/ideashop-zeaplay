@@ -171,7 +171,6 @@ def enqueue_workflow_notifications(
             if task.project:
                 recipient_ids.update(member.user_id for member in task.project.members if member.role == models.ProjectMemberRoleEnum.MANAGER)
             recipient_ids.discard(None)
-            recipient_ids.discard(event.actor_id)
             for recipient_id in sorted(recipient_ids):
                 _notify_user(
                     db, tenant_id=tenant_id, recipient_user_id=recipient_id,

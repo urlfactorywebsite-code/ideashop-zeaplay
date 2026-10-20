@@ -1,0 +1,3045 @@
+{
+  "params": {
+    "from": "2026-10-19",
+    "to": "2026-10-20",
+    "timezone": "UTC",
+    "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d"
+  },
+  "responses": {
+    "employees:{}": {
+      "items": [
+        {
+          "employee_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+          "name": "Alice",
+          "email": "dfd2fab7-ee18-4f48-ae75-d2e0674bb44c@example.test",
+          "status": "ACTIVE",
+          "assigned_parent_tasks": 2,
+          "completed_parent_tasks": 1,
+          "in_progress_parent_tasks": 1,
+          "pending_parent_tasks": 0,
+          "blocked_parent_tasks": 0,
+          "overdue_parent_tasks": 1,
+          "active_assignments": 1,
+          "assigned_subtasks": 2,
+          "project_count": 1,
+          "recorded_effort_seconds": 7200.0,
+          "completed_assignments": 1,
+          "completion_percentage": 50.0
+        },
+        {
+          "employee_id": "1bf66b74-e65f-4e57-8b2b-01d73e6a9e14",
+          "name": "Bob",
+          "email": "3b44c843-03c2-42bc-9675-54baddfdbd33@example.test",
+          "status": "DEACTIVATED",
+          "assigned_parent_tasks": 1,
+          "completed_parent_tasks": 0,
+          "in_progress_parent_tasks": 0,
+          "pending_parent_tasks": 0,
+          "blocked_parent_tasks": 1,
+          "overdue_parent_tasks": 1,
+          "active_assignments": 1,
+          "assigned_subtasks": 1,
+          "project_count": 1,
+          "recorded_effort_seconds": 0.0,
+          "completed_assignments": 0,
+          "completion_percentage": 0.0
+        },
+        {
+          "employee_id": "33596acc-d569-46c6-a542-3c8e752e0800",
+          "name": "Manager",
+          "email": "a968f4ba-10c5-45f8-aa3f-a4bece5d0c4c@example.test",
+          "status": "ACTIVE",
+          "assigned_parent_tasks": 0,
+          "completed_parent_tasks": 0,
+          "in_progress_parent_tasks": 0,
+          "pending_parent_tasks": 0,
+          "blocked_parent_tasks": 0,
+          "overdue_parent_tasks": 0,
+          "active_assignments": 0,
+          "assigned_subtasks": 0,
+          "project_count": 0,
+          "recorded_effort_seconds": 0.0,
+          "completed_assignments": 0,
+          "completion_percentage": 0.0
+        },
+        {
+          "employee_id": "9f7dc06d-63bf-47a4-bd93-2f0352cc96e6",
+          "name": "Owner",
+          "email": "97f21a57-757b-4332-a3fc-d732d6220997@example.test",
+          "status": "ACTIVE",
+          "assigned_parent_tasks": 0,
+          "completed_parent_tasks": 0,
+          "in_progress_parent_tasks": 0,
+          "pending_parent_tasks": 0,
+          "blocked_parent_tasks": 0,
+          "overdue_parent_tasks": 0,
+          "active_assignments": 0,
+          "assigned_subtasks": 0,
+          "project_count": 0,
+          "recorded_effort_seconds": 0.0,
+          "completed_assignments": 0,
+          "completion_percentage": 0.0
+        },
+        {
+          "employee_id": "0430a645-bfe9-4218-9ad0-59fea2bbb27a",
+          "name": "Zero",
+          "email": "7ebbc519-95e4-46be-b5a1-39b92e99df33@example.test",
+          "status": "ACTIVE",
+          "assigned_parent_tasks": 0,
+          "completed_parent_tasks": 0,
+          "in_progress_parent_tasks": 0,
+          "pending_parent_tasks": 0,
+          "blocked_parent_tasks": 0,
+          "overdue_parent_tasks": 0,
+          "active_assignments": 0,
+          "assigned_subtasks": 0,
+          "project_count": 0,
+          "recorded_effort_seconds": 0.0,
+          "completed_assignments": 0,
+          "completion_percentage": 0.0
+        }
+      ],
+      "total": 5,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "meta": {
+        "as_of": "2026-10-20T11:08:59.097198+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "task.created_at",
+        "counting_unit": "persisted task.id",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+          "Inventory is current state filtered by task creation date, not historical state at that date.",
+          "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+        ],
+        "recorded_effort_semantics": "Active interval effort of the actual worker on the filtered inventory tasks; tasks are selected by creation date, and intervals are clipped to the same report period and snapshot. Concurrent effort is additive, not attendance."
+      }
+    },
+    "tasks:{}": {
+      "items": [
+        {
+          "id": "7e752e14-9954-4219-8e9d-ca057556f7c9",
+          "title": "Shared",
+          "status": "BLOCKED",
+          "task_group_id": "450f612b-2254-4f0a-8e19-52ca3ee5a4d9",
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "assigned_to_id": "1bf66b74-e65f-4e57-8b2b-01d73e6a9e14",
+          "created_at": "2026-10-19T12:00:00+00:00",
+          "assigned_at": "2026-10-19T00:00:00+00:00",
+          "due_at": "2026-10-18T00:00:00+00:00",
+          "completed_at": null,
+          "project_name": "Archive",
+          "project_status": "ARCHIVED",
+          "assignee_name": "Bob",
+          "total_subtasks": 1,
+          "completed_subtasks": 0,
+          "overdue": true,
+          "assignment_redacted": false
+        },
+        {
+          "id": "8d3d492d-1fc3-46bc-9a38-df6878231b1d",
+          "title": "Shared",
+          "status": "DONE",
+          "task_group_id": "450f612b-2254-4f0a-8e19-52ca3ee5a4d9",
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "assigned_to_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+          "created_at": "2026-10-19T12:00:00+00:00",
+          "assigned_at": "2026-10-19T00:00:00+00:00",
+          "due_at": "2026-10-18T00:00:00+00:00",
+          "completed_at": "2026-10-19T14:00:00+00:00",
+          "project_name": "Archive",
+          "project_status": "ARCHIVED",
+          "assignee_name": "Alice",
+          "total_subtasks": 2,
+          "completed_subtasks": 1,
+          "overdue": false,
+          "assignment_redacted": false
+        },
+        {
+          "id": "b3b954ab-0d99-480e-bdde-cbf9b4c0888b",
+          "title": "Progress",
+          "status": "IN_PROGRESS",
+          "task_group_id": "e8488615-a876-42e6-868e-7fb8eea80f8b",
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "assigned_to_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+          "created_at": "2026-10-19T12:00:00+00:00",
+          "assigned_at": "2026-10-19T00:00:00+00:00",
+          "due_at": "2026-10-18T00:00:00+00:00",
+          "completed_at": null,
+          "project_name": "Archive",
+          "project_status": "ARCHIVED",
+          "assignee_name": "Alice",
+          "total_subtasks": 0,
+          "completed_subtasks": 0,
+          "overdue": true,
+          "assignment_redacted": false
+        },
+        {
+          "id": "d70baf13-df30-49a4-882a-68410c0a6d7a",
+          "title": "Unassigned",
+          "status": "TODO",
+          "task_group_id": "68456555-8384-4d46-87dd-7a98de71641b",
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "assigned_to_id": null,
+          "created_at": "2026-10-19T12:00:00+00:00",
+          "assigned_at": null,
+          "due_at": "2026-10-18T00:00:00+00:00",
+          "completed_at": null,
+          "project_name": "Archive",
+          "project_status": "ARCHIVED",
+          "assignee_name": null,
+          "total_subtasks": 0,
+          "completed_subtasks": 0,
+          "overdue": true,
+          "assignment_redacted": false
+        }
+      ],
+      "total": 4,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "meta": {
+        "as_of": "2026-10-20T11:09:00.290959+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "task.created_at",
+        "counting_unit": "persisted task.id",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+          "Inventory is current state filtered by task creation date, not historical state at that date.",
+          "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+        ]
+      }
+    },
+    "statuses:{}": {
+      "items": [
+        {
+          "status": "BLOCKED",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 1,
+          "overdue_tasks": 1,
+          "percentage": 25.0
+        },
+        {
+          "status": "BUG_FIXING",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "DEPLOYED",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "DONE",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 1,
+          "overdue_tasks": 0,
+          "percentage": 25.0
+        },
+        {
+          "status": "FAILED",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "GRAVEYARD",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "IN_PROGRESS",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 1,
+          "overdue_tasks": 1,
+          "percentage": 25.0
+        },
+        {
+          "status": "IN_REVIEW",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "ON_HOLD",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "TODO",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 0,
+          "overdue_tasks": 1,
+          "percentage": 25.0
+        },
+        {
+          "status": "WAITING_FOR_REQUIREMENT",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        }
+      ],
+      "total": 11,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "meta": {
+        "as_of": "2026-10-20T11:09:00.926823+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "task.created_at",
+        "counting_unit": "persisted task.id",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+          "Inventory is current state filtered by task creation date, not historical state at that date.",
+          "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+        ]
+      }
+    },
+    "projects:{}": {
+      "items": [
+        {
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "name": "Archive",
+          "status": "ARCHIVED",
+          "start_date": null,
+          "end_date": null,
+          "client_name": "Client",
+          "total_tasks": 4,
+          "completed_tasks": 1,
+          "in_progress_tasks": 1,
+          "pending_tasks": 1,
+          "blocked_tasks": 1,
+          "overdue_tasks": 3,
+          "total_subtasks": 3,
+          "completed_subtasks": 1,
+          "recorded_effort_seconds": 7200.0,
+          "managers": [
+            {
+              "id": "33596acc-d569-46c6-a542-3c8e752e0800",
+              "name": "Manager"
+            }
+          ],
+          "members": [
+            {
+              "id": "33596acc-d569-46c6-a542-3c8e752e0800",
+              "name": "Manager"
+            },
+            {
+              "id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+              "name": "Alice"
+            },
+            {
+              "id": "1bf66b74-e65f-4e57-8b2b-01d73e6a9e14",
+              "name": "Bob"
+            }
+          ],
+          "member_count": 3,
+          "manager_count": 1,
+          "members_truncated": false,
+          "completion_percentage": 25.0
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "meta": {
+        "as_of": "2026-10-20T11:09:01.155442+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "task.created_at",
+        "counting_unit": "persisted task.id",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+          "Inventory is current state filtered by task creation date, not historical state at that date.",
+          "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+        ],
+        "recorded_effort_semantics": "Active interval effort of the actual worker on the filtered inventory tasks; tasks are selected by creation date, and intervals are clipped to the same report period and snapshot. Concurrent effort is additive, not attendance."
+      }
+    },
+    "activity:{\"grouping\": \"daily\"}": {
+      "items": [
+        {
+          "date": "2026-10-19",
+          "tasks_created": 4,
+          "tasks_started": 0,
+          "tasks_completed": 1,
+          "tasks_reopened": 0,
+          "subtasks_completed": 0,
+          "work_sessions_started": 2,
+          "work_intervals_started": 2,
+          "recorded_effort_seconds": 7200.0,
+          "unique_working_seconds": 3600.0
+        },
+        {
+          "date": "2026-10-20",
+          "tasks_created": 0,
+          "tasks_started": 0,
+          "tasks_completed": 0,
+          "tasks_reopened": 0,
+          "subtasks_completed": 0,
+          "work_sessions_started": 0,
+          "work_intervals_started": 0,
+          "recorded_effort_seconds": 0,
+          "unique_working_seconds": 0.0
+        }
+      ],
+      "series": [
+        {
+          "date": "2026-10-19",
+          "tasks_created": 4,
+          "tasks_started": 0,
+          "tasks_completed": 1,
+          "tasks_reopened": 0,
+          "subtasks_completed": 0,
+          "work_sessions_started": 2,
+          "work_intervals_started": 2,
+          "recorded_effort_seconds": 7200.0,
+          "unique_working_seconds": 3600.0
+        },
+        {
+          "date": "2026-10-20",
+          "tasks_created": 0,
+          "tasks_started": 0,
+          "tasks_completed": 0,
+          "tasks_reopened": 0,
+          "subtasks_completed": 0,
+          "work_sessions_started": 0,
+          "work_intervals_started": 0,
+          "recorded_effort_seconds": 0,
+          "unique_working_seconds": 0.0
+        }
+      ],
+      "total": 2,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "grouping": "daily",
+      "totals": {
+        "tasks_created": 4,
+        "tasks_started": 0,
+        "tasks_completed": 1,
+        "tasks_reopened": 0,
+        "subtasks_completed": 0,
+        "work_sessions_started": 2,
+        "work_intervals_started": 2,
+        "recorded_effort_seconds": 7200.0,
+        "unique_working_seconds": 3600.0
+      },
+      "meta": {
+        "as_of": "2026-10-20T11:09:02.343738+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "each event timestamp; time is clipped to local-date UTC boundaries",
+        "counting_unit": "persisted task IDs for creation; observed transitions for lifecycle events; timer roots/active intervals for work",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Status events are observed transitions, not unique-task totals. Repeated starts/completions are counted separately.",
+          "Lifecycle events before coverage began are unknown; zero observed events does not prove no historical activity.",
+          "Parent and subtask completion are distinct. Parent completed statuses are DONE and DEPLOYED.",
+          "Employee filtering scopes current assigned task/subtask activity; work metrics filter the actual worker.",
+          "Deleted or inaccessible targets are excluded. Current effective timer corrections affect historical time totals.",
+          "Work session starts count timer roots; resumed intervals contribute to work_intervals_started."
+        ],
+        "lifecycle_coverage_started_at": "2026-10-20T11:08:58.409000+00:00",
+        "unavailable_metrics": {
+          "tasks_assigned": "Task.assigned_at retains only the latest current assignment; immutable assignment history is unavailable."
+        }
+      }
+    },
+    "activity:{\"grouping\": \"weekly\"}": {
+      "items": [
+        {
+          "date": "2026-10-19",
+          "tasks_created": 4,
+          "tasks_started": 0,
+          "tasks_completed": 1,
+          "tasks_reopened": 0,
+          "subtasks_completed": 0,
+          "work_sessions_started": 2,
+          "work_intervals_started": 2,
+          "recorded_effort_seconds": 7200.0,
+          "unique_working_seconds": 3600.0
+        }
+      ],
+      "series": [
+        {
+          "date": "2026-10-19",
+          "tasks_created": 4,
+          "tasks_started": 0,
+          "tasks_completed": 1,
+          "tasks_reopened": 0,
+          "subtasks_completed": 0,
+          "work_sessions_started": 2,
+          "work_intervals_started": 2,
+          "recorded_effort_seconds": 7200.0,
+          "unique_working_seconds": 3600.0
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "grouping": "weekly",
+      "totals": {
+        "tasks_created": 4,
+        "tasks_started": 0,
+        "tasks_completed": 1,
+        "tasks_reopened": 0,
+        "subtasks_completed": 0,
+        "work_sessions_started": 2,
+        "work_intervals_started": 2,
+        "recorded_effort_seconds": 7200.0,
+        "unique_working_seconds": 3600.0
+      },
+      "meta": {
+        "as_of": "2026-10-20T11:09:02.804667+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "each event timestamp; time is clipped to local-date UTC boundaries",
+        "counting_unit": "persisted task IDs for creation; observed transitions for lifecycle events; timer roots/active intervals for work",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Status events are observed transitions, not unique-task totals. Repeated starts/completions are counted separately.",
+          "Lifecycle events before coverage began are unknown; zero observed events does not prove no historical activity.",
+          "Parent and subtask completion are distinct. Parent completed statuses are DONE and DEPLOYED.",
+          "Employee filtering scopes current assigned task/subtask activity; work metrics filter the actual worker.",
+          "Deleted or inaccessible targets are excluded. Current effective timer corrections affect historical time totals.",
+          "Work session starts count timer roots; resumed intervals contribute to work_intervals_started."
+        ],
+        "lifecycle_coverage_started_at": "2026-10-20T11:08:58.409000+00:00",
+        "unavailable_metrics": {
+          "tasks_assigned": "Task.assigned_at retains only the latest current assignment; immutable assignment history is unavailable."
+        }
+      }
+    },
+    "activity:{\"grouping\": \"monthly\"}": {
+      "items": [
+        {
+          "date": "2026-10-01",
+          "tasks_created": 4,
+          "tasks_started": 0,
+          "tasks_completed": 1,
+          "tasks_reopened": 0,
+          "subtasks_completed": 0,
+          "work_sessions_started": 2,
+          "work_intervals_started": 2,
+          "recorded_effort_seconds": 7200.0,
+          "unique_working_seconds": 3600.0
+        }
+      ],
+      "series": [
+        {
+          "date": "2026-10-01",
+          "tasks_created": 4,
+          "tasks_started": 0,
+          "tasks_completed": 1,
+          "tasks_reopened": 0,
+          "subtasks_completed": 0,
+          "work_sessions_started": 2,
+          "work_intervals_started": 2,
+          "recorded_effort_seconds": 7200.0,
+          "unique_working_seconds": 3600.0
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "grouping": "monthly",
+      "totals": {
+        "tasks_created": 4,
+        "tasks_started": 0,
+        "tasks_completed": 1,
+        "tasks_reopened": 0,
+        "subtasks_completed": 0,
+        "work_sessions_started": 2,
+        "work_intervals_started": 2,
+        "recorded_effort_seconds": 7200.0,
+        "unique_working_seconds": 3600.0
+      },
+      "meta": {
+        "as_of": "2026-10-20T11:09:03.254206+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "each event timestamp; time is clipped to local-date UTC boundaries",
+        "counting_unit": "persisted task IDs for creation; observed transitions for lifecycle events; timer roots/active intervals for work",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Status events are observed transitions, not unique-task totals. Repeated starts/completions are counted separately.",
+          "Lifecycle events before coverage began are unknown; zero observed events does not prove no historical activity.",
+          "Parent and subtask completion are distinct. Parent completed statuses are DONE and DEPLOYED.",
+          "Employee filtering scopes current assigned task/subtask activity; work metrics filter the actual worker.",
+          "Deleted or inaccessible targets are excluded. Current effective timer corrections affect historical time totals.",
+          "Work session starts count timer roots; resumed intervals contribute to work_intervals_started."
+        ],
+        "lifecycle_coverage_started_at": "2026-10-20T11:08:58.409000+00:00",
+        "unavailable_metrics": {
+          "tasks_assigned": "Task.assigned_at retains only the latest current assignment; immutable assignment history is unavailable."
+        }
+      }
+    },
+    "time:{\"group_by\": \"employee\"}": {
+      "items": [
+        {
+          "id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+          "name": "Alice",
+          "recorded_effort_seconds": 7200.0,
+          "interval_count": 2,
+          "running_interval_count": 0,
+          "resumed_interval_count": 0,
+          "paused_interval_count": 0,
+          "unique_working_seconds": 3600.0
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "group_by": "employee",
+      "summary": {
+        "recorded_effort_seconds": 7200.0,
+        "interval_count": 2,
+        "running_interval_count": 0,
+        "resumed_interval_count": 0,
+        "paused_interval_count": 0,
+        "unique_working_seconds": 3600.0
+      },
+      "meta": {
+        "as_of": "2026-10-20T11:09:03.823485+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "effective active intervals intersecting [start_at, end_at), clipped to as_of",
+        "counting_unit": "active TimeEntry interval; resume creates another interval",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Recorded effort sums concurrent timers; unique working time unions overlaps per employee. Neither is attendance or payroll.",
+          "Per-task/project unique time is not additive across groups; the summary independently unions all filtered work per employee.",
+          "Historical corrections use the current effective ledger. Deleted or inaccessible targets are excluded."
+        ]
+      }
+    },
+    "time:{\"group_by\": \"task\"}": {
+      "items": [
+        {
+          "id": "8d3d492d-1fc3-46bc-9a38-df6878231b1d",
+          "name": "Shared",
+          "recorded_effort_seconds": 7200.0,
+          "interval_count": 2,
+          "running_interval_count": 0,
+          "resumed_interval_count": 0,
+          "paused_interval_count": 0,
+          "unique_working_seconds": 3600.0
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "group_by": "task",
+      "summary": {
+        "recorded_effort_seconds": 7200.0,
+        "interval_count": 2,
+        "running_interval_count": 0,
+        "resumed_interval_count": 0,
+        "paused_interval_count": 0,
+        "unique_working_seconds": 3600.0
+      },
+      "meta": {
+        "as_of": "2026-10-20T11:09:05.487008+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "effective active intervals intersecting [start_at, end_at), clipped to as_of",
+        "counting_unit": "active TimeEntry interval; resume creates another interval",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Recorded effort sums concurrent timers; unique working time unions overlaps per employee. Neither is attendance or payroll.",
+          "Per-task/project unique time is not additive across groups; the summary independently unions all filtered work per employee.",
+          "Historical corrections use the current effective ledger. Deleted or inaccessible targets are excluded."
+        ]
+      }
+    },
+    "time:{\"group_by\": \"subtask\"}": {
+      "items": [
+        {
+          "id": "50abab14-8b8a-4f9c-9945-2c623d584901",
+          "name": "Complete child",
+          "recorded_effort_seconds": 3600.0,
+          "interval_count": 1,
+          "running_interval_count": 0,
+          "resumed_interval_count": 0,
+          "paused_interval_count": 0,
+          "unique_working_seconds": 3600.0
+        },
+        {
+          "id": null,
+          "name": "Direct parent task work",
+          "recorded_effort_seconds": 3600.0,
+          "interval_count": 1,
+          "running_interval_count": 0,
+          "resumed_interval_count": 0,
+          "paused_interval_count": 0,
+          "unique_working_seconds": 3600.0
+        }
+      ],
+      "total": 2,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "group_by": "subtask",
+      "summary": {
+        "recorded_effort_seconds": 7200.0,
+        "interval_count": 2,
+        "running_interval_count": 0,
+        "resumed_interval_count": 0,
+        "paused_interval_count": 0,
+        "unique_working_seconds": 3600.0
+      },
+      "meta": {
+        "as_of": "2026-10-20T11:09:06.557690+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "effective active intervals intersecting [start_at, end_at), clipped to as_of",
+        "counting_unit": "active TimeEntry interval; resume creates another interval",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Recorded effort sums concurrent timers; unique working time unions overlaps per employee. Neither is attendance or payroll.",
+          "Per-task/project unique time is not additive across groups; the summary independently unions all filtered work per employee.",
+          "Historical corrections use the current effective ledger. Deleted or inaccessible targets are excluded."
+        ]
+      }
+    },
+    "time:{\"group_by\": \"project\"}": {
+      "items": [
+        {
+          "id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "name": "Archive",
+          "recorded_effort_seconds": 7200.0,
+          "interval_count": 2,
+          "running_interval_count": 0,
+          "resumed_interval_count": 0,
+          "paused_interval_count": 0,
+          "unique_working_seconds": 3600.0
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "group_by": "project",
+      "summary": {
+        "recorded_effort_seconds": 7200.0,
+        "interval_count": 2,
+        "running_interval_count": 0,
+        "resumed_interval_count": 0,
+        "paused_interval_count": 0,
+        "unique_working_seconds": 3600.0
+      },
+      "meta": {
+        "as_of": "2026-10-20T11:09:07.621271+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "effective active intervals intersecting [start_at, end_at), clipped to as_of",
+        "counting_unit": "active TimeEntry interval; resume creates another interval",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Recorded effort sums concurrent timers; unique working time unions overlaps per employee. Neither is attendance or payroll.",
+          "Per-task/project unique time is not additive across groups; the summary independently unions all filtered work per employee.",
+          "Historical corrections use the current effective ledger. Deleted or inaccessible targets are excluded."
+        ]
+      }
+    },
+    "time:{\"group_by\": \"daily\"}": {
+      "items": [
+        {
+          "id": "2026-10-19",
+          "name": "2026-10-19",
+          "date": "2026-10-19",
+          "recorded_effort_seconds": 7200.0,
+          "unique_working_seconds": 3600.0,
+          "interval_count": 2
+        },
+        {
+          "id": "2026-10-20",
+          "name": "2026-10-20",
+          "date": "2026-10-20",
+          "recorded_effort_seconds": 0,
+          "unique_working_seconds": 0.0,
+          "interval_count": 0
+        }
+      ],
+      "total": 2,
+      "page": 1,
+      "page_size": 25,
+      "total_pages": 1,
+      "group_by": "daily",
+      "summary": {
+        "recorded_effort_seconds": 7200.0,
+        "interval_count": 2,
+        "running_interval_count": 0,
+        "resumed_interval_count": 0,
+        "paused_interval_count": 0,
+        "unique_working_seconds": 3600.0
+      },
+      "meta": {
+        "as_of": "2026-10-20T11:09:08.685797+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "effective active intervals intersecting [start_at, end_at), clipped to as_of",
+        "counting_unit": "active TimeEntry interval; resume creates another interval",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Recorded effort sums concurrent timers; unique working time unions overlaps per employee. Neither is attendance or payroll.",
+          "Per-task/project unique time is not additive across groups; the summary independently unions all filtered work per employee.",
+          "Historical corrections use the current effective ledger. Deleted or inaccessible targets are excluded."
+        ]
+      }
+    },
+    "employee_detail": {
+      "employee": {
+        "employee_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+        "name": "Alice",
+        "email": "dfd2fab7-ee18-4f48-ae75-d2e0674bb44c@example.test",
+        "status": "ACTIVE",
+        "assigned_parent_tasks": 2,
+        "completed_parent_tasks": 1,
+        "in_progress_parent_tasks": 1,
+        "pending_parent_tasks": 0,
+        "blocked_parent_tasks": 0,
+        "overdue_parent_tasks": 1,
+        "active_assignments": 1,
+        "assigned_subtasks": 2,
+        "project_count": 1,
+        "recorded_effort_seconds": 7200.0,
+        "completed_assignments": 1,
+        "completion_percentage": 50.0
+      },
+      "tasks": {
+        "items": [
+          {
+            "id": "8d3d492d-1fc3-46bc-9a38-df6878231b1d",
+            "title": "Shared",
+            "status": "DONE",
+            "task_group_id": "450f612b-2254-4f0a-8e19-52ca3ee5a4d9",
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+            "assigned_to_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+            "created_at": "2026-10-19T12:00:00+00:00",
+            "assigned_at": "2026-10-19T00:00:00+00:00",
+            "due_at": "2026-10-18T00:00:00+00:00",
+            "completed_at": "2026-10-19T14:00:00+00:00",
+            "project_name": "Archive",
+            "project_status": "ARCHIVED",
+            "assignee_name": "Alice",
+            "total_subtasks": 2,
+            "completed_subtasks": 1,
+            "overdue": false,
+            "assignment_redacted": false
+          },
+          {
+            "id": "b3b954ab-0d99-480e-bdde-cbf9b4c0888b",
+            "title": "Progress",
+            "status": "IN_PROGRESS",
+            "task_group_id": "e8488615-a876-42e6-868e-7fb8eea80f8b",
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+            "assigned_to_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+            "created_at": "2026-10-19T12:00:00+00:00",
+            "assigned_at": "2026-10-19T00:00:00+00:00",
+            "due_at": "2026-10-18T00:00:00+00:00",
+            "completed_at": null,
+            "project_name": "Archive",
+            "project_status": "ARCHIVED",
+            "assignee_name": "Alice",
+            "total_subtasks": 0,
+            "completed_subtasks": 0,
+            "overdue": true,
+            "assignment_redacted": false
+          }
+        ],
+        "total": 2,
+        "page": 1,
+        "page_size": 25,
+        "total_pages": 1,
+        "meta": {
+          "as_of": "2026-10-20T11:09:09.379852+00:00",
+          "timezone": "UTC",
+          "from": "2026-10-19",
+          "to": "2026-10-20",
+          "start_at": "2026-10-19T00:00:00+00:00",
+          "end_at": "2026-10-21T00:00:00+00:00",
+          "date_semantics": "task.created_at",
+          "counting_unit": "persisted task.id",
+          "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+          "filters": {
+            "employee_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+            "status": null,
+            "search": ""
+          },
+          "limitations": [
+            "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+            "Inventory is current state filtered by task creation date, not historical state at that date.",
+            "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+          ]
+        }
+      },
+      "subtasks": {
+        "items": [
+          {
+            "id": "50abab14-8b8a-4f9c-9945-2c623d584901",
+            "title": "Complete child",
+            "task_id": "8d3d492d-1fc3-46bc-9a38-df6878231b1d",
+            "status": "DONE",
+            "assigned_to_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+            "task_title": "Shared",
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d"
+          },
+          {
+            "id": "54ee04ae-b2c1-416a-82fb-3146193e4d2c",
+            "title": "Still pending",
+            "task_id": "8d3d492d-1fc3-46bc-9a38-df6878231b1d",
+            "status": "TODO",
+            "assigned_to_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+            "task_title": "Shared",
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d"
+          }
+        ],
+        "total": 2,
+        "page": 1,
+        "page_size": 25,
+        "total_pages": 1,
+        "meta": {
+          "as_of": "2026-10-20T11:09:09.379852+00:00",
+          "timezone": "UTC",
+          "from": "2026-10-19",
+          "to": "2026-10-20",
+          "start_at": "2026-10-19T00:00:00+00:00",
+          "end_at": "2026-10-21T00:00:00+00:00",
+          "date_semantics": "task.created_at",
+          "counting_unit": "persisted task.id",
+          "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+          "filters": {
+            "employee_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+            "status": null,
+            "search": ""
+          },
+          "limitations": [
+            "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+            "Inventory is current state filtered by task creation date, not historical state at that date.",
+            "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+          ]
+        }
+      },
+      "projects": [
+        {
+          "id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "name": "Archive",
+          "status": "ARCHIVED"
+        }
+      ],
+      "projects_total": 1,
+      "projects_truncated": false,
+      "meta": {
+        "as_of": "2026-10-20T11:09:09.379852+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "task.created_at",
+        "counting_unit": "persisted task.id",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+          "Inventory is current state filtered by task creation date, not historical state at that date.",
+          "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+        ]
+      }
+    },
+    "project_detail": {
+      "project": {
+        "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+        "name": "Archive",
+        "status": "ARCHIVED",
+        "start_date": null,
+        "end_date": null,
+        "client_name": "Client",
+        "total_tasks": 4,
+        "completed_tasks": 1,
+        "in_progress_tasks": 1,
+        "pending_tasks": 1,
+        "blocked_tasks": 1,
+        "overdue_tasks": 3,
+        "total_subtasks": 3,
+        "completed_subtasks": 1,
+        "recorded_effort_seconds": 7200.0,
+        "managers": [
+          {
+            "id": "33596acc-d569-46c6-a542-3c8e752e0800",
+            "name": "Manager"
+          }
+        ],
+        "members": [
+          {
+            "id": "33596acc-d569-46c6-a542-3c8e752e0800",
+            "name": "Manager"
+          },
+          {
+            "id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+            "name": "Alice"
+          },
+          {
+            "id": "1bf66b74-e65f-4e57-8b2b-01d73e6a9e14",
+            "name": "Bob"
+          }
+        ],
+        "member_count": 3,
+        "manager_count": 1,
+        "members_truncated": false,
+        "completion_percentage": 25.0
+      },
+      "tasks": {
+        "items": [
+          {
+            "id": "7e752e14-9954-4219-8e9d-ca057556f7c9",
+            "title": "Shared",
+            "status": "BLOCKED",
+            "task_group_id": "450f612b-2254-4f0a-8e19-52ca3ee5a4d9",
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+            "assigned_to_id": "1bf66b74-e65f-4e57-8b2b-01d73e6a9e14",
+            "created_at": "2026-10-19T12:00:00+00:00",
+            "assigned_at": "2026-10-19T00:00:00+00:00",
+            "due_at": "2026-10-18T00:00:00+00:00",
+            "completed_at": null,
+            "project_name": "Archive",
+            "project_status": "ARCHIVED",
+            "assignee_name": "Bob",
+            "total_subtasks": 1,
+            "completed_subtasks": 0,
+            "overdue": true,
+            "assignment_redacted": false
+          },
+          {
+            "id": "8d3d492d-1fc3-46bc-9a38-df6878231b1d",
+            "title": "Shared",
+            "status": "DONE",
+            "task_group_id": "450f612b-2254-4f0a-8e19-52ca3ee5a4d9",
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+            "assigned_to_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+            "created_at": "2026-10-19T12:00:00+00:00",
+            "assigned_at": "2026-10-19T00:00:00+00:00",
+            "due_at": "2026-10-18T00:00:00+00:00",
+            "completed_at": "2026-10-19T14:00:00+00:00",
+            "project_name": "Archive",
+            "project_status": "ARCHIVED",
+            "assignee_name": "Alice",
+            "total_subtasks": 2,
+            "completed_subtasks": 1,
+            "overdue": false,
+            "assignment_redacted": false
+          },
+          {
+            "id": "b3b954ab-0d99-480e-bdde-cbf9b4c0888b",
+            "title": "Progress",
+            "status": "IN_PROGRESS",
+            "task_group_id": "e8488615-a876-42e6-868e-7fb8eea80f8b",
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+            "assigned_to_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+            "created_at": "2026-10-19T12:00:00+00:00",
+            "assigned_at": "2026-10-19T00:00:00+00:00",
+            "due_at": "2026-10-18T00:00:00+00:00",
+            "completed_at": null,
+            "project_name": "Archive",
+            "project_status": "ARCHIVED",
+            "assignee_name": "Alice",
+            "total_subtasks": 0,
+            "completed_subtasks": 0,
+            "overdue": true,
+            "assignment_redacted": false
+          },
+          {
+            "id": "d70baf13-df30-49a4-882a-68410c0a6d7a",
+            "title": "Unassigned",
+            "status": "TODO",
+            "task_group_id": "68456555-8384-4d46-87dd-7a98de71641b",
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+            "assigned_to_id": null,
+            "created_at": "2026-10-19T12:00:00+00:00",
+            "assigned_at": null,
+            "due_at": "2026-10-18T00:00:00+00:00",
+            "completed_at": null,
+            "project_name": "Archive",
+            "project_status": "ARCHIVED",
+            "assignee_name": null,
+            "total_subtasks": 0,
+            "completed_subtasks": 0,
+            "overdue": true,
+            "assignment_redacted": false
+          }
+        ],
+        "total": 4,
+        "page": 1,
+        "page_size": 25,
+        "total_pages": 1,
+        "meta": {
+          "as_of": "2026-10-20T11:09:09.488811+00:00",
+          "timezone": "UTC",
+          "from": "2026-10-19",
+          "to": "2026-10-20",
+          "start_at": "2026-10-19T00:00:00+00:00",
+          "end_at": "2026-10-21T00:00:00+00:00",
+          "date_semantics": "task.created_at",
+          "counting_unit": "persisted task.id",
+          "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+          "filters": {
+            "employee_id": null,
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+            "status": null,
+            "search": ""
+          },
+          "limitations": [
+            "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+            "Inventory is current state filtered by task creation date, not historical state at that date.",
+            "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+          ]
+        }
+      },
+      "employees": {
+        "items": [
+          {
+            "employee_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+            "name": "Alice",
+            "email": "dfd2fab7-ee18-4f48-ae75-d2e0674bb44c@example.test",
+            "status": "ACTIVE",
+            "assigned_parent_tasks": 2,
+            "completed_parent_tasks": 1,
+            "in_progress_parent_tasks": 1,
+            "pending_parent_tasks": 0,
+            "blocked_parent_tasks": 0,
+            "overdue_parent_tasks": 1,
+            "active_assignments": 1,
+            "assigned_subtasks": 2,
+            "project_count": 1,
+            "recorded_effort_seconds": 7200.0,
+            "completed_assignments": 1,
+            "completion_percentage": 50.0
+          },
+          {
+            "employee_id": "1bf66b74-e65f-4e57-8b2b-01d73e6a9e14",
+            "name": "Bob",
+            "email": "3b44c843-03c2-42bc-9675-54baddfdbd33@example.test",
+            "status": "DEACTIVATED",
+            "assigned_parent_tasks": 1,
+            "completed_parent_tasks": 0,
+            "in_progress_parent_tasks": 0,
+            "pending_parent_tasks": 0,
+            "blocked_parent_tasks": 1,
+            "overdue_parent_tasks": 1,
+            "active_assignments": 1,
+            "assigned_subtasks": 1,
+            "project_count": 1,
+            "recorded_effort_seconds": 0.0,
+            "completed_assignments": 0,
+            "completion_percentage": 0.0
+          },
+          {
+            "employee_id": "33596acc-d569-46c6-a542-3c8e752e0800",
+            "name": "Manager",
+            "email": "a968f4ba-10c5-45f8-aa3f-a4bece5d0c4c@example.test",
+            "status": "ACTIVE",
+            "assigned_parent_tasks": 0,
+            "completed_parent_tasks": 0,
+            "in_progress_parent_tasks": 0,
+            "pending_parent_tasks": 0,
+            "blocked_parent_tasks": 0,
+            "overdue_parent_tasks": 0,
+            "active_assignments": 0,
+            "assigned_subtasks": 0,
+            "project_count": 0,
+            "recorded_effort_seconds": 0.0,
+            "completed_assignments": 0,
+            "completion_percentage": 0.0
+          },
+          {
+            "employee_id": "9f7dc06d-63bf-47a4-bd93-2f0352cc96e6",
+            "name": "Owner",
+            "email": "97f21a57-757b-4332-a3fc-d732d6220997@example.test",
+            "status": "ACTIVE",
+            "assigned_parent_tasks": 0,
+            "completed_parent_tasks": 0,
+            "in_progress_parent_tasks": 0,
+            "pending_parent_tasks": 0,
+            "blocked_parent_tasks": 0,
+            "overdue_parent_tasks": 0,
+            "active_assignments": 0,
+            "assigned_subtasks": 0,
+            "project_count": 0,
+            "recorded_effort_seconds": 0.0,
+            "completed_assignments": 0,
+            "completion_percentage": 0.0
+          },
+          {
+            "employee_id": "0430a645-bfe9-4218-9ad0-59fea2bbb27a",
+            "name": "Zero",
+            "email": "7ebbc519-95e4-46be-b5a1-39b92e99df33@example.test",
+            "status": "ACTIVE",
+            "assigned_parent_tasks": 0,
+            "completed_parent_tasks": 0,
+            "in_progress_parent_tasks": 0,
+            "pending_parent_tasks": 0,
+            "blocked_parent_tasks": 0,
+            "overdue_parent_tasks": 0,
+            "active_assignments": 0,
+            "assigned_subtasks": 0,
+            "project_count": 0,
+            "recorded_effort_seconds": 0.0,
+            "completed_assignments": 0,
+            "completion_percentage": 0.0
+          }
+        ],
+        "total": 5,
+        "page": 1,
+        "page_size": 25,
+        "total_pages": 1,
+        "meta": {
+          "as_of": "2026-10-20T11:09:09.488811+00:00",
+          "timezone": "UTC",
+          "from": "2026-10-19",
+          "to": "2026-10-20",
+          "start_at": "2026-10-19T00:00:00+00:00",
+          "end_at": "2026-10-21T00:00:00+00:00",
+          "date_semantics": "task.created_at",
+          "counting_unit": "persisted task.id",
+          "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+          "filters": {
+            "employee_id": null,
+            "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+            "status": null,
+            "search": ""
+          },
+          "limitations": [
+            "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+            "Inventory is current state filtered by task creation date, not historical state at that date.",
+            "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+          ],
+          "recorded_effort_semantics": "Active interval effort of the actual worker on the filtered inventory tasks; tasks are selected by creation date, and intervals are clipped to the same report period and snapshot. Concurrent effort is additive, not attendance."
+        }
+      },
+      "statuses": [
+        {
+          "status": "WAITING_FOR_REQUIREMENT",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "TODO",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 0,
+          "overdue_tasks": 1,
+          "percentage": 25.0
+        },
+        {
+          "status": "IN_PROGRESS",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 1,
+          "overdue_tasks": 1,
+          "percentage": 25.0
+        },
+        {
+          "status": "BUG_FIXING",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "IN_REVIEW",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "BLOCKED",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 1,
+          "overdue_tasks": 1,
+          "percentage": 25.0
+        },
+        {
+          "status": "ON_HOLD",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "DONE",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 1,
+          "overdue_tasks": 0,
+          "percentage": 25.0
+        },
+        {
+          "status": "DEPLOYED",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "FAILED",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "GRAVEYARD",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        }
+      ],
+      "meta": {
+        "as_of": "2026-10-20T11:09:09.488811+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "task.created_at",
+        "counting_unit": "persisted task.id",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+          "Inventory is current state filtered by task creation date, not historical state at that date.",
+          "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+        ]
+      }
+    },
+    "own_child_detail": {
+      "employee": {
+        "employee_id": "33596acc-d569-46c6-a542-3c8e752e0800",
+        "name": "Manager",
+        "email": "a968f4ba-10c5-45f8-aa3f-a4bece5d0c4c@example.test",
+        "status": "ACTIVE",
+        "assigned_parent_tasks": 0,
+        "completed_parent_tasks": 0,
+        "in_progress_parent_tasks": 0,
+        "pending_parent_tasks": 0,
+        "blocked_parent_tasks": 0,
+        "overdue_parent_tasks": 0,
+        "active_assignments": 0,
+        "assigned_subtasks": 1,
+        "project_count": 1,
+        "recorded_effort_seconds": 0.0,
+        "completed_assignments": 0,
+        "completion_percentage": 0.0
+      },
+      "tasks": {
+        "items": [
+          {
+            "id": "49247cc0-cc2f-46c3-b772-66ec8688e3c5",
+            "title": "Private",
+            "status": "TODO",
+            "task_group_id": "b3e34fec-8294-4b22-b670-5bc3c6ac7934",
+            "project_id": "22e8a342-147f-48a1-853d-fcf8b9c41b8f",
+            "assigned_to_id": null,
+            "created_at": "2026-10-19T12:00:00+00:00",
+            "assigned_at": "2026-10-19T00:00:00+00:00",
+            "due_at": "2026-10-18T00:00:00+00:00",
+            "completed_at": null,
+            "project_name": "Other project",
+            "project_status": "ACTIVE",
+            "assignee_name": "Restricted employee",
+            "total_subtasks": 1,
+            "completed_subtasks": 0,
+            "overdue": true,
+            "assignment_redacted": true
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 25,
+        "total_pages": 1,
+        "meta": {
+          "as_of": "2026-10-20T11:09:09.557455+00:00",
+          "timezone": "UTC",
+          "from": "2026-10-19",
+          "to": "2026-10-20",
+          "start_at": "2026-10-19T00:00:00+00:00",
+          "end_at": "2026-10-21T00:00:00+00:00",
+          "date_semantics": "task.created_at",
+          "counting_unit": "persisted task.id",
+          "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+          "filters": {
+            "employee_id": "33596acc-d569-46c6-a542-3c8e752e0800",
+            "project_id": null,
+            "status": null,
+            "search": ""
+          },
+          "limitations": [
+            "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+            "Inventory is current state filtered by task creation date, not historical state at that date.",
+            "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+          ]
+        }
+      },
+      "subtasks": {
+        "items": [
+          {
+            "id": "41f4bf24-098f-4019-a992-52d67648edf5",
+            "title": "Manager child",
+            "task_id": "49247cc0-cc2f-46c3-b772-66ec8688e3c5",
+            "status": "TODO",
+            "assigned_to_id": "33596acc-d569-46c6-a542-3c8e752e0800",
+            "task_title": "Private",
+            "project_id": "22e8a342-147f-48a1-853d-fcf8b9c41b8f"
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 25,
+        "total_pages": 1,
+        "meta": {
+          "as_of": "2026-10-20T11:09:09.557455+00:00",
+          "timezone": "UTC",
+          "from": "2026-10-19",
+          "to": "2026-10-20",
+          "start_at": "2026-10-19T00:00:00+00:00",
+          "end_at": "2026-10-21T00:00:00+00:00",
+          "date_semantics": "task.created_at",
+          "counting_unit": "persisted task.id",
+          "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+          "filters": {
+            "employee_id": "33596acc-d569-46c6-a542-3c8e752e0800",
+            "project_id": null,
+            "status": null,
+            "search": ""
+          },
+          "limitations": [
+            "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+            "Inventory is current state filtered by task creation date, not historical state at that date.",
+            "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+          ]
+        }
+      },
+      "projects": [
+        {
+          "id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "name": "Archive",
+          "status": "ARCHIVED"
+        }
+      ],
+      "projects_total": 1,
+      "projects_truncated": false,
+      "meta": {
+        "as_of": "2026-10-20T11:09:09.557455+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "task.created_at",
+        "counting_unit": "persisted task.id",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": "33596acc-d569-46c6-a542-3c8e752e0800",
+          "project_id": null,
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+          "Inventory is current state filtered by task creation date, not historical state at that date.",
+          "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+        ]
+      }
+    },
+    "overview": {
+      "metrics": {
+        "total_tasks": 4,
+        "completed_tasks": 1,
+        "in_progress_tasks": 1,
+        "pending_tasks": 1,
+        "blocked_tasks": 1,
+        "overdue_tasks": 3,
+        "assigned_tasks": 3,
+        "unassigned_tasks": 1,
+        "unique_task_groups": 3,
+        "employees_with_assigned_work": 2,
+        "total_projects": 1,
+        "assignment_count": 3,
+        "completion_percentage": 25.0
+      },
+      "status_distribution": [
+        {
+          "status": "WAITING_FOR_REQUIREMENT",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "TODO",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 0,
+          "overdue_tasks": 1,
+          "percentage": 25.0
+        },
+        {
+          "status": "IN_PROGRESS",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 1,
+          "overdue_tasks": 1,
+          "percentage": 25.0
+        },
+        {
+          "status": "BUG_FIXING",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "IN_REVIEW",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "BLOCKED",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 1,
+          "overdue_tasks": 1,
+          "percentage": 25.0
+        },
+        {
+          "status": "ON_HOLD",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "DONE",
+          "count": 1,
+          "project_count": 1,
+          "employee_count": 1,
+          "overdue_tasks": 0,
+          "percentage": 25.0
+        },
+        {
+          "status": "DEPLOYED",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "FAILED",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        },
+        {
+          "status": "GRAVEYARD",
+          "count": 0,
+          "project_count": 0,
+          "employee_count": 0,
+          "overdue_tasks": 0,
+          "percentage": 0.0
+        }
+      ],
+      "employee_workload": [
+        {
+          "employee_id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+          "name": "Alice",
+          "email": "dfd2fab7-ee18-4f48-ae75-d2e0674bb44c@example.test",
+          "status": "ACTIVE",
+          "assigned_parent_tasks": 2,
+          "completed_parent_tasks": 1,
+          "in_progress_parent_tasks": 1,
+          "pending_parent_tasks": 0,
+          "blocked_parent_tasks": 0,
+          "overdue_parent_tasks": 1,
+          "active_assignments": 1,
+          "assigned_subtasks": 2,
+          "project_count": 1,
+          "recorded_effort_seconds": 7200.0,
+          "completed_assignments": 1,
+          "completion_percentage": 50.0
+        },
+        {
+          "employee_id": "1bf66b74-e65f-4e57-8b2b-01d73e6a9e14",
+          "name": "Bob",
+          "email": "3b44c843-03c2-42bc-9675-54baddfdbd33@example.test",
+          "status": "DEACTIVATED",
+          "assigned_parent_tasks": 1,
+          "completed_parent_tasks": 0,
+          "in_progress_parent_tasks": 0,
+          "pending_parent_tasks": 0,
+          "blocked_parent_tasks": 1,
+          "overdue_parent_tasks": 1,
+          "active_assignments": 1,
+          "assigned_subtasks": 1,
+          "project_count": 1,
+          "recorded_effort_seconds": 0.0,
+          "completed_assignments": 0,
+          "completion_percentage": 0.0
+        },
+        {
+          "employee_id": "0430a645-bfe9-4218-9ad0-59fea2bbb27a",
+          "name": "Zero",
+          "email": "7ebbc519-95e4-46be-b5a1-39b92e99df33@example.test",
+          "status": "ACTIVE",
+          "assigned_parent_tasks": 0,
+          "completed_parent_tasks": 0,
+          "in_progress_parent_tasks": 0,
+          "pending_parent_tasks": 0,
+          "blocked_parent_tasks": 0,
+          "overdue_parent_tasks": 0,
+          "active_assignments": 0,
+          "assigned_subtasks": 0,
+          "project_count": 0,
+          "recorded_effort_seconds": 0.0,
+          "completed_assignments": 0,
+          "completion_percentage": 0.0
+        },
+        {
+          "employee_id": "33596acc-d569-46c6-a542-3c8e752e0800",
+          "name": "Manager",
+          "email": "a968f4ba-10c5-45f8-aa3f-a4bece5d0c4c@example.test",
+          "status": "ACTIVE",
+          "assigned_parent_tasks": 0,
+          "completed_parent_tasks": 0,
+          "in_progress_parent_tasks": 0,
+          "pending_parent_tasks": 0,
+          "blocked_parent_tasks": 0,
+          "overdue_parent_tasks": 0,
+          "active_assignments": 0,
+          "assigned_subtasks": 0,
+          "project_count": 0,
+          "recorded_effort_seconds": 0.0,
+          "completed_assignments": 0,
+          "completion_percentage": 0.0
+        },
+        {
+          "employee_id": "9f7dc06d-63bf-47a4-bd93-2f0352cc96e6",
+          "name": "Owner",
+          "email": "97f21a57-757b-4332-a3fc-d732d6220997@example.test",
+          "status": "ACTIVE",
+          "assigned_parent_tasks": 0,
+          "completed_parent_tasks": 0,
+          "in_progress_parent_tasks": 0,
+          "pending_parent_tasks": 0,
+          "blocked_parent_tasks": 0,
+          "overdue_parent_tasks": 0,
+          "active_assignments": 0,
+          "assigned_subtasks": 0,
+          "project_count": 0,
+          "recorded_effort_seconds": 0.0,
+          "completed_assignments": 0,
+          "completion_percentage": 0.0
+        }
+      ],
+      "project_completion": [
+        {
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "name": "Archive",
+          "status": "ARCHIVED",
+          "start_date": null,
+          "end_date": null,
+          "client_name": "Client",
+          "total_tasks": 4,
+          "completed_tasks": 1,
+          "in_progress_tasks": 1,
+          "pending_tasks": 1,
+          "blocked_tasks": 1,
+          "overdue_tasks": 3,
+          "total_subtasks": 3,
+          "completed_subtasks": 1,
+          "recorded_effort_seconds": 7200.0,
+          "managers": [
+            {
+              "id": "33596acc-d569-46c6-a542-3c8e752e0800",
+              "name": "Manager"
+            }
+          ],
+          "members": [
+            {
+              "id": "33596acc-d569-46c6-a542-3c8e752e0800",
+              "name": "Manager"
+            },
+            {
+              "id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+              "name": "Alice"
+            },
+            {
+              "id": "1bf66b74-e65f-4e57-8b2b-01d73e6a9e14",
+              "name": "Bob"
+            }
+          ],
+          "member_count": 3,
+          "manager_count": 1,
+          "members_truncated": false,
+          "completion_percentage": 25.0
+        }
+      ],
+      "meta": {
+        "as_of": "2026-10-20T11:09:09.796494+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "task.created_at",
+        "counting_unit": "persisted task.id",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+          "Inventory is current state filtered by task creation date, not historical state at that date.",
+          "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+        ],
+        "chart_limit": 10,
+        "project_count_semantics": "Authorized projects, including projects with zero matching tasks"
+      }
+    },
+    "options": {
+      "employees": [
+        {
+          "id": "638965ad-6074-4e95-a64e-ce1cebaf0965",
+          "name": "Alice",
+          "email": "dfd2fab7-ee18-4f48-ae75-d2e0674bb44c@example.test",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "1bf66b74-e65f-4e57-8b2b-01d73e6a9e14",
+          "name": "Bob",
+          "email": "3b44c843-03c2-42bc-9675-54baddfdbd33@example.test",
+          "status": "DEACTIVATED"
+        },
+        {
+          "id": "33596acc-d569-46c6-a542-3c8e752e0800",
+          "name": "Manager",
+          "email": "a968f4ba-10c5-45f8-aa3f-a4bece5d0c4c@example.test",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "9f7dc06d-63bf-47a4-bd93-2f0352cc96e6",
+          "name": "Owner",
+          "email": "97f21a57-757b-4332-a3fc-d732d6220997@example.test",
+          "status": "ACTIVE"
+        },
+        {
+          "id": "0430a645-bfe9-4218-9ad0-59fea2bbb27a",
+          "name": "Zero",
+          "email": "7ebbc519-95e4-46be-b5a1-39b92e99df33@example.test",
+          "status": "ACTIVE"
+        }
+      ],
+      "projects": [
+        {
+          "id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "name": "Archive",
+          "status": "ARCHIVED"
+        },
+        {
+          "id": "22e8a342-147f-48a1-853d-fcf8b9c41b8f",
+          "name": "Other project",
+          "status": "ACTIVE"
+        }
+      ],
+      "employees_total": 5,
+      "projects_total": 2,
+      "options_page": 1,
+      "options_page_size": 100,
+      "statuses": [
+        "WAITING_FOR_REQUIREMENT",
+        "TODO",
+        "IN_PROGRESS",
+        "BUG_FIXING",
+        "IN_REVIEW",
+        "BLOCKED",
+        "ON_HOLD",
+        "DONE",
+        "DEPLOYED",
+        "FAILED",
+        "GRAVEYARD"
+      ],
+      "timezone": "UTC",
+      "meta": {
+        "as_of": "2026-10-20T11:09:09.912341+00:00",
+        "timezone": "UTC",
+        "from": "2026-10-19",
+        "to": "2026-10-20",
+        "start_at": "2026-10-19T00:00:00+00:00",
+        "end_at": "2026-10-21T00:00:00+00:00",
+        "date_semantics": "task.created_at",
+        "counting_unit": "persisted task.id",
+        "employee_filter_semantics": "Parent tasks assigned to the employee or containing their assigned subtasks; employee workload counts each actual assignment separately.",
+        "filters": {
+          "employee_id": null,
+          "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+          "status": null,
+          "search": ""
+        },
+        "limitations": [
+          "Multi-assignee work uses separate persisted task records; task groups are reported separately.",
+          "Inventory is current state filtered by task creation date, not historical state at that date.",
+          "Assignment dates are the latest stored assignment; complete reassignment history is unavailable."
+        ]
+      }
+    }
+  },
+  "tested_requests": [
+    {
+      "section": "employees",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "name",
+      "direction": "asc"
+    },
+    {
+      "section": "employees",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "name",
+      "direction": "desc"
+    },
+    {
+      "section": "employees",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "assigned_parent_tasks",
+      "direction": "asc"
+    },
+    {
+      "section": "employees",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "assigned_parent_tasks",
+      "direction": "desc"
+    },
+    {
+      "section": "employees",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "completed_parent_tasks",
+      "direction": "asc"
+    },
+    {
+      "section": "employees",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "completed_parent_tasks",
+      "direction": "desc"
+    },
+    {
+      "section": "employees",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "overdue_parent_tasks",
+      "direction": "asc"
+    },
+    {
+      "section": "employees",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "overdue_parent_tasks",
+      "direction": "desc"
+    },
+    {
+      "section": "employees",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "recorded_effort_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "employees",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "recorded_effort_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "tasks",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "title",
+      "direction": "asc"
+    },
+    {
+      "section": "tasks",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "title",
+      "direction": "desc"
+    },
+    {
+      "section": "tasks",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "status",
+      "direction": "asc"
+    },
+    {
+      "section": "tasks",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "status",
+      "direction": "desc"
+    },
+    {
+      "section": "tasks",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "created_at",
+      "direction": "asc"
+    },
+    {
+      "section": "tasks",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "created_at",
+      "direction": "desc"
+    },
+    {
+      "section": "tasks",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "assigned_at",
+      "direction": "asc"
+    },
+    {
+      "section": "tasks",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "assigned_at",
+      "direction": "desc"
+    },
+    {
+      "section": "tasks",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "due_at",
+      "direction": "asc"
+    },
+    {
+      "section": "tasks",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "due_at",
+      "direction": "desc"
+    },
+    {
+      "section": "statuses",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "status",
+      "direction": "asc"
+    },
+    {
+      "section": "statuses",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "status",
+      "direction": "desc"
+    },
+    {
+      "section": "statuses",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "count",
+      "direction": "asc"
+    },
+    {
+      "section": "statuses",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "count",
+      "direction": "desc"
+    },
+    {
+      "section": "projects",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "name",
+      "direction": "asc"
+    },
+    {
+      "section": "projects",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "name",
+      "direction": "desc"
+    },
+    {
+      "section": "projects",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "total_tasks",
+      "direction": "asc"
+    },
+    {
+      "section": "projects",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "total_tasks",
+      "direction": "desc"
+    },
+    {
+      "section": "projects",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "completed_tasks",
+      "direction": "asc"
+    },
+    {
+      "section": "projects",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "completed_tasks",
+      "direction": "desc"
+    },
+    {
+      "section": "projects",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "overdue_tasks",
+      "direction": "asc"
+    },
+    {
+      "section": "projects",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "overdue_tasks",
+      "direction": "desc"
+    },
+    {
+      "section": "projects",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "recorded_effort_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "projects",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "sort": "recorded_effort_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "daily",
+      "sort": "date",
+      "direction": "asc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "daily",
+      "sort": "date",
+      "direction": "desc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "daily",
+      "sort": "tasks_created",
+      "direction": "asc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "daily",
+      "sort": "tasks_created",
+      "direction": "desc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "weekly",
+      "sort": "date",
+      "direction": "asc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "weekly",
+      "sort": "date",
+      "direction": "desc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "weekly",
+      "sort": "tasks_created",
+      "direction": "asc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "weekly",
+      "sort": "tasks_created",
+      "direction": "desc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "monthly",
+      "sort": "date",
+      "direction": "asc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "monthly",
+      "sort": "date",
+      "direction": "desc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "monthly",
+      "sort": "tasks_created",
+      "direction": "asc"
+    },
+    {
+      "section": "activity",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "grouping": "monthly",
+      "sort": "tasks_created",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "name",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "name",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "recorded_effort_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "recorded_effort_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "unique_working_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "unique_working_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "running_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "running_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "paused_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "paused_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "resumed_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "employee",
+      "sort": "resumed_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "name",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "name",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "recorded_effort_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "recorded_effort_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "unique_working_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "unique_working_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "running_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "running_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "paused_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "paused_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "resumed_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "task",
+      "sort": "resumed_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "name",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "name",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "recorded_effort_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "recorded_effort_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "unique_working_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "unique_working_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "running_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "running_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "paused_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "paused_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "resumed_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "subtask",
+      "sort": "resumed_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "name",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "name",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "recorded_effort_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "recorded_effort_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "unique_working_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "unique_working_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "running_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "running_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "paused_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "paused_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "resumed_interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "project",
+      "sort": "resumed_interval_count",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "daily",
+      "sort": "name",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "daily",
+      "sort": "name",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "daily",
+      "sort": "recorded_effort_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "daily",
+      "sort": "recorded_effort_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "daily",
+      "sort": "unique_working_seconds",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "daily",
+      "sort": "unique_working_seconds",
+      "direction": "desc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "daily",
+      "sort": "interval_count",
+      "direction": "asc"
+    },
+    {
+      "section": "time",
+      "from": "2026-10-19",
+      "to": "2026-10-20",
+      "timezone": "UTC",
+      "project_id": "ede7af65-a2a3-42ad-b74f-f0083658343d",
+      "group_by": "daily",
+      "sort": "interval_count",
+      "direction": "desc"
+    }
+  ]
+}
