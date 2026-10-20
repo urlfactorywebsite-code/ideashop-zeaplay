@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="4" time="24.837" timestamp="2026-10-21T02:23:04.130322+05:30" hostname="DESKTOP-3QGSJ16"><testcase classname="" name="test_audit_probe_owner_backup_is_tenant_scoped[sqlite]" time="2.621"><failure message="AssertionError: Owner backup exposes another tenant's user record, including password hash&#10;assert not True">F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\test_tenant_scope_probe.py:32: in test_audit_probe_owner_backup_is_tenant_scoped
+    assert not exposed, "Owner backup exposes another tenant's user record, including password hash"
+E   AssertionError: Owner backup exposes another tenant's user record, including password hash
+E   assert not True</failure></testcase><testcase classname="" name="test_audit_probe_owner_backup_is_tenant_scoped[postgresql]" time="1.249"><failure message="AssertionError: Owner backup exposes another tenant's user record, including password hash&#10;assert not True">F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\test_tenant_scope_probe.py:32: in test_audit_probe_owner_backup_is_tenant_scoped
+    assert not exposed, "Owner backup exposes another tenant's user record, including password hash"
+E   AssertionError: Owner backup exposes another tenant's user record, including password hash
+E   assert not True</failure></testcase><testcase classname="" name="test_audit_probe_owner_audit_log_is_tenant_scoped[sqlite]" time="1.776"><failure message="AssertionError: Owner audit log endpoint exposes another tenant's audit event&#10;assert not True">F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\test_tenant_scope_probe.py:46: in test_audit_probe_owner_audit_log_is_tenant_scoped
+    assert not exposed, "Owner audit log endpoint exposes another tenant's audit event"
+E   AssertionError: Owner audit log endpoint exposes another tenant's audit event
+E   assert not True</failure></testcase><testcase classname="" name="test_audit_probe_owner_audit_log_is_tenant_scoped[postgresql]" time="1.360"><failure message="AssertionError: Owner audit log endpoint exposes another tenant's audit event&#10;assert not True">F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\test_tenant_scope_probe.py:46: in test_audit_probe_owner_audit_log_is_tenant_scoped
+    assert not exposed, "Owner audit log endpoint exposes another tenant's audit event"
+E   AssertionError: Owner audit log endpoint exposes another tenant's audit event
+E   assert not True</failure></testcase></testsuite></testsuites>

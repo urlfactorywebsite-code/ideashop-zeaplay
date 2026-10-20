@@ -1,0 +1,224 @@
+{
+  "full-baseline-ready": {
+    "tests": 1218,
+    "failures": 8,
+    "errors": 0,
+    "skipped": 31,
+    "passed": 1179,
+    "seconds": 1555.85,
+    "coverage": {
+      "covered_lines": 15495,
+      "num_statements": 22495,
+      "percent_covered": 68.88197377194932,
+      "percent_covered_display": "69",
+      "missing_lines": 7000,
+      "excluded_lines": 27,
+      "percent_statements_covered": 68.88197377194932,
+      "percent_statements_covered_display": "69"
+    },
+    "failures_detail": [
+      {
+        "name": "test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-update]",
+        "reason": "Failed: Project request did not wait for the dependency lock"
+      },
+      {
+        "name": "test_task_comment_mentions_create_direct_chat_inbox_message",
+        "reason": "AttributeError: 'types.SimpleNamespace' object has no attribute 'project'"
+      },
+      {
+        "name": "test_production_rejects_default_signing_keys",
+        "reason": "AssertionError: Regex pattern did not match."
+      },
+      {
+        "name": "test_preferences_include_chat_reject_duplicates_and_isolate_accounts[sqlite]",
+        "reason": "AssertionError: assert 9 == 6"
+      },
+      {
+        "name": "test_preferences_include_chat_reject_duplicates_and_isolate_accounts[postgresql]",
+        "reason": "AssertionError: assert 9 == 6"
+      },
+      {
+        "name": "test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[sqlite]",
+        "reason": "ModuleNotFoundError: No module named 'app.lifecycle'"
+      },
+      {
+        "name": "test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql]",
+        "reason": "ModuleNotFoundError: No module named 'app.lifecycle'"
+      },
+      {
+        "name": "test_empty_history_downgrade_serializes_against_new_writes[postgresql]",
+        "reason": "ModuleNotFoundError: No module named 'app.lifecycle'"
+      }
+    ]
+  },
+  "full-linux-final": {
+    "tests": 1226,
+    "failures": 8,
+    "errors": 1,
+    "skipped": 32,
+    "passed": 1185,
+    "seconds": 847.98,
+    "coverage": {
+      "covered_lines": 16382,
+      "num_statements": 23310,
+      "percent_covered": 70.27885027885029,
+      "percent_covered_display": "70",
+      "missing_lines": 6928,
+      "excluded_lines": 27,
+      "percent_statements_covered": 70.27885027885029,
+      "percent_statements_covered_display": "70"
+    },
+    "failures_detail": [
+      {
+        "name": "test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-update]",
+        "reason": "Failed: Project request did not wait for the dependency lock"
+      },
+      {
+        "name": "test_task_comment_mentions_create_direct_chat_inbox_message",
+        "reason": "AttributeError: 'types.SimpleNamespace' object has no attribute 'project'"
+      },
+      {
+        "name": "test_production_rejects_default_signing_keys",
+        "reason": "AssertionError: Regex pattern did not match."
+      },
+      {
+        "name": "test_preferences_include_chat_reject_duplicates_and_isolate_accounts[sqlite]",
+        "reason": "AssertionError: assert 9 == 6"
+      },
+      {
+        "name": "test_preferences_include_chat_reject_duplicates_and_isolate_accounts[postgresql]",
+        "reason": "AssertionError: assert 9 == 6"
+      },
+      {
+        "name": "test_dashboard_generation_is_deterministic_and_has_bounded_refresh",
+        "reason": "subprocess.CalledProcessError: Command '['/usr/local/bin/python', '/repo/ops/monitoring/generate_dashboards.py']' returned non-zero exit status 1."
+      },
+      {
+        "name": "test_owned_redis_server_restart_recovers_both_workers",
+        "reason": "failed on setup with \"json.decoder.JSONDecodeError: Expecting value: line 1 column 2 (char 1)\""
+      },
+      {
+        "name": "test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[sqlite]",
+        "reason": "ModuleNotFoundError: No module named 'app'"
+      },
+      {
+        "name": "test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql]",
+        "reason": "ModuleNotFoundError: No module named 'app'"
+      }
+    ]
+  },
+  "regression-final": {
+    "tests": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 8,
+    "seconds": 30.33,
+    "failures_detail": []
+  },
+  "guarded-realtime-smoke": {
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "passed": 10,
+    "seconds": 249.52,
+    "failures_detail": []
+  },
+  "failure-triage": {
+    "tests": 10,
+    "failures": 4,
+    "errors": 0,
+    "skipped": 3,
+    "passed": 3,
+    "seconds": 36.1,
+    "failures_detail": [
+      {
+        "name": "test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-update]",
+        "reason": "Failed: Project request did not wait for the dependency lock"
+      },
+      {
+        "name": "test_task_comment_mentions_create_direct_chat_inbox_message",
+        "reason": "AttributeError: 'types.SimpleNamespace' object has no attribute 'project'"
+      },
+      {
+        "name": "test_preferences_include_chat_reject_duplicates_and_isolate_accounts[sqlite]",
+        "reason": "AssertionError: assert 9 == 6"
+      },
+      {
+        "name": "test_preferences_include_chat_reject_duplicates_and_isolate_accounts[postgresql]",
+        "reason": "AssertionError: assert 9 == 6"
+      }
+    ]
+  },
+  "linux-focused-retry": {
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 2,
+    "seconds": 15.41,
+    "failures_detail": []
+  },
+  "migration-context-retry": {
+    "tests": 2,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 2,
+    "seconds": 19.88,
+    "failures_detail": []
+  },
+  "tenant-scope-final": {
+    "tests": 4,
+    "failures": 4,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 0,
+    "seconds": 24.84,
+    "failures_detail": [
+      {
+        "name": "test_audit_probe_owner_backup_is_tenant_scoped[sqlite]",
+        "reason": "AssertionError: Owner backup exposes another tenant's user record, including password hash"
+      },
+      {
+        "name": "test_audit_probe_owner_backup_is_tenant_scoped[postgresql]",
+        "reason": "AssertionError: Owner backup exposes another tenant's user record, including password hash"
+      },
+      {
+        "name": "test_audit_probe_owner_audit_log_is_tenant_scoped[sqlite]",
+        "reason": "AssertionError: Owner audit log endpoint exposes another tenant's audit event"
+      },
+      {
+        "name": "test_audit_probe_owner_audit_log_is_tenant_scoped[postgresql]",
+        "reason": "AssertionError: Owner audit log endpoint exposes another tenant's audit event"
+      }
+    ]
+  },
+  "registration-scope": {
+    "tests": 2,
+    "failures": 2,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 0,
+    "seconds": 23.15,
+    "failures_detail": [
+      {
+        "name": "test_audit_probe_public_registration_cannot_grant_existing_tenant_owner[sqlite]",
+        "reason": "AssertionError: Unauthenticated registration grants owner access in an existing tenant"
+      },
+      {
+        "name": "test_audit_probe_public_registration_cannot_grant_existing_tenant_owner[postgresql]",
+        "reason": "AssertionError: Unauthenticated registration grants owner access in an existing tenant"
+      }
+    ]
+  },
+  "windows-final-context-retry": {
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "passed": 2,
+    "seconds": 13.62
+  }
+}

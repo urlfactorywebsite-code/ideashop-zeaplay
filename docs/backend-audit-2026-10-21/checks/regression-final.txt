@@ -1,0 +1,75 @@
+........                                                                 [100%]
+============================== warnings summary ===============================
+F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704
+  F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704: SADeprecationWarning: User-placed attribute Level.created_by on Mapper[Level(levels)] is replacing an existing ORM-mapped attribute.  Behavior is not fully defined in this case.  This use is deprecated and will raise an error in a future release
+    Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192
+  F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FeatureFlagRead(FeatureFlagBase):
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+test_backend_audit_regressions.py: 60 warnings
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-False]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-False]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:57: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\audit_logger.py:23: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================ slowest 10 durations =============================
+3.05s setup    test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-False]
+2.60s setup    test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[sqlite-True]
+2.10s setup    test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[sqlite-False]
+1.85s setup    test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+0.93s setup    test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[postgresql-False]
+0.92s setup    test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[postgresql-True]
+0.86s setup    test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+0.85s setup    test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-False]
+0.39s teardown test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-False]
+0.39s teardown test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[postgresql-True]
+8 passed, 1218 deselected, 77 warnings in 30.34s

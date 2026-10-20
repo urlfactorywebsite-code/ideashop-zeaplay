@@ -1,0 +1,137 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\Lenovo\AppData\Local\Temp\zeaplay-backend-audit-1061809eccbe4d4e8411c369627432d1\venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\Lenovo\AppData\Local\Temp\zeaplay-audit-suite-8053wvt0
+plugins: platformdirs-4.13.5, cov-7.1.0, timeout-2.4.0, anyio-4.14.2, Faker-40.36.0, asyncio-1.4.0
+timeout: 90.0s
+timeout method: thread
+timeout func_only: False
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 1226 items / 1216 deselected / 10 selected
+
+test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[sqlite-create] SKIPPED [ 10%]
+test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[sqlite-update] SKIPPED [ 20%]
+test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[sqlite-restore] SKIPPED [ 30%]
+test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-create] PASSED [ 40%]
+test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-update] FAILED [ 50%]
+test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-restore] PASSED [ 60%]
+test_chat_phase1.py::test_task_comment_mentions_create_direct_chat_inbox_message FAILED [ 70%]
+test_oauth_refinement.py::test_production_rejects_default_signing_keys PASSED [ 80%]
+test_push_management.py::test_preferences_include_chat_reject_duplicates_and_isolate_accounts[sqlite] FAILED [ 90%]
+test_push_management.py::test_preferences_include_chat_reject_duplicates_and_isolate_accounts[postgresql] FAILED [100%]
+
+================================== FAILURES ===================================
+_ test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-update] _
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_archive_restore_audit.py:179: in test_demotion_during_client_dependency_wait_prevents_project_write
+    else: pytest.fail("Project request did not wait for the dependency lock")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: Project request did not wait for the dependency lock
+_________ test_task_comment_mentions_create_direct_chat_inbox_message _________
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_chat_phase1.py:387: in test_task_comment_mentions_create_direct_chat_inbox_message
+    _bridge_comment_mentions_to_chat(db, task=task, comment=comment, actor=actor)
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\comments.py:123: in _bridge_comment_mentions_to_chat
+    _ensure_comment_access(task, mentioned_user)
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\comments.py:31: in _ensure_comment_access
+    _ensure_task_access(task, user)
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:483: in _ensure_task_access
+    if not _task_belongs_to_user_tenant(task, user):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\task_access.py:15: in task_belongs_to_user_tenant
+    tenant = task.project.tenant_id if task.project else task.creator.tenant_id if task.creator else None
+                                       ^^^^^^^^^^^^
+E   AttributeError: 'types.SimpleNamespace' object has no attribute 'project'
+_ test_preferences_include_chat_reject_duplicates_and_isolate_accounts[sqlite] _
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_push_management.py:338: in test_preferences_include_chat_reject_duplicates_and_isolate_accounts
+    assert len(data.client.get("/notification/preferences", headers=headers).json()) == 6
+E   AssertionError: assert 9 == 6
+E    +  where 9 = len([{'module': 'tasks', 'push_enabled': True, 'updated_at': None}, {'module': 'projects', 'push_enabled': True, 'updated_at': None}, {'module': 'clients', 'push_enabled': True, 'updated_at': None}, {'module': 'tickets', 'push_enabled': True, 'updated_at': None}, {'module': 'users', 'push_enabled': True, 'updated_at': None}, {'module': 'departments', 'push_enabled': True, 'updated_at': None}, ...])
+E    +    where [{'module': 'tasks', 'push_enabled': True, 'updated_at': None}, {'module': 'projects', 'push_enabled': True, 'updated_at': None}, {'module': 'clients', 'push_enabled': True, 'updated_at': None}, {'module': 'tickets', 'push_enabled': True, 'updated_at': None}, {'module': 'users', 'push_enabled': True, 'updated_at': None}, {'module': 'departments', 'push_enabled': True, 'updated_at': None}, ...] = json()
+E    +      where json = <Response [200 OK]>.json
+E    +        where <Response [200 OK]> = get('/notification/preferences', headers={'Authorization': 'Bearer [REDACTED_SECRET]'})
+E    +          where get = <starlette.testclient.TestClient object at 0x00000265F2D95D00>.get
+E    +            where <starlette.testclient.TestClient object at 0x00000265F2D95D00> = namespace(factory=sessionmaker(class_='Session', bind=Engine(sqlite:///C:/Users/Lenovo/AppData/Local/Temp/pytest-of-Lenovo/pytest-207/push-management0/push.db), autoflush=True, expire_on_commit=False), client=<starlette.testclient.TestClient object at 0x00000265F2D95D00>, headers=<function data.<locals>.headers at 0x00000265F320C0F0>, user=<backend.app.models.User object at 0x00000265F2EBEE50>, peer=<backend.app.models.User object at 0x00000265F2EBF050>, outsider=<backend.app.models.User object at 0x00000265F2EBF350>, inactive=<backend.app.models.User object at 0x00000265F2EBEF50>, configuration={'VAPID_PRIVATE_KEY': '[REDACTED_SECRET]', 'VAPID_PUBLIC_KEY': 'BIVSZoisumORPdS2Ztq6MMmOTev3D96JN5Ikskgx7mVfqK0J5N7XaoTo-U5hip09cXlW3QT7KweEDmFIS1boFj4', 'VAPID_SUBJECT': 'mailto:push@example.com'}, subscription={'endpoint': 'https://fcm.googleapis.com/fcm/send/1de374b5-72ac-43ca-8807-03cfa29006b1', 'keys': {'p256dh': 'BIyjo6UkIjDBUlCUTuh5UtHg9qI-bdUKYoo4YxI4XbVFkfT9eSEYvvpTMS41G0Qzu1DPriGELKGHV1f4npQnKHA', 'auth': 'A9OQalGPCcJSd83iRJmiLA'}, 'device_label': 'Test browser', 'user_agent': 'Synthetic audit browser'}, calls=[]).client
+_ test_preferences_include_chat_reject_duplicates_and_isolate_accounts[postgresql] _
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_push_management.py:338: in test_preferences_include_chat_reject_duplicates_and_isolate_accounts
+    assert len(data.client.get("/notification/preferences", headers=headers).json()) == 6
+E   AssertionError: assert 9 == 6
+E    +  where 9 = len([{'module': 'tasks', 'push_enabled': True, 'updated_at': None}, {'module': 'projects', 'push_enabled': True, 'updated_at': None}, {'module': 'clients', 'push_enabled': True, 'updated_at': None}, {'module': 'tickets', 'push_enabled': True, 'updated_at': None}, {'module': 'users', 'push_enabled': True, 'updated_at': None}, {'module': 'departments', 'push_enabled': True, 'updated_at': None}, ...])
+E    +    where [{'module': 'tasks', 'push_enabled': True, 'updated_at': None}, {'module': 'projects', 'push_enabled': True, 'updated_at': None}, {'module': 'clients', 'push_enabled': True, 'updated_at': None}, {'module': 'tickets', 'push_enabled': True, 'updated_at': None}, {'module': 'users', 'push_enabled': True, 'updated_at': None}, {'module': 'departments', 'push_enabled': True, 'updated_at': None}, ...] = json()
+E    +      where json = <Response [200 OK]>.json
+E    +        where <Response [200 OK]> = get('/notification/preferences', headers={'Authorization': 'Bearer [REDACTED_SECRET]'})
+E    +          where get = <starlette.testclient.TestClient object at 0x00000265F31D45A0>.get
+E    +            where <starlette.testclient.TestClient object at 0x00000265F31D45A0> = namespace(factory=sessionmaker(class_='Session', bind=Engine(postgresql+psycopg2://rt_test@127.0.0.1:56415/zeaplay_rt3_test), autoflush=True, expire_on_commit=False), client=<starlette.testclient.TestClient object at 0x00000265F31D45A0>, headers=<function data.<locals>.headers at 0x00000265F3308F60>, user=<backend.app.models.User object at 0x00000265F319C550>, peer=<backend.app.models.User object at 0x00000265F2EBD350>, outsider=<backend.app.models.User object at 0x00000265F31C8950>, inactive=<backend.app.models.User object at 0x00000265F31C8C50>, configuration={'VAPID_PRIVATE_KEY': '[REDACTED_SECRET]', 'VAPID_PUBLIC_KEY': 'BBZA8DkJP6VzwbMlMDi2B4OORVuU4Lr-nKgnG4wfqSd5Rac-Mm9zjaWy630eAC3K4mipL2IO16AEZpBrMtl84_E', 'VAPID_SUBJECT': 'mailto:push@example.com'}, subscription={'endpoint': 'https://fcm.googleapis.com/fcm/send/91cdbb54-c2fe-4089-be9b-ddc2acf51ef9', 'keys': {'p256dh': 'BK9u0Q9QhZWtIeaFYSExg_3TZv_XH3EdTEssPniexgZfUyI_CDDTFWxae_Gra5noGmaWt4q0WuKm2VBZ9u2OFj0', 'auth': 'L0YTi8Xa8a8qOGWjNgXXUQ'}, 'device_label': 'Test browser', 'user_agent': 'Synthetic audit browser'}, calls=[]).client
+============================== warnings summary ===============================
+F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704
+  F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704: SADeprecationWarning: User-placed attribute Level.created_by on Mapper[Level(levels)] is replacing an existing ORM-mapped attribute.  Behavior is not fully defined in this case.  This use is deprecated and will raise an error in a future release
+    Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192
+  F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FeatureFlagRead(FeatureFlagBase):
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+test_archive_restore_audit.py: 119 warnings
+test_chat_phase1.py: 8 warnings
+test_push_management.py: 16 warnings
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-restore]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\projects.py:495: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    project.archived_at = datetime.utcnow()
+
+test_chat_phase1.py::test_task_comment_mentions_create_direct_chat_inbox_message
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_chat_phase1.py:142: SAWarning: Can't sort tables for DROP; an unresolvable foreign key dependency exists between tables: avatar_assets, users; and backend does not support ALTER.  To restore at least a partial sort, apply use_alter=True to ForeignKey and ForeignKeyConstraint objects involved in the cycle to mark these as known cycles that will be ignored.
+    Base.metadata.drop_all(bind=engine, tables=list(reversed(CHAT_TEST_TABLES)))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\failure-triage.xml -
+============================ slowest 10 durations =============================
+8.08s call     test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-update]
+2.40s setup    test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[sqlite-create]
+2.19s setup    test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[sqlite-update]
+1.93s setup    test_push_management.py::test_preferences_include_chat_reject_duplicates_and_isolate_accounts[sqlite]
+1.55s setup    test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[sqlite-restore]
+0.92s setup    test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-create]
+0.87s setup    test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-update]
+0.85s setup    test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-restore]
+0.83s setup    test_push_management.py::test_preferences_include_chat_reject_duplicates_and_isolate_accounts[postgresql]
+0.39s teardown test_push_management.py::test_preferences_include_chat_reject_duplicates_and_isolate_accounts[postgresql]
+=========================== short test summary info ===========================
+SKIPPED [3] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_archive_restore_audit.py:146: PostgreSQL dependency lock wait
+FAILED test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-update]
+FAILED test_chat_phase1.py::test_task_comment_mentions_create_direct_chat_inbox_message
+FAILED test_push_management.py::test_preferences_include_chat_reject_duplicates_and_isolate_accounts[sqlite]
+FAILED test_push_management.py::test_preferences_include_chat_reject_duplicates_and_isolate_accounts[postgresql]
+=== 4 failed, 3 passed, 3 skipped, 1216 deselected, 152 warnings in 36.11s ====

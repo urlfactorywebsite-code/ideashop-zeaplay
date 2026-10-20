@@ -1,0 +1,11 @@
+python.exe : WARNING:pip_audit._cli:--no-deps is supported, but users are encouraged to fully hash their pinned 
+dependencies
+At line:2 char:445
++ ... h-path.txt; & "$auditTemp\venv\Scripts\python.exe" -m pip_audit -r do ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (WARNING:pip_aud...ed dependencies:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+WARNING:pip_audit._cli:Consider using a tool like `pip-compile`: 
+https://pip-tools.readthedocs.io/en/latest/#using-hashes
+Found 5 known vulnerabilities in 3 packages

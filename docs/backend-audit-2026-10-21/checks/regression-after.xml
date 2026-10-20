@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="8" time="30.889" timestamp="2026-10-21T02:18:13.883827+05:30" hostname="DESKTOP-3QGSJ16"><testcase classname="test_backend_audit_regressions" name="test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]" time="2.541" /><testcase classname="test_backend_audit_regressions" name="test_ticket_update_commits_and_only_notifies_when_changed[sqlite-False]" time="1.515" /><testcase classname="test_backend_audit_regressions" name="test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]" time="1.297" /><testcase classname="test_backend_audit_regressions" name="test_ticket_update_commits_and_only_notifies_when_changed[postgresql-False]" time="1.194" /><testcase classname="test_backend_audit_regressions" name="test_task_backup_preserves_project_reference[sqlite-True]" time="2.410"><failure message="TypeError: 'name' is an invalid keyword argument for Client">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:36: in test_task_backup_preserves_project_reference
+    client = models.Client(tenant_id=data.owner.tenant_id, name="Audit client", normalized_name="audit client")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:4: in __init__
+    ???
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:596: in _initialize_instance
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\util\langhelpers.py:122: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:594: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\decl_base.py:2193: in _declarative_constructor
+    raise TypeError(
+E   TypeError: 'name' is an invalid keyword argument for Client</failure></testcase><testcase classname="test_backend_audit_regressions" name="test_task_backup_preserves_project_reference[sqlite-False]" time="1.646" /><testcase classname="test_backend_audit_regressions" name="test_task_backup_preserves_project_reference[postgresql-True]" time="1.200"><failure message="TypeError: 'name' is an invalid keyword argument for Client">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:36: in test_task_backup_preserves_project_reference
+    client = models.Client(tenant_id=data.owner.tenant_id, name="Audit client", normalized_name="audit client")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:4: in __init__
+    ???
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:596: in _initialize_instance
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\util\langhelpers.py:122: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:594: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\decl_base.py:2193: in _declarative_constructor
+    raise TypeError(
+E   TypeError: 'name' is an invalid keyword argument for Client</failure></testcase><testcase classname="test_backend_audit_regressions" name="test_task_backup_preserves_project_reference[postgresql-False]" time="1.230" /></testsuite></testsuites>

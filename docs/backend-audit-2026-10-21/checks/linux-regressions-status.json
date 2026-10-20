@@ -1,0 +1,23 @@
+{
+  "exit_code": 0,
+  "working_directory": "/tmp/zeaplay-audit-suite-n20w0xv5",
+  "python": "3.11.17 (main, Oct  6 2026, 02:02:21) [GCC 14.2.0]",
+  "args": [
+    "/usr/local/bin/python",
+    "-m",
+    "pytest",
+    "/repo/backend/tests",
+    "-q",
+    "-ra",
+    "--tb=short",
+    "--timeout=90",
+    "--junitxml=/repo/docs/backend-audit-2026-10-21/checks/linux-regressions.xml",
+    "--cov=backend.app",
+    "--cov-report=json:/repo/docs/backend-audit-2026-10-21/checks/linux-regressions-coverage.json",
+    "--cov-report=term:skip-covered",
+    "-k",
+    "ticket_update_commits_and_only_notifies_when_changed or task_backup_preserves_project_reference",
+    "--no-cov",
+    "--durations=10"
+  ]
+}

@@ -1,0 +1,75 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\Lenovo\AppData\Local\Temp\zeaplay-backend-audit-1061809eccbe4d4e8411c369627432d1\venv\Scripts\python.exe
+cachedir: pytest-cache
+rootdir: C:\Users\Lenovo\AppData\Local\Temp\zeaplay-audit-suite-qbknxhxo
+plugins: platformdirs-4.13.5, cov-7.1.0, timeout-2.4.0, anyio-4.14.2, Faker-40.36.0, asyncio-1.4.0
+timeout: 90.0s
+timeout method: thread
+timeout func_only: False
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 1226 items / 1224 deselected / 2 selected
+
+test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[sqlite] PASSED [ 50%]
+test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql] PASSED [100%]
+
+============================== warnings summary ===============================
+F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704
+  F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704: SADeprecationWarning: User-placed attribute Level.created_by on Mapper[Level(levels)] is replacing an existing ORM-mapped attribute.  Behavior is not fully defined in this case.  This use is deprecated and will raise an error in a future release
+    Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192
+  F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FeatureFlagRead(FeatureFlagBase):
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[sqlite]
+test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[sqlite]
+test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[sqlite]
+test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql]
+test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql]
+test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql]
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\migration-context-retry.xml -
+============================ slowest 10 durations =============================
+1.74s setup    test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[sqlite]
+0.79s setup    test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql]
+0.55s call     test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[sqlite]
+0.36s teardown test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql]
+0.16s call     test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql]
+
+(1 durations < 0.005s hidden.  Use -vv to show these durations.)
+============== 2 passed, 1224 deselected, 13 warnings in 19.90s ===============

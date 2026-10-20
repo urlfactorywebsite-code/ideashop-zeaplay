@@ -1,0 +1,24 @@
+{
+  "exit_code": 0,
+  "working_directory": "/tmp/zeaplay-audit-suite-7slt_8gq",
+  "python": "3.11.17 (main, Oct  6 2026, 02:02:21) [GCC 14.2.0]",
+  "args": [
+    "/usr/local/bin/python",
+    "-m",
+    "pytest",
+    "/repo/backend/tests",
+    "-q",
+    "-ra",
+    "--tb=short",
+    "--timeout=90",
+    "--junitxml=/repo/docs/backend-audit-2026-10-21/checks/linux-focused-retry.xml",
+    "--cov=backend.app",
+    "--cov-report=json:/repo/docs/backend-audit-2026-10-21/checks/linux-focused-retry-coverage.json",
+    "--cov-report=term:skip-covered",
+    "-k",
+    "owned_redis_server_restart or production_rejects_default_signing_keys",
+    "--no-cov",
+    "-vv",
+    "--durations=10"
+  ]
+}

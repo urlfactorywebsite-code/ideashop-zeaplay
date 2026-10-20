@@ -1,0 +1,63 @@
+........                                                                 [100%]
+=============================== warnings summary ===============================
+../../repo/backend/app/models.py:2704
+  /repo/backend/app/models.py:2704: SADeprecationWarning: User-placed attribute Level.created_by on Mapper[Level(levels)] is replacing an existing ORM-mapped attribute.  Behavior is not fully defined in this case.  This use is deprecated and will raise an error in a future release
+    Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
+
+../../repo/backend/app/schemas.py:3192
+  /repo/backend/app/schemas.py:3192: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class FeatureFlagRead(FeatureFlagBase):
+
+../../usr/local/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /usr/local/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+../../usr/local/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /usr/local/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+../../repo/backend/app/main.py:816
+  /repo/backend/app/main.py:816: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../../usr/local/lib/python3.11/site-packages/fastapi/applications.py:4723
+../../usr/local/lib/python3.11/site-packages/fastapi/applications.py:4723
+  /usr/local/lib/python3.11/site-packages/fastapi/applications.py:4723: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+../../repo/backend/app/main.py:830
+  /repo/backend/app/main.py:830: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+../../usr/local/lib/python3.11/site-packages/_pytest/cacheprovider.py:469
+  /usr/local/lib/python3.11/site-packages/_pytest/cacheprovider.py:469: PytestCacheWarning: could not create cache path /repo/backend/tests/.pytest_cache/v/cache/nodeids: [Errno 30] Read-only file system: '/repo/backend/tests/pytest-cache-files-a10s60a6'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 10 durations =============================
+8.87s setup    test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[sqlite-False]
+6.73s setup    test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+5.94s setup    test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-False]
+3.35s setup    test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[sqlite-True]
+0.64s setup    test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+0.62s setup    test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[postgresql-False]
+0.55s setup    test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[postgresql-True]
+0.51s setup    test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-False]
+0.37s teardown test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[postgresql-True]
+0.36s teardown test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-False]
+8 passed, 1218 deselected, 9 warnings in 68.21s (0:01:08)

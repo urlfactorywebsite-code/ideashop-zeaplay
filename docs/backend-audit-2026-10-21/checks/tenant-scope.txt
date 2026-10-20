@@ -1,0 +1,446 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+___________ test_audit_probe_owner_backup_is_tenant_scoped[sqlite] ____________
+F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\test_tenant_scope_probe.py:25: in test_audit_probe_owner_backup_is_tenant_scoped
+    response = client(data).get("/api/admin/data/export?scope=users")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:483: in get
+    return super().get(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:1053: in get
+    return self.request(
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:455: in request
+    return super().request(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:354: in handle_request
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:351: in handle_request
+    portal.call(self.app, scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\routing.py:670: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:2734: in app
+    await route.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1780: in handle
+    await self.original_router.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:2789: in handle
+    await included_router._handle_selected(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1800: in _handle_selected
+    await original_route.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1279: in handle
+    await app(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:158: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:144: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:706: in app
+    raw_response = await run_endpoint_function(
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:354: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\_backends\_asyncio.py:2641: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\_backends\_asyncio.py:1033: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\data_admin.py:220: in export_data
+    users = _serialize_users(db.execute(select(models.User)).scalars().all())
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\data_admin.py:39: in _serialize_users
+    schemas.UserBackup(
+E   pydantic_core._pydantic_core.ValidationError: 1 validation error for UserBackup
+E   email
+E     value is not a valid email address: The part after the @-sign is a special-use or reserved name that cannot be used with email. [type=value_error, input_value='ad5e9661-58f2-4412-8c7c-...0fed597d14@example.test', input_type=str]
+_________ test_audit_probe_owner_backup_is_tenant_scoped[postgresql] __________
+F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\test_tenant_scope_probe.py:25: in test_audit_probe_owner_backup_is_tenant_scoped
+    response = client(data).get("/api/admin/data/export?scope=users")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:483: in get
+    return super().get(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:1053: in get
+    return self.request(
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:455: in request
+    return super().request(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:354: in handle_request
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:351: in handle_request
+    portal.call(self.app, scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\routing.py:670: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:2734: in app
+    await route.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1780: in handle
+    await self.original_router.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:2789: in handle
+    await included_router._handle_selected(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1800: in _handle_selected
+    await original_route.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1279: in handle
+    await app(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:158: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:144: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:706: in app
+    raw_response = await run_endpoint_function(
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:354: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\_backends\_asyncio.py:2641: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\_backends\_asyncio.py:1033: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\data_admin.py:220: in export_data
+    users = _serialize_users(db.execute(select(models.User)).scalars().all())
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\data_admin.py:39: in _serialize_users
+    schemas.UserBackup(
+E   pydantic_core._pydantic_core.ValidationError: 1 validation error for UserBackup
+E   email
+E     value is not a valid email address: The part after the @-sign is a special-use or reserved name that cannot be used with email. [type=value_error, input_value='22587ac5-0d30-4df2-893c-...ea924d1790@example.test', input_type=str]
+__________ test_audit_probe_owner_audit_log_is_tenant_scoped[sqlite] __________
+F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\test_tenant_scope_probe.py:39: in test_audit_probe_owner_audit_log_is_tenant_scoped
+    response = client(data).get("/api/logs/audit")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:483: in get
+    return super().get(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:1053: in get
+    return self.request(
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:455: in request
+    return super().request(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:354: in handle_request
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:351: in handle_request
+    portal.call(self.app, scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\routing.py:670: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:2734: in app
+    await route.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1780: in handle
+    await self.original_router.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:2789: in handle
+    await included_router._handle_selected(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1800: in _handle_selected
+    await original_route.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1279: in handle
+    await app(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:158: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:144: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:706: in app
+    raw_response = await run_endpoint_function(
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:354: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\_backends\_asyncio.py:2641: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\_backends\_asyncio.py:1033: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\logs.py:183: in list_audit_logs
+    items=[schemas.AuditLogRead.model_validate(item) for item in items],
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   pydantic_core._pydantic_core.ValidationError: 1 validation error for AuditLogRead
+E   actor.email
+E     value is not a valid email address: The part after the @-sign is a special-use or reserved name that cannot be used with email. [type=value_error, input_value='c282e390-a218-4d5d-ab87-...81bef06052@example.test', input_type=str]
+________ test_audit_probe_owner_audit_log_is_tenant_scoped[postgresql] ________
+F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\test_tenant_scope_probe.py:39: in test_audit_probe_owner_audit_log_is_tenant_scoped
+    response = client(data).get("/api/logs/audit")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:483: in get
+    return super().get(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:1053: in get
+    return self.request(
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:455: in request
+    return super().request(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:354: in handle_request
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:351: in handle_request
+    portal.call(self.app, scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\routing.py:670: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:2734: in app
+    await route.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1780: in handle
+    await self.original_router.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:2789: in handle
+    await included_router._handle_selected(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1800: in _handle_selected
+    await original_route.handle(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:1279: in handle
+    await app(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:158: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:144: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:706: in app
+    raw_response = await run_endpoint_function(
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:354: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\_backends\_asyncio.py:2641: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\anyio\_backends\_asyncio.py:1033: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\logs.py:183: in list_audit_logs
+    items=[schemas.AuditLogRead.model_validate(item) for item in items],
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   pydantic_core._pydantic_core.ValidationError: 1 validation error for AuditLogRead
+E   actor.email
+E     value is not a valid email address: The part after the @-sign is a special-use or reserved name that cannot be used with email. [type=value_error, input_value='be56b112-3c21-4a8f-a700-...f75bfb3609@example.test', input_type=str]
+============================== warnings summary ===============================
+F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704
+  F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704: SADeprecationWarning: User-placed attribute Level.created_by on Mapper[Level(levels)] is replacing an existing ORM-mapped attribute.  Behavior is not fully defined in this case.  This use is deprecated and will raise an error in a future release
+    Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192
+  F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FeatureFlagRead(FeatureFlagBase):
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+: 26 warnings
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED ::test_audit_probe_owner_backup_is_tenant_scoped[sqlite] - pydantic_co...
+FAILED ::test_audit_probe_owner_backup_is_tenant_scoped[postgresql] - pydanti...
+FAILED ::test_audit_probe_owner_audit_log_is_tenant_scoped[sqlite] - pydantic...
+FAILED ::test_audit_probe_owner_audit_log_is_tenant_scoped[postgresql] - pyda...
+4 failed, 1226 deselected, 33 warnings in 28.35s

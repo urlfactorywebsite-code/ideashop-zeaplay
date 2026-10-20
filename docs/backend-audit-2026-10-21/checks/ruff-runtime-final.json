@@ -1,0 +1,249 @@
+[
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 36,
+      "row": 999
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\models.py",
+    "fix": null,
+    "location": {
+      "column": 30,
+      "row": 999
+    },
+    "message": "Undefined name `Ticket`",
+    "name": "undefined-name",
+    "noqa_row": 999,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 41,
+      "row": 365
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 30,
+      "row": 365
+    },
+    "message": "Undefined name `entity_type`",
+    "name": "undefined-name",
+    "noqa_row": 365,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 39,
+      "row": 366
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 29,
+      "row": 366
+    },
+    "message": "Undefined name `event_type`",
+    "name": "undefined-name",
+    "noqa_row": 366,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 16,
+      "row": 377
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 8,
+      "row": 377
+    },
+    "message": "Undefined name `actor_id`",
+    "name": "undefined-name",
+    "noqa_row": 377,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 65,
+      "row": 378
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 57,
+      "row": 378
+    },
+    "message": "Undefined name `actor_id`",
+    "name": "undefined-name",
+    "noqa_row": 378,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 37,
+      "row": 382
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 382
+    },
+    "message": "Undefined name `page`",
+    "name": "undefined-name",
+    "noqa_row": 382,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 54,
+      "row": 382
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 45,
+      "row": 382
+    },
+    "message": "Undefined name `page_size`",
+    "name": "undefined-name",
+    "noqa_row": 382,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 71,
+      "row": 382
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 62,
+      "row": 382
+    },
+    "message": "Undefined name `page_size`",
+    "name": "undefined-name",
+    "noqa_row": 382,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 44,
+      "row": 386
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 35,
+      "row": 386
+    },
+    "message": "Undefined name `page_size`",
+    "name": "undefined-name",
+    "noqa_row": 386,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 62,
+      "row": 386
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 53,
+      "row": 386
+    },
+    "message": "Undefined name `page_size`",
+    "name": "undefined-name",
+    "noqa_row": 386,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 18,
+      "row": 389
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 14,
+      "row": 389
+    },
+    "message": "Undefined name `page`",
+    "name": "undefined-name",
+    "noqa_row": 389,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 28,
+      "row": 391
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\logs.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 391
+    },
+    "message": "Undefined name `page_size`",
+    "name": "undefined-name",
+    "noqa_row": 391,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  },
+  {
+    "cell": null,
+    "code": "F821",
+    "end_location": {
+      "column": 33,
+      "row": 429
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\tickets\\models.py",
+    "fix": null,
+    "location": {
+      "column": 29,
+      "row": 429
+    },
+    "message": "Undefined name `User`",
+    "name": "undefined-name",
+    "noqa_row": 429,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/undefined-name"
+  }
+]

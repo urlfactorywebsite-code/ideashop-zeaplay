@@ -1067,7 +1067,7 @@ def update_ticket(
             ),
         )
 
-    if update_fields:
+    if changes:
         notify_ticket_change(db, ticket=ticket, actor=current_user,
             kind=app_models.NotificationTypeEnum.TICKET_UPDATED, title="Ticket updated",
             message=f"{current_user.name} updated ticket '{ticket.title}'.")

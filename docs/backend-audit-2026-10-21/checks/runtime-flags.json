@@ -1,0 +1,1 @@
+{"environment": "development", "bootstrap_schema": false, "realtime_outbox_enabled": false, "realtime_outbox_categories": [], "smtp_delivery_enabled": true, "jwt_algorithm": "HS256", "storage_provider": "local", "n8n_enabled": false}

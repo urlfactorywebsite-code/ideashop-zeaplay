@@ -1,0 +1,20 @@
+zeaplay-backend-audit-linux
+zeaplay-backend-audit-linux-final
+docker :  Container zeaplay-journey-review-postgres-1 Stopping 
+At line:2 char:211
++ ... leanup.txt; docker compose -p zeaplay-journey-review -f ops\testing\c ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( Container zeap...res-1 Stopping :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ Container zeaplay-journey-review-redis-1 Stopping 
+ Container zeaplay-journey-review-redis-1 Stopped 
+ Container zeaplay-journey-review-redis-1 Removing 
+ Container zeaplay-journey-review-redis-1 Removed 
+ Container zeaplay-journey-review-postgres-1 Stopped 
+ Container zeaplay-journey-review-postgres-1 Removing 
+ Container zeaplay-journey-review-postgres-1 Removed 
+ Network zeaplay-journey-review_default Removing 
+ Network zeaplay-journey-review_default Removed 
+Untagged: zeaplay-backend-audit:2026-10-21
+Deleted: sha256:9bf7a541be12ff6db0bbf7f068a3b14161d94a768b7a95f5a0e0324c940fe088

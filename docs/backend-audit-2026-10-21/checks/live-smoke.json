@@ -1,0 +1,93 @@
+[
+  {
+    "url": "http://127.0.0.1:6311/health",
+    "status": 200,
+    "ms": 1361,
+    "content_type": "application/json",
+    "cache_control": "no-store"
+  },
+  {
+    "url": "http://127.0.0.1:6311/ready",
+    "status": 200,
+    "ms": 205,
+    "content_type": "application/json",
+    "cache_control": "no-store"
+  },
+  {
+    "url": "http://127.0.0.1:6311/openapi.json",
+    "status": 200,
+    "ms": 1502,
+    "content_type": "application/json",
+    "cache_control": "no-store",
+    "paths": 522,
+    "operations": 677
+  },
+  {
+    "url": "http://127.0.0.1:6311/api/auth/me",
+    "status": 401,
+    "ms": 304,
+    "content_type": "application/json",
+    "cache_control": "no-store"
+  },
+  {
+    "url": "http://127.0.0.1:6311/api/tasks",
+    "status": 401,
+    "ms": 358,
+    "content_type": "application/json",
+    "cache_control": "no-store"
+  },
+  {
+    "url": "http://127.0.0.1:6311/api/config/smtp/multiple",
+    "status": 401,
+    "ms": 317,
+    "content_type": "application/json",
+    "cache_control": "no-store"
+  },
+  {
+    "url": "http://127.0.0.1:6311/internal/metrics",
+    "status": 404,
+    "ms": 285,
+    "content_type": "text/plain; version=0.0.4; charset=utf-8",
+    "cache_control": "no-store"
+  },
+  {
+    "url": "http://127.0.0.1:6300/api/health",
+    "status": 200,
+    "ms": 296,
+    "content_type": "application/json",
+    "cache_control": "no-store"
+  },
+  {
+    "url": "http://127.0.0.1:6300/api/ready",
+    "status": 200,
+    "ms": 306,
+    "content_type": "application/json",
+    "cache_control": "no-store"
+  },
+  {
+    "url": "http://127.0.0.1:6312/health",
+    "status": 200,
+    "ms": 233,
+    "content_type": "application/json; charset=utf-8",
+    "cache_control": null
+  },
+  {
+    "url": "http://127.0.0.1:6312/internal/metrics",
+    "status": 404,
+    "ms": 262,
+    "content_type": "text/plain; charset=utf-8",
+    "cache_control": null
+  },
+  {
+    "probe": "cors",
+    "origin": "http://localhost:6300",
+    "status": 200,
+    "allow_origin": "http://localhost:6300"
+  },
+  {
+    "probe": "cors",
+    "origin": "https://untrusted.example",
+    "status": 400,
+    "allow_origin": null
+  }
+]

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="8" time="31.225" timestamp="2026-10-21T02:17:13.709557+05:30" hostname="DESKTOP-3QGSJ16"><testcase classname="test_backend_audit_regressions" name="test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]" time="1.788"><failure message="NameError: name 'update_fields' is not defined">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:22: in test_ticket_update_commits_and_only_notifies_when_changed
+    result = service.update_ticket(db, tenant_id=data.owner.tenant_id, ticket_id=ticket.id,
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:1070: in update_ticket
+    if update_fields:
+       ^^^^^^^^^^^^^
+E   NameError: name 'update_fields' is not defined</failure></testcase><testcase classname="test_backend_audit_regressions" name="test_ticket_update_commits_and_only_notifies_when_changed[sqlite-False]" time="3.474"><failure message="NameError: name 'update_fields' is not defined">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:22: in test_ticket_update_commits_and_only_notifies_when_changed
+    result = service.update_ticket(db, tenant_id=data.owner.tenant_id, ticket_id=ticket.id,
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:1070: in update_ticket
+    if update_fields:
+       ^^^^^^^^^^^^^
+E   NameError: name 'update_fields' is not defined</failure></testcase><testcase classname="test_backend_audit_regressions" name="test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]" time="1.232"><failure message="NameError: name 'update_fields' is not defined">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:22: in test_ticket_update_commits_and_only_notifies_when_changed
+    result = service.update_ticket(db, tenant_id=data.owner.tenant_id, ticket_id=ticket.id,
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:1070: in update_ticket
+    if update_fields:
+       ^^^^^^^^^^^^^
+E   NameError: name 'update_fields' is not defined</failure></testcase><testcase classname="test_backend_audit_regressions" name="test_ticket_update_commits_and_only_notifies_when_changed[postgresql-False]" time="1.183"><failure message="NameError: name 'update_fields' is not defined">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:22: in test_ticket_update_commits_and_only_notifies_when_changed
+    result = service.update_ticket(db, tenant_id=data.owner.tenant_id, ticket_id=ticket.id,
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:1070: in update_ticket
+    if update_fields:
+       ^^^^^^^^^^^^^
+E   NameError: name 'update_fields' is not defined</failure></testcase><testcase classname="test_backend_audit_regressions" name="test_task_backup_preserves_project_reference[sqlite-True]" time="3.080"><failure message="TypeError: 'name' is an invalid keyword argument for Client">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:36: in test_task_backup_preserves_project_reference
+    client = models.Client(tenant_id=data.owner.tenant_id, name="Audit client", normalized_name="audit client")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:4: in __init__
+    ???
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:596: in _initialize_instance
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\util\langhelpers.py:122: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:594: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\decl_base.py:2193: in _declarative_constructor
+    raise TypeError(
+E   TypeError: 'name' is an invalid keyword argument for Client</failure></testcase><testcase classname="test_backend_audit_regressions" name="test_task_backup_preserves_project_reference[sqlite-False]" time="2.163" /><testcase classname="test_backend_audit_regressions" name="test_task_backup_preserves_project_reference[postgresql-True]" time="1.176"><failure message="TypeError: 'name' is an invalid keyword argument for Client">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:36: in test_task_backup_preserves_project_reference
+    client = models.Client(tenant_id=data.owner.tenant_id, name="Audit client", normalized_name="audit client")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:4: in __init__
+    ???
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:596: in _initialize_instance
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\util\langhelpers.py:122: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:594: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\decl_base.py:2193: in _declarative_constructor
+    raise TypeError(
+E   TypeError: 'name' is an invalid keyword argument for Client</failure></testcase><testcase classname="test_backend_audit_regressions" name="test_task_backup_preserves_project_reference[postgresql-False]" time="1.305" /></testsuite></testsuites>

@@ -1,0 +1,895 @@
+........................................................................ [  5%]
+............................s.......ssss....ss......sss.F............... [ 11%]
+..F..................................................................... [ 17%]
+...........................................s.s...s...................... [ 23%]
+...................................................F.................... [ 29%]
+................................................s....................... [ 35%]
+........................................................................ [ 41%]
+.............................................F.......................... [ 47%]
+....................F.......................................ssssss...... [ 53%]
+....s................................................................... [ 59%]
+....s................................................................... [ 65%]
+........................................................................ [ 70%]
+........................................................................ [ 76%]
+............s.................s......................................... [ 82%]
+s..........FF..........................................s.s......sF...... [ 88%]
+........................................................................ [ 94%]
+.....................................sss..........................       [100%]
+================================== FAILURES ===================================
+_ test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-update] _
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_archive_restore_audit.py:179: in test_demotion_during_client_dependency_wait_prevents_project_write
+    else: pytest.fail("Project request did not wait for the dependency lock")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: Project request did not wait for the dependency lock
+_________ test_task_comment_mentions_create_direct_chat_inbox_message _________
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_chat_phase1.py:387: in test_task_comment_mentions_create_direct_chat_inbox_message
+    _bridge_comment_mentions_to_chat(db, task=task, comment=comment, actor=actor)
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\comments.py:123: in _bridge_comment_mentions_to_chat
+    _ensure_comment_access(task, mentioned_user)
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\comments.py:31: in _ensure_comment_access
+    _ensure_task_access(task, user)
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:483: in _ensure_task_access
+    if not _task_belongs_to_user_tenant(task, user):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\task_access.py:15: in task_belongs_to_user_tenant
+    tenant = task.project.tenant_id if task.project else task.creator.tenant_id if task.creator else None
+                                       ^^^^^^^^^^^^
+E   AttributeError: 'types.SimpleNamespace' object has no attribute 'project'
+________________ test_production_rejects_default_signing_keys _________________
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_oauth_refinement.py:86: in test_production_rejects_default_signing_keys
+    with pytest.raises(ValueError, match='JWT'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'JWT'
+E     Actual message: '1 validation error for Settings\n  Value error, Production CORS origins must be explicit HTTPS origins [type=value_error]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error'
+_ test_preferences_include_chat_reject_duplicates_and_isolate_accounts[sqlite] _
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_push_management.py:338: in test_preferences_include_chat_reject_duplicates_and_isolate_accounts
+    assert len(data.client.get("/notification/preferences", headers=headers).json()) == 6
+E   AssertionError: assert 9 == 6
+E    +  where 9 = len([{'module': 'tasks', 'push_enabled': True, 'updated_at': None}, {'module': 'projects', 'push_enabled': True, 'updated_...', 'push_enabled': True, 'updated_at': None}, {'module': 'departments', 'push_enabled': True, 'updated_at': None}, ...])
+E    +    where [{'module': 'tasks', 'push_enabled': True, 'updated_at': None}, {'module': 'projects', 'push_enabled': True, 'updated_...', 'push_enabled': True, 'updated_at': None}, {'module': 'departments', 'push_enabled': True, 'updated_at': None}, ...] = json()
+E    +      where json = <Response [200 OK]>.json
+E    +        where <Response [200 OK]> = get('/notification/preferences', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYTc4NWEzOGUtM2IxYi00M2I5LTgwYzUtY2Q5Yjl...mY2EtZGRhZi00MTQ5LTg0NjItMWUyMDQwMWIwY2VhIiwidG9rZW5fdHlwZSI6ImFjY2VzcyJ9.shoFm7BOFwsNplYBJBGdaKPenxpF060NFFgCetgQb8s'})
+E    +          where get = <starlette.testclient.TestClient object at 0x000001931535D480>.get
+E    +            where <starlette.testclient.TestClient object at 0x000001931535D480> = namespace(factory=sessionmaker(class_='Session', bind=Engine(sqlite:///C:/Users/Lenovo/AppData/Local/Temp/pytest-of-Le... 'auth': 'E2mP5J9OuPkS8flaOxo3Mg'}, 'device_label': 'Test browser', 'user_agent': 'Synthetic audit browser'}, calls=[]).client
+_ test_preferences_include_chat_reject_duplicates_and_isolate_accounts[postgresql] _
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_push_management.py:338: in test_preferences_include_chat_reject_duplicates_and_isolate_accounts
+    assert len(data.client.get("/notification/preferences", headers=headers).json()) == 6
+E   AssertionError: assert 9 == 6
+E    +  where 9 = len([{'module': 'tasks', 'push_enabled': True, 'updated_at': None}, {'module': 'projects', 'push_enabled': True, 'updated_...', 'push_enabled': True, 'updated_at': None}, {'module': 'departments', 'push_enabled': True, 'updated_at': None}, ...])
+E    +    where [{'module': 'tasks', 'push_enabled': True, 'updated_at': None}, {'module': 'projects', 'push_enabled': True, 'updated_...', 'push_enabled': True, 'updated_at': None}, {'module': 'departments', 'push_enabled': True, 'updated_at': None}, ...] = json()
+E    +      where json = <Response [200 OK]>.json
+E    +        where <Response [200 OK]> = get('/notification/preferences', headers={'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzgxNzU1ODItMDE0Ny00MGU1LThjZDgtNThmMDY...mMDQtMzU0Ni00OTBlLWFlMmMtYmI3OGE4ZDAwYjE4IiwidG9rZW5fdHlwZSI6ImFjY2VzcyJ9._B9o3WwUNV-Y-sZxi8mZWkH-iszc2yjzvFEtEY5Z1R4'})
+E    +          where get = <starlette.testclient.TestClient object at 0x0000019315C72360>.get
+E    +            where <starlette.testclient.TestClient object at 0x0000019315C72360> = namespace(factory=sessionmaker(class_='Session', bind=Engine(postgresql+psycopg2://rt_test@127.0.0.1:56415/zeaplay_rt3... 'auth': 'qviXGjj1Z52j4oEuuOBrOw'}, 'device_label': 'Test browser', 'user_agent': 'Synthetic audit browser'}, calls=[]).client
+_ test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[sqlite] _
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_lifecycle.py:433: in test_migration_preserves_legacy_values_and_refuses_destructive_downgrade
+    migration = import_module("backend.alembic.versions.fd5e6f7a8b9c_task_lifecycle_history")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1398: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1342: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:938: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:759: in exec_module
+    ???
+<frozen importlib._bootstrap>:491: in _call_with_frames_removed
+    ???
+F:\Projects\ideashop-zeaplay-v5\backend\alembic\versions\fd5e6f7a8b9c_task_lifecycle_history.py:10: in <module>
+    from app.lifecycle.schema_v1 import install, uninstall
+E   ModuleNotFoundError: No module named 'app.lifecycle'
+_ test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql] _
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_lifecycle.py:433: in test_migration_preserves_legacy_values_and_refuses_destructive_downgrade
+    migration = import_module("backend.alembic.versions.fd5e6f7a8b9c_task_lifecycle_history")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1398: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1342: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:938: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:759: in exec_module
+    ???
+<frozen importlib._bootstrap>:491: in _call_with_frames_removed
+    ???
+F:\Projects\ideashop-zeaplay-v5\backend\alembic\versions\fd5e6f7a8b9c_task_lifecycle_history.py:10: in <module>
+    from app.lifecycle.schema_v1 import install, uninstall
+E   ModuleNotFoundError: No module named 'app.lifecycle'
+___ test_empty_history_downgrade_serializes_against_new_writes[postgresql] ____
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_lifecycle_review.py:432: in test_empty_history_downgrade_serializes_against_new_writes
+    migration = import_module("backend.alembic.versions.fd5e6f7a8b9c_task_lifecycle_history")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap>:1398: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1371: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:1342: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:938: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:759: in exec_module
+    ???
+<frozen importlib._bootstrap>:491: in _call_with_frames_removed
+    ???
+F:\Projects\ideashop-zeaplay-v5\backend\alembic\versions\fd5e6f7a8b9c_task_lifecycle_history.py:10: in <module>
+    from app.lifecycle.schema_v1 import install, uninstall
+E   ModuleNotFoundError: No module named 'app.lifecycle'
+============================== warnings summary ===============================
+F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704
+  F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704: SADeprecationWarning: User-placed attribute Level.created_by on Mapper[Level(levels)] is replacing an existing ORM-mapped attribute.  Behavior is not fully defined in this case.  This use is deprecated and will raise an error in a future release
+    Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192
+  F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FeatureFlagRead(FeatureFlagBase):
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+test_active_work.py: 176 warnings
+test_advanced_reporting_time.py: 280 warnings
+test_archive_restore.py: 819 warnings
+test_archive_restore_audit.py: 631 warnings
+test_chat_phase1.py: 412 warnings
+test_clients_phase2.py: 54 warnings
+test_contacts_phase3.py: 130 warnings
+test_entity_notifications.py: 394 warnings
+test_gamification_phase12.py: 150 warnings
+test_generate_token.py: 4 warnings
+test_notification_realtime.py: 356 warnings
+test_notification_schema.py: 16 warnings
+test_oauth2_server.py: 408 warnings
+test_oauth_refinement.py: 224 warnings
+test_password_recovery.py: 430 warnings
+test_projects_phase4.py: 879 warnings
+test_push_dispatch.py: 646 warnings
+test_push_management.py: 754 warnings
+test_realtime_phase3.py: 36 warnings
+test_realtime_processes.py: 84 warnings
+test_realtime_refinement.py: 40 warnings
+test_reporting_exports.py: 958 warnings
+test_reporting_frontend_contract.py: 68 warnings
+test_reporting_inventory.py: 3544 warnings
+test_security_phase13.py: 87 warnings
+test_smtp_management.py: 476 warnings
+test_smtp_refinement.py: 354 warnings
+test_subtask_handoff_regression.py: 472 warnings
+test_task_creation_badges.py: 158 warnings
+test_task_execution_report.py: 272 warnings
+test_task_journey_migrations.py: 3 warnings
+test_task_journey_readiness.py: 180 warnings
+test_task_lifecycle.py: 240 warnings
+test_task_lifecycle_review.py: 532 warnings
+test_task_list.py: 24 warnings
+test_task_status_notifications.py: 248 warnings
+test_tasks_phase10.py: 140 warnings
+test_tasks_phase11.py: 343 warnings
+test_tasks_phase5.py: 223 warnings
+test_tasks_phase6.py: 188 warnings
+test_tasks_phase7.py: 205 warnings
+test_tasks_phase8.py: 248 warnings
+test_tasks_phase9.py: 356 warnings
+test_ticket_tenant_permissions.py: 16 warnings
+test_timer_refinement.py: 243 warnings
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+test_active_work.py::test_waiting_force_start_terminal_parent_and_assignment[sqlite]
+test_active_work.py::test_waiting_force_start_terminal_parent_and_assignment[postgresql]
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_active_work.py:138: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    subtask_workflow.transition_subtask(db, db.get(models.Task, data.task.id), subtask_id=child.id,
+
+test_archive_restore.py: 24 warnings
+test_archive_restore_audit.py: 6 warnings
+test_clients_phase2.py: 2 warnings
+test_contacts_phase3.py: 1 warning
+test_entity_notifications.py: 2 warnings
+test_projects_phase4.py: 1 warning
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\clients.py:287: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    client.archived_at = datetime.utcnow()
+
+test_archive_restore.py: 21 warnings
+test_archive_restore_audit.py: 5 warnings
+test_entity_notifications.py: 2 warnings
+test_projects_phase4.py: 1 warning
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\projects.py:495: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    project.archived_at = datetime.utcnow()
+
+test_chat_phase1.py: 32 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_chat_phase1.py:142: SAWarning: Can't sort tables for DROP; an unresolvable foreign key dependency exists between tables: avatar_assets, users; and backend does not support ALTER.  To restore at least a partial sort, apply use_alter=True to ForeignKey and ForeignKeyConstraint objects involved in the cycle to mark these as known cycles that will be ignored.
+    Base.metadata.drop_all(bind=engine, tables=list(reversed(CHAT_TEST_TABLES)))
+
+test_chat_phase1.py: 31 warnings
+test_cors_errors.py: 1 warning
+test_task_list.py: 1 warning
+  F:\Projects\ideashop-zeaplay-v5\backend\app\webhooks\dispatcher.py:37: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+test_chat_phase1.py: 33 warnings
+test_gamification_phase12.py: 12 warnings
+test_security_phase13.py: 15 warnings
+test_smtp_management.py: 2 warnings
+test_task_list.py: 1 warning
+test_tasks_phase6.py: 10 warnings
+test_tasks_phase8.py: 42 warnings
+test_tasks_phase9.py: 56 warnings
+test_ticket_tenant_permissions.py: 4 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\webhooks\payloads.py:88: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "timestamp": datetime.utcnow().isoformat(),
+
+test_chat_phase1.py::test_space_requires_non_blank_name
+  F:\Projects\ideashop-zeaplay-v5\backend\app\chat\router.py:47: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    return ConversationService(db).create_conversation(payload, current_user)
+
+test_chat_phase1.py::test_regular_user_cross_tenant_member_rejected
+test_chat_phase1.py::test_deactivated_user_cannot_be_new_direct_group_or_space_member
+  F:\Projects\ideashop-zeaplay-v5\backend\app\chat\services.py:224: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    users = self.permissions.validate_chat_eligible_users(member_ids, user)
+
+test_chat_phase1.py: 9 warnings
+test_realtime_phase3.py: 3 warnings
+test_realtime_refinement.py: 10 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\ws\chat.py:93: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "last_seen": datetime.utcnow().isoformat(),
+
+test_chat_phase1.py: 11 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\chat\services.py:552: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+test_chat_phase1.py: 8 warnings
+test_entity_notifications.py: 32 warnings
+test_gamification_phase12.py: 4 warnings
+test_notification_realtime.py: 4 warnings
+test_notification_schema.py: 2 warnings
+test_push_dispatch.py: 18 warnings
+test_smtp_management.py: 2 warnings
+test_subtask_handoff_regression.py: 107 warnings
+test_task_status_notifications.py: 4 warnings
+test_tasks_phase10.py: 24 warnings
+test_tasks_phase6.py: 10 warnings
+test_tasks_phase9.py: 56 warnings
+test_ticket_tenant_permissions.py: 2 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\notification_dispatcher.py:459: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "created_at": datetime.utcnow(),
+
+test_chat_phase1.py: 17 warnings
+test_cors_errors.py: 1 warning
+test_entity_notifications.py: 174 warnings
+test_gamification_phase12.py: 31 warnings
+test_generate_token.py: 4 warnings
+test_notification_realtime.py: 36 warnings
+test_notification_schema.py: 1 warning
+test_oauth2_server.py: 2 warnings
+test_password_recovery.py: 44 warnings
+test_push_dispatch.py: 54 warnings
+test_security_phase13.py: 32 warnings
+test_smtp_management.py: 26 warnings
+test_smtp_refinement.py: 24 warnings
+test_subtask_handoff_regression.py: 147 warnings
+test_task_creation_badges.py: 26 warnings
+test_task_list.py: 2 warnings
+test_task_status_notifications.py: 106 warnings
+test_tasks_phase10.py: 50 warnings
+test_tasks_phase11.py: 6 warnings
+test_tasks_phase5.py: 19 warnings
+test_tasks_phase6.py: 30 warnings
+test_tasks_phase7.py: 10 warnings
+test_tasks_phase8.py: 84 warnings
+test_tasks_phase9.py: 127 warnings
+test_ticket_tenant_permissions.py: 12 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\audit_logger.py:23: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+test_chat_phase1.py: 9 warnings
+test_realtime_phase3.py: 1 warning
+test_realtime_refinement.py: 10 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\ws\chat.py:130: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "last_seen": datetime.utcnow().isoformat(),
+
+test_chat_phase1.py::test_message_persistence_edit_delete_and_pagination
+  F:\Projects\ideashop-zeaplay-v5\backend\app\chat\services.py:611: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    message.edited_at = datetime.utcnow()
+
+test_chat_phase1.py::test_message_persistence_edit_delete_and_pagination
+  F:\Projects\ideashop-zeaplay-v5\backend\app\chat\services.py:629: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    message.deleted_at = datetime.utcnow()
+
+test_chat_phase1.py::test_read_markers_reactions_and_attachment_metadata
+test_chat_phase1.py::test_websocket_auth_join_send_typing_read_and_reaction
+  F:\Projects\ideashop-zeaplay-v5\backend\app\chat\services.py:454: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    read_at = datetime.utcnow()
+
+test_chat_phase1.py::test_websocket_auth_join_send_typing_read_and_reaction
+test_chat_phase1.py::test_websocket_two_sessions_receive_once_and_client_id_is_idempotent
+test_chat_phase1.py::test_websocket_two_sessions_receive_once_and_client_id_is_idempotent
+  F:\Projects\ideashop-zeaplay-v5\backend\app\ws\chat.py:437: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    started_at = datetime.utcnow()
+
+test_chat_phase1.py::test_websocket_auth_join_send_typing_read_and_reaction
+test_chat_phase1.py::test_websocket_two_sessions_receive_once_and_client_id_is_idempotent
+test_chat_phase1.py::test_websocket_two_sessions_receive_once_and_client_id_is_idempotent
+  F:\Projects\ideashop-zeaplay-v5\backend\app\ws\chat.py:457: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    latency_ms = int((datetime.utcnow() - started_at).total_seconds() * 1000)
+
+test_clients_phase2.py::test_client_pagination_search_sorting_and_status_filter
+test_tasks_phase5.py::test_normal_task_creation_requires_project_and_preserves_legacy_null_project_tasks
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\anyio\_backends\_asyncio.py:1033: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    result = context.run(func, *args)
+
+test_contacts_phase3.py::test_contact_validation_duplicates_pagination_and_archive_recreate
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\contacts.py:381: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    contact.archived_at = datetime.utcnow()
+
+test_entity_notifications.py: 136 warnings
+test_notification_realtime.py: 32 warnings
+test_push_dispatch.py: 36 warnings
+test_security_phase13.py: 15 warnings
+test_subtask_handoff_regression.py: 36 warnings
+test_task_creation_badges.py: 14 warnings
+test_task_status_notifications.py: 44 warnings
+test_tasks_phase10.py: 14 warnings
+test_tasks_phase8.py: 28 warnings
+test_ticket_tenant_permissions.py: 2 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\notification_dispatcher.py:507: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+test_entity_notifications.py: 10 warnings
+test_smtp_management.py: 2 warnings
+test_ticket_tenant_permissions.py: 2 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\notifications\service.py:70: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+test_entity_notifications.py::test_ticket_status_transfer_and_delete_notify_only_authorized_active_users[sqlite]
+test_entity_notifications.py::test_ticket_status_transfer_and_delete_notify_only_authorized_active_users[sqlite]
+test_entity_notifications.py::test_ticket_status_transfer_and_delete_notify_only_authorized_active_users[sqlite]
+test_entity_notifications.py::test_ticket_status_transfer_and_delete_notify_only_authorized_active_users[postgresql]
+test_entity_notifications.py::test_ticket_status_transfer_and_delete_notify_only_authorized_active_users[postgresql]
+test_entity_notifications.py::test_ticket_status_transfer_and_delete_notify_only_authorized_active_users[postgresql]
+test_ticket_tenant_permissions.py::test_ticket_permissions_close_reopen_delete
+test_ticket_tenant_permissions.py::test_ticket_permissions_close_reopen_delete
+test_ticket_tenant_permissions.py::test_ticket_permissions_close_reopen_delete
+  F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\workflow_service.py:55: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+test_entity_notifications.py: 20 warnings
+test_ticket_tenant_permissions.py: 6 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:57: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+test_entity_notifications.py: 16 warnings
+test_smtp_management.py: 4 warnings
+test_ticket_tenant_permissions.py: 4 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\events\bus.py:22: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+test_entity_notifications.py::test_management_events_include_managers_and_only_target_user_gets_own_account_update[sqlite]
+test_entity_notifications.py::test_management_events_include_managers_and_only_target_user_gets_own_account_update[postgresql]
+test_password_recovery.py::test_password_changes_invalidate_issued_links_and_preserve_actor_audit[sqlite-profile]
+test_password_recovery.py::test_password_changes_invalidate_issued_links_and_preserve_actor_audit[postgresql-profile]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\users.py:367: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+test_gamification_phase12.py::test_task_creation_completion_clarity_and_reopen_do_not_duplicate_xp
+test_gamification_phase12.py::test_completion_badge_bonus_does_not_progress_from_duplicate_recompletion
+test_gamification_phase12.py::test_partial_subtask_completion_does_not_award_task_completion_xp
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_gamification_phase12.py:107: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "due_at": (datetime.utcnow() + timedelta(days=1)).isoformat(),
+
+test_gamification_phase12.py: 3 warnings
+test_task_creation_badges.py: 12 warnings
+test_task_status_notifications.py: 2 warnings
+test_tasks_phase11.py: 4 warnings
+test_tasks_phase5.py: 6 warnings
+test_tasks_phase6.py: 1 warning
+test_tasks_phase8.py: 14 warnings
+test_tasks_phase9.py: 15 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:1735: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    assigned_at=datetime.utcnow() if assignee_id else None,
+
+test_gamification_phase12.py: 3 warnings
+test_subtask_handoff_regression.py: 2 warnings
+test_task_creation_badges.py: 6 warnings
+test_task_list.py: 1 warning
+test_task_status_notifications.py: 2 warnings
+test_tasks_phase10.py: 7 warnings
+test_tasks_phase11.py: 4 warnings
+test_tasks_phase5.py: 15 warnings
+test_tasks_phase6.py: 10 warnings
+test_tasks_phase7.py: 10 warnings
+test_tasks_phase8.py: 14 warnings
+test_tasks_phase9.py: 15 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:1784: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+test_gamification_phase12.py::test_task_creation_completion_clarity_and_reopen_do_not_duplicate_xp
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\gamification.py:210: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    locked_task.clarity_xp_awarded_at = datetime.utcnow()
+
+test_gamification_phase12.py::test_task_creation_completion_clarity_and_reopen_do_not_duplicate_xp
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\badge_engine.py:164: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    occurred_at = event.occurred_at or datetime.utcnow()
+
+test_gamification_phase12.py: 4 warnings
+test_subtask_handoff_regression.py: 2 warnings
+test_task_status_notifications.py: 52 warnings
+test_tasks_phase5.py: 2 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:2776: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+test_gamification_phase12.py: 6 warnings
+test_task_status_notifications.py: 4 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:2954: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+test_gamification_phase12.py: 6 warnings
+test_subtask_handoff_regression.py: 8 warnings
+test_task_status_notifications.py: 4 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\gamification.py:172: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    locked_task.completion_xp_awarded_at = datetime.utcnow()
+
+test_gamification_phase12.py::test_completion_award_service_is_idempotent_under_concurrent_callbacks
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_gamification_phase12.py:202: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    due_at=datetime.utcnow() + timedelta(days=1),
+
+test_gamification_phase12.py::test_completion_award_service_is_idempotent_under_concurrent_callbacks
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_gamification_phase12.py:203: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    completed_at=datetime.utcnow(),
+
+test_gamification_phase12.py::test_completion_timing_and_missing_points_config_use_phase1_defaults
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_gamification_phase12.py:237: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    due_at = datetime.utcnow() + timedelta(days=1)
+
+test_gamification_phase12.py: 1 warning
+test_notification_schema.py: 1 warning
+test_subtask_handoff_regression.py: 26 warnings
+test_task_status_notifications.py: 4 warnings
+test_tasks_phase10.py: 9 warnings
+test_tasks_phase7.py: 11 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:3506: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+test_gamification_phase12.py: 2 warnings
+test_tasks_phase10.py: 15 warnings
+test_tasks_phase6.py: 5 warnings
+test_tasks_phase7.py: 15 warnings
+test_tasks_phase9.py: 22 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\subtask_workflow.py:624: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "occurred_at": datetime.utcnow().isoformat(),
+
+test_generate_token.py::test_generate_token_allows_access
+test_generate_token.py::test_websocket_ticket_is_short_lived_and_scoped
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_generate_token.py:35: SAWarning: Can't sort tables for DROP; an unresolvable foreign key dependency exists between tables: avatar_assets, users; and backend does not support ALTER.  To restore at least a partial sort, apply use_alter=True to ForeignKey and ForeignKeyConstraint objects involved in the cycle to mark these as known cycles that will be ignored.
+    Base.metadata.drop_all(bind=engine)
+
+test_oauth_refinement.py::test_public_browser_can_read_scoped_resources_without_cookie_cors[sqlite]
+test_oauth_refinement.py::test_public_browser_can_read_scoped_resources_without_cookie_cors[postgresql]
+test_security_phase13.py::test_phase13_adversarial_legacy_task_idor_and_group_bola_are_tenant_scoped
+test_subtask_handoff_regression.py::test_approver_can_read_and_list_but_cannot_edit_task[sqlite]
+test_subtask_handoff_regression.py::test_approver_can_read_and_list_but_cannot_edit_task[postgresql]
+test_task_journey_readiness.py::test_legacy_list_does_not_reuse_pre_hardening_metadata_cache[sqlite]
+test_task_journey_readiness.py::test_legacy_list_does_not_reuse_pre_hardening_metadata_cache[postgresql]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:875: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+test_projects_phase4.py::test_project_manager_requirement_duplicates_and_archive_preserve_memberships
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\projects.py:326: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    membership = _membership_payload(
+
+test_projects_phase4.py::test_project_manager_requirement_duplicates_and_archive_preserve_memberships
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\projects.py:454: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    membership = _membership_payload(manager_ids=payload.manager_ids, member_ids=payload.member_ids, actor=actor)
+
+test_realtime_phase3.py::test_retry_exhaustion_blocks_only_its_aggregate_and_restart_reuses_id
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_realtime_phase3.py:77: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    assert row.next_attempt_at > datetime.utcnow()
+
+test_realtime_phase3.py::test_retry_exhaustion_blocks_only_its_aggregate_and_restart_reuses_id
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_realtime_phase3.py:79: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    row.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+test_realtime_phase3.py::test_relay_crash_window_duplicate_is_stable_and_pruning_is_bounded
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_realtime_phase3.py:99: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    row.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+test_realtime_phase3.py::test_relay_crash_window_duplicate_is_stable_and_pruning_is_bounded
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_realtime_phase3.py:104: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    row.published_at = datetime.utcnow() - timedelta(days=30)
+
+test_security_phase13.py::test_phase13_security_headers_and_request_size_limit
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\httpx\_models.py:408: DeprecationWarning: Use 'content=<...>' to upload raw bytes/text content.
+    headers, stream = encode_request(
+
+test_security_phase13.py::test_phase13_adversarial_notification_idor_and_bulk_audit_are_recipient_scoped
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\notifications.py:174: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+test_smtp_refinement.py::test_system_reset_otp_uses_only_the_owners_explicit_otp_profile[sqlite]
+test_smtp_refinement.py::test_system_reset_otp_uses_only_the_owners_explicit_otp_profile[sqlite]
+test_smtp_refinement.py::test_system_reset_otp_uses_only_the_owners_explicit_otp_profile[postgresql]
+test_smtp_refinement.py::test_system_reset_otp_uses_only_the_owners_explicit_otp_profile[postgresql]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\data_admin.py:708: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expires_at = datetime.utcnow() + timedelta(minutes=OTP_EXPIRATION_MINUTES)
+
+test_smtp_refinement.py::test_system_reset_otp_uses_only_the_owners_explicit_otp_profile[sqlite]
+test_smtp_refinement.py::test_system_reset_otp_uses_only_the_owners_explicit_otp_profile[postgresql]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\data_admin.py:722: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+test_smtp_refinement.py::test_system_reset_otp_uses_only_the_owners_explicit_otp_profile[sqlite]
+test_smtp_refinement.py::test_system_reset_otp_uses_only_the_owners_explicit_otp_profile[postgresql]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\data_admin.py:715: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    token.created_at = datetime.utcnow()
+
+test_smtp_refinement.py::test_user_creation_welcome_notification_remains_durable_without_inline_smtp[sqlite]
+test_smtp_refinement.py::test_user_creation_welcome_notification_remains_durable_without_inline_smtp[postgresql]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\users.py:259: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+test_subtask_handoff_regression.py: 10 warnings
+test_task_status_notifications.py: 2 warnings
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\subtask_workflow.py:401: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    task.completed_at = datetime.utcnow()
+
+test_subtask_handoff_regression.py::test_create_with_completed_children_initializes_completed_parent[sqlite]
+test_subtask_handoff_regression.py::test_create_with_completed_children_initializes_completed_parent[postgresql]
+test_tasks_phase5.py::test_all_backend_task_statuses_and_recurring_metadata_are_supported_with_project_tasks
+test_tasks_phase5.py::test_all_backend_task_statuses_and_recurring_metadata_are_supported_with_project_tasks
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:1749: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    task.completed_at = datetime.utcnow()
+
+test_subtask_handoff_regression.py::test_handoff_names_actor_for_direct_completion_and_submitter_for_approval[sqlite]
+test_subtask_handoff_regression.py::test_handoff_names_actor_for_direct_completion_and_submitter_for_approval[postgresql]
+test_subtask_handoff_regression.py::test_subtask_and_parent_approval_are_preserved[sqlite]
+test_subtask_handoff_regression.py::test_subtask_and_parent_approval_are_preserved[postgresql]
+test_tasks_phase9.py::test_approval_required_submission_waits_for_review_and_approval_activates_dependents
+test_tasks_phase9.py::test_approval_race_does_not_duplicate_completion_or_activation_history
+test_tasks_phase9.py::test_approval_race_does_not_duplicate_completion_or_activation_history
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:3794: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    reviewed_at = datetime.utcnow()
+
+test_task_status_notifications.py::test_every_status_notifies_self_once_and_same_status_is_silent[sqlite]
+test_task_status_notifications.py::test_every_status_notifies_self_once_and_same_status_is_silent[postgresql]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:2705: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    task.completed_at = datetime.utcnow()
+
+test_task_status_notifications.py::test_assigning_an_existing_task_to_self_notifies_once[sqlite]
+test_task_status_notifications.py::test_assigning_an_existing_task_to_self_notifies_once[postgresql]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:2534: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    task.assigned_at = datetime.utcnow()
+
+test_tasks_phase10.py::test_email_retry_failure_does_not_undo_completed_workflow
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_tasks_phase10.py:139: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    failed.next_attempt_at = datetime.utcnow() - timedelta(seconds=1)
+
+test_tasks_phase10.py::test_stale_sending_rows_are_held_without_blind_resend
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_tasks_phase10.py:193: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    outbox.updated_at = datetime.utcnow() - timedelta(seconds=notification_outbox.STALE_SENDING_SECONDS + 1)
+
+test_tasks_phase10.py::test_notification_apis_are_recipient_and_tenant_scoped
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\notifications.py:213: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+test_tasks_phase11.py::test_project_task_dashboard_rolls_up_dependencies_timers_and_status_contract
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_tasks_phase11.py:115: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    started_at=datetime.utcnow() - timedelta(hours=2),
+
+test_tasks_phase11.py::test_project_task_dashboard_rolls_up_dependencies_timers_and_status_contract
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_tasks_phase11.py:116: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    stopped_at=datetime.utcnow() - timedelta(hours=1),
+
+test_tasks_phase11.py::test_project_task_dashboard_rolls_up_dependencies_timers_and_status_contract
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_tasks_phase11.py:125: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    started_at=datetime.utcnow() - timedelta(minutes=30),
+
+test_tasks_phase11.py::test_project_task_status_override_is_authorized_audited_and_does_not_award_xp
+test_tasks_phase11.py::test_manual_done_override_does_not_create_premature_derived_done_or_xp
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\project_dashboard.py:357: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    task.updated_at = datetime.utcnow()
+
+test_tasks_phase11.py::test_project_task_dashboard_filters_and_tenant_visibility
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\projects.py:107: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    status_filter=_parse_task_status(status_filter),
+
+test_tasks_phase11.py::test_project_task_dashboard_timer_totals_and_active_users_are_consistent
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_tasks_phase11.py:687: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    started_at=datetime.utcnow() - timedelta(hours=4),
+
+test_tasks_phase11.py::test_project_task_dashboard_timer_totals_and_active_users_are_consistent
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_tasks_phase11.py:688: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    stopped_at=datetime.utcnow() - timedelta(hours=3),
+
+test_tasks_phase11.py::test_project_task_dashboard_timer_totals_and_active_users_are_consistent
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_tasks_phase11.py:695: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    started_at=datetime.utcnow() - timedelta(hours=2),
+
+test_tasks_phase11.py::test_project_task_dashboard_timer_totals_and_active_users_are_consistent
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_tasks_phase11.py:696: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    stopped_at=datetime.utcnow() - timedelta(hours=1, minutes=30),
+
+test_tasks_phase11.py::test_project_task_dashboard_timer_totals_and_active_users_are_consistent
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_tasks_phase11.py:703: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    started_at=datetime.utcnow() - timedelta(minutes=10),
+
+test_tasks_phase5.py::test_project_task_creation_filters_and_project_assignee_membership
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:1711: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    _ensure_project_assignee_allowed(project, user_id)
+
+test_tasks_phase5.py::test_project_reassignment_and_transfer_respect_project_membership_policy
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:2530: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    _ensure_project_assignee_allowed(effective_project, assignee.id)
+
+test_tasks_phase5.py::test_project_reassignment_and_transfer_respect_project_membership_policy
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:1002: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+test_tasks_phase5.py::test_project_reassignment_and_transfer_respect_project_membership_policy
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:1005: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    _ensure_project_assignee_allowed(task.project, to_user.id)
+
+test_tasks_phase6.py::test_subtask_assignment_rejects_cross_tenant_and_non_project_members
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:463: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    _ensure_project_assignee_allowed(task.project, assignee.id)
+
+test_tasks_phase7.py::test_assigned_user_force_start_requires_reason_and_records_blocked_predecessors
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:3496: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    workflow_result = subtask_workflow.transition_subtask(
+
+test_tasks_phase8.py::test_start_rejects_invalid_targets_and_allows_independent_timers
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\time_tracking.py:305: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    task, subtask = _resolve_target(db, actor, task_id=payload.task_id, subtask_id=payload.subtask_id)
+
+test_tasks_phase9.py::test_completion_description_word_count_is_server_enforced
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:3681: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    cleaned_description, word_count = subtask_completion.normalize_description(description)
+
+test_tasks_phase9.py::test_rejection_requires_reason_and_preserves_submission_history
+test_tasks_phase9.py::test_duplicate_submission_rejection_resubmission_and_history_preservation
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:3868: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    reviewed_at = datetime.utcnow()
+
+test_tasks_phase9.py::test_upload_security_accepts_private_pdf_and_rejects_mismatched_content
+test_tasks_phase9.py::test_upload_security_rejects_oversize_forged_unsupported_and_sanitizes_filename
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\subtask_completion.py:217: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    mime_type = _validate_content(original_filename, declared_mime, data)
+
+test_tasks_phase9.py::test_upload_security_rejects_oversize_forged_unsupported_and_sanitizes_filename
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:3730: StarletteDeprecationWarning: 'HTTP_413_REQUEST_ENTITY_TOO_LARGE' is deprecated. Use 'HTTP_413_CONTENT_TOO_LARGE' instead.
+    stored_attachments = subtask_completion.store_attachments(
+
+test_ticket_tenant_permissions.py::test_ticket_tenant_isolation
+test_ticket_tenant_permissions.py::test_ticket_websocket_rejects_cross_tenant_access
+test_ticket_tenant_permissions.py::test_ticket_permissions_close_reopen_delete
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_ticket_tenant_permissions.py:43: SAWarning: Can't sort tables for DROP; an unresolvable foreign key dependency exists between tables: avatar_assets, users; and backend does not support ALTER.  To restore at least a partial sort, apply use_alter=True to ForeignKey and ForeignKeyConstraint objects involved in the cycle to mark these as known cycles that will be ignored.
+    Base.metadata.drop_all(bind=engine)
+
+test_ticket_tenant_permissions.py::test_ticket_tenant_isolation
+test_ticket_tenant_permissions.py::test_ticket_websocket_rejects_cross_tenant_access
+test_ticket_tenant_permissions.py::test_ticket_permissions_close_reopen_delete
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_ticket_tenant_permissions.py:85: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+test_ticket_tenant_permissions.py::test_ticket_permissions_close_reopen_delete
+  F:\Projects\ideashop-zeaplay-v5\backend\tests\test_ticket_tenant_permissions.py:171: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.14.3-final-0 _______________
+
+Name                                                                                 Stmts   Miss  Cover
+--------------------------------------------------------------------------------------------------------
+F:\Projects\ideashop-zeaplay-v5\backend\app\auth.py                                     43      1    98%
+F:\Projects\ideashop-zeaplay-v5\backend\app\avatar_utils.py                             83     61    27%
+F:\Projects\ideashop-zeaplay-v5\backend\app\cache.py                                    63     13    79%
+F:\Projects\ideashop-zeaplay-v5\backend\app\chat\permissions.py                         48      8    83%
+F:\Projects\ideashop-zeaplay-v5\backend\app\chat\realtime.py                            35      2    94%
+F:\Projects\ideashop-zeaplay-v5\backend\app\chat\repositories.py                       121     13    89%
+F:\Projects\ideashop-zeaplay-v5\backend\app\chat\router.py                              90      7    92%
+F:\Projects\ideashop-zeaplay-v5\backend\app\chat\schema.py                              92     81    12%
+F:\Projects\ideashop-zeaplay-v5\backend\app\chat\services.py                           520    108    79%
+F:\Projects\ideashop-zeaplay-v5\backend\app\config.py                                  117      4    97%
+F:\Projects\ideashop-zeaplay-v5\backend\app\database.py                                 81     55    32%
+F:\Projects\ideashop-zeaplay-v5\backend\app\dependencies.py                             97     15    85%
+F:\Projects\ideashop-zeaplay-v5\backend\app\email_utils.py                              43      6    86%
+F:\Projects\ideashop-zeaplay-v5\backend\app\emails\smtp.py                              32      2    94%
+F:\Projects\ideashop-zeaplay-v5\backend\app\events\bus.py                               89     14    84%
+F:\Projects\ideashop-zeaplay-v5\backend\app\integrations.py                             21      7    67%
+F:\Projects\ideashop-zeaplay-v5\backend\app\lifecycle\analytics.py                      49      1    98%
+F:\Projects\ideashop-zeaplay-v5\backend\app\lifecycle\bootstrap.py                      44      9    80%
+F:\Projects\ideashop-zeaplay-v5\backend\app\lifecycle\report.py                         88      1    99%
+F:\Projects\ideashop-zeaplay-v5\backend\app\lifecycle\report_evidence.py               227     19    92%
+F:\Projects\ideashop-zeaplay-v5\backend\app\lifecycle\schema_v1.py                      95      4    96%
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py                                    552    341    38%
+F:\Projects\ideashop-zeaplay-v5\backend\app\metrics_launcher.py                         15     15     0%
+F:\Projects\ideashop-zeaplay-v5\backend\app\notifications\service.py                    82     13    84%
+F:\Projects\ideashop-zeaplay-v5\backend\app\notifiers\__init__.py                        6      1    83%
+F:\Projects\ideashop-zeaplay-v5\backend\app\notifiers\webex.py                          16      7    56%
+F:\Projects\ideashop-zeaplay-v5\backend\app\oauth_schemas.py                            57      7    88%
+F:\Projects\ideashop-zeaplay-v5\backend\app\observability.py                           238     87    63%
+F:\Projects\ideashop-zeaplay-v5\backend\app\rate_limit.py                               61     28    54%
+F:\Projects\ideashop-zeaplay-v5\backend\app\realtime\capture.py                         90      5    94%
+F:\Projects\ideashop-zeaplay-v5\backend\app\realtime\contracts.py                       50      6    88%
+F:\Projects\ideashop-zeaplay-v5\backend\app\realtime\outbox.py                          63      1    98%
+F:\Projects\ideashop-zeaplay-v5\backend\app\realtime\relay.py                           68     24    65%
+F:\Projects\ideashop-zeaplay-v5\backend\app\realtime\transport.py                      206     44    79%
+F:\Projects\ideashop-zeaplay-v5\backend\app\reporting\activity.py                       85      4    95%
+F:\Projects\ideashop-zeaplay-v5\backend\app\reporting\exports.py                       101      5    95%
+F:\Projects\ideashop-zeaplay-v5\backend\app\reporting\filters.py                        41      1    98%
+F:\Projects\ideashop-zeaplay-v5\backend\app\reporting\inventory.py                     207     10    95%
+F:\Projects\ideashop-zeaplay-v5\backend\app\reporting\scope.py                          81      3    96%
+F:\Projects\ideashop-zeaplay-v5\backend\app\reporting\work.py                          183      5    97%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\achievements.py                     73     56    23%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\auth.py                            164     27    84%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\avatars.py                          72     55    24%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\badges.py                          115     92    20%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\clients.py                          36      1    97%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\comments.py                        131     75    43%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\config.py                          107     74    31%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\contacts.py                         53      5    91%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\data_admin.py                      287    233    19%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\departments.py                      58     14    76%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\feature_flags.py                    50     37    26%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\kanban.py                           39     24    38%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\levels.py                          177    135    24%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\logs.py                            134    103    23%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\media.py                           240    162    32%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\n8n.py                              21      9    57%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\notifications.py                    72     19    74%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\oauth_management.py                298     28    91%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\pipelines.py                       140    108    23%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\projects.py                         62      4    94%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\push.py                             58      5    91%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\rewards.py                          67     30    55%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\seasonal_rewards.py                162    123    24%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\seasons.py                          52     35    33%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\smtp.py                            188     16    91%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\task_lifecycle.py                  123     11    91%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py                          1623    665    59%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tool_library.py                    206    170    17%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\updates.py                          42     26    38%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\user_progress.py                    46     29    37%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\users.py                           293    142    52%
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\webhooks.py                        133     97    27%
+F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py                                1541     20    99%
+F:\Projects\ideashop-zeaplay-v5\backend\app\seed.py                                    226    182    19%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\archive_state.py                   26      1    96%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\audit_logger.py                   117     18    85%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\badge_engine.py                   229     77    66%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\badge_storage.py                   37     21    43%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\browser_session.py                 47      4    91%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\clients.py                        145      3    98%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\contacts.py                       203     23    89%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\entity_notifications.py            24      2    92%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\gamification.py                   153     58    62%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\media_service.py                  169    104    38%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\minio_media_service.py            291    238    18%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\notification_dispatcher.py        329     45    86%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\notification_outbox.py            151     21    86%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\notification_schema.py             26      1    96%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\notification_stream.py             39      7    82%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\oauth.py                          274     18    93%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\oauth_cleanup.py                   38     10    74%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\oauth_install.py                   87     17    80%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\password_recovery.py              121     10    92%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\points_table.py                   101     33    67%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\project_dashboard.py              167     10    94%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\projects.py                       263     35    87%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\push_security.py                   35      2    94%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\push_service.py                   128      4    97%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\query_examples.py                   7      7     0%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\reward_storage.py                  56     35    38%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\rewards.py                        292    173    41%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\security_audit.py                  21      1    95%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\smtp_admin.py                      51      4    92%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\smtp_categories.py                 14      3    79%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\smtp_install.py                    65     17    74%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\smtp_management.py                149      8    95%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\smtp_security.py                  193     30    84%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\subtask_completion.py             154     30    81%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\subtask_notifications.py          116     11    91%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\subtask_workflow.py               304     28    91%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\task_events.py                     22      2    91%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\ticket_notification_access.py      37      1    97%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\time_tracking.py                  312     25    92%
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\work_history.py                   121      3    98%
+F:\Projects\ideashop-zeaplay-v5\backend\app\smtp_schemas.py                             79      4    95%
+F:\Projects\ideashop-zeaplay-v5\backend\app\storage\base.py                             33      1    97%
+F:\Projects\ideashop-zeaplay-v5\backend\app\storage\gdrive.py                          104     83    20%
+F:\Projects\ideashop-zeaplay-v5\backend\app\storage\local.py                            66     30    55%
+F:\Projects\ideashop-zeaplay-v5\backend\app\storage\minio.py                            72     52    28%
+F:\Projects\ideashop-zeaplay-v5\backend\app\storage\supabase.py                         56     41    27%
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\approvals_service.py               143    124    13%
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\attachments_router.py              134     79    41%
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\router.py                          169     79    53%
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py                         601    420    30%
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\task_engine_service.py              39     26    33%
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\task_link_service.py               109     85    22%
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\timeline_service.py                125    108    14%
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\workflow_router.py                  52     16    69%
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\workflow_service.py                364    253    30%
+F:\Projects\ideashop-zeaplay-v5\backend\app\utils\image.py                              11      6    45%
+F:\Projects\ideashop-zeaplay-v5\backend\app\webhooks\dispatcher.py                     178    112    37%
+F:\Projects\ideashop-zeaplay-v5\backend\app\webhooks\payloads.py                       122     73    40%
+F:\Projects\ideashop-zeaplay-v5\backend\app\webhooks\schema.py                          45     41     9%
+F:\Projects\ideashop-zeaplay-v5\backend\app\webhooks\service.py                        136     80    41%
+F:\Projects\ideashop-zeaplay-v5\backend\app\webhooks\signing.py                          5      1    80%
+F:\Projects\ideashop-zeaplay-v5\backend\app\work_timer_schema.py                        27      5    81%
+F:\Projects\ideashop-zeaplay-v5\backend\app\ws\chat.py                                 399    121    70%
+F:\Projects\ideashop-zeaplay-v5\backend\app\ws\security.py                              97     13    87%
+F:\Projects\ideashop-zeaplay-v5\backend\app\ws\tasks.py                                160     46    71%
+F:\Projects\ideashop-zeaplay-v5\backend\app\ws\ticket_chat.py                          263    111    58%
+--------------------------------------------------------------------------------------------------------
+TOTAL                                                                                22495   7000    69%
+
+35 files skipped due to complete coverage.
+Coverage JSON written to file F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\full-baseline-ready-coverage.json
+=========================== short test summary info ===========================
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_archive_restore.py:221: PostgreSQL shared client row lock
+SKIPPED [4] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_archive_restore_audit.py:60: PostgreSQL session timezone
+SKIPPED [2] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_archive_restore_audit.py:78: PostgreSQL row/FK lock wait
+SKIPPED [3] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_archive_restore_audit.py:146: PostgreSQL dependency lock wait
+SKIPPED [3] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_notification_schema.py:21: PostgreSQL enum compatibility regression
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_password_recovery.py:322: Alembic CLI check requires the explicitly isolated PostgreSQL schema
+SKIPPED [5] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_realtime_phase4_smoke.py:49: Requires explicitly isolated PG/Redis and local k6
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_realtime_phase4_smoke.py:65: Requires explicitly isolated PG/Redis and local k6
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_realtime_processes.py:314: Requires explicit Redis server argv to start an owned, restartable test instance
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_reporting_index.py:36: PostgreSQL planner evidence; SQLite query-shape probe is separate
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_execution_report.py:268: PostgreSQL repeatable-read concurrency; SQLite totals covered separately
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_journey_migrations.py:29: Real PostgreSQL CLI/backup test; SQLite migration checks run in lifecycle suite
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_lifecycle.py:340: PostgreSQL repeatable-read/read-only behavior; SQLite snapshots are tested through the APIs
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_lifecycle_review.py:368: PostgreSQL session timezone is not a SQLite feature
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_lifecycle_review.py:383: PostgreSQL session timezone is not a SQLite feature
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_lifecycle_review.py:430: PostgreSQL table-lock race; SQLite uses a database writer lock
+SKIPPED [3] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_timer_refinement.py:55: PostgreSQL advisory-lock wait; stale-principal SQLite checks run separately
+FAILED test_archive_restore_audit.py::test_demotion_during_client_dependency_wait_prevents_project_write[postgresql-update]
+FAILED test_chat_phase1.py::test_task_comment_mentions_create_direct_chat_inbox_message
+FAILED test_oauth_refinement.py::test_production_rejects_default_signing_keys
+FAILED test_push_management.py::test_preferences_include_chat_reject_duplicates_and_isolate_accounts[sqlite]
+FAILED test_push_management.py::test_preferences_include_chat_reject_duplicates_and_isolate_accounts[postgresql]
+FAILED test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[sqlite]
+FAILED test_task_lifecycle.py::test_migration_preserves_legacy_values_and_refuses_destructive_downgrade[postgresql]
+FAILED test_task_lifecycle_review.py::test_empty_history_downgrade_serializes_against_new_writes[postgresql]
+8 failed, 1179 passed, 31 skipped, 19097 warnings in 1555.88s (0:25:55)

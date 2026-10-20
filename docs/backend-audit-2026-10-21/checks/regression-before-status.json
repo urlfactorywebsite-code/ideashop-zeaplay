@@ -1,0 +1,22 @@
+{
+  "exit_code": 1,
+  "working_directory": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zeaplay-audit-suite-1lzmmmou",
+  "python": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+  "args": [
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zeaplay-backend-audit-1061809eccbe4d4e8411c369627432d1\\venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "F:\\Projects\\ideashop-zeaplay-v5\\backend\\tests",
+    "-q",
+    "-ra",
+    "--tb=short",
+    "--timeout=90",
+    "--junitxml=F:\\Projects\\ideashop-zeaplay-v5\\docs\\backend-audit-2026-10-21\\checks\\regression-before.xml",
+    "--cov=backend.app",
+    "--cov-report=json:F:\\Projects\\ideashop-zeaplay-v5\\docs\\backend-audit-2026-10-21\\checks\\regression-before-coverage.json",
+    "--cov-report=term:skip-covered",
+    "-k",
+    "ticket_update_commits_and_only_notifies_when_changed or task_backup_preserves_project_reference",
+    "--no-cov"
+  ]
+}

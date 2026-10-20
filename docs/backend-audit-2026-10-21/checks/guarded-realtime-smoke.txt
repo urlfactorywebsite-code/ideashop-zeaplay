@@ -1,0 +1,85 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\Lenovo\AppData\Local\Temp\zeaplay-backend-audit-1061809eccbe4d4e8411c369627432d1\venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\Lenovo\AppData\Local\Temp\zeaplay-audit-suite-26wqju2y
+plugins: platformdirs-4.13.5, cov-7.1.0, timeout-2.4.0, anyio-4.14.2, Faker-40.36.0, asyncio-1.4.0
+timeout: 90.0s
+timeout method: thread
+timeout func_only: False
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 1226 items / 1215 deselected / 11 selected
+
+test_oauth2_server.py::test_guarded_legacy_installer[sqlite] PASSED      [  9%]
+test_oauth2_server.py::test_guarded_legacy_installer[postgresql] PASSED  [ 18%]
+test_realtime_phase3.py::test_additive_migration_and_guarded_downgrade PASSED [ 27%]
+test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[chat-workers0] PASSED [ 36%]
+test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[tasks-workers0] PASSED [ 45%]
+test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[tickets-workers0] PASSED [ 54%]
+test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[cross-worker-workers0] PASSED [ 63%]
+test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[reconnect-workers0] PASSED [ 72%]
+test_realtime_phase4_smoke.py::test_guarded_socketio_two_instances_and_two_identities[workers0] PASSED [ 81%]
+test_task_journey_migrations.py::test_cli_upgrade_restore_and_guarded_rollback_preserve_synthetic_business_data[sqlite] SKIPPED [ 90%]
+test_task_journey_migrations.py::test_cli_upgrade_restore_and_guarded_rollback_preserve_synthetic_business_data[postgresql] PASSED [100%]
+
+============================== warnings summary ===============================
+F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704
+  F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704: SADeprecationWarning: User-placed attribute Level.created_by on Mapper[Level(levels)] is replacing an existing ORM-mapped attribute.  Behavior is not fully defined in this case.  This use is deprecated and will raise an error in a future release
+    Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192
+  F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FeatureFlagRead(FeatureFlagBase):
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+test_realtime_phase4_smoke.py: 84 warnings
+test_task_journey_migrations.py: 3 warnings
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\guarded-realtime-smoke.xml -
+============================ slowest 10 durations =============================
+34.37s call     test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[reconnect-workers0]
+32.30s call     test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[chat-workers0]
+31.33s call     test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[tasks-workers0]
+31.30s call     test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[cross-worker-workers0]
+31.30s call     test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[tickets-workers0]
+27.63s call     test_realtime_phase4_smoke.py::test_guarded_socketio_two_instances_and_two_identities[workers0]
+8.24s call     test_task_journey_migrations.py::test_cli_upgrade_restore_and_guarded_rollback_preserve_synthetic_business_data[postgresql]
+4.59s setup    test_realtime_phase4_smoke.py::test_guarded_socketio_two_instances_and_two_identities[workers0]
+4.53s setup    test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[tickets-workers0]
+4.26s setup    test_realtime_phase4_smoke.py::test_guarded_native_two_identity_smoke[chat-workers0]
+=========================== short test summary info ===========================
+SKIPPED [1] F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_journey_migrations.py:29: Real PostgreSQL CLI/backup test; SQLite migration checks run in lifecycle suite
+=== 10 passed, 1 skipped, 1215 deselected, 94 warnings in 249.52s (0:04:09) ===

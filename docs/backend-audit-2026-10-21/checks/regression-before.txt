@@ -1,0 +1,138 @@
+FFFFF.F.                                                                 [100%]
+================================== FAILURES ===================================
+___ test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True] ____
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:22: in test_ticket_update_commits_and_only_notifies_when_changed
+    result = service.update_ticket(db, tenant_id=data.owner.tenant_id, ticket_id=ticket.id,
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:1070: in update_ticket
+    if update_fields:
+       ^^^^^^^^^^^^^
+E   NameError: name 'update_fields' is not defined
+------------------------------ Captured log call ------------------------------
+WARNING  zeaplay.realtime:transport.py:227 realtime.publish_failed category=ticket error=ConnectionError
+___ test_ticket_update_commits_and_only_notifies_when_changed[sqlite-False] ___
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:22: in test_ticket_update_commits_and_only_notifies_when_changed
+    result = service.update_ticket(db, tenant_id=data.owner.tenant_id, ticket_id=ticket.id,
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:1070: in update_ticket
+    if update_fields:
+       ^^^^^^^^^^^^^
+E   NameError: name 'update_fields' is not defined
+------------------------------ Captured log call ------------------------------
+WARNING  zeaplay.realtime:transport.py:227 realtime.publish_failed category=ticket error=ConnectionError
+_ test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True] __
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:22: in test_ticket_update_commits_and_only_notifies_when_changed
+    result = service.update_ticket(db, tenant_id=data.owner.tenant_id, ticket_id=ticket.id,
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:1070: in update_ticket
+    if update_fields:
+       ^^^^^^^^^^^^^
+E   NameError: name 'update_fields' is not defined
+------------------------------ Captured log call ------------------------------
+WARNING  zeaplay.realtime:transport.py:227 realtime.publish_failed category=ticket error=ConnectionError
+_ test_ticket_update_commits_and_only_notifies_when_changed[postgresql-False] _
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:22: in test_ticket_update_commits_and_only_notifies_when_changed
+    result = service.update_ticket(db, tenant_id=data.owner.tenant_id, ticket_id=ticket.id,
+F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:1070: in update_ticket
+    if update_fields:
+       ^^^^^^^^^^^^^
+E   NameError: name 'update_fields' is not defined
+__________ test_task_backup_preserves_project_reference[sqlite-True] __________
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:36: in test_task_backup_preserves_project_reference
+    client = models.Client(tenant_id=data.owner.tenant_id, name="Audit client", normalized_name="audit client")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:4: in __init__
+    ???
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:596: in _initialize_instance
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\util\langhelpers.py:122: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:594: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\decl_base.py:2193: in _declarative_constructor
+    raise TypeError(
+E   TypeError: 'name' is an invalid keyword argument for Client
+________ test_task_backup_preserves_project_reference[postgresql-True] ________
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_backend_audit_regressions.py:36: in test_task_backup_preserves_project_reference
+    client = models.Client(tenant_id=data.owner.tenant_id, name="Audit client", normalized_name="audit client")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:4: in __init__
+    ???
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:596: in _initialize_instance
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\util\langhelpers.py:122: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\state.py:594: in _initialize_instance
+    manager.original_init(*mixed[1:], **kwargs)
+..\..\Programs\Python\Python314\Lib\site-packages\sqlalchemy\orm\decl_base.py:2193: in _declarative_constructor
+    raise TypeError(
+E   TypeError: 'name' is an invalid keyword argument for Client
+============================== warnings summary ===============================
+F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704
+  F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704: SADeprecationWarning: User-placed attribute Level.created_by on Mapper[Level(levels)] is replacing an existing ORM-mapped attribute.  Behavior is not fully defined in this case.  This use is deprecated and will raise an error in a future release
+    Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192
+  F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FeatureFlagRead(FeatureFlagBase):
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:816: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:4681: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830
+  F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:830: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+test_backend_audit_regressions.py: 50 warnings
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-False]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-False]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\tickets\service.py:57: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\audit_logger.py:23: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-True]
+FAILED test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[sqlite-False]
+FAILED test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-True]
+FAILED test_backend_audit_regressions.py::test_ticket_update_commits_and_only_notifies_when_changed[postgresql-False]
+FAILED test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[sqlite-True]
+FAILED test_backend_audit_regressions.py::test_task_backup_preserves_project_reference[postgresql-True]
+6 failed, 2 passed, 1218 deselected, 67 warnings in 31.31s

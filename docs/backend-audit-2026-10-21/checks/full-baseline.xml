@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="5" failures="0" skipped="0" tests="5" time="10.381" timestamp="2026-10-21T02:14:25.414021+05:30" hostname="DESKTOP-3QGSJ16"><testcase classname="" name="test_chat_phase1" time="0.000"><error message="collection failure">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_chat_phase1.py:22: in &lt;module&gt;
+    from backend.app.main import app
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:786: in &lt;module&gt;
+    app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\staticfiles.py:56: in __init__
+    raise RuntimeError(f"Directory '{directory}' does not exist")
+E   RuntimeError: Directory 'assets' does not exist</error></testcase><testcase classname="" name="test_cors_errors" time="0.000"><error message="collection failure">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_cors_errors.py:4: in &lt;module&gt;
+    from backend.app.main import CorsFastAPI, internal_server_error, settings
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:786: in &lt;module&gt;
+    app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\staticfiles.py:56: in __init__
+    raise RuntimeError(f"Directory '{directory}' does not exist")
+E   RuntimeError: Directory 'assets' does not exist</error></testcase><testcase classname="" name="test_generate_token" time="0.000"><error message="collection failure">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_generate_token.py:9: in &lt;module&gt;
+    from backend.app.main import app
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:786: in &lt;module&gt;
+    app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\staticfiles.py:56: in __init__
+    raise RuntimeError(f"Directory '{directory}' does not exist")
+E   RuntimeError: Directory 'assets' does not exist</error></testcase><testcase classname="" name="test_task_list" time="0.000"><error message="collection failure">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_task_list.py:8: in &lt;module&gt;
+    from backend.app.main import app
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:786: in &lt;module&gt;
+    app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\staticfiles.py:56: in __init__
+    raise RuntimeError(f"Directory '{directory}' does not exist")
+E   RuntimeError: Directory 'assets' does not exist</error></testcase><testcase classname="" name="test_ticket_tenant_permissions" time="0.000"><error message="collection failure">F:\Projects\ideashop-zeaplay-v5\backend\tests\test_ticket_tenant_permissions.py:14: in &lt;module&gt;
+    from backend.app.main import app
+F:\Projects\ideashop-zeaplay-v5\backend\app\main.py:786: in &lt;module&gt;
+    app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\staticfiles.py:56: in __init__
+    raise RuntimeError(f"Directory '{directory}' does not exist")
+E   RuntimeError: Directory 'assets' does not exist</error></testcase></testsuite></testsuites>

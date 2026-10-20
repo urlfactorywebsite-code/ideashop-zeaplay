@@ -1,0 +1,16 @@
+✔ correlated waits clean listeners after success, timeout and cancellation (17.8091ms)
+✔ repeated reconnects install listeners before connect and remove both outcomes (1.0236ms)
+✔ nearest rank reports exact small-sample percentiles and empty as null (0.1653ms)
+✔ default disabled, validation does not connect to a target (1.6635ms)
+✔ production, redirects, DNS aliases, malformed and credentialed origins are rejected (4.371ms)
+✔ approval expiry, environment, higher profile, ceilings and weights fail closed (0.6761ms)
+✔ resource watchdog rejects stale, missing and unsafe measurements (0.2121ms)
+✔ private address without a matching live isolation proof cannot open a load run (65.5922ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 159.6687

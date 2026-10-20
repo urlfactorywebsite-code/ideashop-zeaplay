@@ -1,0 +1,38 @@
+
+> zeaplay-presence-server@1.0.0 test
+> node --test
+
+✔ metrics route hides itself without a valid bearer and never exposes credentials (3.2751ms)
+✔ handler signatures, promise values and disconnect cleanup remain compatible (4.1151ms)
+✔ collector failure returns 503 instead of an unhandled Express rejection (0.4071ms)
+✔ async handler rejection is counted and propagated without changing its error (1.8569ms)
+✖ real Socket.IO presence, tenant-scoped calls and meeting signaling (10731.8816ms)
+✔ socket.io server keeps auth, cors and redis adapter wired (1.0137ms)
+✔ socket.io origin policy rejects missing and malformed origins when configured (0.3154ms)
+✔ call signaling events remain registered (1.8836ms)
+✔ rooms are tenant scoped for chat, calls and meetings (0.2149ms)
+✔ meeting cleanup remains registered on disconnect (0.1522ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10846.8503
+
+✖ failing tests:
+
+test at test\realtime-integration.test.js:12:1
+✖ real Socket.IO presence, tenant-scoped calls and meeting signaling (10731.8816ms)
+  AssertionError [ERR_ASSERTION]: Isolated presence process did not become ready
+      at TestContext.<anonymous> (file:///F:/Projects/ideashop-zeaplay-v5/presence-server/test/realtime-integration.test.js:42:12)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

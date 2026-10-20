@@ -1,0 +1,15 @@
+{
+  "dialect": "postgresql",
+  "database_version": "16.15",
+  "actual_tables": 101,
+  "model_tables": 103,
+  "schema_gaps": {
+    "realtime_aggregates": {
+      "missing_table": true
+    },
+    "realtime_outbox": {
+      "missing_table": true
+    }
+  },
+  "alembic_revisions": null
+}

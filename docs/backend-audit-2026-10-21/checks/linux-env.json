@@ -1,0 +1,1 @@
+{"AUDIT_POSTGRES_URL": "postgresql+psycopg2://rt_test@postgres:5432/zeaplay_rt3_test", "AUDIT_REDIS_URL": "redis://redis:6379/12", "AUDIT_REDIS_SERVER_ARGV": "[\"redis-server\"]", "AUDIT_BACKUP_CONTAINER": ""}

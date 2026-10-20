@@ -1,0 +1,25 @@
+{
+  "exit_code": 0,
+  "working_directory": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zeaplay-audit-suite-u2_8e39_",
+  "python": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+  "args": [
+    "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zeaplay-backend-audit-1061809eccbe4d4e8411c369627432d1\\venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "F:\\Projects\\ideashop-zeaplay-v5\\backend\\tests",
+    "-q",
+    "-ra",
+    "--tb=short",
+    "--timeout=90",
+    "-o",
+    "cache_dir=C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zeaplay-audit-suite-u2_8e39_\\pytest-cache",
+    "--junitxml=F:\\Projects\\ideashop-zeaplay-v5\\docs\\backend-audit-2026-10-21\\checks\\windows-final-context-retry.xml",
+    "--cov=backend.app",
+    "--cov-report=json:F:\\Projects\\ideashop-zeaplay-v5\\docs\\backend-audit-2026-10-21\\checks\\windows-final-context-retry-coverage.json",
+    "--cov-report=term:skip-covered",
+    "-k",
+    "empty_history_downgrade_serializes_against_new_writes or production_rejects_default_signing_keys",
+    "--no-cov",
+    "-vv"
+  ]
+}

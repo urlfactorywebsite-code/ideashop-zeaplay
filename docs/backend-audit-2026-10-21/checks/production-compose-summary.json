@@ -1,0 +1,44 @@
+{
+  "backend": {
+    "image": null,
+    "command": [
+      "uvicorn",
+      "app.main:app",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "6311",
+      "--workers",
+      "1",
+      "--ws-max-size",
+      "65536",
+      "--ws-max-queue",
+      "16"
+    ],
+    "healthcheck": false
+  },
+  "frontend": {
+    "image": null,
+    "command": null,
+    "healthcheck": false
+  },
+  "postgres": {
+    "image": "postgres:15",
+    "command": null,
+    "healthcheck": true
+  },
+  "presence": {
+    "image": null,
+    "command": null,
+    "healthcheck": false
+  },
+  "redis": {
+    "image": "redis:7-alpine",
+    "command": [
+      "redis-server",
+      "--appendonly",
+      "yes"
+    ],
+    "healthcheck": true
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="23.150" timestamp="2026-10-21T02:26:13.016448+05:30" hostname="DESKTOP-3QGSJ16"><testcase classname="" name="test_audit_probe_public_registration_cannot_grant_existing_tenant_owner[sqlite]" time="3.909"><failure message="AssertionError: Unauthenticated registration grants owner access in an existing tenant&#10;assert not True">F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\test_tenant_scope_probe.py:60: in test_audit_probe_public_registration_cannot_grant_existing_tenant_owner
+    assert not escalated, "Unauthenticated registration grants owner access in an existing tenant"
+E   AssertionError: Unauthenticated registration grants owner access in an existing tenant
+E   assert not True</failure></testcase><testcase classname="" name="test_audit_probe_public_registration_cannot_grant_existing_tenant_owner[postgresql]" time="1.419"><failure message="AssertionError: Unauthenticated registration grants owner access in an existing tenant&#10;assert not True">F:\Projects\ideashop-zeaplay-v5\docs\backend-audit-2026-10-21\checks\test_tenant_scope_probe.py:60: in test_audit_probe_public_registration_cannot_grant_existing_tenant_owner
+    assert not escalated, "Unauthenticated registration grants owner access in an existing tenant"
+E   AssertionError: Unauthenticated registration grants owner access in an existing tenant
+E   assert not True</failure></testcase></testsuite></testsuites>

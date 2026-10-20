@@ -1,0 +1,6 @@
+FROM ideashop-zeaplay-v5-backend
+RUN apt-get update && apt-get install -y --no-install-recommends redis-server \
+    && rm -rf /var/lib/apt/lists/* \
+    && python -m pip install --no-cache-dir pytest pytest-timeout pytest-cov
+ENV PYTHONDONTWRITEBYTECODE=1
+WORKDIR /tmp

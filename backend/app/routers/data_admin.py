@@ -115,7 +115,7 @@ def _serialize_tasks(tasks: Iterable[models.Task], status_title_map: dict[str, s
                 status_title=status_title,
                 priority=task.priority,
                 team=task.team,
-                project_id=task.project_id if task.project_id and session.get(models.Project, task.project_id) else None,
+                project_id=task.project_id,
                 assigned_to_id=task.assigned_to_id,
                 task_group_id=task.task_group_id,
                 created_by_id=task.created_by_id,

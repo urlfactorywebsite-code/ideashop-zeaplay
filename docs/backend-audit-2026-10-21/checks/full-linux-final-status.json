@@ -1,0 +1,21 @@
+{
+  "exit_code": 1,
+  "working_directory": "/tmp/zeaplay-audit-suite-t9271kmf",
+  "python": "3.11.17 (main, Oct  6 2026, 02:02:21) [GCC 14.2.0]",
+  "args": [
+    "/usr/local/bin/python",
+    "-m",
+    "pytest",
+    "/repo/backend/tests",
+    "-q",
+    "-ra",
+    "--tb=short",
+    "--timeout=90",
+    "--junitxml=/repo/docs/backend-audit-2026-10-21/checks/full-linux-final.xml",
+    "--cov=backend.app",
+    "--cov-report=json:/repo/docs/backend-audit-2026-10-21/checks/full-linux-final-coverage.json",
+    "--cov-report=term:skip-covered",
+    "-vv",
+    "--durations=20"
+  ]
+}

@@ -1,0 +1,1053 @@
+{
+  "checked": 261,
+  "statuses": {
+    "401": 261
+  },
+  "unexpected": [],
+  "results": [
+    {
+      "path": "/achievements",
+      "status": 401
+    },
+    {
+      "path": "/achievements/me",
+      "status": 401
+    },
+    {
+      "path": "/admin/data/export",
+      "status": 401
+    },
+    {
+      "path": "/api/achievements",
+      "status": 401
+    },
+    {
+      "path": "/api/achievements/me",
+      "status": 401
+    },
+    {
+      "path": "/api/admin/data/export",
+      "status": 401
+    },
+    {
+      "path": "/api/approvals/pending",
+      "status": 401
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 401
+    },
+    {
+      "path": "/api/auth/presence-token",
+      "status": 401
+    },
+    {
+      "path": "/api/auth/websocket-ticket",
+      "status": 401
+    },
+    {
+      "path": "/api/avatars",
+      "status": 401
+    },
+    {
+      "path": "/api/badges",
+      "status": 401
+    },
+    {
+      "path": "/api/chat/conversations",
+      "status": 401
+    },
+    {
+      "path": "/api/chat/conversations/{conversation_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/chat/conversations/{conversation_id}/members",
+      "status": 401
+    },
+    {
+      "path": "/api/chat/conversations/{conversation_id}/messages",
+      "status": 401
+    },
+    {
+      "path": "/api/chat/conversations/{conversation_id}/pins",
+      "status": 401
+    },
+    {
+      "path": "/api/chat/messages/search",
+      "status": 401
+    },
+    {
+      "path": "/api/chat/users",
+      "status": 401
+    },
+    {
+      "path": "/api/claims",
+      "status": 401
+    },
+    {
+      "path": "/api/clients",
+      "status": 401
+    },
+    {
+      "path": "/api/clients/{client_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/clients/{client_id}/contacts",
+      "status": 401
+    },
+    {
+      "path": "/api/comments/task/{task_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/config/api",
+      "status": 401
+    },
+    {
+      "path": "/api/config/email-templates",
+      "status": 401
+    },
+    {
+      "path": "/api/config/oauth",
+      "status": 401
+    },
+    {
+      "path": "/api/config/oauth/{config_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/config/points",
+      "status": 401
+    },
+    {
+      "path": "/api/config/smtp",
+      "status": 401
+    },
+    {
+      "path": "/api/config/smtp/attempts",
+      "status": 401
+    },
+    {
+      "path": "/api/config/smtp/health",
+      "status": 401
+    },
+    {
+      "path": "/api/config/smtp/multiple",
+      "status": 401
+    },
+    {
+      "path": "/api/config/smtp/multiple/{config_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/config/smtp/queue",
+      "status": 401
+    },
+    {
+      "path": "/api/contacts",
+      "status": 401
+    },
+    {
+      "path": "/api/contacts/{contact_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/departments",
+      "status": 401
+    },
+    {
+      "path": "/api/feature-flags/",
+      "status": 401
+    },
+    {
+      "path": "/api/integrations/n8n/config",
+      "status": 401
+    },
+    {
+      "path": "/api/kanban-columns",
+      "status": 401
+    },
+    {
+      "path": "/api/levels",
+      "status": 401
+    },
+    {
+      "path": "/api/levels/{level_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/levels/{level_id}/edges",
+      "status": 401
+    },
+    {
+      "path": "/api/levels/{level_id}/nodes",
+      "status": 401
+    },
+    {
+      "path": "/api/levels/{level_id}/preview",
+      "status": 401
+    },
+    {
+      "path": "/api/levels/{level_id}/progress",
+      "status": 401
+    },
+    {
+      "path": "/api/logs",
+      "status": 401
+    },
+    {
+      "path": "/api/logs/audit",
+      "status": 401
+    },
+    {
+      "path": "/api/logs/audit/export",
+      "status": 401
+    },
+    {
+      "path": "/api/logs/retention",
+      "status": 401
+    },
+    {
+      "path": "/api/media",
+      "status": 401
+    },
+    {
+      "path": "/api/media/external/gdrive/oauth/start",
+      "status": 401
+    },
+    {
+      "path": "/api/media/list",
+      "status": 401
+    },
+    {
+      "path": "/api/media/{media_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/notification/preferences",
+      "status": 401
+    },
+    {
+      "path": "/api/notifications",
+      "status": 401
+    },
+    {
+      "path": "/api/notifications/outbox",
+      "status": 401
+    },
+    {
+      "path": "/api/notifications/stream",
+      "status": 401
+    },
+    {
+      "path": "/api/notifications/unread-count",
+      "status": 401
+    },
+    {
+      "path": "/api/oauth2/clients",
+      "status": 401
+    },
+    {
+      "path": "/api/oauth2/clients/{client_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/oauth2/dashboard",
+      "status": 401
+    },
+    {
+      "path": "/api/oauth2/events",
+      "status": 401
+    },
+    {
+      "path": "/api/oauth2/grants",
+      "status": 401
+    },
+    {
+      "path": "/api/oauth2/my-grants",
+      "status": 401
+    },
+    {
+      "path": "/api/oauth2/profile",
+      "status": 401
+    },
+    {
+      "path": "/api/oauth2/scopes",
+      "status": 401
+    },
+    {
+      "path": "/api/oauth2/tokens",
+      "status": 401
+    },
+    {
+      "path": "/api/projects",
+      "status": 401
+    },
+    {
+      "path": "/api/projects/{project_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/projects/{project_id}/task-dashboard",
+      "status": 401
+    },
+    {
+      "path": "/api/push/status",
+      "status": 401
+    },
+    {
+      "path": "/api/push/subscriptions",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/activity",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/employees",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/employees/{report_employee_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/export",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/options",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/overview",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/projects",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/projects/{report_project_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/statuses",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/tasks",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/time",
+      "status": 401
+    },
+    {
+      "path": "/api/reports/time/sessions",
+      "status": 401
+    },
+    {
+      "path": "/api/rewards",
+      "status": 401
+    },
+    {
+      "path": "/api/rewards/icons",
+      "status": 401
+    },
+    {
+      "path": "/api/rewards/{reward_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/calendar/summary",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/calendar/tasks",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/kanban",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/leaderboard",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/page",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/task-templates",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/task-templates/{template_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/analytics",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/execution-report",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/execution-report/completions",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/execution-report/evidence",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/execution-report/evidence/{source}/{evidence_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/execution-sessions",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/group",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/journey",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/subtasks/{subtask_id}/completion-submissions",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/subtasks/{subtask_id}/completion-submissions/{submission_id}/attachments/{attachment_id}/download",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/summary",
+      "status": 401
+    },
+    {
+      "path": "/api/tasks/{task_id}/transfer-requests",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets/{ticket_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets/{ticket_id}/activity",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets/{ticket_id}/approvals",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets/{ticket_id}/attachments",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets/{ticket_id}/followers",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets/{ticket_id}/logs",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets/{ticket_id}/participants",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets/{ticket_id}/tasks",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets/{ticket_id}/timeline",
+      "status": 401
+    },
+    {
+      "path": "/api/tickets/{ticket_id}/timeline.csv",
+      "status": 401
+    },
+    {
+      "path": "/api/time-entries/active",
+      "status": 401
+    },
+    {
+      "path": "/api/time-entries/work/active",
+      "status": 401
+    },
+    {
+      "path": "/api/time-entries/work/history",
+      "status": 401
+    },
+    {
+      "path": "/api/time-entries/work/{session_id}/history",
+      "status": 401
+    },
+    {
+      "path": "/api/tool-library/categories",
+      "status": 401
+    },
+    {
+      "path": "/api/tool-library/tools",
+      "status": 401
+    },
+    {
+      "path": "/api/tool-library/tools/favorites",
+      "status": 401
+    },
+    {
+      "path": "/api/updates/latest",
+      "status": 401
+    },
+    {
+      "path": "/api/users",
+      "status": 401
+    },
+    {
+      "path": "/api/users/by-employer-id/{employer_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/users/{user_id}",
+      "status": 401
+    },
+    {
+      "path": "/api/webhooks",
+      "status": 401
+    },
+    {
+      "path": "/api/webhooks/deliveries",
+      "status": 401
+    },
+    {
+      "path": "/api/ws/tickets/{ticket_id}/snapshot",
+      "status": 401
+    },
+    {
+      "path": "/auth/me",
+      "status": 401
+    },
+    {
+      "path": "/auth/presence-token",
+      "status": 401
+    },
+    {
+      "path": "/auth/websocket-ticket",
+      "status": 401
+    },
+    {
+      "path": "/avatars",
+      "status": 401
+    },
+    {
+      "path": "/badges",
+      "status": 401
+    },
+    {
+      "path": "/chat/conversations",
+      "status": 401
+    },
+    {
+      "path": "/chat/conversations/{conversation_id}",
+      "status": 401
+    },
+    {
+      "path": "/chat/conversations/{conversation_id}/members",
+      "status": 401
+    },
+    {
+      "path": "/chat/conversations/{conversation_id}/messages",
+      "status": 401
+    },
+    {
+      "path": "/chat/conversations/{conversation_id}/pins",
+      "status": 401
+    },
+    {
+      "path": "/chat/messages/search",
+      "status": 401
+    },
+    {
+      "path": "/chat/users",
+      "status": 401
+    },
+    {
+      "path": "/claims",
+      "status": 401
+    },
+    {
+      "path": "/clients",
+      "status": 401
+    },
+    {
+      "path": "/clients/{client_id}",
+      "status": 401
+    },
+    {
+      "path": "/clients/{client_id}/contacts",
+      "status": 401
+    },
+    {
+      "path": "/comments/task/{task_id}",
+      "status": 401
+    },
+    {
+      "path": "/config/api",
+      "status": 401
+    },
+    {
+      "path": "/config/email-templates",
+      "status": 401
+    },
+    {
+      "path": "/config/oauth",
+      "status": 401
+    },
+    {
+      "path": "/config/oauth/{config_id}",
+      "status": 401
+    },
+    {
+      "path": "/config/points",
+      "status": 401
+    },
+    {
+      "path": "/config/smtp",
+      "status": 401
+    },
+    {
+      "path": "/config/smtp/attempts",
+      "status": 401
+    },
+    {
+      "path": "/config/smtp/health",
+      "status": 401
+    },
+    {
+      "path": "/config/smtp/multiple",
+      "status": 401
+    },
+    {
+      "path": "/config/smtp/multiple/{config_id}",
+      "status": 401
+    },
+    {
+      "path": "/config/smtp/queue",
+      "status": 401
+    },
+    {
+      "path": "/contacts",
+      "status": 401
+    },
+    {
+      "path": "/contacts/{contact_id}",
+      "status": 401
+    },
+    {
+      "path": "/departments",
+      "status": 401
+    },
+    {
+      "path": "/feature-flags/",
+      "status": 401
+    },
+    {
+      "path": "/integrations/n8n/config",
+      "status": 401
+    },
+    {
+      "path": "/kanban-columns",
+      "status": 401
+    },
+    {
+      "path": "/levels",
+      "status": 401
+    },
+    {
+      "path": "/levels/{level_id}",
+      "status": 401
+    },
+    {
+      "path": "/levels/{level_id}/edges",
+      "status": 401
+    },
+    {
+      "path": "/levels/{level_id}/nodes",
+      "status": 401
+    },
+    {
+      "path": "/levels/{level_id}/preview",
+      "status": 401
+    },
+    {
+      "path": "/levels/{level_id}/progress",
+      "status": 401
+    },
+    {
+      "path": "/logs",
+      "status": 401
+    },
+    {
+      "path": "/logs/audit",
+      "status": 401
+    },
+    {
+      "path": "/logs/audit/export",
+      "status": 401
+    },
+    {
+      "path": "/logs/retention",
+      "status": 401
+    },
+    {
+      "path": "/media",
+      "status": 401
+    },
+    {
+      "path": "/media/external/gdrive/oauth/start",
+      "status": 401
+    },
+    {
+      "path": "/media/list",
+      "status": 401
+    },
+    {
+      "path": "/media/{media_id}",
+      "status": 401
+    },
+    {
+      "path": "/notification/preferences",
+      "status": 401
+    },
+    {
+      "path": "/notifications",
+      "status": 401
+    },
+    {
+      "path": "/notifications/outbox",
+      "status": 401
+    },
+    {
+      "path": "/notifications/stream",
+      "status": 401
+    },
+    {
+      "path": "/notifications/unread-count",
+      "status": 401
+    },
+    {
+      "path": "/oauth2/clients",
+      "status": 401
+    },
+    {
+      "path": "/oauth2/clients/{client_id}",
+      "status": 401
+    },
+    {
+      "path": "/oauth2/dashboard",
+      "status": 401
+    },
+    {
+      "path": "/oauth2/events",
+      "status": 401
+    },
+    {
+      "path": "/oauth2/grants",
+      "status": 401
+    },
+    {
+      "path": "/oauth2/my-grants",
+      "status": 401
+    },
+    {
+      "path": "/oauth2/profile",
+      "status": 401
+    },
+    {
+      "path": "/oauth2/scopes",
+      "status": 401
+    },
+    {
+      "path": "/oauth2/tokens",
+      "status": 401
+    },
+    {
+      "path": "/projects",
+      "status": 401
+    },
+    {
+      "path": "/projects/{project_id}",
+      "status": 401
+    },
+    {
+      "path": "/projects/{project_id}/task-dashboard",
+      "status": 401
+    },
+    {
+      "path": "/push/status",
+      "status": 401
+    },
+    {
+      "path": "/push/subscriptions",
+      "status": 401
+    },
+    {
+      "path": "/realtime/metrics",
+      "status": 401
+    },
+    {
+      "path": "/reports/activity",
+      "status": 401
+    },
+    {
+      "path": "/reports/employees",
+      "status": 401
+    },
+    {
+      "path": "/reports/employees/{report_employee_id}",
+      "status": 401
+    },
+    {
+      "path": "/reports/export",
+      "status": 401
+    },
+    {
+      "path": "/reports/options",
+      "status": 401
+    },
+    {
+      "path": "/reports/overview",
+      "status": 401
+    },
+    {
+      "path": "/reports/projects",
+      "status": 401
+    },
+    {
+      "path": "/reports/projects/{report_project_id}",
+      "status": 401
+    },
+    {
+      "path": "/reports/statuses",
+      "status": 401
+    },
+    {
+      "path": "/reports/tasks",
+      "status": 401
+    },
+    {
+      "path": "/reports/time",
+      "status": 401
+    },
+    {
+      "path": "/reports/time/sessions",
+      "status": 401
+    },
+    {
+      "path": "/rewards",
+      "status": 401
+    },
+    {
+      "path": "/rewards/icons",
+      "status": 401
+    },
+    {
+      "path": "/rewards/{reward_id}",
+      "status": 401
+    },
+    {
+      "path": "/tasks",
+      "status": 401
+    },
+    {
+      "path": "/tasks/calendar/summary",
+      "status": 401
+    },
+    {
+      "path": "/tasks/calendar/tasks",
+      "status": 401
+    },
+    {
+      "path": "/tasks/kanban",
+      "status": 401
+    },
+    {
+      "path": "/tasks/leaderboard",
+      "status": 401
+    },
+    {
+      "path": "/tasks/page",
+      "status": 401
+    },
+    {
+      "path": "/tasks/task-templates",
+      "status": 401
+    },
+    {
+      "path": "/tasks/task-templates/{template_id}",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/analytics",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/execution-report",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/execution-report/completions",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/execution-report/evidence",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/execution-report/evidence/{source}/{evidence_id}",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/execution-sessions",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/group",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/journey",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/subtasks/{subtask_id}/completion-submissions",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/subtasks/{subtask_id}/completion-submissions/{submission_id}/attachments/{attachment_id}/download",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/summary",
+      "status": 401
+    },
+    {
+      "path": "/tasks/{task_id}/transfer-requests",
+      "status": 401
+    },
+    {
+      "path": "/tickets",
+      "status": 401
+    },
+    {
+      "path": "/tickets/{ticket_id}",
+      "status": 401
+    },
+    {
+      "path": "/tickets/{ticket_id}/activity",
+      "status": 401
+    },
+    {
+      "path": "/tickets/{ticket_id}/approvals",
+      "status": 401
+    },
+    {
+      "path": "/tickets/{ticket_id}/followers",
+      "status": 401
+    },
+    {
+      "path": "/tickets/{ticket_id}/participants",
+      "status": 401
+    },
+    {
+      "path": "/tickets/{ticket_id}/timeline",
+      "status": 401
+    },
+    {
+      "path": "/tickets/{ticket_id}/timeline.csv",
+      "status": 401
+    },
+    {
+      "path": "/time-entries/active",
+      "status": 401
+    },
+    {
+      "path": "/time-entries/work/active",
+      "status": 401
+    },
+    {
+      "path": "/time-entries/work/history",
+      "status": 401
+    },
+    {
+      "path": "/time-entries/work/{session_id}/history",
+      "status": 401
+    },
+    {
+      "path": "/tool-library/categories",
+      "status": 401
+    },
+    {
+      "path": "/tool-library/tools",
+      "status": 401
+    },
+    {
+      "path": "/tool-library/tools/favorites",
+      "status": 401
+    },
+    {
+      "path": "/updates/latest",
+      "status": 401
+    },
+    {
+      "path": "/users",
+      "status": 401
+    },
+    {
+      "path": "/users/by-employer-id/{employer_id}",
+      "status": 401
+    },
+    {
+      "path": "/users/{user_id}",
+      "status": 401
+    },
+    {
+      "path": "/webhooks",
+      "status": 401
+    },
+    {
+      "path": "/webhooks/deliveries",
+      "status": 401
+    },
+    {
+      "path": "/ws/tickets/{ticket_id}/snapshot",
+      "status": 401
+    }
+  ]
+}
