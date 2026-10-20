@@ -125,7 +125,7 @@ export const useTickets = (filters: TicketListFilters = {}) => {
   };
 };
 
-export const useTicket = (ticketId: string | undefined) => {
+export const useTicket = (ticketId: string | undefined, requireFresh = false) => {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -137,14 +137,14 @@ export const useTicket = (ticketId: string | undefined) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.getTicket(ticketId);
+      const data = await api.getTicket(ticketId, { fresh: requireFresh });
       setTicket(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch ticket');
     } finally {
       setLoading(false);
     }
-  }, [ticketId]);
+  }, [ticketId, requireFresh]);
 
   useEffect(() => {
     fetchTicket();

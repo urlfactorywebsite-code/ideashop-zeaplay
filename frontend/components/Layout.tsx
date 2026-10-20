@@ -1,7 +1,7 @@
 ﻿
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { NavLink, useSearchParams } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { ActiveWorkProvider } from '../hooks/useActiveWork';
@@ -27,6 +27,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { theme } = useTheme();
   const { hasUnreadChat } = useChatUnreadIndicator();
   const [modalTaskId, setModalTaskId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedTaskId = searchParams.get('taskId');
+  const linkedTaskRef = useRef<string | null>(null);
   const [workSubtaskId, setWorkSubtaskId] = useState<string | null>(null);
   const [viewingRewardId, setViewingRewardId] = useState<string | null>(null);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
@@ -131,12 +134,32 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [isMobileMenuOpen]);
 
+  useEffect(() => {
+    const previous = linkedTaskRef.current;
+    if (!user || !linkedTaskId || !/^[A-Za-z0-9_-]{1,128}$/.test(linkedTaskId)) {
+      linkedTaskRef.current = null;
+      if (previous) setModalTaskId((current) => current === previous ? null : current);
+      return;
+    }
+    linkedTaskRef.current = linkedTaskId;
+    setWorkSubtaskId(null);
+    setModalTaskId(linkedTaskId);
+  }, [linkedTaskId, user?.id]);
+
   const handleCloseModal = () => {
     setModalTaskId(null);
+    setWorkSubtaskId(null);
+    if (searchParams.has('taskId')) {
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.delete('taskId');
+        return next;
+      }, { replace: true });
+    }
   };
 
   const handleTaskDeleted = (_taskId: string) => {
-    setModalTaskId(null);
+    handleCloseModal();
   };
   
   const handleCloseRewardModal = () => {
@@ -354,7 +377,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
        {modalTaskId && (
         <TaskDetailModal
+          key={`${user?.id}:${modalTaskId}`}
           taskId={modalTaskId}
+          requireFresh={Boolean(linkedTaskId)}
           focusSubtaskId={workSubtaskId}
           isOpen={!!modalTaskId}
           onClose={handleCloseModal}

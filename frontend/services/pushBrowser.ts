@@ -101,10 +101,9 @@ export function syncPushAccount(account: PushAccount | null, token = getAccessTo
     const registration = await getPushRegistration(Boolean(account) && supportsBrowserPush());
     if (!registration || expectedAccount !== identity(account) || token !== getAccessToken()) return;
     await bindPushAccount(registration, account);
-    if (!account) {
-      const subscription = await registration.pushManager.getSubscription();
-      if (subscription) await subscription.unsubscribe();
-    }
+    // Passive signed-out tabs only clear the shared binding. The tab performing
+    // logout must still be able to read the endpoint and revoke it on the server
+    // before clearPushSession unsubscribes the shared browser subscription.
   });
   accountQueue = operation;
   return operation;

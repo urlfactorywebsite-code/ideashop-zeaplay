@@ -1,4 +1,5 @@
 import React, { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { useAuth, useTheme } from '../hooks/useAuth';
 import api from '../services/mockApi';
@@ -22,13 +23,14 @@ import {
     LockClosedIcon,
     ShieldCheckIcon,
     UserIcon,
+    BellIcon,
 } from '../components/icons';
 import { CameraIcon } from '../components/icons/CameraIcon';
 import AvatarCropModal from '../components/AvatarCropModal';
 import SettingsNotificationsPanel from '../components/SettingsNotificationsPanel';
 import SettingsStorageOptionsPanel from '../components/SettingsStorageOptionsPanel';
 
-type TabKey = 'profile';
+type TabKey = 'profile' | 'push';
 
 type StatusMessage = {
     type: 'success' | 'error';
@@ -156,6 +158,12 @@ const TABS: Array<{ key: TabKey; label: string; description: string; icon: React
         description: 'Identity, personalization, and data lifecycle controls.',
         icon: UserIcon,
     },
+    {
+        key: 'push',
+        label: 'Push notifications',
+        description: 'Browser permission, devices, alert categories and delivery tests.',
+        icon: BellIcon,
+    },
 ];
 
 const initialSmtpFormState = (): MultipleSmtpConfigInput & { id?: number; password?: string } => ({
@@ -183,7 +191,13 @@ const Settings: React.FC = () => {
     const { user, updateUserInContext } = useAuth();
     const { theme, setTheme } = useTheme();
 
-    const [activeTab, setActiveTab] = useState<TabKey>('profile');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab: TabKey = searchParams.get('tab') === 'push' ? 'push' : 'profile';
+    const setActiveTab = (tab: TabKey) => setSearchParams(previous => {
+        const next = new URLSearchParams(previous);
+        if (tab === 'push') next.set('tab', 'push'); else next.delete('tab');
+        return next;
+    });
     const [loading, setLoading] = useState(true);
     const [departments, setDepartments] = useState<Department[]>([]);
 
@@ -1215,12 +1229,12 @@ const Settings: React.FC = () => {
     if (!user) {
         return (
             <div className="p-10">
-                <p className="text-text-secondary">You need to be authenticated to view owner settings.</p>
+                <p className="text-text-secondary">Sign in to manage your settings.</p>
             </div>
         );
     }
 
-    if (loading) {
+    if (loading && activeTab === 'profile') {
         return <PageLoader />;
     }
 
@@ -1229,16 +1243,31 @@ const Settings: React.FC = () => {
             <header className="bg-surface border border-border-color rounded-xl p-6 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-semibold text-text-primary">Owner Settings</h1>
+                        <h1 className="text-2xl font-semibold text-text-primary">Settings</h1>
                         <p className="text-sm text-text-secondary">
                             Configure how your workspace greets members, sends notifications, and integrates with automation.
                         </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2" role="tablist" aria-label="Settings sections">
                         {TABS.map(({ key, label, icon: Icon, description }) => (
                             <button
                                 key={key}
+                                id={`settings-tab-${key}`}
+                                role="tab"
+                                aria-selected={activeTab === key}
+                                aria-controls={`settings-panel-${key}`}
+                                tabIndex={activeTab === key ? 0 : -1}
                                 onClick={() => setActiveTab(key)}
+                                onKeyDown={(event) => {
+                                    const index = TABS.findIndex(tab => tab.key === key);
+                                    const next = event.key === 'Home' ? 0 : event.key === 'End' ? TABS.length - 1
+                                        : event.key === 'ArrowRight' ? (index + 1) % TABS.length
+                                        : event.key === 'ArrowLeft' ? (index + TABS.length - 1) % TABS.length : -1;
+                                    if (next < 0) return;
+                                    event.preventDefault();
+                                    setActiveTab(TABS[next].key);
+                                    document.getElementById(`settings-tab-${TABS[next].key}`)?.focus();
+                                }}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
                                     activeTab === key
                                         ? 'bg-primary text-white border-transparent shadow'
@@ -1247,7 +1276,7 @@ const Settings: React.FC = () => {
                                 title={description}
                                 type="button"
                             >
-                                <Icon className="w-5 h-5" />
+                                <Icon className="w-5 h-5 shrink-0" />
                                 <span className="font-medium">{label}</span>
                             </button>
                         ))}
@@ -1255,8 +1284,13 @@ const Settings: React.FC = () => {
                 </div>
             </header>
 
+            {activeTab === 'push' && (
+                <section id="settings-panel-push" role="tabpanel" aria-labelledby="settings-tab-push">
+                    <SettingsNotificationsPanel key={`${user.tenantId}:${user.id}`} />
+                </section>
+            )}
             {activeTab === 'profile' && (
-                <section className="space-y-8">
+                <section id="settings-panel-profile" role="tabpanel" aria-labelledby="settings-tab-profile" className="space-y-8">
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="bg-surface border border-border-color rounded-xl p-6 space-y-5 shadow-sm">
                             <div className="flex items-center gap-3">
@@ -1531,7 +1565,6 @@ const Settings: React.FC = () => {
                             </form>
                         </div>
 
-                        <SettingsNotificationsPanel />
                     </div>
 
                     <SettingsStorageOptionsPanel userRole={user.role} />

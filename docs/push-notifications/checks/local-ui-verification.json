@@ -1,0 +1,19 @@
+﻿{
+    "frontend_status":  200,
+    "settings_asset":  "Settings-D-dYnmud.js",
+    "push_tab_present":  true,
+    "service_worker_status":  200,
+    "worker_matches_source":  true,
+    "worker_source_sha256":  "D197D2104D4CE2D6A1D5014463C18D8520602E250E2C3E16074035D2750D6738",
+    "protected_routes":  [
+                             {
+                                 "path":  "/api/push/status",
+                                 "unauthenticated_status":  401
+                             },
+                             {
+                                 "path":  "/api/push/subscriptions",
+                                 "unauthenticated_status":  401
+                             }
+                         ],
+    "provider_test_sent":  false
+}

@@ -1,0 +1,75 @@
+{
+  "subscriptions": [
+    {
+      "id": "27ae3a02-dc7b-44cf-ac82-55ba99ce2a24",
+      "user_id": "2ef317ed-429e-4ced-92a1-b24173d47e09",
+      "revoked": true,
+      "endpoint_hash": "f097c747e874eae3f1d3e7b5a639526fd187a0f80958e5e64d706805f316fa92"
+    },
+    {
+      "id": "3e724eb3-a5da-4c0e-ab3a-2f55866cec47",
+      "user_id": "2ef317ed-429e-4ced-92a1-b24173d47e09",
+      "revoked": false,
+      "endpoint_hash": "a820cd433c03f34d080344671091f58ae4c0ad3a29f01a1717cf34dd47ce8c28"
+    },
+    {
+      "id": "404969c0-bfc2-4005-abc9-2d0c6b7868f5",
+      "user_id": "a3bec4cd-20a1-405b-b8de-72415af49aef",
+      "revoked": false,
+      "endpoint_hash": "25badc2755920655adad26498a72392225b945314a49a594a4788875a9b4b32b"
+    },
+    {
+      "id": "d8c4ca8e-b55d-4d04-960e-e2e6a7711cbf",
+      "user_id": "2ef317ed-429e-4ced-92a1-b24173d47e09",
+      "revoked": true,
+      "endpoint_hash": "ad31b2ea834b23c2eb6e4c47a32c80131cc57208fe1dbfc4442bb69a4c343810"
+    },
+    {
+      "id": "f22f563e-36dd-4bb1-9753-6e75c9a2e368",
+      "user_id": "a3bec4cd-20a1-405b-b8de-72415af49aef",
+      "revoked": false,
+      "endpoint_hash": "d2dee9dafda58211939cf9f75d8ed1dd0291dbb4e4845aefd4912ca5263ecca2"
+    }
+  ],
+  "preferences": [
+    {
+      "user_id": "2ef317ed-429e-4ced-92a1-b24173d47e09",
+      "module": "chat",
+      "push_enabled": false
+    },
+    {
+      "user_id": "2ef317ed-429e-4ced-92a1-b24173d47e09",
+      "module": "comments",
+      "push_enabled": false
+    },
+    {
+      "user_id": "2ef317ed-429e-4ced-92a1-b24173d47e09",
+      "module": "departments",
+      "push_enabled": false
+    },
+    {
+      "user_id": "2ef317ed-429e-4ced-92a1-b24173d47e09",
+      "module": "tasks",
+      "push_enabled": false
+    },
+    {
+      "user_id": "2ef317ed-429e-4ced-92a1-b24173d47e09",
+      "module": "tickets",
+      "push_enabled": false
+    },
+    {
+      "user_id": "2ef317ed-429e-4ced-92a1-b24173d47e09",
+      "module": "users",
+      "push_enabled": false
+    }
+  ],
+  "provider_acceptances": [
+    {
+      "recipient_user_id": "2ef317ed-429e-4ced-92a1-b24173d47e09",
+      "recipient_tenant_id": "4f331409-e718-4f74-b1f7-11fd532801e8",
+      "event_type": "push.test",
+      "url": "/#/settings?tab=push"
+    }
+  ],
+  "delivery_transport": "synthetic_provider_201"
+}

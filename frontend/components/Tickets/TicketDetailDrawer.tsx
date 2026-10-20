@@ -24,6 +24,7 @@ import { addMentionNotifications } from '../../utils/inboxStore';
 import { extractMentionedUserIds } from '../../utils/mentionUtils';
 
 interface TicketDetailDrawerProps {
+  requireFresh?: boolean;
   ticket: Ticket | null;
   isOpen: boolean;
   onClose: () => void;
@@ -58,13 +59,14 @@ const resolutionDescriptions: Record<TicketResolutionType, string> = {
 };
 
 const TicketDetailDrawer: React.FC<TicketDetailDrawerProps> = ({
+  requireFresh = false,
   ticket,
   isOpen,
   onClose,
   onTicketUpdated,
 }) => {
   const ticketId = ticket?.id;
-  const { ticket: liveTicket, loading, transferTicket, closeTicket, reopenTicket, refetch } = useTicket(ticketId);
+  const { ticket: liveTicket, loading, transferTicket, closeTicket, reopenTicket, refetch } = useTicket(ticketId, requireFresh);
   const activeTicket = liveTicket ?? ticket;
   const { user } = useAuth();
   const tasksState = useTicketTasks(ticketId);

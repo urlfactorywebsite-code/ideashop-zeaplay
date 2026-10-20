@@ -1,0 +1,90 @@
+{
+  "passed": true,
+  "scenario_count": 7,
+  "scenarios": [
+    "Actual /sw.js activates in Chrome and acknowledges a real MessageChannel account binding",
+    "DevTools delivers to the actual worker; native showNotification resolves with expected content and routing",
+    "Repeated notification ID passes the same replacement tag to native showNotification",
+    "Wrong account/tenant, unscoped and malformed messages are suppressed by the actual worker",
+    "Clearing the persisted account suppresses queued old-account delivery",
+    "Unsafe external notification target is replaced with the same-origin application root",
+    "Account switch permits native showNotification only for the new recipient"
+  ],
+  "page_errors": [],
+  "worker_errors": [],
+  "delivery": "Chrome DevTools ServiceWorker.deliverPushMessage -> actual /sw.js -> native showNotification",
+  "native_show_notification_calls": [
+    {
+      "title": "Synthetic ZeaPlay push test",
+      "options": {
+        "body": "Local browser worker verification only",
+        "data": {
+          "url": "http://127.0.0.1:6302/#/tasks?taskId=synthetic-task",
+          "notificationId": "synthetic-notification",
+          "eventType": null,
+          "module": null,
+          "recipient_user_id": "synthetic-user-a",
+          "recipient_tenant_id": "synthetic-tenant-a"
+        },
+        "tag": "zea-notification-synthetic-notification"
+      },
+      "outcome": "resolved"
+    },
+    {
+      "title": "Synthetic ZeaPlay push test",
+      "options": {
+        "body": "Local browser worker verification only",
+        "data": {
+          "url": "http://127.0.0.1:6302/#/tasks?taskId=synthetic-task",
+          "notificationId": "synthetic-notification",
+          "eventType": null,
+          "module": null,
+          "recipient_user_id": "synthetic-user-a",
+          "recipient_tenant_id": "synthetic-tenant-a"
+        },
+        "tag": "zea-notification-synthetic-notification"
+      },
+      "outcome": "resolved"
+    },
+    {
+      "title": "Synthetic ZeaPlay push test",
+      "options": {
+        "body": "Local browser worker verification only",
+        "data": {
+          "url": "http://127.0.0.1:6302/",
+          "notificationId": "synthetic-notification",
+          "eventType": null,
+          "module": null,
+          "recipient_user_id": "synthetic-user-a",
+          "recipient_tenant_id": "synthetic-tenant-a"
+        },
+        "tag": "zea-notification-synthetic-notification"
+      },
+      "outcome": "resolved"
+    },
+    {
+      "title": "Synthetic ZeaPlay push test",
+      "options": {
+        "body": "Local browser worker verification only",
+        "data": {
+          "url": "http://127.0.0.1:6302/#/tasks?taskId=synthetic-task",
+          "notificationId": "synthetic-notification",
+          "eventType": null,
+          "module": null,
+          "recipient_user_id": "synthetic-user-b",
+          "recipient_tenant_id": "synthetic-tenant-b"
+        },
+        "tag": "zea-notification-synthetic-notification"
+      },
+      "outcome": "resolved"
+    }
+  ],
+  "browser_notification_registry_available": false,
+  "browser_notification_registry_count_after_first_delivery": 0,
+  "limitations": [
+    "Synthetic DevTools delivery bypasses Web Push provider, encryption and VAPID.",
+    "This Windows headless Chrome returned no getNotifications records after native showNotification resolved; visual replacement and closing are covered by VM tests only.",
+    "Headless native API success does not prove a visible OS notification or sound.",
+    "Trusted user notification clicks are covered by VM handler tests, not an OS click in this harness."
+  ]
+}

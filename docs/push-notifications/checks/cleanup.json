@@ -1,0 +1,30 @@
+﻿{
+    "application_containers_running":  [
+                                           "ideashop-zeaplay-v5-frontend-1",
+                                           "ideashop-zeaplay-v5-backend-1",
+                                           "ideashop-zeaplay-v5-presence-1",
+                                           "ideashop-zeaplay-v5-postgres-1",
+                                           "ideashop-zeaplay-v5-redis-1"
+                                       ],
+    "api_stop_exit_code":  0,
+    "remaining_owned_containers":  [
+
+                                   ],
+    "synthetic_credentials_removed":  true,
+    "application_restart_performed":  false,
+    "commands":  [
+                     "docker stop zeaplay-push-audit-api",
+                     "docker exec zeaplay-push-audit-postgres-1 psql -U rt_test -d zeaplay_rt3_test -tAc \"SELECT count(*) FROM pg_namespace WHERE nspname LIKE \u0027push_browser_%\u0027\"",
+                     "docker rm zeaplay-push-audit-api",
+                     "docker compose -p zeaplay-push-audit -f ops/testing/compose.realtime.yml down"
+                 ],
+    "remaining_owned_networks":  [
+
+                                 ],
+    "compose_down_exit_code":  0,
+    "application_database_mutated":  false,
+    "api_remove_exit_code":  0,
+    "remaining_push_browser_schemas":  0,
+    "image_retained":  "zeaplay-push-audit-backend:local",
+    "checked_at":  "2026-10-20"
+}

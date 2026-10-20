@@ -1,0 +1,5 @@
+﻿/ideashop-zeaplay-v5-backend-1 sha256:7e0ed12efedf20cf35895c05eccf7e6ec8a4b6a7ba9cbac3a7483b853a1aba9e running
+/ideashop-zeaplay-v5-frontend-1 sha256:f605e6615d9d862d7a891db244ec41d7f3def831aae1543452879c9c3e92d5b1 running
+/ideashop-zeaplay-v5-postgres-1 sha256:44c4ee9810eff91f7eab4d822642e01115b1a9eccce4bcbdde7604752d68eac6 running
+/ideashop-zeaplay-v5-redis-1 sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2 running
+/ideashop-zeaplay-v5-presence-1 sha256:b9c122f2543dbcd84aa35f300156f97463524f4a81fb3f4024b9c77f4be66d9d running

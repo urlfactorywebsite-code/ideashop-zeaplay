@@ -1,0 +1,14 @@
+{
+  "service": "Owned Vite verification server",
+  "session_id": 8859,
+  "host": "127.0.0.1",
+  "port": 6302,
+  "action": "Ctrl-C sent to the owned exec session only",
+  "session_exit_code": 1,
+  "port_probe": {
+    "listening": false,
+    "result": "ECONNREFUSED"
+  },
+  "stopped": true,
+  "application_services_touched": false
+}

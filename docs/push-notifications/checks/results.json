@@ -1,0 +1,264 @@
+﻿{
+    "audit_date":  "2026-10-20",
+    "task":  "Push notification audit and Settings management tab",
+    "workspace":  "F:\\Projects\\ideashop-zeaplay-v5",
+    "production_ready":  false,
+    "local_deployed":  true,
+    "local_url":  "http://localhost:6300/#/settings?tab=push",
+    "schema_migration_required":  false,
+    "test_runs":  [
+                      {
+                          "name":  "backend-management",
+                          "skipped":  0,
+                          "log":  "backend-management.txt",
+                          "passed":  95
+                      },
+                      {
+                          "name":  "dispatch-chat-workflow-regression",
+                          "skipped":  0,
+                          "log":  "push-dispatch-regression.txt",
+                          "passed":  103
+                      },
+                      {
+                          "skip_reason":  "SQLite-only PostgreSQL enum compatibility checks; PostgreSQL counterparts passed",
+                          "name":  "final-dispatch-schema-security",
+                          "skipped":  2,
+                          "log":  "backend-security-final.txt",
+                          "passed":  98
+                      },
+                      {
+                          "name":  "frontend-node-all",
+                          "skipped":  0,
+                          "log":  "frontend-tests.txt",
+                          "passed":  110
+                      },
+                      {
+                          "name":  "browser-lifecycle-subset",
+                          "skipped":  0,
+                          "log":  "browser-lifecycle-tests.txt",
+                          "passed":  13
+                      }
+                  ],
+    "counts_overlap":  true,
+    "browser_scenarios":  [
+                              {
+                                  "evidence":  "ui-browser.json",
+                                  "groups":  14,
+                                  "name":  "Settings UI",
+                                  "passed":  true
+                              },
+                              {
+                                  "passed":  true,
+                                  "name":  "Settings real API PostgreSQL",
+                                  "provider_transport":  "synthetic201",
+                                  "evidence":  "live-browser.json",
+                                  "recorded_requests":  54,
+                                  "groups":  10,
+                                  "push_manager":  "mocked"
+                              },
+                              {
+                                  "evidence":  "worker-browser.json",
+                                  "groups":  7,
+                                  "name":  "Chrome worker native API",
+                                  "os_display_verified":  false,
+                                  "passed":  true
+                              },
+                              {
+                                  "evidence":  "click-browser.json",
+                                  "groups":  5,
+                                  "name":  "click target UI",
+                                  "passed":  true
+                              }
+                          ],
+    "checks":  {
+                   "build":  "PASS",
+                   "diff_check_exit":  0,
+                   "typescript":  "FAIL:130 unchanged baseline diagnostics",
+                   "lint":  "UNAVAILABLE:no frontend lint script",
+                   "typescript_comparison":  "typescript-comparison.json",
+                   "docker_build":  "PASS"
+               },
+    "concurrency":  {
+                        "databases":  [
+                                          "SQLite",
+                                          "PostgreSQL"
+                                      ],
+                        "preferences":  "One row per user/category",
+                        "parallel_requests_per_case":  8,
+                        "contested_endpoint":  "One owner, four successes, four409 conflicts",
+                        "same_owner":  "One row and stable ID"
+                    },
+    "security":  {
+                     "inactive_user_denied":  true,
+                     "cross_tab_account_and_logout_races_tested":  true,
+                     "provider_allowlist_and_key_validation":  true,
+                     "tenant_isolation_tested":  true,
+                     "legacy_endpoint_revalidation":  true,
+                     "recipient_worker_binding":  true,
+                     "authenticated_own_device_management":  true,
+                     "endpoint_transfer_denied":  true
+                 },
+    "deployment_evidence":  [
+                                "local-image-build.txt",
+                                "local-backend-deploy.txt",
+                                "local-frontend-deploy.txt",
+                                "local-api-verification.json",
+                                "local-ui-verification.json",
+                                "local-before-images.txt",
+                                "local-after-images.txt"
+                            ],
+    "cleanup_evidence":  [
+                             "cleanup.json",
+                             "vite-cleanup.json"
+                         ],
+    "limitations":  [
+                        "Actual provider encryption/delivery and visible OS toast not verified",
+                        "No physical mobile, Safari or Firefox certification",
+                        "No durable push retry queue or receipt ledger",
+                        "Synchronous provider fan-out can add request latency; no sustained-load benchmark",
+                        "No dedicated self-test rate limit or account device cap",
+                        "Repository TypeScript and lint release checks remain unsatisfied"
+                    ],
+    "source_files":  [
+                         {
+                             "path":  "backend/app/routers/push.py",
+                             "sha256":  "ba655c84a8c3dd3cec580aca12461b2c0cf6aecf0058b8ecfcb54ae1904069c8"
+                         },
+                         {
+                             "path":  "backend/app/routers/notification_preferences.py",
+                             "sha256":  "0fc7e72084546a277b69616aa5fe1d5f79e77ed28ca281d70860d9a5e6807c4a"
+                         },
+                         {
+                             "path":  "backend/app/services/push_service.py",
+                             "sha256":  "9e8a72b9ad9dda12e11aa754f9d053e7518995d086977ab11a3d249d4d5fa5b1"
+                         },
+                         {
+                             "path":  "backend/app/services/push_security.py",
+                             "sha256":  "d741d88511498af43da984431de7078fc4448deec02b7f35572cf76341cc541e"
+                         },
+                         {
+                             "path":  "backend/app/schemas.py",
+                             "sha256":  "bfe75936f1a2ac5e9a92f92f3489daba378f9141e60c99193875855baa803cc0"
+                         },
+                         {
+                             "path":  "backend/app/services/notification_dispatcher.py",
+                             "sha256":  "e29f6b4c48ff0bd886c372a1c0616e002e191a61c43c66365af759885d2e0e27"
+                         },
+                         {
+                             "path":  "backend/app/services/notifications.py",
+                             "sha256":  "7960ca2051de99a586c31e6ec6acac73d29c81186b9737b129a3ee0ae0c6e0a5"
+                         },
+                         {
+                             "path":  "backend/app/services/subtask_notifications.py",
+                             "sha256":  "af04a5055ff66664edf7d4c9de1c88e537ecb583babf69e82589b7f88a62b94f"
+                         },
+                         {
+                             "path":  "backend/app/routers/departments.py",
+                             "sha256":  "2aabf51d0102900a98cac700973b73a23d23cca615c97ee1bf6a57ef9593f558"
+                         },
+                         {
+                             "path":  "backend/app/chat/services.py",
+                             "sha256":  "0a789ee65677020ece550b9d3aae872204e5127a6ddb4f089e5be61b95eeb92d"
+                         },
+                         {
+                             "path":  "frontend/pages/Settings.tsx",
+                             "sha256":  "a18f51d7fe52cd87934c34e4e02459f64dd642ad52e390fa2539e8aebbaadfe1"
+                         },
+                         {
+                             "path":  "frontend/components/SettingsNotificationsPanel.tsx",
+                             "sha256":  "b7ef2205ac8be578cc4be45b793ccf0a91f8ecdcecc8815348fb0d137bf669d4"
+                         },
+                         {
+                             "path":  "frontend/hooks/usePushNotifications.ts",
+                             "sha256":  "2638528f6a717fd71f1b9ee024597770405b5dab9818f920771a46f987f0fb85"
+                         },
+                         {
+                             "path":  "frontend/hooks/useAuth.tsx",
+                             "sha256":  "ad242324d7a3d3bfaade1600f36cb826da4b61178ff5c854598ac7bf71a69d9f"
+                         },
+                         {
+                             "path":  "frontend/services/pushBrowser.ts",
+                             "sha256":  "64065d00f842f8a9cfbbd1851a8eee7c2c0bb7a91e29d57b36f1df5946c85fb0"
+                         },
+                         {
+                             "path":  "frontend/types/push.ts",
+                             "sha256":  "e312c84c74d3967507c6d1b8aa62603c4815e32ded8c03fabe0cc24beb6c59f4"
+                         },
+                         {
+                             "path":  "frontend/public/sw.js",
+                             "sha256":  "d197d2104d4ce2d6a1d5014463c18d8520602e250e2c3e16074035d2750d6738"
+                         },
+                         {
+                             "path":  "frontend/services/mockApi.ts",
+                             "sha256":  "1714d9976ff6e9ba729460e2298d716600082f38d4419c6bd9a46344017be116"
+                         },
+                         {
+                             "path":  "frontend/components/Layout.tsx",
+                             "sha256":  "da66d7dbf564e584b5dcda805c37a47169c8e8f0141f216e5c49b5fc75df8f0d"
+                         },
+                         {
+                             "path":  "frontend/components/TaskDetailModal.tsx",
+                             "sha256":  "09ba7ed9baf94bfb6305a6db0a5643865c9cb31b8e6ad98e79fac4fffdf79581"
+                         },
+                         {
+                             "path":  "frontend/pages/TicketPage.tsx",
+                             "sha256":  "e2b642f6753bf775b162d55b7de814feeb45f23eba2cf9c541de802fd2b8917c"
+                         },
+                         {
+                             "path":  "frontend/components/Tickets/TicketDetailDrawer.tsx",
+                             "sha256":  "e31dba27d338938bf63db9b224b6ed11da9d892b111744243d50fdd7a33769e1"
+                         },
+                         {
+                             "path":  "frontend/hooks/useTickets.ts",
+                             "sha256":  "d093a7abfcd26b114c53b13fe9a69b296979f46f76af8c05ac25812f09b6012c"
+                         },
+                         {
+                             "path":  "backend/tests/test_push_management.py",
+                             "sha256":  "1163d4723fdeffe0d8f8d485125d8a4b8bac80eed08acd9c161aacd17a6bd637"
+                         },
+                         {
+                             "path":  "backend/tests/test_push_dispatch.py",
+                             "sha256":  "6d271fce97a26168850e5c78e54ab8fb1eaecefe331535cac4c9142343511ce4"
+                         },
+                         {
+                             "path":  "frontend/test/service-worker-push.test.js",
+                             "sha256":  "8fa36972ddbc8234e9b052ce45b8e7ff91019173e90b85e440148dd83d4c5a55"
+                         },
+                         {
+                             "path":  "frontend/test/push-browser.test.ts",
+                             "sha256":  "b2772adf8b5c4b4beed40f177e5c766ac563884a960b42b0a9ce7ad0ce4161cc"
+                         },
+                         {
+                             "path":  "frontend/e2e/push-worker.mjs",
+                             "sha256":  "ba08c8d102055a1ba64d15bb84d51b014687c7873c5b8a089128e465a5855903"
+                         },
+                         {
+                             "path":  "frontend/e2e/push-settings.mjs",
+                             "sha256":  "9aeab71131cd5be96e8c701617dfda216cdafca202f82dad28df6cab9ba6a6a5"
+                         },
+                         {
+                             "path":  "frontend/e2e/pushSettingsFixture.tsx",
+                             "sha256":  "df89400841989fde2f55855fb330c5fa1af2e11abb061acd2bf71735e0af2d22"
+                         },
+                         {
+                             "path":  "frontend/e2e/push-settings-live.mjs",
+                             "sha256":  "18af7d7f8a062c17e181601ef050521840198bbcd2fec90f575444074c4d85be"
+                         },
+                         {
+                             "path":  "frontend/e2e/pushLiveFixture.tsx",
+                             "sha256":  "f7a1f37fafbe9d89ec7bd9a042a993827e171c4418f0d49cb7f214ac89fc33c9"
+                         },
+                         {
+                             "path":  "frontend/e2e/push-links.mjs",
+                             "sha256":  "a4ea10af2291e32ceec2f67a95497293010ceebb89aa3d2f8a25e042fcafba16"
+                         },
+                         {
+                             "path":  "frontend/e2e/pushLinksFixture.tsx",
+                             "sha256":  "0cd04e4d5d92b37242bac5ce5437bd62069d522a1c50dd118c1c21366d9d7661"
+                         },
+                         {
+                             "path":  "ops/testing/push_e2e_server.py",
+                             "sha256":  "3422d0a7395de195360a5959a0d8fe0862795446d76ec185ff75c84551de306e"
+                         }
+                     ]
+}

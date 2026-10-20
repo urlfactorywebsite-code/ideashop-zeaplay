@@ -4828,18 +4828,21 @@ const api = {
     }
   },
 
-  async getTicket(ticketId: string): Promise<Ticket> {
+  async getTicket(ticketId: string, options: { fresh?: boolean; signal?: AbortSignal } = {}): Promise<Ticket> {
     try {
       const cacheKey = `ticket:${ticketId}`;
-      const cached = getCached<Ticket>(cacheKey);
+      const cached = options.fresh ? null : getCached<Ticket>(cacheKey);
       if (cached) {
         return cached;
       }
-      const { data } = await http.get<ApiTicket>(`${TICKETS_BASE_PATH}/${ticketId}`);
+      const { data } = await http.get<ApiTicket>(`${TICKETS_BASE_PATH}/${encodeURIComponent(ticketId)}`, {
+        signal: options.signal, showGlobalProgress: !options.fresh, timeout: options.fresh ? 15000 : undefined,
+      });
       const mapped = mapTicket(data);
-      setCached(cacheKey, mapped);
+      if (!options.fresh) setCached(cacheKey, mapped);
       return mapped;
     } catch (error) {
+      if (options.fresh) throw error;
       mapAxiosError(error);
     }
   },

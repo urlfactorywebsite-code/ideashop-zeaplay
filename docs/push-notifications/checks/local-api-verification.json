@@ -1,0 +1,17 @@
+﻿{
+    "health_status":  200,
+    "required_paths":  [
+                           {
+                               "path":  "/api/push/status",
+                               "present":  true
+                           },
+                           {
+                               "path":  "/api/push/subscriptions",
+                               "present":  true
+                           },
+                           {
+                               "path":  "/api/push/subscriptions/{subscription_id}",
+                               "present":  true
+                           }
+                       ]
+}

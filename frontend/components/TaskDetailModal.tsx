@@ -80,6 +80,7 @@ const countCompletionWords = (value: string): number => {
 };
 interface TaskDetailModalProps {
     focusSubtaskId?: string | null;
+    requireFresh?: boolean;
   taskId: string;
   isOpen: boolean;
   initialTask?: Task | null;
@@ -215,7 +216,7 @@ const resolvePointsToneClasses = (tone: TaskPointsTone | undefined) => {
     }
 };
 
-const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initialTask = null, onClose, usersMap, onTaskDeleted, onTaskUpdated, notes = [], focusSubtaskId = null }) => {
+const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initialTask = null, onClose, usersMap, onTaskDeleted, onTaskUpdated, notes = [], focusSubtaskId = null, requireFresh = false }) => {
     const statusSelectId = React.useId();
     const [task, setTask] = useState<Task | null>(initialTask);
     const [loading, setLoading] = useState(!initialTask);
@@ -395,7 +396,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
         setError(null);
         setGroupLoading(true);
         try {
-            const fetchedTask = await api.getTask(taskId);
+            const fetchedTask = await api.getTask(taskId, { fresh: requireFresh });
             setTask(fetchedTask);
             setLoading(false);
             const [groupResult, commentsResult] = await Promise.allSettled([

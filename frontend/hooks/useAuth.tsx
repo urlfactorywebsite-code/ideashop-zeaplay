@@ -1,10 +1,11 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Role } from '../types';
 import api from '../services/mockApi';
 import { getAccessToken } from '../services/tokenStorage';
 import { AUTH_EXPIRED_EVENT } from '../utils/appEvents';
 import PageLoader from '../components/loading/PageLoader';
+import { clearPushSession, syncPushAccount } from '../services/pushBrowser';
 
 // Auth Context
 interface AuthContextType {
@@ -13,6 +14,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<void>;
   logout: () => void;
   updateUserInContext: (user: User) => void;
+  isCurrentSession: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,34 +23,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   console.log('useAuth.tsx: AuthProvider rendering');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const authenticatedToken = useRef<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     console.log('useAuth.tsx: AuthProvider useEffect running');
+    let request = 0;
+    let mounted = true;
     const checkLoggedIn = async () => {
+      const currentRequest = ++request;
+      const token = getAccessToken();
       console.log('useAuth.tsx: Checking if user is logged in');
       setLoading(true);
       try {
-        if (!getAccessToken()) {
+        if (!token) {
+          authenticatedToken.current = null;
           setUser(null);
           setLoading(false);
           return;
         }
         const currentUser = await api.getCurrentUser();
-        console.log('useAuth.tsx: Current user fetched:', currentUser);
+        if (!mounted || request !== currentRequest) return;
+        if (token !== getAccessToken()) {
+          // A refresh may replace the token while /auth/me is in flight.
+          // Re-read the current session instead of accepting a stale account.
+          void checkLoggedIn();
+          return;
+        }
+        authenticatedToken.current = getAccessToken();
         setUser(currentUser);
       } catch (error) {
+        if (!mounted || request !== currentRequest || token !== getAccessToken()) return;
         console.error('useAuth.tsx: Error fetching current user:', error);
         setUser(null);
       } finally {
-        setLoading(false);
+        if (mounted && request === currentRequest) setLoading(false);
       }
     };
-    checkLoggedIn();
+    const storageChanged = (event: StorageEvent) => {
+      if (event.key !== 'vee_access_token' && event.key !== null) return;
+      authenticatedToken.current = null;
+      setUser(null);
+      void checkLoggedIn();
+    };
+    void checkLoggedIn();
+    window.addEventListener('storage', storageChanged);
+    return () => {
+      mounted = false;
+      ++request;
+      window.removeEventListener('storage', storageChanged);
+    };
   }, []);
 
   useEffect(() => {
+    if (loading) return;
+    const account = user?.tenantId ? { userId: user.id, tenantId: user.tenantId } : null;
+    void syncPushAccount(account, account ? authenticatedToken.current : getAccessToken()).catch(() => {
+      // The Push notifications tab exposes worker/setup failures and offers a retry.
+    });
+  }, [loading, user?.id, user?.tenantId]);
+
+  useEffect(() => {
     const handleAuthExpired = () => {
+      authenticatedToken.current = null;
+      void clearPushSession().catch(() => undefined);
       setUser(null);
       setLoading(false);
       navigate('/login');
@@ -59,11 +97,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const login = async (email: string, pass: string) => {
     const loggedInUser = await api.login(email, pass);
+    authenticatedToken.current = getAccessToken();
     setUser(loggedInUser);
   };
 
   const logout = () => {
     api.logout();
+    authenticatedToken.current = null;
     setUser(null);
     navigate('/login');
   };
@@ -72,7 +112,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(updatedUser);
   };
 
-  const value = { user, loading, login, logout, updateUserInContext };
+  const isCurrentSession = useCallback(() =>
+    Boolean(user && authenticatedToken.current && authenticatedToken.current === getAccessToken()),
+  [user?.id, user?.tenantId]);
+
+  const value = { user, loading, login, logout, updateUserInContext, isCurrentSession };
 
   return (
     <AuthContext.Provider value={value}>

@@ -78,6 +78,7 @@ def test_push_waits_for_committed_history_and_released_business_transaction(fixt
         db.commit()
         assert len(fixture.sent) == 1
         assert fixture.sent[0][1]["notification_id"] == notification.id
+        assert fixture.sent[0][1]["url"] == f"/#/tasks?taskId={fixture.task.id}"
 
 
 def test_outer_rollback_and_close_never_send_or_leak_to_session_reuse(fixture):
@@ -263,3 +264,84 @@ def test_rewards_and_achievements_remain_history_only(fixture):
         db.commit()
         assert len(list(db.scalars(select(models.Notification)))) == 2
     assert fixture.sent == []
+
+
+@pytest.mark.parametrize("change", ["deactivate", "mute-category", "change-tenant"])
+def test_delivery_rechecks_current_recipient_and_preferences(fixture, change):
+    with fixture.factory() as db:
+        notification = notify(db, fixture)
+        recipient = db.get(models.User, fixture.recipient.id)
+        if change == "deactivate":
+            recipient.status = models.UserStatusEnum.DEACTIVATED
+        elif change == "change-tenant":
+            recipient.tenant_id = fixture.foreign.tenant_id
+        else:
+            db.add(models.NotificationPreference(user_id=recipient.id, module="tasks", push_enabled=False))
+        db.commit()
+        assert db.get(models.Notification, notification.id) is not None
+    assert fixture.sent == []
+
+
+def test_delivery_rechecks_chat_membership_removed_after_queueing(fixture):
+    with fixture.factory() as db:
+        conversation, message, recipient = make_chat(db, fixture, cross_tenant=True)
+        notification = dispatcher.dispatch_notification(db, user_id=recipient.id, actor_id=fixture.actor.id,
+            notification_type=models.NotificationTypeEnum.CHAT_MESSAGE,
+            message=message.content, related_chat_id=conversation.id)
+        assert notification is not None
+        db.execute(delete(models.ChatParticipant).where(
+            models.ChatParticipant.conversation_id == conversation.id,
+            models.ChatParticipant.user_id == recipient.id,
+        ))
+        db.commit()
+    assert fixture.sent == []
+
+
+def test_ticket_overdue_alert_obeys_ticket_category():
+    assert dispatcher.resolve_module(
+        models.NotificationTypeEnum.TASK_OVERDUE, models.NotificationEntityTypeEnum.TICKET,
+    ) == "tickets"
+    assert dispatcher.resolve_module(
+        models.NotificationTypeEnum.TASK_OVERDUE, models.NotificationEntityTypeEnum.TASK,
+    ) == "tasks"
+
+
+@pytest.mark.parametrize("source,expected", [
+    ("/tasks/task-1", "/#/tasks?taskId=task-1"),
+    ("/#/tasks?taskId=task-1", "/#/tasks?taskId=task-1"),
+    ("#/tasks?taskId=task-1", "/#/tasks?taskId=task-1"),
+    ("/tickets/ticket-1", "/#/tickets?ticketId=ticket-1"),
+    ("/tickets?status=CLOSED&ticketId=ticket-1", "/#/tickets?ticketId=ticket-1"),
+    ("/chat/conversation-1?message=message-1", "/#/chat/conversation-1?message=message-1"),
+    ("/users/person-1", "/#/admin/users"),
+    ("/departments/team-1", "/#/admin/users"),
+    ("/departments", "/#/admin/users"),
+    ("/settings?tab=push", "/#/settings?tab=push"),
+    ("/achievements", "/#/achievements"),
+    ("/tasks?redirect=https://outside.invalid", "/#/tasks"),
+    ("https://outside.invalid/tasks/private", None),
+    ("//outside.invalid/tasks/private", None),
+    ("javascript:alert(1)", None),
+    ("/\\outside.invalid", None),
+    ("http://[", None),
+    ("/tasks/../../private", None),
+    ("/tasks/task%2Fprivate", None),
+    ("/api/config", None),
+    ("/unknown", None),
+])
+def test_push_urls_target_known_hash_routes_only(source, expected):
+    assert dispatcher._canonical_push_url(source) == expected
+
+
+def test_push_url_normalization_preserves_history_deep_link(fixture):
+    with fixture.factory() as db:
+        original = f"/tasks/{fixture.task.id}"
+        notification = notify(db, fixture, deep_link=original)
+        db.commit()
+        assert db.get(models.Notification, notification.id).deep_link == original
+        assert fixture.sent[0][1]["url"] == f"/#/tasks?taskId={fixture.task.id}"
+
+
+def test_invalid_deep_link_falls_back_to_authorized_entity():
+    notification = models.Notification(deep_link="https://outside.invalid", related_task_id="task-1")
+    assert dispatcher._resolve_url(notification) == "/#/tasks?taskId=task-1"

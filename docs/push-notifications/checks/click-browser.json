@@ -1,0 +1,181 @@
+{
+  "passed": true,
+  "scenarios": [
+    "Task hash deep link opens existing modal with authorized API request; close clears query",
+    "Forbidden task link displays existing error and never retains previous private task",
+    "Ticket hash deep link opens existing drawer using fresh API reads; close clears query",
+    "Forbidden ticket uses an accessible error state and no old detail drawer",
+    "Navigation cancels slow ticket request and ignores its late response"
+  ],
+  "page_errors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/api/time-entries/work/active"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications"
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/conversations"
+    },
+    {
+      "method": "GET",
+      "path": "/api/updates/latest"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/task-one"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/task-one/transfer-requests"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/task-one/group"
+    },
+    {
+      "method": "GET",
+      "path": "/api/comments/task/task-one"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/forbidden-task"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/forbidden-task/transfer-requests"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users"
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/users"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-one"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-one/timeline"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-one/tasks"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-one/attachments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-one/participants"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-one"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-one/tasks"
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/users"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-one/approvals"
+    },
+    {
+      "method": "GET",
+      "path": "/api/departments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/users"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/forbidden-ticket"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/slow-ticket"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-two"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-two/timeline"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-two/tasks"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-two/attachments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-two/participants"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-two"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-two/tasks"
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/users"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tickets/ticket-two/approvals"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket"
+    }
+  ]
+}

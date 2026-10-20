@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import hashlib
 import json
@@ -202,7 +202,7 @@ def send_push_result(
                     ttl=300,
                     requests_session=transport,
                 )
-                if response is not None and not 200 <= response.status_code < 300:
+                if response is None or not 200 <= response.status_code < 300:
                     raise WebPushException("Provider rejected push", response=response)
                 subscription.last_seen_at = now
                 result.accepted += 1

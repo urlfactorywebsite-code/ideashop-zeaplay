@@ -1,0 +1,19 @@
+{
+  "subscriptions": [
+    {
+      "id": "5dda356c-80e1-43fa-a955-cd36655393ce",
+      "user_id": "9e8400c5-2bb8-42ca-918e-4ea6d97983ab",
+      "revoked": false,
+      "endpoint_hash": "7f06cddd574d38ecda3ead39c7aa29734d24de044ef7bfe4348901535c446027"
+    },
+    {
+      "id": "f62456be-64d7-493c-b9a4-b6a5bdd15d03",
+      "user_id": "86a54be7-3397-4d13-af5a-e3d491d1ee4c",
+      "revoked": false,
+      "endpoint_hash": "04756e2450b4b1d682c11651e5cc23a8b4e603428c54e2f512a5b159f28bdd88"
+    }
+  ],
+  "preferences": [],
+  "provider_acceptances": [],
+  "delivery_transport": "synthetic_provider_201"
+}

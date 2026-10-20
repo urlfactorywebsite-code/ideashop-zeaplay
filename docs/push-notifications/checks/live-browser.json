@@ -1,0 +1,295 @@
+{
+  "passed": true,
+  "scenario_count": 10,
+  "scenarios": [
+    "Real ordinary-user authentication loads one own device and all preferences",
+    "Enable persists a real PostgreSQL subscription, endpoint hash and acknowledged worker account binding",
+    "Repeated authenticated registration preserves the original subscription ID and produces no duplicate",
+    "Single-category and mute-all writes persist in PostgreSQL and survive a real page reload",
+    "Targeted self-test invokes one synthetic provider acceptance stamped with the authenticated user/tenant; UI states acceptance accurately",
+    "Real API enforces unauthenticated401, inactive403, foreign-target404, endpoint-transfer409; idempotent foreign removals leave both tenants unchanged",
+    "Real device confirmation cancel preserves its row; confirm revokes only the selected own phone",
+    "Revoke-all commits own device revocations, clears browser subscription and preserves alert preferences",
+    "Shared-token account switch authenticates other tab, rejects stale-tab actions and binds/registers only the new account",
+    "Actual AuthProvider logout clears worker binding and browser subscription, revokes current server endpoint and preserves other devices"
+  ],
+  "page_errors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/departments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/vapid-public-key",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/push/subscribe",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/push/test",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/push/subscriptions/f62456be-64d7-493c-b9a4-b6a5bdd15d03",
+      "status": 204
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/push/subscriptions",
+      "status": 204
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/vapid-public-key",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/push/subscribe",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/vapid-public-key",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/push/subscribe",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/subscriptions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notification/preferences",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/push/unsubscribe",
+      "status": 204
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "status": 204
+    }
+  ],
+  "backend": "Real FastAPI routers/authentication and isolated PostgreSQL schema",
+  "provider": "Synthetic server webpush returns201; browser PushManager mocked with valid synthetic keys",
+  "limitations": [
+    "No external push provider contacted.",
+    "Does not prove encryption, provider delivery or a visible OS notification."
+  ]
+}

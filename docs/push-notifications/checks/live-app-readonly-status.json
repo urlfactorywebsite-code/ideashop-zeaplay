@@ -1,0 +1,25 @@
+﻿{
+    "subject_valid":  true,
+    "container":  "ideashop-zeaplay-v5-backend-1",
+    "key_pair_valid":  true,
+    "new_management_routes_present":  false,
+    "private_key_present":  true,
+    "check_type":  "read_only_existing_local_backend",
+    "subject_present":  true,
+    "routes":  [
+                   "/notification/preferences",
+                   "/push/vapid-public-key",
+                   "/push/subscribe",
+                   "/push/unsubscribe",
+                   "/push/test",
+                   "/api/notification/preferences",
+                   "/api/push/vapid-public-key",
+                   "/api/push/subscribe",
+                   "/api/push/unsubscribe",
+                   "/api/push/test"
+               ],
+    "notifications_sent":  0,
+    "checked_at":  "2026-10-20",
+    "image_id":  "sha256:db9c49a137efb5204aa87e32a75b64efd49a016024c6c01750352f33972970e4",
+    "public_key_present":  true
+}

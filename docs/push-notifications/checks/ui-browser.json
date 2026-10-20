@@ -1,0 +1,185 @@
+{
+  "passed": true,
+  "scenario_count": 14,
+  "scenarios": [
+    "Default Profile, keyboard tab selection, hash URL and reload persistence",
+    "Reconnect refreshes the existing owned subscription without adding a duplicate device",
+    "Ordinary user manages own devices and self-test; current browser matches SHA-256 endpoint; administrator diagnostics hidden",
+    "Six accessible category switches, single-module writes and saved preferences survive reload",
+    "Mute all and enable all persist all six categories",
+    "Failed preference save preserves prior switch value and shows an error without success",
+    "Concurrent same-turn preference clicks create exactly one API write",
+    "Actual localStorage cross-tab event refreshes preferences and registered devices",
+    "Per-device confirmation focuses cancel; cancel performs no write, failed delete retains dialog/device, retry removes only selected device",
+    "Disable-all confirmation removes own device list, unsubscribes current browser and presents empty state",
+    "Enable registers browser through actual account binding and mocked PushManager/provider API",
+    "Actual application Tailwind/theme styles fit 320/390/768/1440px with 44px controls and mobile confirmation",
+    "Blocked permission, unsupported browser and missing server setup show actionable states while retaining category controls",
+    "Existing browser subscription without an owned matching endpoint hash is not falsely reported enabled"
+  ],
+  "page_errors": [],
+  "unmatched_requests": [],
+  "writes": [
+    {
+      "method": "POST",
+      "path": "/api/push/subscribe",
+      "body": {
+        "endpoint": "https://fcm.googleapis.com/fcm/send/synthetic-settings-browser",
+        "keys": {
+          "p256dh": "synthetic-p256dh",
+          "auth": "synthetic-auth"
+        },
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+        "device_label": "Win32"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/push/test",
+      "body": {
+        "subscription_id": "current-device"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/notification/preferences",
+      "body": {
+        "preferences": [
+          {
+            "module": "tasks",
+            "push_enabled": false
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/notification/preferences",
+      "body": {
+        "preferences": [
+          {
+            "module": "tasks",
+            "push_enabled": false
+          },
+          {
+            "module": "tickets",
+            "push_enabled": false
+          },
+          {
+            "module": "chat",
+            "push_enabled": false
+          },
+          {
+            "module": "comments",
+            "push_enabled": false
+          },
+          {
+            "module": "users",
+            "push_enabled": false
+          },
+          {
+            "module": "departments",
+            "push_enabled": false
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/notification/preferences",
+      "body": {
+        "preferences": [
+          {
+            "module": "tasks",
+            "push_enabled": true
+          },
+          {
+            "module": "tickets",
+            "push_enabled": true
+          },
+          {
+            "module": "chat",
+            "push_enabled": true
+          },
+          {
+            "module": "comments",
+            "push_enabled": true
+          },
+          {
+            "module": "users",
+            "push_enabled": true
+          },
+          {
+            "module": "departments",
+            "push_enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/notification/preferences",
+      "body": {
+        "preferences": [
+          {
+            "module": "chat",
+            "push_enabled": false
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/notification/preferences",
+      "body": {
+        "preferences": [
+          {
+            "module": "chat",
+            "push_enabled": false
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/notification/preferences",
+      "body": {
+        "preferences": [
+          {
+            "module": "tickets",
+            "push_enabled": false
+          }
+        ]
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/push/subscriptions/phone-device",
+      "body": null
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/push/subscriptions/phone-device",
+      "body": null
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/push/subscriptions",
+      "body": null
+    },
+    {
+      "method": "POST",
+      "path": "/api/push/subscribe",
+      "body": {
+        "endpoint": "https://fcm.googleapis.com/fcm/send/synthetic-settings-browser",
+        "keys": {
+          "p256dh": "synthetic-p256dh",
+          "auth": "synthetic-auth"
+        },
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+        "device_label": "Win32"
+      }
+    }
+  ],
+  "scope": "Actual React Settings/AuthProvider/HashRouter/service worker; mocked APIs, browser permission and PushManager. No provider sends."
+}

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
+import re
 from typing import Iterable, Optional
+from urllib.parse import parse_qs, urlencode, urlsplit
 from uuid import UUID
 
 from sqlalchemy import event, insert, select
@@ -169,6 +171,11 @@ def resolve_module(
     notification_type: models.NotificationTypeEnum,
     entity_type: Optional[models.NotificationEntityTypeEnum],
 ) -> Optional[str]:
+    if (
+        notification_type == models.NotificationTypeEnum.TASK_OVERDUE
+        and entity_type == models.NotificationEntityTypeEnum.TICKET
+    ):
+        return "tickets"
     if notification_type in {
         models.NotificationTypeEnum.TASK_CREATED,
         models.NotificationTypeEnum.TASK_UPDATED,
@@ -217,22 +224,70 @@ def resolve_module(
     return None
 
 
-def _resolve_url(notification: models.Notification) -> Optional[str]:
-    if notification.deep_link:
-        return notification.deep_link
+def _canonical_push_url(value: Optional[str]) -> Optional[str]:
+    """Translate known in-app links to the existing HashRouter without redirects."""
+    if not isinstance(value, str) or not value or "\\" in value or any(ord(char) < 32 for char in value):
+        return None
+    route = value[2:] if value.startswith("/#/") else value[1:] if value.startswith("#/") else value
+    try:
+        parsed = urlsplit(route)
+    except ValueError:
+        return None
+    if parsed.scheme or parsed.netloc or parsed.fragment or not parsed.path.startswith("/"):
+        return None
+    parts = parsed.path.strip("/").split("/") if parsed.path != "/" else []
+    query = parse_qs(parsed.query)
+    path = parsed.path
+    parameters = {}
+
+    def identifier(raw: Optional[str]) -> Optional[str]:
+        return raw if raw and re.fullmatch(r"[A-Za-z0-9_-]{1,128}", raw) else None
+
+    if parts and parts[0] in {"tasks", "tickets"} and len(parts) <= 2:
+        path = "/" + parts[0]
+        key = "taskId" if parts[0] == "tasks" else "ticketId"
+        raw_id = parts[1] if len(parts) == 2 else query.get(key, [None])[0]
+        if raw_id:
+            valid_id = identifier(raw_id)
+            if not valid_id:
+                return None
+            parameters[key] = valid_id
+    elif parts and parts[0] == "chat" and len(parts) <= 2:
+        if len(parts) == 2 and not identifier(parts[1]):
+            return None
+        path = "/" + "/".join(parts)
+        message_id = identifier(query.get("message", [None])[0])
+        if message_id:
+            parameters["message"] = message_id
+    elif parts and parts[0] in {"users", "departments"} and len(parts) <= 2:
+        path = "/admin/users"
+    elif path == "/settings":
+        if query.get("tab", [None])[0] == "push":
+            parameters["tab"] = "push"
+    elif path not in {"/", "/dashboard", "/admin/users", "/achievements"}:
+        return None
+    suffix = "?" + urlencode(parameters) if parameters else ""
+    return f"/#{path}{suffix}"
+
+
+def _resolve_url(notification: models.Notification) -> str:
+    canonical = _canonical_push_url(notification.deep_link)
+    if canonical:
+        return canonical
+    fallback = None
     if notification.entity_type == models.NotificationEntityTypeEnum.TASK and notification.entity_id:
-        return f"/tasks/{notification.entity_id}"
-    if notification.entity_type == models.NotificationEntityTypeEnum.SUBTASK and notification.related_task_id:
-        return f"/tasks/{notification.related_task_id}"
-    if notification.entity_type == models.NotificationEntityTypeEnum.TICKET and notification.entity_id:
-        return f"/tickets/{notification.entity_id}"
-    if notification.entity_type == models.NotificationEntityTypeEnum.USER and notification.entity_id:
-        return f"/users/{notification.entity_id}"
-    if notification.entity_type == models.NotificationEntityTypeEnum.DEPARTMENT and notification.entity_id:
-        return f"/departments/{notification.entity_id}"
-    if notification.related_chat_id:
-        return f"/chat/{notification.related_chat_id}"
-    return None
+        fallback = f"/tasks/{notification.entity_id}"
+    elif notification.entity_type == models.NotificationEntityTypeEnum.SUBTASK and notification.related_task_id:
+        fallback = f"/tasks/{notification.related_task_id}"
+    elif notification.entity_type == models.NotificationEntityTypeEnum.TICKET and notification.entity_id:
+        fallback = f"/tickets/{notification.entity_id}"
+    elif notification.entity_type in {models.NotificationEntityTypeEnum.USER, models.NotificationEntityTypeEnum.DEPARTMENT}:
+        fallback = "/admin/users"
+    elif notification.related_chat_id:
+        fallback = f"/chat/{notification.related_chat_id}"
+    elif notification.related_task_id:
+        fallback = f"/tasks/{notification.related_task_id}"
+    return _canonical_push_url(fallback) or "/#/"
 
 
 def _resolve_title(notification: models.Notification) -> str:

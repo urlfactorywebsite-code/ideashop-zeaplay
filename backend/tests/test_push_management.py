@@ -219,6 +219,18 @@ def test_rejects_non_provider_and_ambiguous_endpoints(data, endpoint):
     assert not data.calls
 
 
+@pytest.mark.parametrize("host", [
+    "fcm.googleapis.com", "updates.push.services.mozilla.com", "web.push.apple.com",
+    "wns2.notify.windows.com", "dm3.notify.live.net",
+])
+def test_standard_browser_provider_endpoints_are_supported(data, host):
+    payload = {**data.subscription, "endpoint": f"https://{host}/subscription/{uuid4()}"}
+    response = data.client.post("/push/subscribe", json=payload, headers=data.headers())
+    assert response.status_code == 200
+    assert response.json()["id"]
+    assert not data.calls
+
+
 @pytest.mark.parametrize("field,value", [("auth", "AA"), ("p256dh", "AA"), ("auth", "$" * 22), ("p256dh", encoded(b"\x04" + b"\0" * 64))])
 def test_rejects_invalid_browser_keys(data, field, value):
     payload = {**data.subscription, "keys": {**data.subscription["keys"], field: value}}
@@ -277,12 +289,14 @@ def test_delivery_overrides_recipient_payload_and_skips_inactive_accounts(data):
     assert payload["recipient_tenant_id"] == str(data.user.tenant_id)
 
 
-@pytest.mark.parametrize("failure", [404, 410, 403, 500, "timeout"])
+@pytest.mark.parametrize("failure", [404, 410, 403, 500, "timeout", "no_response"])
 def test_delivery_errors_are_safe_and_expired_devices_are_revoked(data, monkeypatch, caplog, failure):
     device = register(data)
     sensitive = "sensitive-provider-response-" + data.subscription["endpoint"]
 
     def fail(**_kwargs):
+        if failure == "no_response":
+            return None
         if failure == "timeout":
             raise requests.Timeout(sensitive)
         response = requests.Response()

@@ -1,0 +1,5 @@
+﻿{
+    "host":  "http://127.0.0.1:6315",
+    "runtime_directory":  "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zeaplay-push-e2e-76751c22107b4f97891c2c25b4bd5e86",
+    "container":  "zeaplay-push-audit-api"
+}

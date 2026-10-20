@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../hooks/useAuth';
 import { useTickets } from '../hooks/useTickets';
@@ -63,6 +64,11 @@ const TicketPage: React.FC = () => {
   const [rangeEnd, setRangeEnd] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedTicketId = searchParams.get('ticketId');
+  const linkedTicketRef = useRef<string | null>(null);
+  const [linkedTicketLoading, setLinkedTicketLoading] = useState(false);
+  const [linkedTicketError, setLinkedTicketError] = useState<string | null>(null);
   const [approvalModalTicket, setApprovalModalTicket] = useState<Ticket | null>(null);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -96,6 +102,44 @@ const TicketPage: React.FC = () => {
       .then(setUsers)
       .catch(() => setUserError('Unable to load user list.'));
   }, []);
+
+  useEffect(() => {
+    const previous = linkedTicketRef.current;
+    setLinkedTicketError(null);
+    setLinkedTicketLoading(false);
+    if (!linkedTicketId || !user) {
+      linkedTicketRef.current = null;
+      if (previous) setSelectedTicket((current) => current?.id === previous ? null : current);
+      return;
+    }
+    linkedTicketRef.current = linkedTicketId;
+    setSelectedTicket(null);
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(linkedTicketId)) {
+      setLinkedTicketError('This ticket link is invalid.');
+      return;
+    }
+    const controller = new AbortController();
+    let cancelled = false;
+    setLinkedTicketLoading(true);
+    api.getTicket(linkedTicketId, { fresh: true, signal: controller.signal })
+      .then((ticket) => { if (!cancelled) setSelectedTicket(ticket); })
+      .catch(() => {
+        if (!cancelled) setLinkedTicketError('Unable to open this ticket. It may have been removed or you may no longer have access.');
+      })
+      .finally(() => { if (!cancelled) setLinkedTicketLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
+  }, [linkedTicketId, user?.id]);
+
+  const closeTicketDetails = () => {
+    setSelectedTicket(null);
+    if (searchParams.has('ticketId')) {
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.delete('ticketId');
+        return next;
+      }, { replace: true });
+    }
+  };
 
   const userMap = useMemo(() => new Map(users.map((entry) => [entry.id, entry])), [users]);
 
@@ -274,6 +318,8 @@ const TicketPage: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-hidden p-6">
+        {linkedTicketLoading && <p role="status" className="mb-3 text-sm text-text-secondary">Opening ticket...</p>}
+        {linkedTicketError && <p role="alert" className="mb-3 text-sm text-rose-500">{linkedTicketError}</p>}
         <div className="rounded-2xl border border-gray-200 bg-white/80 shadow-sm dark:border-gray-800 dark:bg-gray-900">
           {!loading && error && (
             <div className="flex h-48 flex-col items-center justify-center gap-2">
@@ -382,9 +428,11 @@ const TicketPage: React.FC = () => {
       />
 
       <TicketDetailDrawer
+        key={`${user?.id}:${selectedTicket?.id ?? ''}`}
+        requireFresh={Boolean(linkedTicketId)}
         ticket={selectedTicket}
         isOpen={Boolean(selectedTicket)}
-        onClose={() => setSelectedTicket(null)}
+        onClose={closeTicketDetails}
         onTicketUpdated={refetch}
       />
 
