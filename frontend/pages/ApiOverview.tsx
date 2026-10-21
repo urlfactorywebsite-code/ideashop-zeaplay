@@ -20,6 +20,7 @@ import MultiSelect from '../components/ui/MultiSelect';
 import api from '../services/mockApi';
 import SmtpManagement from '../components/SmtpManagement';
 import OAuthManagement from '../components/OAuthManagement';
+import { getApiBaseUrl } from '../services/endpoints';
 import type { WebhookSubscription, WebhookTestResult } from '../types';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -1448,7 +1449,7 @@ const ApiOverview: React.FC = () => {
         'overview' | 'documentation' | 'token' | 'smtp' | 'oauth' | 'webhooks'
     >('overview');
 
-    const defaultBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'https://playapi.zeacrm.com/';
+    const defaultBaseUrl = getApiBaseUrl();
     const [baseUrl, setBaseUrl] = useState(defaultBaseUrl);
     const [selectedEndpoint, setSelectedEndpoint] = useState<EndpointDoc>(ENDPOINT_GROUPS[0].endpoints[0]);
     const [tokenName, setTokenName] = useState('My Integration');

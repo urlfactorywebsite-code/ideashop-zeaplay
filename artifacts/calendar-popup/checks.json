@@ -1,0 +1,16 @@
+[
+  {
+    "role": "owner",
+    "theme": "dark",
+    "width": 1440,
+    "height": 1000,
+    "status": "PASS"
+  },
+  {
+    "role": "user",
+    "theme": "light",
+    "width": 390,
+    "height": 844,
+    "status": "PASS"
+  }
+]

@@ -1,0 +1,22 @@
+
+> zeaplay-presence-server@1.0.0 test
+> node --test
+
+✔ metrics route hides itself without a valid bearer and never exposes credentials (20.3738ms)
+✔ handler signatures, promise values and disconnect cleanup remain compatible (15.1224ms)
+✔ collector failure returns 503 instead of an unhandled Express rejection (2.4222ms)
+✔ async handler rejection is counted and propagated without changing its error (5.1482ms)
+﹣ real Socket.IO presence, tenant-scoped calls and meeting signaling (2.2121ms) # SKIP
+✔ socket.io server keeps auth, cors and redis adapter wired (2.0378ms)
+✔ socket.io origin policy rejects missing and malformed origins when configured (1.1502ms)
+✔ call signaling events remain registered (2.4439ms)
+✔ rooms are tenant scoped for chat, calls and meetings (0.5508ms)
+✔ meeting cleanup remains registered on disconnect (0.6868ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 546.9823

@@ -1,4 +1,2 @@
-window.__RUNTIME_CONFIG__ = {
-  PRESENCE_URL: "http://localhost:6312",
-  CHAT_URL: "http://localhost:6312"
-};
+// Docker injects public URLs at startup; local development uses Vite settings.
+window.__RUNTIME_CONFIG__ = {};

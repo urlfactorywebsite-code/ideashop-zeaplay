@@ -1,0 +1,16 @@
+# Reuse the existing media directory and preserve custom avatar uploads.
+services:
+  backend:
+    environment:
+      VEE_MEDIA_ROOT: /app/media
+    volumes:
+      - type: bind
+        source: ${ZEAPLAY_MEDIA_HOST_PATH:?Set the verified existing media directory}
+        target: /app/media
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${ZEAPLAY_AVATAR_HOST_PATH:?Set the preserved custom-avatar directory}
+        target: /app/assets/avatars/custom
+        bind:
+          create_host_path: false

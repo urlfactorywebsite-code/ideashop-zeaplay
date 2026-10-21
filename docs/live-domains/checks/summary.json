@@ -1,0 +1,37 @@
+{
+  "frontend": "https://ideashop.zeacrm.com",
+  "backend": "https://api.ideashop.zeacrm.com",
+  "local_verification": "PASS",
+  "frontend_tests": 133,
+  "backend_tests": {
+    "tests": "96",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  "presence_tests": {
+    "passed": 9,
+    "skipped": 1
+  },
+  "tls_api_checks": 18,
+  "browser_flows": 9,
+  "docker_postgres_major": 15,
+  "runtime_config_cases": 4,
+  "endpoint_module_typecheck": "PASS",
+  "compose": "PASS",
+  "dns": {
+    "ideashop.zeacrm.com": [
+      "167.86.108.178"
+    ],
+    "api.ideashop.zeacrm.com": [
+      "167.86.108.178"
+    ]
+  },
+  "live_domain_deployment_verified": false,
+  "current_live_tls": "TLSV1_UNRECOGNIZED_NAME",
+  "real_vps_account_login_tested": false,
+  "previous_vps_http_repair_verified": true,
+  "test_services_removed": true,
+  "integration_uses_owned_disposable_postgresql_and_redis": true,
+  "existing_local_services_restarted": false
+}

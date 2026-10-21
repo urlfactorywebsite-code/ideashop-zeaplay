@@ -1,0 +1,30 @@
+........................................................................ [ 75%]
+........................                                                 [100%]
+============================== warnings summary ===============================
+..\..\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704
+  F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2704: SADeprecationWarning: User-placed attribute Level.created_by on Mapper[Level(levels)] is replacing an existing ORM-mapped attribute.  Behavior is not fully defined in this case.  This use is deprecated and will raise an error in a future release
+    Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192
+  F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3192: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FeatureFlagRead(FeatureFlagBase):
+
+: 325 warnings
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+::test_browser_cookie_restores_existing_login_and_logout_revokes[sqlite-https://testserver]
+::test_browser_cookie_restores_existing_login_and_logout_revokes[sqlite-http://167.86.108.178:6300]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\audit_logger.py:23: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return datetime.utcnow()
+
+::test_public_browser_can_read_scoped_resources_without_cookie_cors[sqlite]
+  F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:875: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+96 passed, 43 deselected, 331 warnings in 186.17s (0:03:06)

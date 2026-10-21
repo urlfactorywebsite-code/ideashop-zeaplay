@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "canonical_oauth": "PASS",
+  "canonical_frontend_runtime": "PASS",
+  "media_and_avatar_mounts": "PASS",
+  "missing_avatar_path_rejected": "PASS",
+  "presence_origin_enforcement": "PASS"
+}

@@ -2913,6 +2913,17 @@ html:not(.theme-colorful) .kanban-board-dark-theme > * {
   z-index: 1;
 }
 
+.calendar-page.calendar-page-popup {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.calendar-page-popup::before {
+  position: absolute;
+  inset: 0;
+}
+
 .calendar-page-dark {
   --calendar-text: #f8fbff;
   --calendar-muted: rgba(203, 213, 225, 0.82);

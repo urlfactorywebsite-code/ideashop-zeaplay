@@ -2,11 +2,12 @@
 
 This runbook deploys the current GitHub project to the VPS at `167.86.108.178` using Docker Compose.
 
-The current main URL is `http://167.86.108.178:6300/`. Enable its explicit HTTP
-IP browser-session exception using [the HTTP login repair](vps-http-login.md).
-HTTPS remains the default policy; switching the environment to development is
-not required. When moving to a domain, use [the browser-session proxy guide](browser-session-origin-fix/README.md)
-and remove the temporary HTTP exception.
+The live frontend is `https://ideashop.zeacrm.com` and the live backend is
+`https://api.ideashop.zeacrm.com`. For the existing VPS, use the
+[domain cutover instructions](live-domains/README.md), which preserve the current
+database, uploads and custom avatars. The old HTTP IP repair is a historical
+fallback; do not rerun it after the HTTPS cutover. First-time installation examples
+below do not replace the persistent-mount upgrade procedure.
 
 ## Local Push
 
@@ -15,8 +16,13 @@ Run these commands on your local machine from the project root.
 ```powershell
 cd F:\Projects\ideashop-zeaplay-v5
 git status
-git add -- .gitattributes .env.production.example docker-compose.prod.yml backend/app/config.py backend/app/services/browser_session.py backend/tests/test_browser_session_http.py backend/tests/test_oauth2_server.py ops/verify-http-session.py ops/apply-http-login.sh docs/vps-http-login.md docs/browser-session-origin-fix/README.md docs/vps-deployment-167-86-108-178.md docs/browser-session-http-fix
-git commit -m "Support explicit HTTP IP browser sessions"
+git add -- .gitattributes .env.production.example docker-compose.prod.yml backend/app/config.py backend/tests/test_live_domains.py
+git add -- frontend/services/endpoints.ts frontend/services/mockApi.ts frontend/services/realtimeAuth.ts frontend/features/chat/hooks/useChatRealtime.ts frontend/hooks/useTaskWebSocket.ts frontend/hooks/useTicketChat.ts frontend/pages/ApiOverview.tsx frontend/presenceClient.js frontend/public/runtime-config.js frontend/vite-env.d.ts frontend/nginx.conf frontend/docker-entrypoint.d/99-runtime-config.sh frontend/test/endpoints.test.ts
+git add -- presence-server/src/server.js ops/configure-live-domains.py ops/apply-live-domains.sh ops/deploy/live-domains.compose.yml ops/verify-live-domains.py ops/verify-live-domain-stack.py ops/testing/live_domain_browser.mjs
+git add -- docs/live-domains docs/vps-http-login.md docs/browser-session-origin-fix/README.md docs/vps-deployment-167-86-108-178.md docs/oauth/deployment.md
+git add -- docs/browser-session-http-fix/README.md docs/browser-session-http-fix/checks/summary.json
+git diff --cached --stat
+git commit -m "Configure Ideashop frontend and API live domains"
 git push origin main
 ```
 
@@ -66,7 +72,7 @@ Clone the project from GitHub.
 
 ```bash
 mkdir -p /opt
-git clone https://github.com/urlprojectsmith/ideashop-zeaplay.git /opt/ideashop-zeaplay
+git clone https://github.com/urlfactorywebsite-code/ideashop-zeaplay.git /opt/ideashop-zeaplay
 cd /opt/ideashop-zeaplay
 git checkout main
 ```
@@ -126,8 +132,8 @@ curl http://127.0.0.1:6312/health
 Expected URLs:
 
 ```text
-Frontend after configuring TLS/proxy: https://todoplay.urlfactory.website
-API through frontend proxy: https://todoplay.urlfactory.website/api
+Frontend after configuring TLS/proxy: https://ideashop.zeacrm.com
+Public API: https://api.ideashop.zeacrm.com/api
 HTTP health diagnostics only: http://167.86.108.178:6300/api/health
 Direct API on the VPS host only: http://127.0.0.1:6311
 Presence service on the VPS host only: http://127.0.0.1:6312
@@ -142,17 +148,15 @@ requires a trusted HTTPS origin (localhost is a development exception). See
 The Enable button also requires valid backend VAPID configuration; HTTPS alone
 does not resolve "Server delivery: Setup required".
 
-1. Point the intended frontend domain at this VPS and configure a trusted TLS
-   certificate on the reverse proxy. Forward that domain to the frontend on
-   `127.0.0.1:6300`, retaining `/api/`, `/socket.io/`, WebSocket upgrades and
-   unbuffered `/api/notifications/stream` responses. Open the HTTPS domain in the
-   browser after configuring TLS; changing `http` to `https` on port 6300 does not
-   configure a certificate.
+1. Configure both live domains and certificates using the
+   [Nginx Proxy Manager instructions](live-domains/README.md). Both hosts forward
+   to `zeaplay_frontend:80` on the existing shared Docker network. The API virtual
+   host routes REST, WebSockets, presence and OAuth to their services.
 2. Add the exact HTTPS frontend origin to `VEE_CORS_ALLOW_ORIGINS`,
    `VEE_WEBSOCKET_TRUSTED_ORIGINS`, and `PRESENCE_CORS_ORIGINS` in
-   `.env.production`. Keep the relative `/api` and `same-origin` frontend URL
-   settings. If password recovery is enabled, also update `VEE_PASSWORD_RESET_URL`
-   to that origin plus `/#/reset-password`.
+   `.env.production`. Frontend API/runtime URLs now use
+   `https://api.ideashop.zeacrm.com/api`, and `VEE_PASSWORD_RESET_URL` uses
+   `https://ideashop.zeacrm.com/#/reset-password`. The domain helper configures them.
 3. Replace the sample VAPID values in `.env.production` with a matching key pair
    and a real contact subject such as `mailto:your-admin@your-domain.example`.
    Reuse an existing valid production pair when available. Do not rotate a valid
@@ -415,4 +419,4 @@ to diagnose a 502.
 - `docker-compose.prod.yml` builds images from the pulled Git checkout, so server updates follow `git pull`.
 - The old production worker images were removed from this Compose file because this checkout does not include matching Celery/reporting worker modules.
 - Backend `6311` and presence `6312` are bound to `127.0.0.1` in production Compose. Public browser traffic should go through frontend/reverse-proxy routes on `6300`, including `/api/ws/` and `/socket.io/`.
-- If you later add a domain and HTTPS, update `.env.production`, `VEE_CORS_ALLOW_ORIGINS`, `PRESENCE_CORS_ORIGINS`, and reverse-proxy rules together.
+- Use the domain helper for public URL/origin/proxy changes; keep the persistent media/avatar override on later upgrades.

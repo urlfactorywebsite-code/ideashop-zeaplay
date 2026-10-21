@@ -1,7 +1,8 @@
 import { io } from 'socket.io-client';
+import { resolvePresenceSocketUrl } from './services/realtimeAuth';
 
 export const connectPresence = ({ token, onOnline, onOffline }) => {
-  const presenceUrl = import.meta.env.VITE_PRESENCE_URL || 'http://localhost:6312';
+  const presenceUrl = resolvePresenceSocketUrl();
   const socket = io(presenceUrl, {
     auth: { token },
     transports: ['websocket', 'polling'],

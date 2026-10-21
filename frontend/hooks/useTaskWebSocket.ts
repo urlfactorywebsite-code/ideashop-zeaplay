@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getWebSocketTicket, toWebSocketBaseUrl } from '../services/realtimeAuth';
+import { getSocketApiBaseUrl } from '../services/endpoints';
 import { RealtimeReconnectController } from '../services/realtimeBackoff';
 import { useAuth } from './useAuth';
 import { publishTaskRealtime } from '../services/taskRealtimeEvents';
@@ -15,10 +16,7 @@ type UseTaskWebSocketOptions = {
 };
 
 const resolveTasksSocketUrl = (): string | null => {
-  const base =
-    import.meta.env.VITE_API_URL ??
-    import.meta.env.VITE_API_BASE_URL ??
-    '/api';
+  const base = getSocketApiBaseUrl();
 
   if (!base) {
     return null;

@@ -211,17 +211,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
             label: 'Ticket',
         },
         {
-            to: '/calendar',
-            icon: (
-                <img
-                    src="https://res.cloudinary.com/dqhcbck76/image/upload/v1770241422/calendar_xbhksz.png"
-                    alt="Calendar"
-                    className="h-6 w-6 object-contain"
-                />
-            ),
-            label: 'Calendar',
-        },
-        {
             to: '/media',
             icon: (
                 <img

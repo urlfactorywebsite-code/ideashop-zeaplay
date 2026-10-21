@@ -1,8 +1,8 @@
 # Production browser-session 403 repair
 
-**Current deployment:** the main URL is `http://167.86.108.178:6300/`; the domain
-will be adopted later. Use [the HTTP IP login repair](../vps-http-login.md) for
-that deployment. The HTTPS instructions below apply to the later domain change.
+**Live domain target:** frontend `https://ideashop.zeacrm.com`, backend
+`https://api.ideashop.zeacrm.com`. Use [the current domain runbook](../live-domains/README.md).
+The old `todoplay` diagnosis and HTTP IP instructions below are historical.
 
 Live diagnosis on 21 October 2026:
 

@@ -1,10 +1,7 @@
 import { getAccessToken } from './tokenStorage';
+import { getApiBaseUrl, readEndpoint } from './endpoints';
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_URL ??
-  import.meta.env.VITE_API_BASE_URL ??
-  '/api'
-).replace(/\/$/, '');
+const API_BASE_URL = getApiBaseUrl();
 
 type TokenResponse = {
   access_token?: string;
@@ -48,19 +45,9 @@ export const resolveSameOriginUrl = (value?: string | null): string | null => {
   return value;
 };
 
-const readRuntimePresenceUrl = (): string => {
-  if (typeof window === 'undefined') return '';
-  const runtimeConfig = (window as typeof window & {
-    __RUNTIME_CONFIG__?: { PRESENCE_URL?: string };
-  }).__RUNTIME_CONFIG__;
-  return typeof runtimeConfig?.PRESENCE_URL === 'string' ? runtimeConfig.PRESENCE_URL.trim() : '';
-};
-
 export const resolvePresenceSocketUrl = (): string | null => {
-  const runtimeUrl = readRuntimePresenceUrl();
-  if (runtimeUrl) return resolveSameOriginUrl(runtimeUrl);
-  const envUrl = import.meta.env.VITE_PRESENCE_URL;
-  if (envUrl && typeof envUrl === 'string') return resolveSameOriginUrl(envUrl);
+  const configured = readEndpoint('PRESENCE_URL', readEndpoint('CHAT_URL'));
+  if (configured) return resolveSameOriginUrl(configured);
   if (typeof window === 'undefined') return null;
   const host = window.location.hostname;
   return host === 'localhost' || host === '127.0.0.1' ? 'http://localhost:6312' : window.location.origin;

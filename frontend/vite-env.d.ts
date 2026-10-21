@@ -3,6 +3,10 @@
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_API_URL?: string;
+  readonly VITE_PRESENCE_URL?: string;
+  readonly VITE_CHAT_URL?: string;
+  readonly VITE_WS_URL?: string;
+  readonly VITE_TICKET_CHAT_WS_URL?: string;
   readonly VITE_ENABLE_COLORFUL_THEME?: string;
 }
 

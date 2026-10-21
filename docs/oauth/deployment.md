@@ -22,13 +22,14 @@ certify a VPS or production proxy.
    ```dotenv
    VEE_BOOTSTRAP_SCHEMA=false
    VEE_ENVIRONMENT=production
-   VEE_OAUTH_ISSUER=https://api.example.com/api/oauth2
-   VEE_OAUTH_UI_URL=https://app.example.com/#/oauth/authorize
+   VEE_OAUTH_ISSUER=https://api.ideashop.zeacrm.com/api/oauth2
+   VEE_OAUTH_UI_URL=https://ideashop.zeacrm.com/#/oauth/authorize
    VEE_OAUTH_AUDIENCE=zeaplay-api
-   VEE_CORS_ALLOW_ORIGINS=["https://app.example.com"]
+   VEE_CORS_ALLOW_ORIGINS=["https://ideashop.zeacrm.com","https://api.ideashop.zeacrm.com"]
    ```
 
-   Use the deployment's actual domains. URLs must use HTTPS in production,
+   See [the live-domain runbook](../live-domains/README.md) for NPM and rollout.
+   URLs must use HTTPS in production,
    without credentials, queries or trailing slashes. The UI URL includes the
    hash route. Blank issuer/UI settings disable issuance. Keep existing JWT
    keys and tenant configuration; use strong managed secrets in production.

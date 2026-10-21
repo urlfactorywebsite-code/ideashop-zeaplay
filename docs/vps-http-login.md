@@ -1,5 +1,10 @@
 # Login at the current HTTP IP URL
 
+**Historical HTTP fallback:** this repair passed on the VPS before the domain
+cutover. The new live URLs and HTTPS procedure are in
+[the domain runbook](live-domains/README.md). Do not rerun this HTTP helper after
+deploying the domain settings.
+
 The current URL is **http://167.86.108.178:6300/**. A domain and Nginx Proxy Manager
 are not required for this direct port mapping. The VPS backend starts successfully;
 the reported login/session 403 is its production origin policy.

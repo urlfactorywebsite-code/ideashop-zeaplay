@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
 import {
     Task,
     User,
@@ -249,7 +250,7 @@ const getRangeForView = (mode: ViewMode, reference: Date) => {
 
 const createLightweightId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
-const CalendarView: React.FC = () => {
+const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     const { user } = useAuth() as { user: User | null };
     const queryClient = useQueryClient();
     const { theme } = useTheme();
@@ -1523,11 +1524,6 @@ const CalendarView: React.FC = () => {
             </div>
         </div>
     ) : null;
-
-    if (loading) {
-        return <PageLoader />;
-    }
-
     const buttonBase = 'rounded-full px-3 py-1 text-xs font-semibold transition';
     const activeBtn = calendarTheme.activeButton;
     const inactiveBtn = calendarTheme.button;
@@ -1627,9 +1623,9 @@ const CalendarView: React.FC = () => {
         </div>
     );
 
-    return (
-        <div className={`${calendarTheme.page} space-y-6`}>
-            <h1 className={`text-3xl font-extrabold tracking-tight ${calendarTheme.heading}`}>Mission Calendar</h1>
+    const content = loading ? <PageLoader /> : (
+        <div className={`${calendarTheme.page} ${onClose ? 'calendar-page-popup' : ''} space-y-6`}>
+            {!onClose && <h1 className={`text-3xl font-extrabold tracking-tight ${calendarTheme.heading}`}>Mission Calendar</h1>}
             {controls}
             {filterBar}
             {legend}
@@ -1648,26 +1644,57 @@ const CalendarView: React.FC = () => {
             <div className={`rounded-2xl border border-dashed p-4 text-xs ${calendarTheme.panel} ${calendarTheme.muted}`}>
                 Advanced automations such as reminders, external calendar sync, exports, smart scheduling, and time-blocking are on the roadmap.
             </div>
-            {selectedTaskId && (
-                <TaskDetailModal
-                    taskId={selectedTaskId}
-                    isOpen={!!selectedTaskId}
-                    onClose={closeTaskModal}
-                    usersMap={usersMap}
-                    onTaskDeleted={handleTaskDeleted}
-                />
+            {(selectedDateKey || quickActionContext || selectedTaskId || isCreateModalOpen) && (
+                <div>
+                    {!selectedTaskId && !isCreateModalOpen && dateDetailsDrawer}
+                    {quickActionModal}
+                    {selectedTaskId && (
+                        <TaskDetailModal
+                            taskId={selectedTaskId}
+                            isOpen={!!selectedTaskId}
+                            onClose={closeTaskModal}
+                            usersMap={usersMap}
+                            onTaskDeleted={handleTaskDeleted}
+                        />
+                    )}
+                    {isCreateModalOpen && (
+                        <CreateTaskModal
+                            isOpen={isCreateModalOpen}
+                            onClose={closeCreateModal}
+                            onTaskCreated={closeCreateModal}
+                            initialDueDate={createModalDate}
+                        />
+                    )}
+                </div>
             )}
-            {isCreateModalOpen && (
-                <CreateTaskModal
-                    isOpen={isCreateModalOpen}
-                    onClose={closeCreateModal}
-                    onTaskCreated={closeCreateModal}
-                    initialDueDate={createModalDate}
-                />
-            )}
-            {quickActionModal}
-            {dateDetailsDrawer}
         </div>
+    );
+
+    if (!onClose) return content;
+
+    const dismiss = () => {
+        if (selectedTaskId) closeTaskModal();
+        else if (isCreateModalOpen) closeCreateModal();
+        else if (quickActionContext) closeQuickActionModal();
+        else if (selectedDateKey) closeDateDrawer();
+        else onClose();
+    };
+
+    return (
+        <Dialog open onClose={dismiss} className="fixed inset-0 z-[80]">
+            <DialogBackdrop className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm" />
+            <div className="fixed inset-0 flex items-center justify-center p-2 sm:p-4">
+                <DialogPanel className={`flex max-h-[calc(100dvh-1rem)] w-full max-w-[1600px] flex-col rounded-2xl border shadow-2xl sm:max-h-[calc(100dvh-2rem)] ${isDark ? 'border-slate-700 bg-slate-950 text-white' : 'border-slate-200 bg-slate-50 text-slate-900'}`}>
+                    <header className="flex shrink-0 items-center justify-between gap-4 border-b border-current/10 px-4 py-3 sm:px-6">
+                        <DialogTitle className="text-xl font-bold sm:text-2xl">Mission Calendar</DialogTitle>
+                        <button type="button" onClick={onClose} aria-label="Close calendar" autoFocus className="rounded-full p-2 transition hover:bg-current/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400">
+                            <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                        </button>
+                    </header>
+                    <div className="min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-6">{content}</div>
+                </DialogPanel>
+            </div>
+        </Dialog>
     );
 };
 

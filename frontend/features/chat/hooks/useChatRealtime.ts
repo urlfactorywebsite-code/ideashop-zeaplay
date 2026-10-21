@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getWebSocketTicket } from '../../../services/realtimeAuth';
+import { getWebSocketTicket, toWebSocketBaseUrl } from '../../../services/realtimeAuth';
+import { getSocketApiBaseUrl } from '../../../services/endpoints';
 import { RealtimeReconnectController } from '../../../services/realtimeBackoff';
 import { RecentEventIds } from '../../../services/realtimeRecovery';
 import { useAuth } from '../../../hooks/useAuth';
@@ -14,19 +15,7 @@ export type ChatRealtimeEvent = {
 const resolveChatSocketUrl = async () => {
   const token = await getWebSocketTicket('chat');
   if (!token || typeof window === 'undefined') return null;
-  const configuredApiBase = (
-    import.meta.env.VITE_API_URL ||
-    import.meta.env.VITE_API_BASE_URL ||
-    '/api'
-  ).replace(/\/$/, '');
-  const absoluteApiBase = configuredApiBase.startsWith('http')
-    ? configuredApiBase
-    : `${window.location.origin}${configuredApiBase.startsWith('/') ? '' : '/'}${configuredApiBase}`;
-  const apiUrl = new URL(absoluteApiBase);
-  const wsProtocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
-  const apiPath = apiUrl.pathname.replace(/\/$/, '');
-  const wsPath = apiPath.endsWith('/api') ? `${apiPath}/ws/chat` : `${apiPath}/ws/chat`.replace(/\/+/g, '/');
-  return `${wsProtocol}//${apiUrl.host}${wsPath}?token=${encodeURIComponent(token)}`;
+  return `${toWebSocketBaseUrl(getSocketApiBaseUrl())}/ws/chat?token=${encodeURIComponent(token)}`;
 };
 
 export const useChatRealtime = (onEvent: (event: ChatRealtimeEvent) => void) => {

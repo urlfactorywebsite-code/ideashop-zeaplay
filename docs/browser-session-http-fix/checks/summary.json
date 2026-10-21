@@ -10,5 +10,8 @@
     "passed": true
   },
   "https_proxy": true,
-  "vps_deployed": false
+  "vps_deployed": true,
+  "vps_http_origin_verification": "PASS",
+  "deployed_by": "user VPS terminal",
+  "real_account_login_tested": false
 }

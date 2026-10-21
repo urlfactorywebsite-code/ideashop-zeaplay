@@ -1,0 +1,93 @@
+{
+  "frontend": "https://ideashop.zeacrm.com",
+  "backend": "https://api.ideashop.zeacrm.com",
+  "passed": true,
+  "checks": [
+    {
+      "case": "Frontend TLS and application HTML",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "Runtime URLs are revalidated after deployment",
+      "passed": true
+    },
+    {
+      "case": "Runtime API targets backend domain",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "Runtime native WebSockets target backend domain",
+      "passed": true
+    },
+    {
+      "case": "Runtime presence targets backend domain",
+      "passed": true
+    },
+    {
+      "case": "API hostname serves backend",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "API TLS /api/health",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "API TLS /api/ready",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "API TLS /api/openapi.json",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "OAuth RFC 8414 discovery",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "OAuth endpoints use canonical API domain",
+      "passed": true
+    },
+    {
+      "case": "Anonymous/invalid browser request /api/auth/browser-session/refresh",
+      "passed": true,
+      "status": 401
+    },
+    {
+      "case": "Credentialed frontend CORS /api/auth/browser-session/refresh",
+      "passed": true
+    },
+    {
+      "case": "Anonymous/invalid browser request /api/auth/login",
+      "passed": true,
+      "status": 401
+    },
+    {
+      "case": "Credentialed frontend CORS /api/auth/login",
+      "passed": true
+    },
+    {
+      "case": "Browser preflight permits frontend",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "case": "Foreign browser origin rejected",
+      "passed": true,
+      "status": 403
+    },
+    {
+      "case": "Presence Engine.IO route and frontend origin",
+      "passed": true,
+      "status": 200
+    }
+  ],
+  "transport_errors": [],
+  "real_account_login_tested": false
+}

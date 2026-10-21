@@ -11,12 +11,14 @@ import { loadPointsConfig, POINTS_CONFIG_UPDATED_EVENT } from '../utils/pointsCo
 import { formatDate, timeAgo } from '../utils';
 import { augmentTasksWithPoints, summarizeTaskPoints, formatPointsValue, TaskPointsTone } from '../utils/taskPoints';
 import { priorityPillStyle, stageCardStyle, stageColumnStyle } from '../utils/themeTokens';
-import { PlusIcon, TagIcon } from '../components/icons';
+import { CalendarIcon, PlusIcon, TagIcon } from '../components/icons';
 import TaskStatusBadge from '../components/ui/TaskStatusBadge';
 import TaskPriorityBadge from '../components/ui/TaskPriorityBadge';
 import CreateTaskModal from '../components/CreateTaskModal';
 import TaskDetailModal from '../components/TaskDetailModal';
 import TaskTemplateModal from '../components/TaskTemplateModal';
+
+const CalendarView = React.lazy(() => import('./CalendarView'));
 
 type ThemeMode = 'light' | 'dark' | 'colorful' | 'system';
 type ResolvedTheme = 'light' | 'dark' | 'colorful';
@@ -477,6 +479,7 @@ const Tasks: React.FC = () => {
 
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [isTemplateModalOpen, setTemplateModalOpen] = useState(false);
+    const [isCalendarOpen, setCalendarOpen] = useState(false);
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const prefetchedTaskIdsRef = useRef<Set<string>>(new Set());
     const realtimeRefreshTimerRef = useRef<number | null>(null);
@@ -1577,6 +1580,17 @@ const Tasks: React.FC = () => {
                         Tasks <span className={isLight || isColorful ? 'inline-block align-top text-xl text-fuchsia-500 sparkle-pulse' : 'inline-block align-top text-xl text-cyan-300 sparkle-pulse'}>*</span>
                     </h1>
                     <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setCalendarOpen(true)}
+                            aria-label="Open calendar"
+                            aria-haspopup="dialog"
+                            aria-expanded={isCalendarOpen}
+                            title="Calendar"
+                            className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 ${isLight || isColorful ? 'border-indigo-200 bg-white text-indigo-600 hover:bg-indigo-50' : 'border-cyan-300/60 bg-cyan-950/60 text-cyan-100 hover:bg-cyan-900/60'}`}
+                        >
+                            <CalendarIcon className="h-8 w-8" aria-hidden="true" />
+                        </button>
                         {(user?.role === Role.MANAGER || user?.role === Role.ADMIN || user?.role === Role.OWNER) && (
                             <button onClick={() => setTemplateModalOpen(true)} className={templateButtonClass}>
                                 <TagIcon className="h-4 w-4" />
@@ -2215,6 +2229,15 @@ const Tasks: React.FC = () => {
                 )}
                 <div className="hidden md:block" />
             </div>
+
+            {isCalendarOpen && (
+                <React.Suspense fallback={<div role="status">Loading calendar…</div>}>
+                    <CalendarView onClose={() => {
+                        setCalendarOpen(false);
+                        refreshTasks();
+                    }} />
+                </React.Suspense>
+            )}
 
             {isCreateModalOpen && (
                 <CreateTaskModal

@@ -154,6 +154,8 @@ class Settings(BaseSettings):
             "http://167.86.108.178",
             "https://playapi.zeacrm.com",
             "https://play.zeacrm.com",
+            "https://ideashop.zeacrm.com",
+            "https://api.ideashop.zeacrm.com",
             "http://167.86.108.178:6311",
         ]
     )

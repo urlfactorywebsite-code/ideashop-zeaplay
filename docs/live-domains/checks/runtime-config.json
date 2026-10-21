@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "case": "All public endpoints",
+      "passed": true
+    },
+    {
+      "case": "Empty values keep JSON valid",
+      "passed": true
+    },
+    {
+      "case": "Quotes and backslashes are escaped",
+      "passed": true
+    },
+    {
+      "case": "Control characters rejected",
+      "passed": true
+    }
+  ]
+}

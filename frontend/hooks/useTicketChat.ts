@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getWebSocketTicket, toWebSocketBaseUrl } from '../services/realtimeAuth';
+import { getApiBaseUrl, getSocketApiBaseUrl } from '../services/endpoints';
 import { RealtimeReconnectController } from '../services/realtimeBackoff';
 import { getAccessToken } from '../services/tokenStorage';
 import { CoalescedReconciliation, comparePersistedTimes, RecentEventIds } from '../services/realtimeRecovery';
@@ -30,15 +31,7 @@ type TicketChatState = {
 };
 
 const resolveTicketChatUrl = (): string => {
-    const envUrl = import.meta.env.VITE_TICKET_CHAT_WS_URL || import.meta.env.VITE_WS_URL;
-    if (envUrl && typeof envUrl === 'string') {
-        return toWebSocketBaseUrl(envUrl);
-    }
-    if (typeof window !== 'undefined') {
-        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        return `${protocol}://${window.location.host}/api`;
-    }
-    return 'ws://localhost:6311/api';
+    return toWebSocketBaseUrl(getSocketApiBaseUrl(true));
 };
 
 export const useTicketChat = (ticketId?: string, onReconcile?: () => void): TicketChatState => {
@@ -128,7 +121,7 @@ export const useTicketChat = (ticketId?: string, onReconcile?: () => void): Tick
                 if (waitingForReady || socketRef.current !== socket) return;
                 bufferedRef.current ??= [];
                 try {
-                    const apiBase = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+                    const apiBase = getApiBaseUrl();
                     const response = await fetch(`${apiBase}/ws/tickets/${ticketId}/snapshot`, {
                         headers: { Authorization: `Bearer ${getAccessToken()}` },
                         signal: abort.signal,

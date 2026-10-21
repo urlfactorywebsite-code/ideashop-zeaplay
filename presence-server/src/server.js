@@ -59,6 +59,8 @@ function parseOrigins(value) {
       'http://127.0.0.1:3000',
       'https://play.zeacrm.com',
       'https://playapi.zeacrm.com',
+      'https://ideashop.zeacrm.com',
+      'https://api.ideashop.zeacrm.com',
     ];
   }
   return value

@@ -1,5 +1,6 @@
 import type { SmtpProfile, SmtpProfileInput, SmtpHealth, SmtpJob, SmtpAttempt } from '../types/smtp';
 import type { WorkSnapshot } from '../types/activeWork';
+import { getApiBaseUrl } from './endpoints';
 ﻿ import axios, { AxiosInstance, AxiosHeaders } from 'axios';
 import { TaskCategory } from '../types';
 import type { TaskJourney, TaskAnalytics, TaskExecutionSessions } from '../types/taskLifecycle';
@@ -248,13 +249,7 @@ declare module 'axios' {
   }
 }
 
-console.log('mockApi.ts: Setting API_BASE_URL');
-export const API_BASE_URL = (
-  import.meta.env.VITE_API_URL ??
-  import.meta.env.VITE_API_BASE_URL ??
-  'https://todoplay.urlfactory.website/api'
-).replace(/\/$/, '');
-console.log('mockApi.ts: API_BASE_URL set to:', API_BASE_URL);
+export const API_BASE_URL = getApiBaseUrl();
 const NORMALIZED_API_BASE_URL = API_BASE_URL;
 const TICKETS_BASE_PATH = '/tickets';
 

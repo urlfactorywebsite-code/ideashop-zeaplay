@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "checks": [
+    "Secure frontend with runtime API domain",
+    "Real cross-origin credentialed login",
+    "Secure HttpOnly host-only API session cookie",
+    "Frontend reload restores session through API domain",
+    "Authenticated native task WebSocket on API host",
+    "Authenticated Socket.IO presence on API host",
+    "Real browser consent, canonical issuer and PKCE token exchange",
+    "Scoped OAuth profile on API domain",
+    "Browser logout revokes API-host session"
+  ]
+}

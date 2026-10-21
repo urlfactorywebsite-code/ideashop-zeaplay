@@ -1,0 +1,130 @@
+{
+  "frontend": "https://ideashop.zeacrm.com",
+  "backend": "https://api.ideashop.zeacrm.com",
+  "passed": false,
+  "checks": [
+    {
+      "case": "Frontend TLS and application HTML",
+      "passed": false
+    },
+    {
+      "case": "Runtime URLs are revalidated after deployment",
+      "passed": false
+    },
+    {
+      "case": "Runtime API targets backend domain",
+      "passed": false
+    },
+    {
+      "case": "Runtime native WebSockets target backend domain",
+      "passed": false
+    },
+    {
+      "case": "Runtime presence targets backend domain",
+      "passed": false
+    },
+    {
+      "case": "API hostname serves backend",
+      "passed": false
+    },
+    {
+      "case": "API TLS /api/health",
+      "passed": false
+    },
+    {
+      "case": "API TLS /api/ready",
+      "passed": false
+    },
+    {
+      "case": "API TLS /api/openapi.json",
+      "passed": false
+    },
+    {
+      "case": "OAuth RFC 8414 discovery",
+      "passed": false
+    },
+    {
+      "case": "OAuth endpoints use canonical API domain",
+      "passed": false
+    },
+    {
+      "case": "Anonymous/invalid browser request /api/auth/browser-session/refresh",
+      "passed": false
+    },
+    {
+      "case": "Credentialed frontend CORS /api/auth/browser-session/refresh",
+      "passed": false
+    },
+    {
+      "case": "Anonymous/invalid browser request /api/auth/login",
+      "passed": false
+    },
+    {
+      "case": "Credentialed frontend CORS /api/auth/login",
+      "passed": false
+    },
+    {
+      "case": "Browser preflight permits frontend",
+      "passed": false
+    },
+    {
+      "case": "Foreign browser origin rejected",
+      "passed": false
+    },
+    {
+      "case": "Presence Engine.IO route and frontend origin",
+      "passed": false
+    }
+  ],
+  "transport_errors": [
+    {
+      "url": "https://ideashop.zeacrm.com/",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://ideashop.zeacrm.com/runtime-config.js",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://api.ideashop.zeacrm.com/",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://api.ideashop.zeacrm.com/api/health",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://api.ideashop.zeacrm.com/api/ready",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://api.ideashop.zeacrm.com/api/openapi.json",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://api.ideashop.zeacrm.com/.well-known/oauth-authorization-server/api/oauth2",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://api.ideashop.zeacrm.com/api/auth/browser-session/refresh",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://api.ideashop.zeacrm.com/api/auth/login",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://api.ideashop.zeacrm.com/api/auth/login",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://api.ideashop.zeacrm.com/api/auth/browser-session/refresh",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    },
+    {
+      "url": "https://api.ideashop.zeacrm.com/socket.io/?EIO=4&transport=polling",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>"
+    }
+  ],
+  "real_account_login_tested": false
+}
