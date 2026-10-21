@@ -26,6 +26,31 @@ an exact Nginx location with revalidation and a 404 for a missing file, so it
 cannot silently return the application's HTML. A container chmod alone is lost
 when that container is replaced.
 
+### The container returns 200 but the public worker still returns 403
+
+Compare the normal public URL, a fresh query string, and the gateway directly:
+
+```bash
+curl -fsSI https://ideashop.zeacrm.com/sw.js
+curl -fsSI "https://ideashop.zeacrm.com/sw.js?diagnostic=$(date +%s)"
+curl -fsSI -H 'Host: ideashop.zeacrm.com' http://127.0.0.1:6300/sw.js
+```
+
+If only the normal public URL returns 403, the proxy still serves a cached error.
+An observed response with a fresh query returned JavaScript but an hours-long
+`max-age`, while the direct gateway returned JavaScript with `no-cache`.
+
+In NPM, edit the **ideashop.zeacrm.com** Proxy Host, open **Advanced**, and append
+the exact-location block in [npm-push-worker.conf](../../ops/deploy/npm-push-worker.conf).
+Preserve existing Advanced configuration; if an exact `/sw.js` location already
+exists, replace that block rather than duplicating it. Save the Proxy Host. The
+exact location bypasses the generic asset-cache rule and its previously cached
+403 without deleting shared cache files or changing other Proxy Hosts.
+
+Recheck the normal URL without a query string. Expect HTTP 200, JavaScript MIME,
+and `Cache-Control: no-cache`. Hard-refresh the browser and retry Enable this
+browser. A fresh-query workaround alone does not fix registration at `/sw.js`.
+
 ## Persist valid VAPID settings and deploy the permanent worker fix
 
 Commit and push the repair source through the normal release process before
