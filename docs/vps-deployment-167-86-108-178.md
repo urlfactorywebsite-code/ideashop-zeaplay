@@ -15,7 +15,7 @@ Run these commands on your local machine from the project root.
 ```powershell
 cd F:\Projects\ideashop-zeaplay-v5
 git status
-git add -- .env.production.example docker-compose.prod.yml backend/app/config.py backend/app/services/browser_session.py backend/tests/test_browser_session_http.py backend/tests/test_oauth2_server.py ops/verify-http-session.py docs/vps-http-login.md docs/browser-session-origin-fix/README.md docs/vps-deployment-167-86-108-178.md docs/browser-session-http-fix
+git add -- .gitattributes .env.production.example docker-compose.prod.yml backend/app/config.py backend/app/services/browser_session.py backend/tests/test_browser_session_http.py backend/tests/test_oauth2_server.py ops/verify-http-session.py ops/apply-http-login.sh docs/vps-http-login.md docs/browser-session-origin-fix/README.md docs/vps-deployment-167-86-108-178.md docs/browser-session-http-fix
 git commit -m "Support explicit HTTP IP browser sessions"
 git push origin main
 ```

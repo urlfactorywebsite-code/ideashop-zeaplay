@@ -14,6 +14,15 @@ HTTP credentials and sessions are unencrypted; remove the exception when moving 
 
 ## Apply on the VPS
 
+After publishing/pulling the source **and** `ops/apply-http-login.sh`, the complete
+procedure below is automated by `bash ops/apply-http-login.sh`. Run it from your
+VPS terminal. It backs up private settings/database, preserves the running CORS
+entries, adds the exact IP to both lists, builds/validates the backend before
+stopping it, copies uploads to a persistent host directory, recreates only the
+backend, refreshes nginx's backend address, and runs the credential-free checks.
+It stops before making changes for custom media roots. No server execution or
+publication of this helper was performed by the agent.
+
 The changed source must first reach `/opt/ideashop-zeaplay` through your normal
 release process. No commit, push, remote upload, or VPS deployment was performed
 by this work. Do not just set these variables on the old image: it rejects HTTP CORS.

@@ -1,0 +1,19 @@
+{
+  "bash_syntax": "PASS",
+  "environment_preservation_cases": [
+    {
+      "case": 1,
+      "passed": true
+    },
+    {
+      "case": 2,
+      "passed": true
+    },
+    {
+      "case": 3,
+      "passed": true
+    }
+  ],
+  "invalid_input_preserves_file": true,
+  "vps_executed": false
+}

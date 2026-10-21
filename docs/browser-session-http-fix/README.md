@@ -11,6 +11,7 @@ preserve current uploads, and recreate only the backend.
 | Linux Python 3.11 full app through nginx, PostgreSQL 15 and Redis | 20 passed | `checks/docker-http.json` |
 | HTTPS proxy/default policy regression checks | 14 passed | `checks/https-proxy.json` |
 | Production Compose configuration | PASS | Checked with `.env.production.example` and `--no-env-resolution` |
+| VPS deployment helper syntax and private-setting preservation | PASS | `checks/deploy-helper.json`; 3 environment formats plus invalid-input preservation |
 | VPS before deployment | Health 200, login/refresh 403 | `checks/vps-before-deploy.json` |
 
 The HTTP integration runs the built backend's real `app.main:app`, real authentication
@@ -31,3 +32,6 @@ No business database, existing local service, or VPS configuration was changed.
 No message or email was sent. This is focused repair verification; the earlier
 [full backend audit](../backend-audit-2026-10-21/README.md) remains separate, with
 its previously documented failures unresolved by this change.
+
+`bash ops/apply-http-login.sh` automates the VPS repair after the helper and source
+have been published/pulled. The helper itself has not been run on the VPS.
