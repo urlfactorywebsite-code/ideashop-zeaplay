@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..services.navigation import socket_allowed
+
 import asyncio
 from ..observability import FANOUT_FAILURES
 import json
@@ -97,7 +99,7 @@ class TaskConnectionManager:
                 outgoing = message
                 with SessionLocal() as db:
                     user = db.get(User, self._socket_users.get(socket))
-                    if not user or user.status != UserStatusEnum.ACTIVE or str(user.tenant_id) != str(tenant_id) or not credentials_match(user, getattr(socket, "scope", {})):
+                    if not user or user.status != UserStatusEnum.ACTIVE or str(user.tenant_id) != str(tenant_id) or not credentials_match(user, getattr(socket, "scope", {})) or not socket_allowed(db, user, 'tasks'):
                         await self.disconnect(tenant_id, socket)
                         await socket.close(code=1008)
                         continue
@@ -158,7 +160,7 @@ async def tasks_ws(websocket: WebSocket) -> None:
 
     with SessionLocal() as db:
         user = db.execute(select(User).where(User.id == str(user_id))).scalar_one_or_none()
-        if not user or user.status != UserStatusEnum.ACTIVE or not credentials_match(user, payload):
+        if not user or user.status != UserStatusEnum.ACTIVE or not credentials_match(user, payload) or not socket_allowed(db, user, 'tasks'):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
         token_tenant_id = str(payload.get("tenant_id") or "")
@@ -191,7 +193,7 @@ async def tasks_ws(websocket: WebSocket) -> None:
                 continue
             with SessionLocal() as db:
                 live_user = db.get(User, str(user_id))
-                if not live_user or live_user.status != UserStatusEnum.ACTIVE or str(live_user.tenant_id) != tenant_id or not credentials_match(live_user, websocket.scope):
+                if not live_user or live_user.status != UserStatusEnum.ACTIVE or str(live_user.tenant_id) != tenant_id or not credentials_match(live_user, websocket.scope) or not socket_allowed(db, live_user, 'tasks'):
                     await websocket.close(code=1008)
                     break
             if message.get("type") == "pong":

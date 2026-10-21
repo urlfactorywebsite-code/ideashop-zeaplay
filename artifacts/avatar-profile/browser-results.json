@@ -1,0 +1,17 @@
+{
+  "results": [
+    "Profile settings load with existing theme and password sections",
+    "Original image crop and upload persist through real API",
+    "Header updates immediately without reload",
+    "Bio, structured skills, duplicate prevention and removal save",
+    "Avatar and frame persist after refresh",
+    "Directory name filters remain functional",
+    "Directory opens digital ID and safe multiline bio with Additional Details",
+    "Mobile employee card stays inside viewport",
+    "Unsupported file feedback is visible",
+    "Avatar replacement succeeds on mobile",
+    "Removal restores initials and retains frame",
+    "Regular users edit personal fields without sending protected employment fields"
+  ],
+  "errors": []
+}

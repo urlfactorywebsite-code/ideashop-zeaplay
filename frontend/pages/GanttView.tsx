@@ -1,3 +1,4 @@
+import Avatar from '../components/Avatar';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Task, User, TaskStatus } from '../types';
 import { useAuth } from '../hooks/useAuth';
@@ -130,16 +131,6 @@ const activeStatuses = new Set<TaskStatus>([
 
 const formatShortDate = (value: Date) =>
   value.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-const Initials: React.FC<{ name: string }> = ({ name }) => {
-  const parts = name.split(' ').filter(Boolean);
-  const initials = parts.length === 1 ? parts[0][0] : `${parts[0][0]}${parts[1][0]}`;
-  return (
-    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-[10px] font-bold uppercase tracking-wider text-white ring-1 ring-white/20">
-      {initials}
-    </span>
-  );
-};
 
 const Chip: React.FC<React.PropsWithChildren<{ active?: boolean; onClick?: () => void }>> = ({ active, onClick, children }) => (
   <button
@@ -469,7 +460,7 @@ const GanttRaidMapPage: React.FC = () => {
                             <div className="-space-x-2 rtl:space-x-reverse">
                               {(task.assignedTo && task.assignedTo.length ? task.assignedTo : []).slice(0,3).map((id) => (
                                 <span key={id} className="inline-block">
-                                  <Initials name={usersMap.get(id)?.name || 'U'} />
+                                  <Avatar user={usersMap.get(id) ?? { id }} size={24} />
                                 </span>
                               ))}
                             </div>

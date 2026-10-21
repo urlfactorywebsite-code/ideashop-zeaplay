@@ -1,3 +1,4 @@
+import Avatar from './Avatar';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
@@ -1405,7 +1406,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                             return (
                                                 <div key={comment.id} className="rounded-2xl border border-white/5 bg-black/30 p-4">
                                                     <div className="flex items-center justify-between text-xs text-white/70">
-                                                        <span className="font-semibold text-white">
+                                                        <span className="flex items-center gap-2 font-semibold text-white">
+                                                            <Avatar user={author ?? { id: comment.userId }} size={28} />
                                                             {author?.name || 'Unknown operative'}
                                                         </span>
                                                         <span>{timeAgo(comment.createdAt)}</span>
@@ -1871,15 +1873,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                         <span className="text-xs text-white/70">No assignees yet</span>
                                     ) : (
                                         assignedUsers.map((member) => {
-                                            const memberAvatar = getUserAvatarUrl(member);
+
                                             return (
                                                 <div key={member.id} className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-1 text-xs font-medium text-white shadow-sm">
                                                     <span className="h-7 w-7 overflow-hidden rounded-full border border-white/20">
-                                                        {memberAvatar ? (
-                                                            <img src={memberAvatar} alt={member.name} className="h-full w-full object-cover" />
-                                                        ) : (
-                                                            <span className="flex h-full w-full items-center justify-center text-[10px] uppercase">{member.name.slice(0, 2)}</span>
-                                                        )}
+                                                        <Avatar user={member} size={28} />
                                                     </span>
                                                     <span>{member.name}</span>
                                                     <span className="text-[10px] uppercase tracking-[0.2em] text-white/50">{formatRoleLabel(member.role)}</span>

@@ -1,13 +1,29 @@
 """Pydantic schemas for request and response bodies."""
 
-from datetime import date, datetime, timezone
 import uuid
-from typing import Any, Dict, List, Optional, Literal
+from datetime import date, datetime, timezone
 from enum import Enum
+from types import SimpleNamespace
+from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    PrivateAttr,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from .models import (
+    ApprovalScopeTypeEnum,
+    ApprovalStatusEnum,
+    AuditLogCategoryEnum,
+    AuditLogSeverityEnum,
+    AuditLogSourceEnum,
+    AuditLogStatusEnum,
     AvatarStorageTypeEnum,
     BadgeProgressStatusEnum,
     BadgeStateEnum,
@@ -17,23 +33,13 @@ from .models import (
     ClientStatusEnum,
     CompletionSubmissionStatusEnum,
     ContactStatusEnum,
-    ProjectMemberRoleEnum,
-    ProjectStatusEnum,
     MediaCategoryEnum,
     NotificationEntityTypeEnum,
     NotificationOutboxChannelEnum,
     NotificationOutboxStatusEnum,
     NotificationTypeEnum,
-    ApprovalScopeTypeEnum,
-    ApprovalStatusEnum,
-    TaskTransferStatusEnum,
-    ToolCategoryStatusEnum,
-    ToolPricingTypeEnum,
-    ToolStatusEnum,
-    AuditLogCategoryEnum,
-    AuditLogSeverityEnum,
-    AuditLogSourceEnum,
-    AuditLogStatusEnum,
+    ProjectMemberRoleEnum,
+    ProjectStatusEnum,
     RecurrenceRuleEnum,
     RewardClaimStatusEnum,
     RewardImageSourceEnum,
@@ -42,13 +48,22 @@ from .models import (
     RoleEnum,
     StorageProviderEnum,
     SubtaskStatusEnum,
-    TaskPriorityEnum,
     TaskApprovalStatusEnum,
+    TaskPriorityEnum,
     TaskStatusEnum,
+    TaskTransferStatusEnum,
     TimeEntryStatusEnum,
+    ToolCategoryStatusEnum,
+    ToolPricingTypeEnum,
+    ToolStatusEnum,
     UserStatusEnum,
 )
-
+from .profile_validation import (
+    normalize_skills,
+    validate_employee_fields,
+    validate_frame,
+    validate_timezone,
+)
 
 # ---------------------------------------------------------------------------
 # Levels
@@ -265,8 +280,8 @@ class AvatarAssetRead(BaseModel):
     name: str
     storage_type: AvatarStorageTypeEnum
     url: Optional[str] = None
-    data_url: Optional[str] = None
-    external_url: Optional[str] = None
+    data_url: Optional[str] = Field(default=None, exclude=True)
+    external_url: Optional[str] = Field(default=None, exclude=True)
     is_default: bool
     mime_type: Optional[str] = None
     created_by_id: Optional[str] = None
@@ -275,7 +290,9 @@ class AvatarAssetRead(BaseModel):
 
 
 class AvatarUploadPayload(BaseModel):
-    data_url: str = Field(min_length=1)
+    data_url: str = Field(min_length=1, max_length=28_000_000)
+    crop: Optional[dict[str, float]] = None
+    expected_updated_at: Optional[datetime] = None
 
 
 # ---------------------------------------------------------------------------
@@ -284,7 +301,7 @@ class AvatarUploadPayload(BaseModel):
 
 
 class UserBase(BaseModel):
-    name: str
+    name: str = Field(min_length=1, max_length=255)
     email: EmailStr
     employer_id: Optional[str] = None
     role: RoleEnum = RoleEnum.USER
@@ -304,20 +321,26 @@ class UserBase(BaseModel):
     evening_break_start: Optional[str] = None
     evening_break_end: Optional[str] = None
     title: Optional[str] = None
-    phone: Optional[str] = None
-    location: Optional[str] = None
+    phone: Optional[str] = Field(default=None, max_length=50)
+    location: Optional[str] = Field(default=None, max_length=255)
     timezone: Optional[str] = None
     notes: Optional[str] = None
     skills: Optional[List[str]] = None
     projects: Optional[List[str]] = None
+    profile_bio: Optional[str] = Field(default=None, max_length=500)
 
 
 class UserCreate(UserBase):
+    _employee_fields = model_validator(mode='after')(validate_employee_fields)
+    _skills = field_validator("skills")(normalize_skills)
+    _frame = field_validator("avatar_frame")(validate_frame)
+    _timezone = field_validator("timezone")(validate_timezone)
     password: str = Field(min_length=6)
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = None
+    _employee_fields = model_validator(mode='after')(validate_employee_fields)
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
     employer_id: Optional[str] = None
     role: Optional[RoleEnum] = None
     status: Optional[UserStatusEnum] = None
@@ -344,12 +367,17 @@ class UserUpdate(BaseModel):
     evening_break_start: Optional[str] = None
     evening_break_end: Optional[str] = None
     title: Optional[str] = None
-    phone: Optional[str] = None
-    location: Optional[str] = None
+    phone: Optional[str] = Field(default=None, max_length=50)
+    location: Optional[str] = Field(default=None, max_length=255)
     timezone: Optional[str] = None
     notes: Optional[str] = None
     skills: Optional[List[str]] = None
     projects: Optional[List[str]] = None
+    profile_bio: Optional[str] = Field(default=None, max_length=500)
+    expected_updated_at: Optional[datetime] = None
+    _skills = field_validator("skills")(normalize_skills)
+    _frame = field_validator("avatar_frame")(validate_frame)
+    _timezone = field_validator("timezone")(validate_timezone)
 
 
 class UserPasswordChange(BaseModel):
@@ -359,7 +387,13 @@ class UserPasswordChange(BaseModel):
 
 
 class UserProfileUpdate(BaseModel):
-    name: Optional[str] = None
+    _employee_fields = model_validator(mode='after')(validate_employee_fields)
+    model_config = ConfigDict(extra="forbid")
+    phone: Optional[str] = Field(default=None, max_length=50)
+    location: Optional[str] = Field(default=None, max_length=255)
+    timezone: Optional[str] = Field(default=None, max_length=64)
+    skills: Optional[List[str]] = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
     employer_id: Optional[str] = None
     department_id: Optional[str] = None
     avatar_asset_id: Optional[str] = None
@@ -374,6 +408,11 @@ class UserProfileUpdate(BaseModel):
     lunch_break_end: Optional[str] = None
     evening_break_start: Optional[str] = None
     evening_break_end: Optional[str] = None
+    profile_bio: Optional[str] = Field(default=None, max_length=500)
+    expected_updated_at: Optional[datetime] = None
+    _skills = field_validator("skills")(normalize_skills)
+    _frame = field_validator("avatar_frame")(validate_frame)
+    _timezone = field_validator("timezone")(validate_timezone)
 
 
 class UserResetPassword(BaseModel):
@@ -383,6 +422,7 @@ class UserResetPassword(BaseModel):
 
 class UserRead(UserBase):
     model_config = ConfigDict(from_attributes=True)
+    _visible_private_fields: set[str] = PrivateAttr(default_factory=set)
 
     id: str
     tenant_id: Optional[uuid.UUID] = None
@@ -397,11 +437,53 @@ class UserRead(UserBase):
     unlocked_achievement_ids: List[str]
     avatar_asset: Optional[AvatarAssetRead] = None
     avatar_url: Optional[str] = None
-    profile_image_key: Optional[str] = None
+    profile_image_key: Optional[str] = Field(default=None, exclude=True)
     profile_image_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     department: Optional[DepartmentRead] = None
+
+    @field_validator('avatar_asset', mode='before')
+    @classmethod
+    def scope_legacy_avatar_reference(cls, asset, info):
+        if asset is not None and hasattr(asset, 'tenant_id'):
+            from .avatar_utils import can_access_asset
+            if not can_access_asset(asset, SimpleNamespace(tenant_id=info.data.get('tenant_id'))):
+                return None
+        return asset
+
+    @classmethod
+    def for_viewer(cls, user, viewer):
+        """Explicitly authorize private fields; nested/default projections are public."""
+        result = cls.model_validate(user).model_copy()
+        result._visible_private_fields = set()
+        if user.tenant_id != viewer.tenant_id:
+            return result
+        if user.id == viewer.id:
+            result._visible_private_fields.update({'phone', 'location'})
+        from fastapi import HTTPException
+
+        from .dependencies import ensure_user_admin_scope
+        try:
+            ensure_user_admin_scope(viewer, target=user)
+        except HTTPException:
+            pass
+        else:
+            result._visible_private_fields.update({'phone', 'location', 'notes'})
+        return result
+
+    @model_serializer(mode='wrap')
+    def protect_private_fields(self, handler):
+        result = handler(self)
+        for name in {'phone', 'location', 'notes'} - self._visible_private_fields:
+            result.pop(name, None)
+        return result
+
+    @model_validator(mode='after')
+    def canonical_avatar(self):
+        # Never leak legacy public object URLs into the current profile contract.
+        self.profile_image_url = self.avatar_url
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -2536,6 +2618,7 @@ class NotificationCreate(NotificationBase):
 
 
 class NotificationRead(NotificationBase):
+    actor_id: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
     id: str

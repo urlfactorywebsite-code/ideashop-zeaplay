@@ -27,6 +27,19 @@ def _ensure_admin_or_owner(user: models.User) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin or Owner required")
 
 
+def _owned_webhook(db: Session, user: models.User, webhook_id: str) -> WebhookSubscription:
+    try:
+        identifier = uuid.UUID(webhook_id)
+    except ValueError:
+        raise HTTPException(404, 'Webhook not found')
+    subscription = db.scalar(select(WebhookSubscription).where(
+        WebhookSubscription.id == identifier, WebhookSubscription.tenant_id == user.tenant_id,
+        WebhookSubscription.deleted_at.is_(None)))
+    if not subscription:
+        raise HTTPException(404, 'Webhook not found')
+    return subscription
+
+
 def _normalize_headers(headers: dict[str, Any] | None) -> dict[str, str] | None:
     if not headers:
         return None
@@ -79,7 +92,7 @@ def list_webhooks(
     _ensure_admin_or_owner(current_user)
     stmt = (
         select(WebhookSubscription)
-        .where(WebhookSubscription.deleted_at.is_(None))
+        .where(WebhookSubscription.deleted_at.is_(None), WebhookSubscription.tenant_id == current_user.tenant_id)
         .order_by(WebhookSubscription.created_at.desc())
     )
     subscriptions = db.execute(stmt).scalars().all()
@@ -99,7 +112,7 @@ def create_webhook(
 
     settings = get_settings()
     subscription = WebhookSubscription(
-        tenant_id=uuid.UUID(settings.default_tenant_id),
+        tenant_id=current_user.tenant_id,
         name=payload.name,
         target_url=str(payload.url),
         secret=secrets.token_urlsafe(32),
@@ -121,9 +134,7 @@ def update_webhook(
     current_user: models.User = Depends(get_current_active_user),
 ) -> schemas.WebhookRead:
     _ensure_admin_or_owner(current_user)
-    subscription = db.get(WebhookSubscription, webhook_id)
-    if not subscription or subscription.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Webhook not found")
+    subscription = _owned_webhook(db, current_user, webhook_id)
 
     update_data = payload.model_dump(exclude_unset=True)
     if "subscribed_events" in update_data:
@@ -153,9 +164,7 @@ def delete_webhook(
     current_user: models.User = Depends(get_current_active_user),
 ) -> Response:
     _ensure_admin_or_owner(current_user)
-    subscription = db.get(WebhookSubscription, webhook_id)
-    if not subscription or subscription.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Webhook not found")
+    subscription = _owned_webhook(db, current_user, webhook_id)
     subscription.enabled = False
     subscription.deleted_at = datetime.utcnow()
     db.commit()
@@ -170,9 +179,7 @@ def test_webhook(
     current_user: models.User = Depends(get_current_active_user),
 ) -> schemas.WebhookTestResponse:
     _ensure_admin_or_owner(current_user)
-    subscription = db.get(WebhookSubscription, webhook_id)
-    if not subscription or subscription.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Webhook not found")
+    subscription = _owned_webhook(db, current_user, webhook_id)
 
     event_name = payload.event_name
     if not event_name:
@@ -183,7 +190,9 @@ def test_webhook(
     if not event_name:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Webhook has no events to test")
     _validate_events([event_name])
-    data = webhook_payloads.get_sample_data(db, event_name)
+    # A transport test must never select arbitrary live records from another
+    # tenant. Keep it synthetic and leave normal event payloads unchanged.
+    data = {"message": "Synthetic Zea.Play webhook test", "tenant_id": str(current_user.tenant_id)}
     log = webhook_service.create_test_delivery(db, webhook=subscription, event_name=event_name, data=data)
     return schemas.WebhookTestResponse(
         status_code=log.response_status,
@@ -206,7 +215,7 @@ def list_webhook_deliveries(
     page_size = min(max(page_size, 1), 100)
     stmt = (
         select(WebhookDeliveryLog)
-        .where(WebhookDeliveryLog.deleted_at.is_(None))
+        .where(WebhookDeliveryLog.deleted_at.is_(None), WebhookDeliveryLog.tenant_id == current_user.tenant_id)
         .order_by(WebhookDeliveryLog.created_at.desc())
     )
     total = db.execute(select(sa.func.count()).select_from(stmt.subquery())).scalar_one()
@@ -242,8 +251,8 @@ def dispatch_internal_event(
     _ensure_admin_or_owner(current_user)
     event_name = payload.event
     _validate_events([event_name])
-    data = payload.data or webhook_payloads.get_sample_data(db, event_name)
-    created = webhook_service.queue_event(db, event_name=event_name, data=data)
+    data = payload.data or {"message": "Synthetic Zea.Play webhook event"}
+    created = webhook_service.queue_event(db, event_name=event_name, data=data, tenant_id=current_user.tenant_id)
     if created:
         db.commit()
     return {"queued": len(created)}

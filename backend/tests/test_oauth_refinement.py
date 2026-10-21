@@ -251,6 +251,24 @@ def test_public_browser_can_read_scoped_resources_without_cookie_cors(api, data)
     assert api.options('/api/tasks', headers={'Origin': origin, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'authorization'}).status_code == 400
 
 
+def test_trusted_browser_task_detail_read_keeps_credentialed_cors(api, data, monkeypatch):
+    origin = 'http://localhost:6300'
+    monkeypatch.setattr(get_settings(), 'cors_allow_origins', [origin])
+    path = f'/api/tasks/{data.task.id}'
+    preflight = api.options(path, headers={
+        'Origin': origin, 'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers': 'authorization,content-type',
+    })
+    assert preflight.status_code == 200
+    response = api.get(path, headers={**headers(data.owner), 'Origin': origin,
+        'Cookie': 'synthetic=browser-session'})
+    assert response.status_code == 200, response.text
+    assert response.json()['id'] == data.task.id
+    for result in (preflight, response):
+        assert result.headers['Access-Control-Allow-Origin'] == origin
+        assert result.headers['Access-Control-Allow-Credentials'] == 'true'
+
+
 def test_rotation_invalidates_machine_secret_and_all_existing_grants(api, data):
     assert api.post('/api/oauth2/clients', headers=headers(data.owner), json={**PUBLIC, 'grant_types': ['client_credentials'], 'scopes': ['service:read']}).status_code == 422
     created = register(api, data, client_type='confidential', grant_types=['client_credentials'], scopes=['service:read'], redirect_uris=[])

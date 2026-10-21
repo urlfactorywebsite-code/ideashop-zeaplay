@@ -1,0 +1,94 @@
+
+> vee-task-manager@6.0.1 build
+> vite build
+
+vite v6.4.2 building for production...
+transforming...
+✓ 5285 modules transformed.
+node.exe : node_modules/lottie-web/build/player/lottie.js (14422:32): Use of eval in 
+"node_modules/lottie-web/build/player/lottie.js" is strongly discouraged as it poses security risks and may cause 
+issues with minification.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\Lenovo\AppData\Roaming ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (node_modules/lo...h minification.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+rendering chunks...
+computing gzip size...
+dist/index.html                                        16.02 kB │ gzip:   3.89 kB
+dist/assets/login1-DXI1ochc.png                       566.36 kB
+dist/assets/login2-AYUC7euC.png                       609.69 kB
+dist/assets/login3-DZLdV4Y8.png                       688.36 kB
+dist/assets/RestoreConfirmation-BmVUNV0T.css            1.65 kB │ gzip:   0.70 kB
+dist/assets/OAuthManagement-BqKLUU9o.css                3.71 kB │ gzip:   1.33 kB
+dist/assets/SmtpManagement-Cx8eaH4U.css                 4.38 kB │ gzip:   1.45 kB
+dist/assets/Reports-CQ4RX1b4.css                        9.16 kB │ gzip:   2.14 kB
+dist/assets/TaskJourneyModal-CSwXLHw5.css              11.69 kB │ gzip:   2.59 kB
+dist/assets/index-BoXKsFRm.css                        149.21 kB │ gzip:  28.85 kB
+dist/assets/check-CnQnfZx4.js                           0.30 kB │ gzip:   0.25 kB
+dist/assets/search-DcQd2_-4.js                          0.35 kB │ gzip:   0.28 kB
+dist/assets/clsx-B-dksMZM.js                            0.37 kB │ gzip:   0.24 kB
+dist/assets/download-D6eT3POv.js                        0.41 kB │ gzip:   0.30 kB
+dist/assets/copy-DUWNmAKW.js                            0.41 kB │ gzip:   0.32 kB
+dist/assets/database-B_jpM2Nl.js                        0.42 kB │ gzip:   0.31 kB
+dist/assets/archive-DMkqgYTZ.js                         0.43 kB │ gzip:   0.32 kB
+dist/assets/triangle-alert-DhjNoIsC.js                  0.44 kB │ gzip:   0.32 kB
+dist/assets/XMarkIcon-DITfUWF3.js                       0.48 kB │ gzip:   0.35 kB
+dist/assets/ClockIcon-BpAE8Daa.js                       0.50 kB │ gzip:   0.37 kB
+dist/assets/file-text-Bj_Ro4wW.js                       0.51 kB │ gzip:   0.32 kB
+dist/assets/TaskPriorityBadge-BQO1rWJN.js               0.66 kB │ gzip:   0.44 kB
+dist/assets/shield-DD5LB89b.js                          0.86 kB │ gzip:   0.46 kB
+dist/assets/realtimeRecovery-COYdE9C7.js                0.94 kB │ gzip:   0.51 kB
+dist/assets/PlusIcon-BXC6NxHm.js                        0.96 kB │ gzip:   0.42 kB
+dist/assets/video-BnfRvr_J.js                           1.27 kB │ gzip:   0.54 kB
+dist/assets/OAuthManagement-C8ayURqD.js                 1.35 kB │ gzip:   0.63 kB
+dist/assets/Badge-CnVf32_A.js                           1.43 kB │ gzip:   0.68 kB
+dist/assets/themeTokens-DDHlg3S9.js                     1.61 kB │ gzip:   0.61 kB
+dist/assets/OAuthApplications-B1T7CiYc.js               1.72 kB │ gzip:   0.87 kB
+dist/assets/SettingsApi-Blae1sHM.js                     1.87 kB │ gzip:   0.94 kB
+dist/assets/SingleSelect-D8eBtEfw.js                    1.94 kB │ gzip:   1.06 kB
+dist/assets/OAuthAuthorization-7DRCJiqa.js              3.18 kB │ gzip:   1.42 kB
+dist/assets/RestoreConfirmation-D9VQAcGv.js             3.59 kB │ gzip:   1.40 kB
+dist/assets/levelsConfigStorage-ChgEJdj-.js             4.73 kB │ gzip:   1.78 kB
+dist/assets/Settings-o9cmLq-y.js                        6.69 kB │ gzip:   2.64 kB
+dist/assets/SupportFormModal-DCEcxTDO.js                7.82 kB │ gzip:   2.68 kB
+dist/assets/useQuery-Ch-g0sa6.js                        9.57 kB │ gzip:   3.40 kB
+dist/assets/MasterControl-CJCK8R4c.js                  13.45 kB │ gzip:   3.39 kB
+dist/assets/TaskExecutionReport-1ZCPNmrs.js            16.37 kB │ gzip:   4.91 kB
+dist/assets/GanttView-DUC4Mm0z.js                      17.26 kB │ gzip:   5.11 kB
+dist/assets/SettingsNotificationsPanel-Bir1tu4U.js     19.28 kB │ gzip:   5.81 kB
+dist/assets/SmtpManagement-CnY6dN2O.js                 21.23 kB │ gzip:   6.52 kB
+dist/assets/Dashboard-1SjBVG8n.js                      21.96 kB │ gzip:   6.56 kB
+dist/assets/OAuthManagement-D11TioGZ.js                23.39 kB │ gzip:   7.35 kB
+dist/assets/PointsTableSettings-CjkhUB0n.js            23.43 kB │ gzip:   6.59 kB
+dist/assets/ToolLibrary-MTHDREOy.js                    24.75 kB │ gzip:   5.59 kB
+dist/assets/AvatarCropModal-C0Mlww4p.js                26.17 kB │ gzip:   8.45 kB
+dist/assets/RewardManagement-9nJwl00M.js               26.42 kB │ gzip:   6.64 kB
+dist/assets/Clients-DRksQrrS.js                        29.21 kB │ gzip:   6.46 kB
+dist/assets/TemplateEditor-C7c9I3ew.js                 30.86 kB │ gzip:   8.65 kB
+dist/assets/Projects-Ddw_V9rN.js                       31.32 kB │ gzip:   7.56 kB
+dist/assets/TaskJourneyModal-DPVL_JEN.js               33.94 kB │ gzip:  11.09 kB
+dist/assets/Logs-Bao3NgUm.js                           37.09 kB │ gzip:   9.65 kB
+dist/assets/KanbanBoard-CEkW6nPA.js                    39.57 kB │ gzip:  10.80 kB
+dist/assets/CalendarView-Cvh8JJq9.js                   40.91 kB │ gzip:  11.49 kB
+dist/assets/LevelsManager-DHUPL-EC.js                  41.11 kB │ gzip:   8.58 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: 
+https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+dist/assets/ProfileSettings-BvCIciCD.js                41.23 kB │ gzip:  11.55 kB
+dist/assets/sharedSocketIo-bN06296s.js                 44.40 kB │ gzip:  14.05 kB
+dist/assets/Achievements-Bn5bDGMD.js                   77.20 kB │ gzip:  19.50 kB
+dist/assets/ApiOverview-c6zORMNk.js                    77.33 kB │ gzip:  16.97 kB
+dist/assets/MediaLibrary-lxXWIlei.js                   80.98 kB │ gzip:  23.37 kB
+dist/assets/Tasks-CEgX-pxg.js                          88.08 kB │ gzip:  21.41 kB
+dist/assets/TicketPage-pP85Udu9.js                     93.17 kB │ gzip:  22.15 kB
+dist/assets/Chat-BOXNHlcB.js                          111.61 kB │ gzip:  28.05 kB
+dist/assets/Users-DcJTfRPU.js                         139.66 kB │ gzip:  28.19 kB
+dist/assets/CreateTaskModal-DI4vTppI.js               244.92 kB │ gzip:  50.12 kB
+dist/assets/Reports-CVSStgYj.js                       376.67 kB │ gzip: 111.86 kB
+dist/assets/index-DILfRbRF.js                       2,824.00 kB │ gzip: 822.80 kB
+✓ built in 57.96s

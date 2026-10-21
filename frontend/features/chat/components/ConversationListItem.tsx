@@ -1,7 +1,8 @@
+import Avatar from '../../../components/Avatar';
 import React from 'react';
 import { ChatConversation } from '../types';
 import { User } from '../../../types';
-import { getConversationSubtitle, getConversationTitle, initials } from '../utils/conversation';
+import { getConversationSubtitle, getConversationTitle } from '../utils/conversation';
 import { timeAgo } from '../../../utils';
 
 type Props = {
@@ -19,6 +20,7 @@ const presenceClass = {
 };
 
 const ConversationListItem: React.FC<Props> = ({ conversation, currentUser, selected, presence, onSelect }) => {
+  const peer = conversation.type === 'DIRECT' ? conversation.members.find(member => member.userId !== currentUser?.id) : undefined;
   const title = getConversationTitle(conversation, currentUser);
   const preview = conversation.lastMessage?.deletedAt
     ? 'Message deleted'
@@ -39,7 +41,7 @@ const ConversationListItem: React.FC<Props> = ({ conversation, currentUser, sele
     >
       <div className="flex items-center gap-3">
         <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 via-blue-500 to-cyan-500 text-sm font-bold text-white shadow-sm">
-          {initials(title)}
+          <Avatar user={{ id: peer?.userId, name: title, avatarUrl: peer?.avatarUrl }} size={40} />
           {presence && <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${presenceClass[presence]}`} />}
         </span>
         <span className="min-w-0 flex-1">

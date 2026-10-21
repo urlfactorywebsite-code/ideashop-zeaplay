@@ -1,0 +1,97 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "case": "Profile drafts and metadata requests survive Settings tab changes",
+      "passed": true
+    },
+    {
+      "case": "Permanent Settings link, removed standalone links and removed footer dropdown",
+      "passed": true
+    },
+    {
+      "case": "All six requested tabs and retained Push notifications render existing components",
+      "passed": true
+    },
+    {
+      "case": "Profile save and existing password validation/submission use unchanged service methods",
+      "passed": true
+    },
+    {
+      "case": "Inline Support reuses the existing payload and form; external delivery intercepted",
+      "passed": true
+    },
+    {
+      "case": "Owner Master Control preserves feature-update action",
+      "passed": true
+    },
+    {
+      "case": "Existing OAuth registration and SMTP profile forms remain reachable",
+      "passed": true
+    },
+    {
+      "case": "Logs and Media Library retain filtering and their existing API methods",
+      "passed": true
+    },
+    {
+      "case": "Canonical deep links, query strings, reload and browser back/forward",
+      "passed": true
+    },
+    {
+      "case": "Every legacy route redirects without losing query parameters or navigation state",
+      "passed": true
+    },
+    {
+      "case": "Keyboard tabs, collapsed Settings link and preserved release notes",
+      "passed": true
+    },
+    {
+      "case": "user: authorized tabs only and restricted direct URLs blocked before service calls",
+      "passed": true
+    },
+    {
+      "case": "manager: authorized tabs only and restricted direct URLs blocked before service calls",
+      "passed": true
+    },
+    {
+      "case": "admin: authorized tabs only and restricted direct URLs blocked before service calls",
+      "passed": true
+    },
+    {
+      "case": "Owner account/tenant sidebar preferences survive removal of obsolete entries",
+      "passed": true
+    },
+    {
+      "case": "Responsive tabs and navigation at 320px",
+      "passed": true
+    },
+    {
+      "case": "Responsive tabs and navigation at 390px",
+      "passed": true
+    },
+    {
+      "case": "Responsive tabs and navigation at 768px",
+      "passed": true
+    },
+    {
+      "case": "Responsive tabs and navigation at 1024px",
+      "passed": true
+    },
+    {
+      "case": "Responsive tabs and navigation at 1280px",
+      "passed": true
+    },
+    {
+      "case": "Responsive tabs and navigation at 1440px",
+      "passed": true
+    },
+    {
+      "case": "No browser page errors",
+      "passed": true
+    }
+  ],
+  "browser_errors": [],
+  "limitations": [
+    "Synthetic API responses; no production deployment, email, provider upload, or push delivery."
+  ]
+}

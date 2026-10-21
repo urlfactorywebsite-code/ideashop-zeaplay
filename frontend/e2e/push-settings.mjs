@@ -1,3 +1,4 @@
+import { navigationDocument } from './navigation-fixture.mjs';
 // Actual Settings/AuthProvider/HashRouter and service worker with intercepted APIs.
 // PushManager is synthetic: this harness never registers with a push provider.
 import assert from 'node:assert/strict';
@@ -18,7 +19,7 @@ const endpoint = 'https://fcm.googleapis.com/fcm/send/synthetic-settings-browser
 const endpointHash = createHash('sha256').update(endpoint).digest('hex');
 const publicKey = Buffer.from([4, ...Array(64).fill(1)]).toString('base64url');
 const stamp = '2026-10-20T08:00:00Z';
-const modules = ['tasks', 'tickets', 'chat', 'comments', 'users', 'departments'];
+const modules = ['tasks', 'projects', 'clients', 'rewards', 'tickets', 'chat', 'comments', 'users', 'departments'];
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const contexts = [];
 const results = [];
@@ -64,7 +65,9 @@ async function fixture({ permission = 'granted', supported = true, configured = 
     if (url.origin !== new URL(base).origin) return route.abort();
     if (url.pathname === '/__push-tailwind.js') return route.fulfill({ contentType: 'text/javascript', body: tailwind });
     if (url.pathname === '/__push-settings') return route.fulfill({ contentType: 'text/html', body: `<!doctype html><html class="dark"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${theme}</style><script src="/__push-tailwind.js"></script><script>${config}</script></head><body><div id="root"></div><script type="module">import R from '/@react-refresh';R.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;</script><script type="module" src="/e2e/pushSettingsFixture.tsx"></script></body></html>` });
+    if (url.pathname === '/api/navigation') return route.fulfill({ json: navigationDocument(role) });
     if (!url.pathname.startsWith('/api/')) return route.continue();
+    if (url.pathname === '/api/auth/browser-session/refresh') return route.fulfill({ json: { access_token: 'synthetic-push-settings-token', refresh_token: 'synthetic-push-settings-refresh' } });
     const method = route.request().method();
     const payload = method === 'POST' ? route.request().postDataJSON() : null;
     if (method !== 'GET') {
@@ -74,6 +77,8 @@ async function fixture({ permission = 'granted', supported = true, configured = 
     }
     if (url.pathname === '/api/auth/me') return route.fulfill({ json: { id: 'synthetic-user', tenant_id: 'synthetic-tenant', role, status: 'ACTIVE', name: 'Push Settings User', email: 'settings@example.com', claimed_reward_ids: [], unlocked_achievement_ids: [] } });
     if (url.pathname === '/api/departments') return route.fulfill({ json: [] });
+    if (url.pathname === '/api/users' && method === 'GET') return route.fulfill({ json: [] });
+    if (url.pathname === '/api/avatars/limits' && method === 'GET') return route.fulfill({ json: { max_bytes: 5 * 1024 * 1024, mime_types: ['image/jpeg', 'image/png', 'image/webp'] } });
     if (url.pathname === '/api/push/status') return route.fulfill({ json: {
       configured, public_key_configured: configured, private_key_configured: configured, subject_configured: configured,
       configuration_valid: configured, active_subscription_count: state.devices.length,
@@ -125,7 +130,7 @@ async function fixture({ permission = 'granted', supported = true, configured = 
 
 async function ready(page) {
   await page.getByRole('heading', { name: 'Push notifications', exact: true }).waitFor();
-  await expect(page.getByRole('switch')).toHaveCount(6);
+  await expect(page.getByRole('switch')).toHaveCount(modules.length);
   await expect(page.getByRole('button', { name: 'Refresh status', exact: true })).toBeEnabled();
 }
 async function status(page, text) { await expect(page.getByRole('status').filter({ hasText: text })).toBeVisible(); }
@@ -143,12 +148,12 @@ async function bounds(page, width) {
 try {
   const { open, state, ctx } = await fixture();
   const page = await open('#/settings');
-  await expect(page.getByRole('tab', { name: 'Profile', exact: true })).toHaveAttribute('aria-selected', 'true');
-  await page.getByRole('tab', { name: 'Profile', exact: true }).focus();
-  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('tab', { name: 'General / Profile', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('tab', { name: 'General / Profile', exact: true }).focus();
+  await page.keyboard.press('End');
   await ready(page);
   await expect(page.getByRole('tab', { name: 'Push notifications', exact: true })).toBeFocused();
-  assert.match(page.url(), /#\/settings\?tab=push$/);
+  assert.match(page.url(), /#\/settings\/push$/);
   await page.reload(); await ready(page);
   await expect(page.getByRole('tab', { name: 'Push notifications', exact: true })).toHaveAttribute('aria-selected', 'true');
   results.push('Default Profile, keyboard tab selection, hash URL and reload persistence');
@@ -171,14 +176,14 @@ try {
   await expect(page.getByRole('switch', { name: 'Tasks push alerts', exact: true })).toHaveAttribute('aria-checked', 'false');
   await page.reload(); await ready(page);
   await expect(page.getByRole('switch', { name: 'Tasks push alerts', exact: true })).toHaveAttribute('aria-checked', 'false');
-  results.push('Six accessible category switches, single-module writes and saved preferences survive reload');
+  results.push('All supported accessible category switches, single-module writes and saved preferences survive reload');
 
   await page.getByRole('button', { name: 'Mute all categories', exact: true }).click(); await status(page, 'Push preferences saved');
-  assert.equal(state.writes.at(-1).body.preferences.length, 6);
-  await expect(page.getByRole('switch', { checked: false })).toHaveCount(6);
+  assert.equal(state.writes.at(-1).body.preferences.length, modules.length);
+  await expect(page.getByRole('switch', { checked: false })).toHaveCount(modules.length);
   await page.getByRole('button', { name: 'Enable all categories', exact: true }).click(); await status(page, 'Push preferences saved');
-  await expect(page.getByRole('switch', { checked: true })).toHaveCount(6);
-  results.push('Mute all and enable all persist all six categories');
+  await expect(page.getByRole('switch', { checked: true })).toHaveCount(modules.length);
+  results.push('Mute all and enable all persist all supported categories');
 
   state.failPreferences = true;
   await page.getByRole('switch', { name: 'Chat push alerts', exact: true }).click();
@@ -267,7 +272,7 @@ try {
     await expect(testPage.getByText(scenario.label, { exact: true })).toBeVisible();
     await expect(testPage.getByText(scenario.expected, { exact: false })).toBeVisible();
     await expect(testPage.getByRole('button', { name: /^(Enable|Reconnect) this browser$/ })).toBeDisabled();
-    await expect(testPage.getByRole('switch')).toHaveCount(6);
+    await expect(testPage.getByRole('switch')).toHaveCount(modules.length);
     await testPage.close();
   }
   results.push('Blocked permission, unsupported browser and missing server setup show actionable states while retaining category controls');

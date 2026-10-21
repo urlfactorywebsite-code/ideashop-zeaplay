@@ -4,7 +4,7 @@ import csv
 import io
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, update, or_
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
@@ -12,6 +12,7 @@ from ..database import get_db
 from ..dependencies import get_current_admin, get_current_active_user
 from ..services import rewards as reward_service
 from ..services import audit_logger
+from ..services.global_data_safety import ensure_single_tenant_installation
 
 router = APIRouter(prefix="/logs", tags=["logs"])
 
@@ -24,7 +25,7 @@ def list_logs(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
+    current_user: models.User = Depends(get_current_admin),
 ):
     action_enum = None
     if action:
@@ -42,6 +43,7 @@ def list_logs(
         action=action_enum,
         page=page,
         page_size=page_size,
+        tenant_id=current_user.tenant_id,
     )
 
 
@@ -68,6 +70,18 @@ def _apply_scope_filters(
     current_user: models.User,
     db: Session,
 ):
+    members = select(models.User.id).where(models.User.tenant_id == current_user.tenant_id)
+    # Actor ownership takes priority. Unattributed records require an explicit
+    # tenant or an own-tenant target; otherwise hide them even from an Owner.
+    stmt = stmt.where(or_(
+        models.AuditLog.actor_id.in_(members),
+        models.AuditLog.actor_id.is_(None) & or_(
+            models.AuditLog.target_user_id.in_(members),
+            models.AuditLog.metadata_payload['tenant_id'].as_string() == str(current_user.tenant_id),
+        ),
+    )).where(or_(models.AuditLog.entity_type.is_(None),
+                models.AuditLog.entity_type != 'navigation_policy',
+                models.AuditLog.entity_id == str(current_user.tenant_id)))
     if current_user.role in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
         return stmt
     if current_user.role == models.RoleEnum.MANAGER:
@@ -75,6 +89,7 @@ def _apply_scope_filters(
             department_user_ids = (
                 select(models.User.id)
                 .where(models.User.department_id == current_user.department_id)
+                .where(models.User.tenant_id == current_user.tenant_id)
                 .subquery()
             )
             return stmt.where(
@@ -285,6 +300,7 @@ def get_retention_config(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_admin),
 ) -> schemas.AuditRetentionConfigRead:
+    ensure_single_tenant_installation(db, current_user)
     config = _get_or_create_retention_config(db)
     return schemas.AuditRetentionConfigRead.model_validate(config)
 
@@ -297,6 +313,7 @@ def update_retention_config(
 ) -> schemas.AuditRetentionConfigRead:
     if current_user.role not in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required")
+    ensure_single_tenant_installation(db, current_user)
     config = _get_or_create_retention_config(db)
     if payload.retention_days not in {30, 90, 180}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Retention must be 30, 90, or 180 days")
@@ -313,6 +330,7 @@ def apply_retention_policy(
 ) -> schemas.AuditRetentionApplyResponse:
     if current_user.role not in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required")
+    ensure_single_tenant_installation(db, current_user)
     config = _get_or_create_retention_config(db)
     cutoff = datetime.utcnow() - timedelta(days=config.retention_days)
     stmt = (
@@ -336,7 +354,7 @@ def retry_audit_log(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_admin),
 ):
-    log = db.get(models.AuditLog, log_id)
+    log = db.scalar(_apply_scope_filters(select(models.AuditLog).where(models.AuditLog.id == log_id), current_user=current_user, db=db))
     if not log:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Log not found")
     if log.category != models.AuditLogCategoryEnum.AUTOMATION:
@@ -357,37 +375,3 @@ def retry_audit_log(
         )
     )
     return {"status": "queued"}
-    def parse_csv(value: str | None) -> list[str]:
-        if not value:
-            return []
-        return [item.strip() for item in value.split(",") if item.strip()]
-
-    entity_types = parse_csv(entity_type)
-    event_types = parse_csv(event_type)
-
-    stmt = (
-        select(models.AuditEvent)
-        .options(selectinload(models.AuditEvent.actor))
-        .order_by(models.AuditEvent.created_at.desc())
-    )
-    if entity_types:
-        stmt = stmt.where(models.AuditEvent.entity_type.in_(entity_types))
-    if event_types:
-        stmt = stmt.where(models.AuditEvent.event_type.in_(event_types))
-    if actor_id:
-        stmt = stmt.where(models.AuditEvent.actor_id == actor_id)
-
-    total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
-    items = (
-        db.execute(stmt.offset((page - 1) * page_size).limit(page_size))
-        .scalars()
-        .all()
-    )
-    total_pages = max(1, (total + page_size - 1) // page_size)
-    return schemas.AuditEventListResponse(
-        items=[schemas.AuditEventRead.model_validate(item) for item in items],
-        page=page,
-        total=total,
-        page_size=page_size,
-        total_pages=total_pages,
-    )

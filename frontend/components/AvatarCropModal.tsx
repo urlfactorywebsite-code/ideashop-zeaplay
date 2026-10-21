@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Cropper, { Area } from 'react-easy-crop';
 import { AvatarCropMetadata } from '../types';
 import { getCroppedImageDataUrl } from '../utils/image';
@@ -19,6 +20,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
   title = 'Adjust avatar',
   onCancel,
   onComplete,
+  onCompleteWithMetadata,
   aspect = 1,
 }) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -27,6 +29,14 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const rotation = 0;
+  const dialog = useRef<HTMLDivElement>(null);
+  useEffect(() => { setCrop({ x: 0, y: 0 }); setZoom(1); setError(null); }, [imageSrc]);
+  useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    dialog.current?.focus();
+    return () => previous?.focus();
+  }, [isOpen]);
 
   const handleCropComplete = useCallback((_croppedArea: Area, croppedPixels: Area) => {
     setCroppedAreaPixels(croppedPixels);
@@ -66,14 +76,23 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  return createPortal(
+    <div ref={dialog} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} onKeyDown={event => {
+      if (event.key === 'Escape' && !isSaving) onCancel();
+      if (event.key === 'Tab') {
+        const controls = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input') ?? []);
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    }} className="fixed inset-0 z-[10000] p-3 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
           <button
             type="button"
             onClick={onCancel}
+            disabled={isSaving}
             className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             aria-label="Close cropper"
           >
@@ -81,7 +100,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
           </button>
         </div>
 
-        <div className="relative h-[360px] w-full bg-slate-900/80 dark:bg-slate-800">
+        <div className="relative h-[min(360px,50vh)] w-full bg-slate-900/80 dark:bg-slate-800">
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -90,17 +109,19 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={handleCropComplete}
+            cropShape="round"
             showGrid={false}
             restrictPosition
           />
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-slate-800">
+        <div className="flex flex-wrap gap-4 items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
               Zoom
             </label>
             <input
+              aria-label="Zoom avatar"
               type="range"
               min={1}
               max={3}
@@ -115,6 +136,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
             <button
               type="button"
               onClick={onCancel}
+            disabled={isSaving}
               className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Cancel
@@ -136,7 +158,7 @@ const AvatarCropModal: React.FC<AvatarCropModalProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </div>, document.body
   );
 };
 

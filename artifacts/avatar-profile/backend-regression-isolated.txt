@@ -1,0 +1,98 @@
+..........F...F
+================================== FAILURES ===================================
+____________ test_rest_message_send_broadcasts_to_joined_websocket ____________
+
+client = <starlette.testclient.TestClient object at 0x000002CA17F11260>
+
+    def test_rest_message_send_broadcasts_to_joined_websocket(client):
+        conversation = client.post("/api/chat/direct", json={"user_id": "user-b"}).json()
+        token = make_token("user-b")
+    
+        with client.websocket_connect(f"/api/ws/chat?token={token}") as ws:
+            ws.send_json({"type": "chat:join", "payload": {"conversation_id": conversation["id"]}})
+>           receive_until(ws, "chat:joined")
+
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_chat_phase1.py:302: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_chat_phase1.py:134: in receive_until
+    payload = ws.receive_json()
+              ^^^^^^^^^^^^^^^^^
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:199: in receive_json
+    self._raise_on_close(message)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <starlette.testclient.WebSocketTestSession object at 0x000002CA18916120>
+message = {'type': 'websocket.close', 'code': 1008, 'reason': ''}
+
+    def _raise_on_close(self, message: Message) -> None:
+        if message["type"] == "websocket.close":
+>           raise WebSocketDisconnect(code=message.get("code", 1000), reason=message.get("reason", ""))
+E           starlette.websockets.WebSocketDisconnect
+
+..\..\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:152: WebSocketDisconnect
+----------------------------- Captured log setup ------------------------------
+WARNING  backend.app.webhooks.dispatcher:dispatcher.py:325 Webhook retry worker skipped due to database connection error: (sqlite3.OperationalError) no such table: webhook_delivery_logs
+[SQL: SELECT webhook_delivery_logs.id, webhook_delivery_logs.tenant_id, webhook_delivery_logs.subscription_id, webhook_delivery_logs.event_type, webhook_delivery_logs.payload, webhook_delivery_logs.request_body, webhook_delivery_logs.response_status, webhook_delivery_logs.response_body, webhook_delivery_logs.response_time_ms, webhook_delivery_logs.error_message, webhook_delivery_logs.status, webhook_delivery_logs.attempt_count, webhook_delivery_logs.last_error, webhook_delivery_logs.next_retry_at, webhook_delivery_logs.last_attempt_at, webhook_delivery_logs.created_at, webhook_delivery_logs.updated_at, webhook_delivery_logs.deleted_at, webhook_subscriptions.id AS id_1, webhook_subscriptions.tenant_id AS tenant_id_1, webhook_subscriptions.name, webhook_subscriptions.event_type AS event_type_1, webhook_subscriptions.target_url, webhook_subscriptions.secret, webhook_subscriptions.subscribed_events, webhook_subscriptions.custom_headers, webhook_subscriptions.enabled, webhook_subscriptions.created_at AS created_at_1, webhook_subscriptions.updated_at AS updated_at_1, webhook_subscriptions.deleted_at AS deleted_at_1 
+FROM webhook_delivery_logs JOIN webhook_subscriptions ON webhook_subscriptions.id = webhook_delivery_logs.subscription_id 
+WHERE webhook_delivery_logs.deleted_at IS NULL AND webhook_delivery_logs.status IN (?, ?) AND webhook_delivery_logs.attempt_count <= ? AND (webhook_delivery_logs.next_retry_at IS NULL OR webhook_delivery_logs.next_retry_at <= ?) ORDER BY webhook_delivery_logs.created_at ASC
+ LIMIT ? OFFSET ?]
+[parameters: ('PENDING', 'FAILED', 3, '2026-10-21 11:25:36.628036', 100, 0)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+WARNING  zeaplay.realtime:transport.py:177 realtime.subscription_retry category=task error=ConnectionError
+WARNING  zeaplay.realtime:transport.py:177 realtime.subscription_retry category=chat error=ConnectionError
+WARNING  zeaplay.realtime:transport.py:177 realtime.subscription_retry category=ticket error=ConnectionError
+_________ test_task_comment_mentions_create_direct_chat_inbox_message _________
+
+db = <sqlalchemy.orm.session.Session object at 0x000002CA18D10050>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002CA18D4C100>
+
+    def test_task_comment_mentions_create_direct_chat_inbox_message(db, monkeypatch):
+        def fake_create_notification(db, **kwargs):
+            notification = Notification(
+                user_id=kwargs["user_id"],
+                type=kwargs["notification_type"],
+                title=kwargs.get("title"),
+                body=kwargs.get("body"),
+                message=kwargs["message"],
+                entity_type=kwargs.get("entity_type"),
+                entity_id=kwargs.get("entity_id"),
+                deep_link=kwargs.get("deep_link"),
+                related_task_id=kwargs.get("related_task_id"),
+                related_chat_id=kwargs.get("related_chat_id"),
+            )
+            db.add(notification)
+            return notification
+    
+        monkeypatch.setattr(comments_router.notification_service, "create_notification", fake_create_notification)
+    
+        task = SimpleNamespace(id="task-mention-1", title="Mention Bridge")
+        comment = SimpleNamespace(content="@bravo can you check this task comment?")
+        actor = db.get(User, "user-a")
+    
+>       _bridge_comment_mentions_to_chat(db, task=task, comment=comment, actor=actor)
+
+F:\Projects\ideashop-zeaplay-v5\backend\tests\test_chat_phase1.py:387: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\comments.py:123: in _bridge_comment_mentions_to_chat
+    _ensure_comment_access(task, mentioned_user)
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\comments.py:31: in _ensure_comment_access
+    _ensure_task_access(task, user)
+F:\Projects\ideashop-zeaplay-v5\backend\app\routers\tasks.py:483: in _ensure_task_access
+    if not _task_belongs_to_user_tenant(task, user):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+task = namespace(id='task-mention-1', title='Mention Bridge')
+user = <backend.app.models.User object at 0x000002CA18C9B2F0>
+
+    def task_belongs_to_user_tenant(task: models.Task, user: models.User) -> bool:
+>       tenant = task.project.tenant_id if task.project else task.creator.tenant_id if task.creator else None
+                                           ^^^^^^^^^^^^
+E       AttributeError: 'types.SimpleNamespace' object has no attribute 'project'
+
+F:\Projects\ideashop-zeaplay-v5\backend\app\services\task_access.py:15: AttributeError
+=========================== short test summary info ===========================
+FAILED ::test_rest_message_send_broadcasts_to_joined_websocket - starlette.we...
+FAILED ::test_task_comment_mentions_create_direct_chat_inbox_message - Attrib...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 2 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+2 failed, 13 passed, 250 warnings in 13.37s

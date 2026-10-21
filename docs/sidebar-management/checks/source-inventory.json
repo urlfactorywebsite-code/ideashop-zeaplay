@@ -1,0 +1,238 @@
+{
+  "captured_at": "2026-10-21T11:55:53.240416+00:00",
+  "scope": "Reviewed navigation implementation, integration and regression paths. Shared files also contain unrelated concurrent edits; hashes identify the working source, not ownership of every diff.",
+  "files": [
+    {
+      "path": "backend/app/navigation_registry.py",
+      "sha256": "06ff53c13b2753ddba3a9bb1d4f6b988b98ec747c466daa24e20f2f05cd2b006"
+    },
+    {
+      "path": "backend/app/services/navigation.py",
+      "sha256": "6a2d9f1f62ce7a2f9f59d207ec64fa6ab577466791da7651da3ccab772c10192"
+    },
+    {
+      "path": "backend/app/routers/navigation.py",
+      "sha256": "d51c838c09331d160762fe9c9848978c43749513ece4304121f7f9f62eca2fba"
+    },
+    {
+      "path": "backend/app/routers/support.py",
+      "sha256": "f6d9134b384fe84bcdacb41f9ff473c34851c8d4d7bceb2b2cf161bed0906c48"
+    },
+    {
+      "path": "backend/app/dependencies.py",
+      "sha256": "9aa597785e91bdd5949819b0b84b1aafd2fc1787501e05b398c18b71bb0bb0b9"
+    },
+    {
+      "path": "backend/app/main.py",
+      "sha256": "0025a19f1b898ea497770c1c1250b9fb1188af0d203baedd7c24443f9752af80"
+    },
+    {
+      "path": "backend/app/models.py",
+      "sha256": "6f1d18db81671f0f39cde44986418454cbdef3c8cf2aacb5ba443314584a59c3"
+    },
+    {
+      "path": "backend/app/routers/auth.py",
+      "sha256": "028b060d9a61c263807cbda08637e6ee078e56a280e4e5744f9ad5bdc23c1e67"
+    },
+    {
+      "path": "backend/app/routers/config.py",
+      "sha256": "f002244a9f5c5fe7f4d5ab4cfc7b05579e4a28f1b2186f1893bd4a2c0bbc4bf9"
+    },
+    {
+      "path": "backend/app/routers/logs.py",
+      "sha256": "d9ff4a257bbf94a2b2dc4b93c26cdb66cf226029d0a7fca6186af37efd1f8627"
+    },
+    {
+      "path": "backend/app/routers/n8n.py",
+      "sha256": "26f7b4283173747437f7568b743ec93457144f93375d8c63f5a2dd54555ff5c5"
+    },
+    {
+      "path": "backend/app/routers/users.py",
+      "sha256": "08bd9b9c4e7bb25e84bc2efeb0b92e81b20343e8589737b4e2facd05a5ce49a4"
+    },
+    {
+      "path": "backend/app/routers/webhooks.py",
+      "sha256": "5e9890804e1b648b6a93c29fb49fbe0eb3bcdd79b69360928ec250266c041b73"
+    },
+    {
+      "path": "backend/app/webhooks/service.py",
+      "sha256": "878b0f6f494d90b159d3d35bc978e45b602f32857d2e67bf72a33199c45cc39d"
+    },
+    {
+      "path": "backend/app/webhooks/dispatcher.py",
+      "sha256": "2b6a99cf2e4e82a2243e6431bfa5a801d4e627c964fe3a81ba1269f26241ef20"
+    },
+    {
+      "path": "backend/app/ws/tasks.py",
+      "sha256": "d5ab2d8e44382ebab2d4e101ceb8cd9dd9cf1a95ea747550cc1aa226da473c80"
+    },
+    {
+      "path": "backend/app/ws/chat.py",
+      "sha256": "223fb48d52f8e0d76ee5f1c75f7bf96a42e590701859d0e330989e022400e15f"
+    },
+    {
+      "path": "backend/app/ws/ticket_chat.py",
+      "sha256": "984663002cbfe8b26127bbe82163d7297abca141d0b9d811f6152743b5f245d1"
+    },
+    {
+      "path": "backend/alembic/versions/ffd3a4b5c6d7_navigation_policies.py",
+      "sha256": "6b91f87b6a00ff5b396e781217f217a9e89a673ee88b2415378c11451908b2a9"
+    },
+    {
+      "path": "backend/tests/test_navigation.py",
+      "sha256": "91671882102461bc727d57b2d78481c5b6a46f161b1fcef54cc9506fa4a63a86"
+    },
+    {
+      "path": "backend/tests/test_navigation_browser.py",
+      "sha256": "ce4efa57db61ff3f6f6f137c489baddc56b740d1496e02cbeeca0fd482975fd8"
+    },
+    {
+      "path": "backend/tests/test_generate_token.py",
+      "sha256": "f08680e2d189e4ceef885cf5b61007434c95912bb95345bb6e15d6b8664c8ddc"
+    },
+    {
+      "path": "backend/tests/test_push_management.py",
+      "sha256": "4c65596a3eef470db6f07d72c37d419d7b3346be3a849e5064269f17d429a631"
+    },
+    {
+      "path": "frontend/App.tsx",
+      "sha256": "829b55cabd090e29193ab5ade1a5c9b895f80b56d68a09f53906ff2f591c253b"
+    },
+    {
+      "path": "frontend/hooks/useNavigation.tsx",
+      "sha256": "5a55d6d2640df32e455026742e7216063bda14fc78b4c0337cb6c2dda552ab32"
+    },
+    {
+      "path": "frontend/utils/navigationPreferences.ts",
+      "sha256": "863c4ea85218c304076c4119fe121bc85dafee1acc9d26198f6b86b5c0840a29"
+    },
+    {
+      "path": "frontend/utils/settingsNavigation.ts",
+      "sha256": "8443fb1865ed2e455f9dedd0bb4390ea1840fdb73c6dc7cf29bded7f47ea52da"
+    },
+    {
+      "path": "frontend/types/navigation.ts",
+      "sha256": "a03e06066edd14d3b15065fe5a035cb055b81f807af1bedcb74601cc29130d0f"
+    },
+    {
+      "path": "frontend/components/NavigationGuard.tsx",
+      "sha256": "8a2e070fe60cd7ce484dcfcf1ef95eea61c573a0ebcb299165c026e75a94c88c"
+    },
+    {
+      "path": "frontend/components/SidebarEditor.tsx",
+      "sha256": "f1bd79578baa57ab87a804580ed0effa88d57fcfb6c8fc29445d794e0ecb3ed0"
+    },
+    {
+      "path": "frontend/components/Sidebar.tsx",
+      "sha256": "cc76088b7441e5d60df9c77d8d67ea6261cfc0d22f55c09cda2937ea155127ae"
+    },
+    {
+      "path": "frontend/components/Layout.tsx",
+      "sha256": "4ec529ceb81a53b9b6cb2d20323eded8a2b83cce4e5956275f2e8f081c11f051"
+    },
+    {
+      "path": "frontend/components/SupportFormModal.tsx",
+      "sha256": "bcefbca5aa542a4539792ccf13e61154d0f076bc4015bc9164e4ca1e81d7a265"
+    },
+    {
+      "path": "frontend/pages/Settings.tsx",
+      "sha256": "39030bfdcd87e287657995cfa729b0570e545a911e51a4cc129420ba39187074"
+    },
+    {
+      "path": "frontend/pages/SidebarManagement.tsx",
+      "sha256": "c637a158d0c84c76cd790bfa9d1d5646c945bec6aec7402a12f52b3ff7ee6227"
+    },
+    {
+      "path": "frontend/pages/SettingsApi.tsx",
+      "sha256": "987cc283b757ec0499292e38e825e4a7cc75c00c6ee845c5a21fb541a6cae98d"
+    },
+    {
+      "path": "frontend/pages/SettingsOAuth.tsx",
+      "sha256": "4ebeba51c5905429bab7315502c54c683f23ef72dbf0804e889314768be66822"
+    },
+    {
+      "path": "frontend/pages/ApiOverview.tsx",
+      "sha256": "e93a95cbe6091c146837be817443faf53e40f54b6aaa582f5b5af59706bbd19c"
+    },
+    {
+      "path": "frontend/pages/Achievements.tsx",
+      "sha256": "d3a2e1dc065386bdfa8852f86b955c84ef5894552e31d8c351c7a824a5548b87"
+    },
+    {
+      "path": "frontend/pages/Tasks.tsx",
+      "sha256": "f6c3f9b7d8cfc32ac5705190c6b4cda5631397a5cefc1f86ae611c1f9b63f2ee"
+    },
+    {
+      "path": "frontend/test/navigation-preferences.test.ts",
+      "sha256": "eb7921363e8a6dfcbe642de8b99e74b18d171e50e5c962dfb6d8c4687912acda"
+    },
+    {
+      "path": "frontend/test/settings-navigation.test.ts",
+      "sha256": "30b4cbbf585f5e53ba6c5601ad96875610e112465247a07da749b675d69b282c"
+    },
+    {
+      "path": "frontend/e2e/navigation-manifest.json",
+      "sha256": "7694f444b578c2e3b3a98edb94704c9aae2bc4540addfbf4e1e04fc90345f52f"
+    },
+    {
+      "path": "frontend/e2e/navigation-api-manifest.json",
+      "sha256": "28bc01ba08cd3ce555f939c37a823a58442e0e099f9999741faecd0ad9f39f4b"
+    },
+    {
+      "path": "frontend/e2e/navigation-fixture.mjs",
+      "sha256": "4be1ed9fee43cc43f4d7f87f01466c832df27761770e47cedb3a20451540f3fb"
+    },
+    {
+      "path": "frontend/e2e/navigation-security.mjs",
+      "sha256": "fd0c44ceaf9eacc1c181cf5a515aa9fbe944982163c04a68651fe0de30a29633"
+    },
+    {
+      "path": "frontend/e2e/navigationSecurityFixture.tsx",
+      "sha256": "792e8238a7573031b9a6fb3341abfc21f5acf3343880fb45f1fa242741facb1d"
+    },
+    {
+      "path": "frontend/e2e/sidebar.mjs",
+      "sha256": "5161d39a57edf39ec2f87505402779698eb78792cbf495668535902408216da7"
+    },
+    {
+      "path": "frontend/e2e/sidebarFixture.tsx",
+      "sha256": "fc3005ec83dd541dbf9f60b8386977bd544b4805fd469854e12ec63ef7ec2a97"
+    },
+    {
+      "path": "frontend/e2e/settings-navigation.mjs",
+      "sha256": "1f69075493138f4c0c9262abc7490ae6210a71126e929766904d907840679037"
+    },
+    {
+      "path": "frontend/e2e/settingsNavigationFixture.tsx",
+      "sha256": "18453b203c32ae1773a47f1e9ff5ec68c99d0c4f87cb4a7cf2bebd23ca3cb718"
+    },
+    {
+      "path": "frontend/e2e/push-settings.mjs",
+      "sha256": "a6bf12202976f5917bd8c9409be5f4b76920991850f5d1d454ddf02ea08ddc81"
+    },
+    {
+      "path": "frontend/e2e/pushSettingsFixture.tsx",
+      "sha256": "d16ddfb927679ae219c3bcbff879808cd800894ec496b415f2e6fe4c3f8832b4"
+    },
+    {
+      "path": "frontend/e2e/pushLiveFixture.tsx",
+      "sha256": "d6d0be19bca2fe4d0407ae9f3f5d672e92b3d27f0ce789db9db3e1b03fa677a9"
+    },
+    {
+      "path": "backend/app/routers/data_admin.py",
+      "sha256": "19db01d7ba13622b5438a6c7189a049c39e8f58f9e3b1a892784e552b8cfa745"
+    },
+    {
+      "path": "backend/app/services/global_data_safety.py",
+      "sha256": "c8a9feef710de76e15ab0abb01b74ce20143b869302ddd60f4e91881af832fee"
+    },
+    {
+      "path": "backend/app/services/rewards.py",
+      "sha256": "fa0ea7c2fa5b5b415d19da10436c108ae3f06d5c0557f13a8cf5347d81a098d8"
+    },
+    {
+      "path": "backend/tests/test_smtp_refinement.py",
+      "sha256": "1408264adf5a134d784cc14e9b7b9b07236c76f79219973c508dec1de150a74c"
+    }
+  ]
+}

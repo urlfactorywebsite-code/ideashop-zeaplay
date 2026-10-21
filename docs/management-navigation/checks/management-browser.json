@@ -1,0 +1,83 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "case": "Single UsersRound Management sidebar link, no expansion or nested links; existing Users page and Create User dialog render",
+      "passed": true
+    },
+    {
+      "case": "Existing Clients search and create dialog work inside full-page Management",
+      "passed": true
+    },
+    {
+      "case": "Route-backed tabs, refresh, browser back/forward, keyboard selection and sidebar highlighting",
+      "passed": true
+    },
+    {
+      "case": "Legacy URLs redirect with query parameters; existing Authorized applications live under Settings OAuth",
+      "passed": true
+    },
+    {
+      "case": "Sidebar Management has distinct main-page, Management-tab and Settings-tab policy groups",
+      "passed": true
+    },
+    {
+      "case": "owner: Management and OAuth retain role ceilings",
+      "passed": true
+    },
+    {
+      "case": "admin: Management and OAuth retain role ceilings",
+      "passed": true
+    },
+    {
+      "case": "manager: Management and OAuth retain role ceilings",
+      "passed": true
+    },
+    {
+      "case": "user: Management and OAuth retain role ceilings",
+      "passed": true
+    },
+    {
+      "case": "First accessible tab and direct-route enforcement: {\"users\":{\"enabled\":false}}",
+      "passed": true
+    },
+    {
+      "case": "First accessible tab and direct-route enforcement: {\"users\":{\"allowedRoles\":[\"owner\"]}}",
+      "passed": true
+    },
+    {
+      "case": "First accessible tab and direct-route enforcement: {\"users\":{\"hidden\":true}}",
+      "passed": true
+    },
+    {
+      "case": "No Management sidebar entry or direct access when parent/all children disabled",
+      "passed": true
+    },
+    {
+      "case": "No Management sidebar entry or direct access when parent/all children disabled",
+      "passed": true
+    },
+    {
+      "case": "Responsive full-page Management and mobile single-link menu at 320px",
+      "passed": true
+    },
+    {
+      "case": "Responsive full-page Management and mobile single-link menu at 390px",
+      "passed": true
+    },
+    {
+      "case": "Responsive full-page Management and mobile single-link menu at 768px",
+      "passed": true
+    },
+    {
+      "case": "Responsive full-page Management and mobile single-link menu at 1024px",
+      "passed": true
+    },
+    {
+      "case": "Responsive full-page Management and mobile single-link menu at 1440px",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "scope": "Real app/router/components with synthetic API responses; no deployment or provider delivery."
+}

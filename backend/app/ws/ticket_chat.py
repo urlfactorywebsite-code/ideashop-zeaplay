@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..services.navigation import socket_allowed
+
 import asyncio
 import json
 import logging
@@ -124,7 +126,7 @@ class TicketConnectionManager:
             message = {**message, "event_id": event.event_id}
             for socket in recipients:
                 user = db.get(User, self._socket_users.get(socket))
-                if not user or user.status != UserStatusEnum.ACTIVE or str(user.tenant_id) != event.tenant_id or not credentials_match(user, getattr(socket, "scope", {})) or not _user_can_access_ticket(
+                if not user or user.status != UserStatusEnum.ACTIVE or str(user.tenant_id) != event.tenant_id or not credentials_match(user, getattr(socket, "scope", {})) or not socket_allowed(db, user, 'tickets') or not _user_can_access_ticket(
                     db=db, ticket=ticket, user_id=user.id, user_department_id=user.department_id, roles={user.role.value.lower()},
                 ):
                     await self.disconnect(ticket_id, socket)
@@ -273,7 +275,7 @@ async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
     db = SessionLocal()
     try:
         user = db.get(User, str(user_id))
-        if not user or user.status != UserStatusEnum.ACTIVE or not credentials_match(user, payload):
+        if not user or user.status != UserStatusEnum.ACTIVE or not credentials_match(user, payload) or not socket_allowed(db, user, 'tickets'):
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
         if not user.tenant_id or user.tenant_id != tenant_id:
@@ -332,7 +334,7 @@ async def ticket_chat_ws(websocket: WebSocket, ticket_id: str) -> None:
             with SessionLocal() as access_db:
                 live_user = access_db.get(User, user_id)
                 live_ticket = access_db.get(Ticket, ticket_uuid)
-                if not live_user or live_user.status != UserStatusEnum.ACTIVE or live_user.tenant_id != tenant_id or not credentials_match(live_user, websocket.scope) or not live_ticket or live_ticket.deleted_at or live_ticket.tenant_id != tenant_id or not _user_can_access_ticket(
+                if not live_user or live_user.status != UserStatusEnum.ACTIVE or live_user.tenant_id != tenant_id or not credentials_match(live_user, websocket.scope) or not live_ticket or live_ticket.deleted_at or live_ticket.tenant_id != tenant_id or not socket_allowed(access_db, live_user, 'tickets') or not _user_can_access_ticket(
                     db=access_db, ticket=live_ticket, user_id=user_id, user_department_id=live_user.department_id,
                     roles={live_user.role.value.lower()},
                 ):

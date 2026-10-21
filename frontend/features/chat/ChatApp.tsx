@@ -1,3 +1,4 @@
+import SharedAvatar from '../../components/Avatar';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -133,13 +134,14 @@ const memberToPeer = (member: ChatMember): NexusCallPeer => ({
 });
 
 const Avatar: React.FC<{
+  userId?: string;
   name?: string | null;
   avatarUrl?: string | null;
   presence?: Presence;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   showPresence?: boolean;
   className?: string;
-}> = ({ name, avatarUrl, presence, size = 'md', showPresence = true, className = '' }) => {
+}> = ({ userId, name, avatarUrl, presence, size = 'md', showPresence = true, className = '' }) => {
   const [failed, setFailed] = useState(false);
   const sizeClass = {
     xs: 'h-6 w-6 text-[10px]',
@@ -158,13 +160,7 @@ const Avatar: React.FC<{
 
   return (
     <span className={`relative inline-flex shrink-0 select-none ${className}`}>
-      {avatarUrl && !failed ? (
-        <img src={avatarUrl} alt={name || 'User'} onError={() => setFailed(true)} className={`${sizeClass} rounded-full border border-slate-200 object-cover dark:border-slate-700`} />
-      ) : (
-        <span className={`${sizeClass} flex items-center justify-center rounded-full border border-white/20 bg-gradient-to-br from-blue-600 to-cyan-600 font-bold text-white shadow-sm`}>
-          {initials(name)}
-        </span>
-      )}
+      <SharedAvatar user={{ id: userId, name: name || undefined, avatarUrl }} size={{ xs: 24, sm: 32, md: 40, lg: 48, xl: 64 }[size]} />
       {showPresence && presence && (
         <span className={`absolute bottom-0 right-0 rounded-full ring-white dark:ring-slate-900 ${dotClass} ${presenceTone[presence]}`} />
       )}
@@ -208,7 +204,7 @@ const ConversationRow: React.FC<{
           <Users className="h-4 w-4" />
         </span>
       ) : (
-        <Avatar name={title} avatarUrl={avatarUrl} presence={presence} />
+        <Avatar userId={directMember?.userId || directoryUser?.id} name={title} avatarUrl={avatarUrl} presence={presence} />
       )}
       <span className="min-w-0 flex-1">
         <span className={`block truncate text-xs ${unread > 0 ? 'font-bold' : 'font-semibold'}`}>{conversation?.type === 'SPACE' ? `# ${title}` : title}</span>
@@ -345,7 +341,7 @@ const NexusSidebar: React.FC<{
       <div className="border-b border-slate-200 bg-white p-3.5 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={onOpenSettings} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl p-1 text-left hover:bg-slate-100 dark:hover:bg-slate-800">
-            <Avatar name={currentUser?.name || 'User'} avatarUrl={currentUser?.avatarUrl || currentUser?.profileImageUrl} presence="ONLINE" />
+            <Avatar userId={currentUser?.id} name={currentUser?.name || 'User'} avatarUrl={currentUser?.avatarUrl || currentUser?.profileImageUrl} presence="ONLINE" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-xs font-bold">{currentUser?.name || 'Zeaplay'}</span>
               <span className="block truncate text-[10px] text-slate-500 dark:text-slate-400">{currentUser?.title || currentUser?.role || 'Enterprise member'}</span>
@@ -489,7 +485,7 @@ const ChatTopbar: React.FC<{
               <Users className="h-4 w-4" />
             </span>
           ) : (
-            <Avatar name={title} avatarUrl={otherMember?.avatarUrl} presence={presence} size="md" />
+            <Avatar userId={otherMember?.userId} name={title} avatarUrl={otherMember?.avatarUrl} presence={presence} size="md" />
           )
         ) : (
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300"><MessageSquare className="h-4 w-4" /></span>
@@ -671,7 +667,7 @@ const MessageRow: React.FC<{
       className={`group relative flex px-4 py-2 transition ${isSelf ? 'justify-end' : 'justify-start'} ${rowTone}`}
     >
       <div className={`flex max-w-[min(78%,44rem)] gap-3 ${isSelf ? 'flex-row-reverse' : ''}`}>
-        <Avatar name={message.sender?.name || message.senderName} avatarUrl={message.sender?.avatarUrl} size="md" showPresence={false} className="pt-0.5" />
+        <Avatar userId={message.senderId} name={message.sender?.name || message.senderName} avatarUrl={message.sender?.avatarUrl} size="md" showPresence={false} className="pt-0.5" />
         <div className={`min-w-0 ${isSelf ? 'text-right' : 'text-left'}`}>
           <div className={`rounded-2xl px-3.5 py-2.5 shadow-sm ring-1 ${
             isSelf
@@ -1083,7 +1079,7 @@ const ContactModal: React.FC<{
                   }}
                   className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-700 dark:hover:bg-blue-950/30"
                 >
-                  <Avatar name={candidate.name} avatarUrl={candidate.avatarUrl} presence={status} />
+                  <Avatar userId={candidate.id} name={candidate.name} avatarUrl={candidate.avatarUrl} presence={status} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-bold text-slate-900 dark:text-white">{candidate.name}</span>
                     <span className="block truncate text-[11px] text-slate-500 dark:text-slate-400">{candidate.teamName || candidate.title || candidate.email}</span>
@@ -1153,7 +1149,7 @@ const RightDetails: React.FC<{
                 return (
                   <div key={member.userId} className="flex items-center justify-between gap-2 py-2.5">
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <Avatar name={member.name} avatarUrl={member.avatarUrl} presence={presenceByUserId[member.userId] || 'OFFLINE'} size="sm" />
+                      <Avatar userId={member.userId} name={member.name} avatarUrl={member.avatarUrl} presence={presenceByUserId[member.userId] || 'OFFLINE'} size="sm" />
                       <span className="min-w-0">
                         <span className="flex items-center gap-1.5">
                           <span className="truncate text-xs font-bold text-slate-800 dark:text-slate-200">{member.name}{isSelf ? ' (You)' : ''}</span>
@@ -1322,7 +1318,7 @@ const CallLayers: React.FC<{
         </div>
         <div className="my-3 grid flex-1 grid-cols-1 gap-3 overflow-hidden md:grid-cols-2">
           <div className="relative flex items-center justify-center overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
-            {call.isVideoOff ? <div className="text-center"><Avatar name={currentUser?.name || 'You'} avatarUrl={currentUser?.avatarUrl || currentUser?.profileImageUrl} size="xl" showPresence={false} /><p className="mt-2 text-xs font-bold">{currentUser?.name || 'You'} (Host)</p></div> : <video ref={meetingVideoRef} autoPlay playsInline muted className="h-full w-full -scale-x-100 object-cover" />}
+            {call.isVideoOff ? <div className="text-center"><Avatar userId={currentUser?.id} name={currentUser?.name || 'You'} avatarUrl={currentUser?.avatarUrl || currentUser?.profileImageUrl} size="xl" showPresence={false} /><p className="mt-2 text-xs font-bold">{currentUser?.name || 'You'} (Host)</p></div> : <video ref={meetingVideoRef} autoPlay playsInline muted className="h-full w-full -scale-x-100 object-cover" />}
             <span className="absolute bottom-3 left-3 rounded-lg bg-black/60 px-2 py-1 text-xs">{currentUser?.name || 'You'} (You)</span>
           </div>
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">

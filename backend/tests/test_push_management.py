@@ -335,7 +335,8 @@ def test_push_transport_disables_redirects(monkeypatch):
 
 def test_preferences_include_chat_reject_duplicates_and_isolate_accounts(data):
     headers = data.headers()
-    assert len(data.client.get("/notification/preferences", headers=headers).json()) == 6
+    assert {row['module'] for row in data.client.get("/notification/preferences", headers=headers).json()} == {
+        'tasks', 'projects', 'clients', 'tickets', 'users', 'departments', 'comments', 'chat', 'rewards'}
     assert data.client.post("/notification/preferences", headers=headers, json={"preferences": [
         {"module": "chat", "push_enabled": False}, {"module": "chat", "push_enabled": True},
     ]}).status_code == 422

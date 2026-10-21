@@ -1,77 +1,50 @@
-import uuid
-
+"""Real auth/token regression checks using trusted seeds in disposable databases."""
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
-from backend.app.database import Base, get_db
-from backend.app.main import app
 from backend.app import models
+from backend.app.auth import hash_password
+from backend.app.database import get_db
+from backend.app.routers.auth import router
+from backend.app.services import audit_logger
+from backend.tests import test_task_lifecycle as lifecycle_fixtures
+
+# Explicit aliases register the shared disposable-database pytest fixtures.
+data = lifecycle_fixtures.data
+engine = lifecycle_fixtures.engine
 
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_generate_token.db"
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-
-models.Task.__table__.c.search_vector.computed = None
-Base.metadata.drop_all(bind=engine)
-Base.metadata.create_all(bind=engine)
-
-client = TestClient(app)
+@pytest.fixture
+def client(data, monkeypatch):
+    monkeypatch.setattr(audit_logger, 'log_event', lambda *args, **kwargs: None)
+    with data.factory() as db:
+        owner = db.get(models.User, data.owner.id)
+        owner.email = 'docs-owner@example.com'
+        owner.hashed_password = hash_password('Synthetic-token-regression-2026!')
+        db.commit()
+    app = FastAPI()
+    app.include_router(router)
+    def database():
+        with data.factory() as db:
+            yield db
+    app.dependency_overrides[get_db] = database
+    with TestClient(app) as transport:
+        yield transport
 
 
-def setup_function():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-
-
-@pytest.fixture(autouse=True)
-def override_app_db():
-    previous_overrides = dict(app.dependency_overrides)
-    app.dependency_overrides[get_db] = override_get_db
-    yield
-    app.dependency_overrides.clear()
-    app.dependency_overrides.update(previous_overrides)
-
-
-def _register_owner() -> None:
-    payload = {
-        "name": "Docs Owner",
-        "email": "docs-owner@example.com",
-        "password": "supersecret",
-        "role": "owner",
-        "status": "ACTIVE",
-        "department_id": None,
-        "employer_id": str(uuid.uuid4()),
-    }
-    response = client.post("/auth/register", json=payload)
-    assert response.status_code == 201, response.text
-
-
-def _login_owner() -> str:
+def _login_owner(client) -> str:
     response = client.post(
         "/auth/login",
-        json={"email": "docs-owner@example.com", "password": "supersecret"},
+        json={"email": "docs-owner@example.com", "password": "Synthetic-token-regression-2026!"},
     )
     assert response.status_code == 200, response.text
     data = response.json()
     return data["token"]["access_token"]
 
 
-def test_generate_token_allows_access():
-    _register_owner()
-    admin_access_token = _login_owner()
+def test_generate_token_allows_access(client):
+    admin_access_token = _login_owner(client)
 
     response = client.post(
         "/auth/generate-token",
@@ -101,9 +74,8 @@ def test_generate_token_allows_access():
     assert me_data["email"] == "docs-owner@example.com"
 
 
-def test_websocket_ticket_is_short_lived_and_scoped():
-    _register_owner()
-    admin_access_token = _login_owner()
+def test_websocket_ticket_is_short_lived_and_scoped(client):
+    admin_access_token = _login_owner(client)
 
     response = client.get(
         "/auth/websocket-ticket",

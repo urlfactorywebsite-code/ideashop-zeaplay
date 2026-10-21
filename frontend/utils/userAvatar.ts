@@ -14,10 +14,11 @@ export const getUserAvatarUrl = (source: AvatarSource): string | null => {
   if (!source) {
     return null;
   }
+  // Explicit null means removal. A stale legacy URL must not resurrect the photo.
+  if (source.avatarUrl !== undefined) return source.avatarUrl;
 
   return (
     source.profileImageUrl ??
-    source.avatarUrl ??
     source.avatarAsset?.url ??
     source.avatarAsset?.dataUrl ??
     source.avatarAsset?.externalUrl ??

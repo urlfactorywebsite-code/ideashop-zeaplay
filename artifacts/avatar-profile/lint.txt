@@ -1,0 +1,82 @@
+backend\alembic\versions\ffe4b5c6d7e8_employee_avatar_profile.py:2:1: I001 [*] Import block is un-sorted or un-formatted
+backend\app\avatar_utils.py:147:16: BLE001 Do not catch blind exception: `Exception`
+backend\app\avatar_utils.py:158:16: BLE001 Do not catch blind exception: `Exception`
+backend\app\chat\services.py:1:1: I001 [*] Import block is un-sorted or un-formatted
+backend\app\chat\services.py:15:35: F401 [*] `..realtime.capture` imported but unused
+backend\app\chat\services.py:91:12: BLE001 Do not catch blind exception: `Exception`
+backend\app\chat\services.py:131:16: PIE810 Call `startswith` once with a `tuple`
+backend\app\chat\services.py:408:9: SIM102 Use a single `if` statement instead of nested `if` statements
+backend\app\chat\services.py:454:19: DTZ003 `datetime.datetime.utcnow()` used
+backend\app\chat\services.py:552:15: DTZ003 `datetime.datetime.utcnow()` used
+backend\app\chat\services.py:611:29: DTZ003 `datetime.datetime.utcnow()` used
+backend\app\chat\services.py:629:30: DTZ003 `datetime.datetime.utcnow()` used
+backend\app\chat\services.py:781:9: SIM102 Use a single `if` statement instead of nested `if` statements
+backend\app\routers\avatars.py:1:1: I001 [*] Import block is un-sorted or un-formatted
+backend\app\routers\avatars.py:6:29: F401 [*] `..avatar_utils.avatar_public_url` imported but unused
+backend\app\routers\avatars.py:6:83: F401 [*] `..avatar_utils.can_access_asset` imported but unused
+backend\app\routers\avatars.py:20:32: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\avatars.py:26:31: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\avatars.py:26:79: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\avatars.py:37:64: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\avatars.py:37:112: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\avatars.py:53:74: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\avatars.py:53:116: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\avatars.py:63:90: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\avatars.py:63:132: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\avatars.py:86:54: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\avatars.py:86:96: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:1:1: I001 [*] Import block is un-sorted or un-formatted
+backend\app\routers\users.py:11:5: F401 [*] `..avatar_utils.avatar_public_url` imported but unused
+backend\app\routers\users.py:141:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:142:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:156:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:157:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:176:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:177:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:273:24: DTZ003 `datetime.datetime.utcnow()` used
+backend\app\routers\users.py:299:12: BLE001 Do not catch blind exception: `Exception`
+backend\app\routers\users.py:302:9: PIE790 [*] Unnecessary `pass` statement
+backend\app\routers\users.py:313:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:314:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:382:28: DTZ003 `datetime.datetime.utcnow()` used
+backend\app\routers\users.py:394:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:395:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:427:24: DTZ003 `datetime.datetime.utcnow()` used
+backend\app\routers\users.py:455:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:456:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:499:28: DTZ003 `datetime.datetime.utcnow()` used
+backend\app\routers\users.py:510:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:511:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:530:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:531:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:548:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:549:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:566:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:567:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:579:19: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:580:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:590:33: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:590:81: B008 Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable
+backend\app\routers\users.py:591:5: I001 [*] Import block is un-sorted or un-formatted
+backend\app\storage\base.py:21:14: UP045 [*] Use `X | None` for type annotations
+backend\app\storage\gdrive.py:6:20: F401 [*] `typing.Any` imported but unused
+backend\app\storage\gdrive.py:231:13: F841 Local variable `results` is assigned to but never used
+backend\app\storage\gdrive.py:237:16: BLE001 Do not catch blind exception: `Exception`
+backend\app\storage\gdrive.py:238:87: RUF010 [*] Use explicit conversion flag
+backend\app\storage\supabase.py:3:1: I001 [*] Import block is un-sorted or un-formatted
+backend\app\storage\supabase.py:51:19: TRY002 Create your own exception
+backend\app\storage\supabase.py:65:19: TRY002 Create your own exception
+backend\app\storage\supabase.py:93:19: TRY002 Create your own exception
+backend\app\storage\supabase.py:112:16: BLE001 Do not catch blind exception: `Exception`
+backend\app\storage\supabase.py:113:83: RUF010 [*] Use explicit conversion flag
+backend\tests\test_avatar_profiles.py:2:1: I001 [*] Import block is un-sorted or un-formatted
+backend\tests\test_avatar_profiles.py:10:24: F401 [*] `sqlalchemy.select` imported but unused
+backend\tests\test_avatar_profiles.py:37:11: F811 Redefinition of unused `data` from line 21: `data` redefined here
+backend\tests\test_avatar_profiles.py:62:63: F811 Redefinition of unused `data` from line 21: `data` redefined here
+backend\tests\test_avatar_profiles.py:119:57: F811 Redefinition of unused `data` from line 21: `data` redefined here
+backend\tests\test_avatar_profiles.py:135:57: F811 Redefinition of unused `data` from line 21: `data` redefined here
+backend\tests\test_avatar_profiles.py:155:47: F811 Redefinition of unused `data` from line 21: `data` redefined here
+backend\tests\test_avatar_profiles.py:167:5: F811 Redefinition of unused `data` from line 21: `data` redefined here
+backend\tests\test_avatar_profiles.py:172:10: B017 Do not assert blind exception: `Exception`
+Found 80 errors.
+[*] 17 fixable with the `--fix` option (2 hidden fixes can be enabled with the `--unsafe-fixes` option).

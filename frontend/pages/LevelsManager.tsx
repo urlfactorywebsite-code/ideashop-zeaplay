@@ -1,3 +1,4 @@
+import Avatar from '../components/Avatar';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/mockApi';
@@ -26,7 +27,6 @@ import {
     resetLevelsConfig,
     saveLevelsConfig,
 } from '../utils/levelsConfigStorage';
-import { getUserAvatarUrl } from '../utils/userAvatar';
 import { GiftIcon, PencilIcon, PlusIcon, RocketLaunchIcon, SparklesIcon, StarIcon, TrashIcon } from '../components/icons';
 import PageLoader from '../components/loading/PageLoader';
 
@@ -542,7 +542,6 @@ const LevelsManager: React.FC = () => {
         return 'border-amber-300/40 bg-amber-500/15 text-amber-200';
     };
 
-    const getAvatar = (user: User): string | null => getUserAvatarUrl(user);
     const canSaveBadge = Boolean(badgeDraft.name.trim() && badgeDraft.description.trim() && badgeDraft.tier.trim());
     const badgePreview = badgeImage.preview || selectedBadge?.imageUrl || '';
     const badgeModeLabel = selectedBadge ? 'Edit badge' : 'Create badge';
@@ -677,17 +676,13 @@ const LevelsManager: React.FC = () => {
                                                 <div className="mt-3 flex items-center gap-2">
                                                     <div className="flex -space-x-2">
                                                         {usersAtLevel.slice(0, 3).map((user) => {
-                                                            const avatar = getAvatar(user);
+
                                                             return (
                                                                 <div
                                                                     key={user.id}
                                                                     className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-900 bg-slate-800 text-xs font-semibold text-white"
                                                                 >
-                                                                    {avatar ? (
-                                                                        <img src={avatar} alt={user.name} className="h-full w-full rounded-full object-cover" />
-                                                                    ) : (
-                                                                        user.name.slice(0, 2).toUpperCase()
-                                                                    )}
+                                                                    <Avatar user={user} size={32} />
                                                                 </div>
                                                             );
                                                         })}
@@ -1524,7 +1519,7 @@ const LevelsManager: React.FC = () => {
                             {selectedLevelUsers.length > 0 && levelUsersView === 'grid' && (
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                     {selectedLevelUsers.map((user) => {
-                                        const avatar = getAvatar(user);
+
                                         const points = userPointsMap.get(user.id) ?? 0;
                                         return (
                                             <div
@@ -1533,13 +1528,7 @@ const LevelsManager: React.FC = () => {
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-12 w-12 overflow-hidden rounded-full border border-white/20 bg-slate-800">
-                                                        {avatar ? (
-                                                            <img src={avatar} alt={user.name} className="h-full w-full object-cover" />
-                                                        ) : (
-                                                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold">
-                                                                {user.name.slice(0, 2).toUpperCase()}
-                                                            </div>
-                                                        )}
+                                                        <Avatar user={user} size={48} />
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-semibold">{user.name}</p>
@@ -1557,7 +1546,7 @@ const LevelsManager: React.FC = () => {
                             {selectedLevelUsers.length > 0 && levelUsersView === 'list' && (
                                 <div className="space-y-3">
                                     {selectedLevelUsers.map((user) => {
-                                        const avatar = getAvatar(user);
+
                                         const points = userPointsMap.get(user.id) ?? 0;
                                         return (
                                             <div
@@ -1566,13 +1555,7 @@ const LevelsManager: React.FC = () => {
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-10 w-10 overflow-hidden rounded-full border border-white/20 bg-slate-800">
-                                                        {avatar ? (
-                                                            <img src={avatar} alt={user.name} className="h-full w-full object-cover" />
-                                                        ) : (
-                                                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold">
-                                                                {user.name.slice(0, 2).toUpperCase()}
-                                                            </div>
-                                                        )}
+                                                        <Avatar user={user} size={40} />
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-semibold">{user.name}</p>

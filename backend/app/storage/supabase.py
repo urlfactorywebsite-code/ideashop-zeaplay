@@ -61,8 +61,21 @@ class SupabaseAdapter(StorageAdapter):
     def delete(self, relative_path: str) -> None:
         # Delete file from Supabase storage
         response = self.client.storage.from_(self.bucket).remove([relative_path])
-        if response.status_code != 200:
+        if hasattr(response, 'status_code') and response.status_code != 200:
             raise Exception(f"Failed to delete from Supabase: {response.json()}")
+
+    def save_private(self, data: bytes, relative_path: str, *, content_type: str) -> StoredObject:
+        bucket = self.client.storage.get_bucket(self.bucket)
+        if (bucket.get('public') if isinstance(bucket, dict) else getattr(bucket, 'public', None)) is not False:
+            raise ValueError('Avatar uploads require a private Supabase bucket')
+        response = self.client.storage.from_(self.bucket).upload(path=relative_path, file=data,
+            file_options={'content-type': content_type, 'upsert': 'false'})
+        if hasattr(response, 'status_code') and response.status_code not in (200, 201):
+            raise OSError('Private avatar upload failed')
+        return StoredObject(relative_path, len(data), content_type, '')
+
+    def read(self, relative_path: str) -> bytes:
+        return self.client.storage.from_(self.bucket).download(relative_path)
 
     def get_public_url(self, relative_path: str) -> str:
         # Get public URL for the file

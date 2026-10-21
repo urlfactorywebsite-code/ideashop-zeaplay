@@ -34,6 +34,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .database import Base
 
 
+class NavigationPolicy(Base):
+    __tablename__ = "navigation_policies"
+    tenant_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    rules: Mapped[dict] = mapped_column(JSON().with_variant(JSONB, "postgresql"), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    updated_by: Mapped[str] = mapped_column(String(36), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class RealtimeAggregate(Base):
     __tablename__ = "realtime_aggregates"
     tenant_id: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -454,6 +463,15 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (UniqueConstraint("id", "tenant_id", name="uq_users_id_tenant"),)
 
+    @property
+    def avatar_url(self):
+        from .avatar_utils import avatar_public_url, can_access_asset
+        if self.avatar_asset:
+            return avatar_public_url(self.avatar_asset) if can_access_asset(self.avatar_asset, self) else None
+        if self.profile_image_key:
+            return f'/api/users/{self.id}/avatar/image'
+        return self.profile_image_url
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -482,6 +500,7 @@ class User(Base):
     location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     timezone: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    profile_bio: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     skills: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
     projects: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
     status: Mapped[UserStatusEnum] = mapped_column(
@@ -883,12 +902,20 @@ class ProjectMember(Base):
 class AvatarAsset(Base):
     __tablename__ = "avatar_assets"
 
+    @property
+    def url(self):
+        from .avatar_utils import avatar_public_url
+        return avatar_public_url(self)
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     storage_type: Mapped[AvatarStorageTypeEnum] = mapped_column(
         SAEnum(AvatarStorageTypeEnum), default=AvatarStorageTypeEnum.FILE, nullable=False
     )
     file_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    tenant_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    storage_provider: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    thumbnail_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     data_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     external_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     mime_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)

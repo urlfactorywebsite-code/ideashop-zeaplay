@@ -1,0 +1,249 @@
+{
+  "review_date": "2026-10-21",
+  "environment": "Local Windows source; disposable loopback browser services, SQLite and scratch PostgreSQL only",
+  "deployed": false,
+  "production_release_status": "FAIL",
+  "navigation_module_targeted_status": "PASS",
+  "requested_role_scenario_status": "PASS",
+  "critical_requirements": [
+    {
+      "id": 1,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 2,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 3,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 4,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 5,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 6,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 7,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 8,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 9,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 10,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 11,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    },
+    {
+      "id": 12,
+      "status": "PASS",
+      "evidence": "../production-readiness.md#critical-requirement-evidence"
+    }
+  ],
+  "release_blockers": [
+    "Repository typecheck fails with 118 existing diagnostics.",
+    "Integrated backend Ruff reports remaining findings; frontend has no lint script."
+  ],
+  "checks": [
+    {
+      "name": "Navigation, trusted token and security regression suites",
+      "status": "PASS",
+      "passed": 127,
+      "databases": [
+        "SQLite",
+        "PostgreSQL (isolated rt3_test database)"
+      ],
+      "evidence": "backend-policy-token-security.txt",
+      "command": "python -m pytest backend/tests/test_navigation.py backend/tests/test_generate_token.py backend/tests/test_security_phase13.py -q --disable-warnings --tb=short",
+      "note": "Executed before the final unattributed-webhook regression and import/style cleanup. New behavior and cleanup have separate checks below."
+    },
+    {
+      "name": "Final webhook isolation",
+      "status": "PASS",
+      "passed": 4,
+      "databases": [
+        "SQLite",
+        "PostgreSQL (isolated rt3_test database)"
+      ],
+      "evidence": "backend-webhook-final.txt",
+      "command": "python -m pytest backend/tests/test_navigation.py -q -k webhook --disable-warnings --tb=short"
+    },
+    {
+      "name": "Final SQLite policy/token checks after lint cleanup",
+      "status": "PASS",
+      "passed": 61,
+      "deselected": 60,
+      "evidence": "backend-post-cleanup.txt",
+      "command": "python -m pytest backend/tests/test_navigation.py backend/tests/test_generate_token.py -q -k \"sqlite or manifest\" --disable-warnings --tb=short"
+    },
+    {
+      "name": "OAuth/password recovery/push regressions",
+      "status": "PASS",
+      "passed": 95,
+      "skipped": 2,
+      "deselected": 99,
+      "evidence": "backend-regressions.txt",
+      "command": "python -m pytest backend/tests/test_oauth2_server.py backend/tests/test_password_recovery.py backend/tests/test_push_management.py -q -k sqlite --disable-warnings --tb=short",
+      "skipped_scope": "Explicit isolated Redis and PostgreSQL CLI checks not applicable to this SQLite subset. The navigation migration itself was tested on both databases."
+    },
+    {
+      "name": "Frontend unit tests",
+      "status": "PASS",
+      "passed": 143,
+      "failed": 0,
+      "command": "npm test",
+      "evidence": "frontend-unit.txt"
+    },
+    {
+      "name": "Real signed-session role scenario",
+      "status": "PASS",
+      "pytest_cases": 2,
+      "assertion_groups_per_database": 15,
+      "databases": [
+        "SQLite",
+        "PostgreSQL"
+      ],
+      "evidence": [
+        "real-sqlite.json",
+        "real-postgresql.json",
+        "backend-and-real-browser.txt"
+      ],
+      "note": "Actual login form/session refresh/navigation/configuration/OAuth routes; unrelated layout reads mocked; no provider sends. The containing run had 115 passing pytest cases; those overlap the later backend runs and must not be added as distinct coverage."
+    },
+    {
+      "name": "Sidebar editor browser",
+      "status": "PASS",
+      "assertion_groups": 20,
+      "evidence": "sidebar-browser.json"
+    },
+    {
+      "name": "Settings navigation browser",
+      "status": "PASS",
+      "assertion_groups": 22,
+      "evidence": "settings-browser.json"
+    },
+    {
+      "name": "Push Settings browser regression",
+      "status": "PASS",
+      "assertion_groups": 14,
+      "evidence": "push-browser.json",
+      "note": "Synthetic PushManager, intercepted APIs, no real push sends."
+    },
+    {
+      "name": "New backend module Ruff lint",
+      "status": "PASS",
+      "findings": 0,
+      "evidence": "ruff-core.json",
+      "command": "ruff check backend/app/navigation_registry.py backend/app/services/navigation.py backend/app/services/global_data_safety.py backend/app/routers/navigation.py backend/app/routers/support.py backend/tests/test_navigation.py backend/tests/test_navigation_browser.py backend/tests/test_generate_token.py backend/alembic/versions/ffd3a4b5c6d7_navigation_policies.py --output-format json"
+    },
+    {
+      "name": "Integrated reviewed backend Ruff lint",
+      "status": "FAIL",
+      "findings": 781,
+      "evidence": "ruff-integrated.json",
+      "note": "Includes existing shared implementation files. No broad auto-fix of unrelated code was performed.",
+      "command": "ruff check <all reviewed Python paths in source-inventory.json> --output-format json"
+    },
+    {
+      "name": "Frontend lint",
+      "status": "FAIL",
+      "command": "npm run lint",
+      "reason": "No lint script configured",
+      "evidence": "lint.txt"
+    },
+    {
+      "name": "Repository typecheck",
+      "status": "FAIL",
+      "diagnostics": 118,
+      "baseline_diagnostics": 121,
+      "new_diagnostics": 0,
+      "command": "node node_modules/typescript/bin/tsc --noEmit --pretty false",
+      "evidence": [
+        "typecheck.txt",
+        "typecheck-comparison.json"
+      ]
+    },
+    {
+      "name": "Production build",
+      "status": "PASS",
+      "command": "npm run build",
+      "evidence": "production-build.txt"
+    },
+    {
+      "name": "Alembic graph",
+      "status": "PASS",
+      "head": "ffe4b5c6d7e8",
+      "evidence": "migration-heads.txt",
+      "note": "Offline heads only. Navigation migration round-trip tested separately; this does not certify a fresh full migration chain."
+    },
+    {
+      "name": "Python compilation and whitespace",
+      "status": "PASS",
+      "evidence": [
+        "python-compilation.txt",
+        "diff-check.txt"
+      ]
+    },
+    {
+      "name": "Final Settings data safety, audit, recovery, migration and role scenario",
+      "status": "PASS",
+      "passed": 18,
+      "deselected": 141,
+      "databases": [
+        "SQLite",
+        "PostgreSQL scratch"
+      ],
+      "evidence": "backend-data-safety-both.txt",
+      "command": "python -m pytest backend/tests/test_navigation.py backend/tests/test_smtp_refinement.py -q -k \"legacy_global or single_tenant_export or general_audit or navigation_audit or profile_recovery or real_login or migration or system_reset_otp\" --disable-warnings --tb=short --maxfail=1",
+      "note": "Includes guarded reset-OTP tests using mocked SMTP only; no global destructive reset."
+    },
+    {
+      "name": "Final full SQLite navigation/token/SMTP refinement regressions",
+      "status": "PASS",
+      "passed": 82,
+      "deselected": 81,
+      "evidence": "backend-data-safety-sqlite.txt",
+      "command": "python -m pytest backend/tests/test_navigation.py backend/tests/test_generate_token.py backend/tests/test_smtp_refinement.py -q -k \"sqlite or manifest\" --disable-warnings --tb=short --maxfail=1"
+    },
+    {
+      "name": "Mandatory reward-log tenant final regression",
+      "status": "PASS",
+      "passed": 1,
+      "deselected": 124,
+      "evidence": "backend-log-tenant-final.txt",
+      "command": "python -m pytest backend/tests/test_navigation.py -q -k \"general_audit and sqlite\" --disable-warnings --tb=short"
+    }
+  ],
+  "counting_note": "Backend runs overlap. Browser assertion groups are not separate pytest test totals. Do not sum these numbers into a distinct test count.",
+  "operational_limits": [
+    "Legacy global web backup/import/reset and retention settings require the installation workspace and no other tenant records. They intentionally return 403 in multi-tenant databases. Tenant-specific implementations remain future work.",
+    "No deployment or production-data changes. Existing physical backups and host-level tenant provisioning require reviewed operator procedures."
+  ]
+}

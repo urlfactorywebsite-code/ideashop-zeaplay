@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta, timezone
-import uuid
 import time
 from typing import Optional
 
@@ -15,7 +14,7 @@ from ..auth import (
     verify_password,
     credentials_match,
 )
-from ..dependencies import get_current_active_user
+from ..dependencies import get_current_active_user, get_current_admin, ensure_user_admin_scope
 from ..database import get_db
 from ..config import get_settings
 from ..services import audit_logger
@@ -23,18 +22,6 @@ from ..services import password_recovery
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
-
-
-def _derive_tenant_id(employer_id: Optional[str]) -> uuid.UUID:
-    if not employer_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="employer_id is required to register a tenant-scoped user",
-        )
-    try:
-        return uuid.UUID(str(employer_id))
-    except ValueError:
-        return uuid.uuid5(uuid.NAMESPACE_URL, f"zea-play-tenant:{employer_id}")
 
 
 def _build_token_claims(user: models.User) -> dict[str, object]:
@@ -51,12 +38,16 @@ def _build_token_claims(user: models.User) -> dict[str, object]:
 
 
 @router.post("/register", response_model=schemas.AuthResponse, status_code=status.HTTP_201_CREATED)
-def register_user(payload: schemas.UserCreate, db: Session = Depends(get_db)) -> schemas.AuthResponse:
+def register_user(payload: schemas.UserCreate, db: Session = Depends(get_db),
+                  actor: models.User = Depends(get_current_admin)) -> schemas.AuthResponse:
+    # Registration is a staff account-management operation, not a way to choose
+    # an arbitrary tenant or privileged role without an invitation.
+    ensure_user_admin_scope(actor, new_role=payload.role)
     existing_user = db.execute(select(models.User).where(models.User.email == payload.email)).scalar_one_or_none()
     if existing_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
-    tenant_id = _derive_tenant_id(payload.employer_id)
+    tenant_id = actor.tenant_id
     user = models.User(
         tenant_id=tenant_id,
         name=payload.name,
@@ -75,8 +66,8 @@ def register_user(payload: schemas.UserCreate, db: Session = Depends(get_db)) ->
         audit_logger.AuditLogInput(
             action="USER_REGISTERED",
             category=models.AuditLogCategoryEnum.USER,
-            actor_id=str(user.id),
-            actor_role=user.role.value if user.role else None,
+            actor_id=str(actor.id),
+            actor_role=actor.role.value,
             target_user_id=str(user.id),
             entity_type="user",
             entity_id=str(user.id),
@@ -248,7 +239,7 @@ def logout_browser_session(request: Request, response: Response, db: Session = D
 
 @router.get("/me", response_model=schemas.UserRead)
 def get_me(current_user=Depends(get_current_active_user)):
-    return current_user
+    return schemas.UserRead.for_viewer(current_user, current_user)
 
 
 @router.post("/forgot-password", status_code=status.HTTP_202_ACCEPTED)

@@ -1,6 +1,7 @@
+import Avatar from '../../../components/Avatar';
 import React, { useMemo, useRef, useState } from 'react';
 import { ChatConversation, ChatPinnedMessage } from '../types';
-import { getConversationTitle, initials } from '../utils/conversation';
+import { getConversationTitle } from '../utils/conversation';
 import { MagnifyingGlassIcon, XMarkIcon } from '../../../components/icons';
 import { User } from '../../../types';
 
@@ -91,7 +92,7 @@ const MemberPanel: React.FC<Props> = ({ conversation, currentUser, open, presenc
               return (
                 <div key={member.userId} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3">
                   <span className="relative grid h-9 w-9 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-sky-500 text-xs font-black text-white">
-                    {initials(member.name)}
+                    <Avatar user={{ id: member.userId, name: member.name, avatarUrl: member.avatarUrl }} size={40} />
                     <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${presenceClass[status].split(' ')[0]}`} />
                   </span>
                   <div className="min-w-0 flex-1">

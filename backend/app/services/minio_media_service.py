@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import os
 from contextlib import closing
-from datetime import datetime
-from io import BytesIO
+from datetime import datetime, timezone
 from typing import Optional, Tuple
 from uuid import uuid4
 
@@ -17,8 +16,7 @@ except ModuleNotFoundError:
 
         pass
 from fastapi import HTTPException, status
-from PIL import Image, ImageOps
-from sqlalchemy import desc
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from .. import models
@@ -70,14 +68,7 @@ ALLOWED_CONTENT_TYPES = {
         "application/zip",
         "application/x-zip-compressed",
     },
-    "avatar": {
-        "image/jpeg",
-        "image/png",
-        "image/webp",
-        "image/gif",
-        "image/svg+xml",
-        "image/avif",
-    },
+    "avatar": {"image/jpeg", "image/png", "image/webp"},
 }
 
 TAB_TO_MEDIA_TYPE = {
@@ -87,8 +78,6 @@ TAB_TO_MEDIA_TYPE = {
     "zip": models.MediaFileTypeEnum.ZIP,
 }
 
-ALLOWED_AVATAR_FORMATS = {"JPEG", "PNG", "WEBP", "GIF"}
-AVATAR_SIZES = (256, 512)
 SNIFF_BYTES = 4096
 
 _MAGIC_MIME = None
@@ -219,7 +208,7 @@ def _validate_upload(
     elif purpose == "avatar":
         media_type = models.MediaFileTypeEnum.AVATAR
         allowed_types = ALLOWED_CONTENT_TYPES["avatar"]
-        max_size = MAX_SIZE_BYTES["avatar"]
+        max_size = settings.avatar_max_file_size_mb * 1024 * 1024
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid purpose")
 
@@ -442,46 +431,6 @@ def delete_media_file(db: Session, *, media_file: models.MediaFile) -> None:
     db.commit()
 
 
-def _load_avatar_image(data: bytes) -> Image.Image:
-    try:
-        image = Image.open(BytesIO(data))
-        image.load()
-    except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid image data") from exc
-
-    image_format = (image.format or "").upper()
-    if image_format not in ALLOWED_AVATAR_FORMATS:
-        allowed_label = ", ".join(sorted(ALLOWED_AVATAR_FORMATS))
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported image format. Allowed: {allowed_label}",
-        )
-    return image
-
-
-def _apply_crop(image: Image.Image, crop: dict) -> Image.Image:
-    left = max(0, int(round(crop.get("x", 0))))
-    top = max(0, int(round(crop.get("y", 0))))
-    width = max(1, int(round(crop.get("width", image.width))))
-    height = max(1, int(round(crop.get("height", image.height))))
-    right = min(image.width, left + width)
-    bottom = min(image.height, top + height)
-    if right <= left or bottom <= top:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid crop area")
-    return image.crop((left, top, right, bottom))
-
-
-def _encode_webp(image: Image.Image, *, quality: int = 90) -> bytes:
-    buffer = BytesIO()
-    image.save(buffer, format="WEBP", quality=quality, method=6)
-    return buffer.getvalue()
-
-
-def _public_object_url(bucket: str, object_key: str) -> str:
-    base = settings.minio_public_base.rstrip("/")
-    return f"{base}/{bucket}/{object_key}"
-
-
 def finalize_avatar_upload(
     db: Session,
     *,
@@ -490,6 +439,8 @@ def finalize_avatar_upload(
     crop_metadata: dict,
     delete_original: bool = True,
 ) -> tuple[models.MediaFile, str, str]:
+    user = db.scalar(select(models.User).where(models.User.id == user.id)
+        .with_for_update().execution_options(populate_existing=True))
     media_file = db.get(models.MediaFile, file_id)
     if not media_file or media_file.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media file not found")
@@ -497,59 +448,43 @@ def finalize_avatar_upload(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Media file is not an avatar upload")
     if media_file.status != models.MediaFileStatusEnum.CONFIRMED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Avatar upload must be confirmed first")
-    if user.role not in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER} and media_file.user_id != user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed to finalize this avatar")
+    _ensure_media_file_tenant(media_file, user)
+    if media_file.user_id != user.id:
+        raise HTTPException(403, "Use the administrative user avatar endpoint to change another user's photo")
 
     client = _get_minio_client()
     try:
         response = client.get_object(Bucket=media_file.bucket, Key=media_file.object_key)
-        raw_bytes = response["Body"].read()
+        with closing(response["Body"]) as body:
+            raw_bytes = body.read(settings.avatar_max_file_size_mb * 1024 * 1024 + 1)
     except ClientError as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Failed to download avatar upload",
         ) from exc
 
-    image = _load_avatar_image(raw_bytes)
-    if image.mode not in ("RGB", "RGBA"):
-        image = image.convert("RGBA")
-    cropped = _apply_crop(image, crop_metadata)
+    import base64
 
-    avatar_key = f"avatars/{media_file.user_id}/avatar.webp"
-    preview_key = f"avatars/{media_file.user_id}/avatar_256.webp"
-
-    for size in AVATAR_SIZES:
-        resized = ImageOps.fit(cropped, (size, size), method=Image.Resampling.LANCZOS)
-        encoded = _encode_webp(resized)
-        target_key = avatar_key if size == 512 else preview_key
-        try:
-            client.put_object(
-                Bucket=media_file.bucket,
-                Key=target_key,
-                Body=encoded,
-                ContentType="image/webp",
-            )
-        except ClientError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Failed to upload processed avatar",
-            ) from exc
-
+    from ..avatar_utils import (
+        avatar_public_url,
+        maybe_cleanup_custom_avatar,
+        set_user_avatar_from_data_url,
+    )
+    set_user_avatar_from_data_url(db, user,
+        data_url=f"data:{media_file.content_type};base64," + base64.b64encode(raw_bytes).decode('ascii'),
+        actor=user, crop=crop_metadata)
     media_file.crop_metadata = crop_metadata
-    db.add(media_file)
-
-    profile_url = _public_object_url(media_file.bucket, avatar_key)
-    user.profile_image_key = avatar_key
-    user.profile_image_url = profile_url
-    db.add(user)
+    avatar_key = user.avatar_asset.file_path
+    profile_url = avatar_public_url(user.avatar_asset)
+    if delete_original:
+        if media_file.bucket != settings.minio_bucket_attachments or not media_file.object_key.startswith(f'avatars/{user.id}/'):
+            raise HTTPException(400, 'Avatar upload storage reference is invalid')
+        retirement = models.AvatarAsset(name='Retired avatar upload', tenant_id=user.tenant_id,
+            storage_provider='legacy-minio', file_path=media_file.object_key, created_by_id=user.id, is_default=False)
+        db.add(retirement)
+        db.flush()
+        maybe_cleanup_custom_avatar(db, retirement)
+        media_file.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
     db.commit()
     db.refresh(media_file)
-    db.refresh(user)
-
-    if delete_original:
-        try:
-            client.delete_object(Bucket=media_file.bucket, Key=media_file.object_key)
-        except ClientError:
-            pass
-
     return media_file, avatar_key, profile_url

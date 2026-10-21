@@ -1,3 +1,4 @@
+import Avatar from './Avatar';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../services/mockApi';
 import { User, Department, AvatarAsset } from '../types';
@@ -225,7 +226,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                             >
                               <div className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm dark:bg-slate-900 ${frameClass}`}>
                                 {avatarPreview ? (
-                                  <img src={avatarPreview} alt="Avatar frame preview" className="h-full w-full object-cover" />
+                                  <Avatar user={{ name, avatarUrl: avatarPreview }} size={40} />
                                 ) : (
                                   <span className="text-[8px] uppercase tracking-[0.25em] text-gray-400 dark:text-gray-500">Frame</span>
                                 )}

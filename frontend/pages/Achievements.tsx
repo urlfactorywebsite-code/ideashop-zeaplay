@@ -1,3 +1,4 @@
+import { useNavigation } from '../hooks/useNavigation';
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -1345,9 +1346,10 @@ const Achievements: React.FC = () => {
     const { theme } = useTheme();
     const resolvedTheme = useResolvedTheme(theme as ThemeMode);
     const requestedWorkspaceTab = searchParams.get('tab') as AchievementWorkspaceTabKey | null;
+    const navigation = useNavigation();
     const availableWorkspaceTabs = useMemo(
-        () => achievementWorkspaceTabs.filter((tab) => canAccessAchievementWorkspaceTab(currentUser?.role, tab)),
-        [currentUser?.role],
+        () => achievementWorkspaceTabs.filter((tab) => canAccessAchievementWorkspaceTab(currentUser?.role, tab) && navigation.visible(({ overview: 'achievements', rewards: 'rewards', levels: 'levels', points: 'points-table', templates: 'template-editor' })[tab.key])),
+        [currentUser?.role, navigation.configuration],
     );
     const activeWorkspaceTab = availableWorkspaceTabs.some((tab) => tab.key === requestedWorkspaceTab)
         ? (requestedWorkspaceTab as AchievementWorkspaceTabKey)

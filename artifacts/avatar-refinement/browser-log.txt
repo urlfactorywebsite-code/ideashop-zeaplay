@@ -1,0 +1,16 @@
+PASS Profile settings load with existing theme and password sections
+PASS Original image crop and upload persist through real API
+PASS Header updates immediately without reload
+PASS Bio, structured skills, duplicate prevention and removal save
+PASS Avatar and frame persist after refresh
+PASS Directory pagination, page size, role, department, employee ID filters and existing actions
+PASS Directory name filters remain functional
+PASS Directory opens digital ID and safe multiline bio with Additional Details
+PASS Tablet employee card stays inside viewport
+PASS Mobile employee card stays inside viewport
+PASS Unsupported file feedback is visible
+PASS Avatar replacement succeeds on mobile
+PASS Removal restores initials and retains frame
+PASS Regular users edit personal fields without sending protected employment fields
+PASS Header, Projects, Tasks and Comments update without reload and share variant requests
+PASS Removal propagates to mounted project, task and comment avatars

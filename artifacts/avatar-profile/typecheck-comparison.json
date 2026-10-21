@@ -1,0 +1,10 @@
+{
+  "baseline_errors": 123,
+  "current_errors": 118,
+  "new_diagnostics": [],
+  "resolved_diagnostics": [
+    "frontend/App.tsx(line): error TS2304: Cannot find name 'OAuthApplications'.",
+    "frontend/components/AvatarCropModal.tsx(line): error TS2304: Cannot find name 'onCompleteWithMetadata'.",
+    "frontend/components/Sidebar.tsx(line): error TS2304: Cannot find name 'CodeBracketSquareIcon'."
+  ]
+}

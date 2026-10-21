@@ -1,3 +1,4 @@
+import Avatar from './Avatar';
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
@@ -9,7 +10,6 @@ import { formatRecurrenceRule, formatTaskStatus } from '../utils';
 import { PlusIcon, XMarkIcon, SparklesIcon } from './icons';
 import GenerateTaskWithAIModal from './GenerateTaskWithAIModal';
 import SingleSelect from './ui/SingleSelect';
-import { getUserAvatarUrl } from '../utils/userAvatar';
 
 type ThemeMode = 'dark' | 'colorful' | 'light';
 
@@ -1070,15 +1070,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                                             </span>
                                                         ) : (
                                                             selectedUsers.slice(0, 3).map((member) => {
-                                                                const avatar = getUserAvatarUrl(member);
+
                                                                 return (
                                                                     <span key={member.id} className="modal-chip inline-flex max-w-full items-center gap-2 px-2 py-1 text-xs">
                                                                         <span className="h-5 w-5 overflow-hidden rounded-full bg-black/40">
-                                                                            {avatar ? (
-                                                                                <img src={avatar} alt={member.name} className="h-full w-full object-cover" />
-                                                                            ) : (
-                                                                                <span className="flex h-full w-full items-center justify-center text-[9px] uppercase">{member.name.slice(0, 2)}</span>
-                                                                            )}
+                                                                            <Avatar user={member} size={20} />
                                                                         </span>
                                                                         <span className="truncate">{member.name}</span>
                                                                     </span>
@@ -1115,7 +1111,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                                             ) : (
                                                                 filteredAssignees.map((member, index) => {
                                                                     const isSelected = assignedTo.includes(member.id);
-                                                                    const avatar = getUserAvatarUrl(member);
+
                                                                     const isOnline = member.status === UserStatus.ACTIVE;
                                                                     return (
                                                                         <button
@@ -1128,11 +1124,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                                                             } ${isSelected ? 'text-cyan-100' : 'text-white/80'}`}
                                                                         >
                                                                             <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/15 bg-black/40">
-                                                                                {avatar ? (
-                                                                                    <img src={avatar} alt={member.name} className="h-full w-full object-cover" />
-                                                                                ) : (
-                                                                                    <span className="flex h-full w-full items-center justify-center text-xs font-bold uppercase">{member.name.slice(0, 2)}</span>
-                                                                                )}
+                                                                                <Avatar user={member} size={36} />
                                                                                 <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-slate-950 ${isOnline ? 'bg-emerald-400' : 'bg-slate-500'}`} />
                                                                             </span>
                                                                             <span className="min-w-0 flex-1">
@@ -1631,7 +1623,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                                 ) : (
                                                     filteredFollowers.map((member) => {
                                                         const isSelected = followerIds.includes(member.id);
-                                                        const avatar = getUserAvatarUrl(member);
+
                                                         return (
                                                             <button
                                                                 key={member.id}
@@ -1644,11 +1636,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                                                 }`}
                                                             >
                                                                 <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-black/40">
-                                                                    {avatar ? (
-                                                                        <img src={avatar} alt={member.name} className="h-full w-full object-cover" />
-                                                                    ) : (
-                                                                        <span className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase">{member.name.slice(0, 2)}</span>
-                                                                    )}
+                                                                    <Avatar user={member} size={28} />
                                                                 </span>
                                                                 <span className="min-w-0 flex-1">
                                                                     <span className="block truncate font-semibold">{member.name}</span>
@@ -1754,15 +1742,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                             <span className="modal-plain-card muted text-xs">No assignees yet</span>
                                         ) : (
                                             assignedUsers.map((member) => {
-                                                const memberAvatar = getUserAvatarUrl(member);
+
                                                 return (
                                                     <div key={member.id} className="flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm dark:bg-slate-800/70 dark:text-slate-200">
                                                         <span className="h-7 w-7 overflow-hidden rounded-full border border-slate-200 dark:border-slate-600">
-                                                            {memberAvatar ? (
-                                                                <img src={memberAvatar} alt={member.name} className="h-full w-full object-cover" />
-                                                            ) : (
-                                                                <span className="flex h-full w-full items-center justify-center text-[10px] uppercase">{member.name.slice(0, 2)}</span>
-                                                            )}
+                                                            <Avatar user={member} size={28} />
                                                         </span>
                                                         <span>{member.name}</span>
                                                         <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{formatRoleLabel(member.role)}</span>

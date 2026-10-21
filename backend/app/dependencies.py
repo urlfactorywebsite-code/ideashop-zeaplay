@@ -65,7 +65,10 @@ async def get_current_user(
     """Return the authenticated user from the JWT bearer token."""
     if token.startswith('zoa_'):
         from .services.oauth import delegated_user
-        return delegated_user(db, token, request)
+        user = delegated_user(db, token, request)
+        from .services.navigation import enforce_request
+        enforce_request(db, user, request.url.path, request.method)
+        return user
     payload = _decode_access_token(token)
     user_id = _extract_user_id(payload)
     user = db.get(User, user_id)
@@ -85,6 +88,8 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tenant mismatch")
 
     bind_actor(db, user)
+    from .services.navigation import enforce_request
+    enforce_request(db, user, request.url.path, request.method)
     return user
 
 
@@ -100,9 +105,35 @@ async def get_current_admin(current_user: User = Depends(get_current_active_user
     return current_user
 
 
+def ensure_user_admin_scope(actor: User, target: User | None = None, new_role: RoleEnum | None = None) -> None:
+    """Account management must not grant authority above the authenticated actor."""
+    if actor.role == RoleEnum.OWNER:
+        return
+    if actor.role not in {RoleEnum.ADMIN, RoleEnum.MANAGER}:
+        raise HTTPException(403, 'Administrative privileges required.')
+    protected = {RoleEnum.OWNER}
+    if actor.role == RoleEnum.MANAGER:
+        protected.add(RoleEnum.ADMIN)
+    if new_role in protected or (target is not None and target.role in protected):
+        raise HTTPException(403, 'You cannot assign or manage an account above your administrative authority.')
+
+
 async def get_current_owner(current_user: User = Depends(get_current_active_user)) -> User:
     if current_user.role != RoleEnum.OWNER:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Owner privileges required")
+    return current_user
+
+
+async def get_current_installation_owner(current_user: User = Depends(get_current_owner)) -> User:
+    """Legacy singleton infrastructure settings are not tenant-owned records."""
+    if str(current_user.tenant_id) != str(settings.default_tenant_id):
+        raise HTTPException(403, 'Installation configuration is restricted to the installation workspace.')
+    return current_user
+
+
+async def get_current_installation_admin(current_user: User = Depends(get_current_admin)) -> User:
+    if str(current_user.tenant_id) != str(settings.default_tenant_id):
+        raise HTTPException(403, 'Installation configuration is restricted to the installation workspace.')
     return current_user
 
 

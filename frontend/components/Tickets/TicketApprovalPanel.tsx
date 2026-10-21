@@ -1,3 +1,4 @@
+import Avatar from '../Avatar';
 import React, { useEffect, useMemo, useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import api from '../../services/api';
@@ -203,13 +204,7 @@ const TicketApprovalPanel: React.FC<TicketApprovalPanelProps> = ({
                 return (
                   <div key={approver.id} className="flex items-start gap-3 rounded-lg border border-white/10 bg-black/50 p-3">
                     <div className={`h-10 w-10 flex-shrink-0 rounded-full border ${itemTone[approver.status]} overflow-hidden`}>
-                      {getUserAvatarUrl(info) ? (
-                        <img src={getUserAvatarUrl(info) ?? ''} alt={info?.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs font-semibold">
-                          {(info?.name || '?').slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
+                      <Avatar user={info} size={36} />
                     </div>
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -328,13 +323,7 @@ const TicketApprovalPanel: React.FC<TicketApprovalPanelProps> = ({
                     <div key={approverId} className="rounded-xl border border-white/10 bg-black/60 p-3">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full border border-white/10 overflow-hidden">
-                          {getUserAvatarUrl(info) ? (
-                            <img src={getUserAvatarUrl(info) ?? ''} alt={info?.name} className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold">
-                              {(info?.name || '?').slice(0, 2).toUpperCase()}
-                            </div>
-                          )}
+                          <Avatar user={info} size={36} />
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-white">{info?.name || 'Approver'}</p>

@@ -5,7 +5,7 @@ from typing import List
 
 from .. import models, schemas
 from ..database import get_db
-from ..dependencies import get_current_active_user, get_current_admin, get_current_owner
+from ..dependencies import get_current_active_user, get_current_admin, get_current_owner, get_current_installation_owner
 from ..integrations import trigger_n8n_event
 from ..services import audit_logger
 
@@ -88,7 +88,7 @@ def _ensure_email_templates(db: Session) -> None:
 
 
 @router.get("/api", response_model=schemas.ApiConfigRead)
-def get_api_config(db: Session = Depends(get_db), _: models.User = Depends(get_current_active_user)):
+def get_api_config(db: Session = Depends(get_db), _: models.User = Depends(get_current_installation_owner)):
     return _get_or_create_api_config(db)
 
 
@@ -96,7 +96,7 @@ def get_api_config(db: Session = Depends(get_db), _: models.User = Depends(get_c
 def update_api_config(
     payload: schemas.ApiConfigUpdate,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin),
+    _: models.User = Depends(get_current_installation_owner),
 ):
     api_config = _get_or_create_api_config(db)
     api_config.provider = payload.provider

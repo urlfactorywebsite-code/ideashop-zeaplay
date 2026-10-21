@@ -1,3 +1,4 @@
+import Avatar from './Avatar';
 import React, { useMemo, useRef, useState } from 'react';
 import { AvatarAsset } from '../types';
 import AvatarCropModal from './AvatarCropModal';
@@ -47,8 +48,8 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      setLocalError('Please choose an image file (png, jpg, gif, svg).');
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setLocalError('Choose a JPEG, PNG or WebP image up to 5 MB.');
       return;
     }
 
@@ -94,6 +95,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
             <button
               type="button"
               className="text-xs font-semibold text-rose-500 transition hover:text-rose-400"
+              disabled={disabled || uploading}
               onClick={onRequestClear}
             >
               Clear custom
@@ -108,7 +110,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
       <div className="flex items-center gap-4">
         <div className={`h-16 w-16 overflow-hidden rounded-full shadow-inner ${previewClassName}`}>
           {previewUrl ? (
-            <img src={previewUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+            <Avatar user={{ name: 'Avatar preview', avatarUrl: previewUrl }} size={64} />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm font-medium text-slate-400 dark:bg-slate-800 dark:text-slate-500">
               None
@@ -127,7 +129,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={handleFileSelection}
           />
@@ -153,16 +155,13 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                   className={`group relative h-16 w-16 overflow-hidden rounded-full border-2 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                     isActive ? 'border-indigo-500 shadow-lg shadow-indigo-500/30' : 'border-transparent hover:border-slate-300'
                   }`}
+                  disabled={disabled || uploading}
                   onClick={() => {
                     setLocalError(null);
                     onSelectAvatar(asset);
                   }}
                 >
-                  <img
-                    src={asset.url ?? asset.externalUrl ?? ''}
-                    alt={asset.name}
-                    className="h-full w-full object-cover"
-                  />
+                  <Avatar user={{ name: asset.name, avatarUrl: asset.url || asset.externalUrl }} size={60} />
                   <span className="absolute bottom-1 left-1 right-1 rounded-full bg-black/50 px-1 text-center text-[10px] font-medium text-white opacity-0 transition group-hover:opacity-100">
                     {asset.name}
                   </span>

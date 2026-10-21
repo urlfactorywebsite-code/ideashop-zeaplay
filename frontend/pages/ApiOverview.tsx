@@ -270,15 +270,15 @@ const ENDPOINT_GROUPS: EndpointGroup[] = [
                 id: 'auth-register',
                 method: 'POST',
                 path: '/auth/register',
-                title: 'Register Owner/Admin',
-                summary: 'Create a new user (owner/admin) account for the workspace.',
-                requiresAuth: false,
+                title: 'Register Workspace User',
+                summary: 'Authorized staff create an account in their own workspace. Assigning a higher administrative role is forbidden.',
+                requiresAuth: true,
                 scopes: ['auth.register'],
                 bodyExample: {
-                    name: 'Owner Example',
-                    email: 'owner@example.com',
+                    name: 'Member Example',
+                    email: 'member@example.com',
                     password: 'changeme',
-                    role: 'owner',
+                    role: 'user',
                     status: 'ACTIVE',
                     employer_id: 'EMP-001',
                 },
@@ -1438,16 +1438,17 @@ const scopeLabel = (scopeId: string): string => {
     return entry.description ? `${scopeId} — ${entry.description}` : scopeId;
 };
 
-const ApiOverview: React.FC = () => {
+type ApiSection = 'overview' | 'documentation' | 'token' | 'smtp' | 'oauth' | 'webhooks';
+const ApiOverview: React.FC<{ section?: ApiSection; onSectionChange?: (section: ApiSection) => void; hideTabs?: boolean; oauthContent?: React.ReactNode }> = ({ section, onSectionChange, hideTabs = false, oauthContent }) => {
     const [stats, setStats] = useState({
         totalApps: 0,
         totalKeys: 0,
         totalCalls: 0,
         activeKeys: 0,
     });
-    const [activeTab, setActiveTab] = useState<
-        'overview' | 'documentation' | 'token' | 'smtp' | 'oauth' | 'webhooks'
-    >('overview');
+    const [localTab, setLocalTab] = useState<ApiSection>('overview');
+    const activeTab = section ?? localTab;
+    const setActiveTab = onSectionChange ?? setLocalTab;
 
     const defaultBaseUrl = getApiBaseUrl();
     const [baseUrl, setBaseUrl] = useState(defaultBaseUrl);
@@ -2068,7 +2069,7 @@ const ApiOverview: React.FC = () => {
                             </p>
                         </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    {!hideTabs && <div className="flex flex-wrap gap-2">
                         {[
                             { id: 'overview', label: 'Overview' },
                             { id: 'documentation', label: 'Documentation' },
@@ -2090,12 +2091,12 @@ const ApiOverview: React.FC = () => {
                                 {tab.label}
                             </button>
                         ))}
-                    </div>
+                    </div>}
                 </header>
 
                 {/* Overview Tab */}
                 {activeTab === 'smtp' && <SmtpManagement />}
-                {activeTab === 'oauth' && <OAuthManagement />}
+                {activeTab === 'oauth' && (oauthContent ?? <OAuthManagement />)}
                 {activeTab === 'overview' && (
                     <>
                         <section className="grid grid-cols-1 md:grid-cols-4 gap-6">

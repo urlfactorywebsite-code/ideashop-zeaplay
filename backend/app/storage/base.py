@@ -33,6 +33,13 @@ class StorageAdapter(abc.ABC):
     def save(self, data: bytes, relative_path: str, *, content_type: str) -> StoredObject:
         """Persist bytes at the given path relative to the provider root."""
 
+    def save_private(self, data: bytes, relative_path: str, *, content_type: str) -> StoredObject:
+        """Providers must explicitly support private objects. Never fall back to public."""
+        raise NotImplementedError('Private uploads are unavailable for this provider')
+
+    def read(self, relative_path: str) -> bytes:
+        raise NotImplementedError('Authenticated reads are unavailable for this provider')
+
     @abc.abstractmethod
     def delete(self, relative_path: str) -> None:
         """Delete the object at the given path if it exists."""

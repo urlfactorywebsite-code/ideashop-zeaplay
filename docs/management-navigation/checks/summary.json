@@ -1,0 +1,33 @@
+{
+  "implemented": true,
+  "deployed": false,
+  "frontendTests": {
+    "passed": 144
+  },
+  "navigationTests": {
+    "passed": 70,
+    "skipped": 69
+  },
+  "featureRegression": {
+    "passed": 29,
+    "skipped": 16
+  },
+  "realSessionIntegration": {
+    "passed": 1,
+    "skipped": 1
+  },
+  "browserScenarios": {
+    "management": 19,
+    "settings": 22,
+    "sidebarManagement": 20
+  },
+  "productionBuild": "passed",
+  "scopedPythonLint": "passed",
+  "frontendLint": "no configured lint script",
+  "fullTypecheck": {
+    "passed": false,
+    "diagnostics": 118,
+    "diagnosticsInTaskFiles": 0
+  },
+  "postgresqlVerified": false
+}

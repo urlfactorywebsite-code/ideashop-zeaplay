@@ -1,0 +1,1507 @@
+EE
+=================================== ERRORS ====================================
+_____ ERROR at setup of test_create_direct_message_and_prevent_duplicate ______
+
+self = <sqlalchemy.engine.base.Connection object at 0x00000179DCD359A0>
+dialect = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x00000179B73002F0>
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x00000179DCD7C290>
+statement = <sqlalchemy.dialects.sqlite.base.SQLiteCompiler object at 0x00000179DB73FD90>
+parameters = [('WAITING_FOR_REQUIREMENT', 'BATTLE_PLAN')]
+
+    def _exec_single_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+        statement: Union[str, Compiled],
+        parameters: Optional[_AnyMultiExecuteParams],
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for a single DBAPI
+        cursor.execute() or cursor.executemany() call.
+    
+        """
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+    
+            if generic_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor, generic_setinputsizes, context
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e, str(statement), parameters, None, context
+                    )
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters: Optional[_AnyExecuteParams]
+    
+        if not context.executemany:
+            effective_parameters = parameters[0]
+        else:
+            effective_parameters = parameters
+    
+        if self._has_events or self.engine._has_events:
+            for fn in self.dispatch.before_cursor_execute:
+                str_statement, effective_parameters = fn(
+                    self,
+                    cursor,
+                    str_statement,
+                    effective_parameters,
+                    context,
+                    context.executemany,
+                )
+    
+        if self._echo:
+            self._log_info(str_statement)
+    
+            stats = context._get_cache_stats()
+    
+            if not self.engine.hide_parameters:
+                self._log_info(
+                    "[%s] %r",
+                    stats,
+                    sql_util._repr_params(
+                        effective_parameters,
+                        batches=10,
+                        ismulti=context.executemany,
+                    ),
+                )
+            else:
+                self._log_info(
+                    "[%s] [SQL parameters hidden due to hide_parameters=True]",
+                    stats,
+                )
+    
+        evt_handled: bool = False
+        try:
+            if context.execute_style is ExecuteStyle.EXECUTEMANY:
+                effective_parameters = cast(
+                    "_CoreMultiExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_executemany(
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+                    )
+            elif not effective_parameters and context.no_parameters:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute_no_params:
+                        if fn(cursor, str_statement, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_execute_no_params(
+                        cursor, str_statement, context
+                    )
+            else:
+                effective_parameters = cast(
+                    "_CoreSingleExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+>                   self.dialect.do_execute(
+                        cursor, str_statement, effective_parameters, context
+                    )
+
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1969: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x00000179B73002F0>
+cursor = <sqlite3.Cursor object at 0x00000179DCD29AC0>
+statement = '\n            UPDATE tasks\n            SET status = ?\n            WHERE status = ?\n            '
+parameters = ('WAITING_FOR_REQUIREMENT', 'BATTLE_PLAN')
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x00000179DCD7C290>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlite3.OperationalError: no such column: t.project_id
+
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\default.py:952: OperationalError
+
+The above exception was the direct cause of the following exception:
+
+db = <sqlalchemy.orm.session.Session object at 0x00000179DB6592B0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000179DCB0B950>
+
+    @pytest.fixture()
+    def client(db, monkeypatch):
+        from backend.app import database
+        def current_user():
+            return db.get(User, "user-a")
+    
+        app.dependency_overrides[get_db] = override_get_db
+        app.dependency_overrides[get_current_active_user] = current_user
+        monkeypatch.setattr(chat_ws, "SessionLocal", TestingSessionLocal)
+        # Phase 3 publisher resolves the tenant through database.SessionLocal too.
+        monkeypatch.setattr(database, "SessionLocal", TestingSessionLocal)
+        monkeypatch.setattr(chat_ws, "manager", chat_ws.ChatConnectionManager())
+>       with TestClient(app) as test_client:
+             ^^^^^^^^^^^^^^^
+
+backend\tests\test_chat_phase1.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:698: in __enter__
+    portal.call(self.wait_startup)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:733: in wait_startup
+    await receive()
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:724: in receive
+    self.task.result()
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py:443: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:714: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+backend\app\oauth_cors.py:28: in dispatch
+    await handler(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\cors.py:80: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py:151: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\base.py:103: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\base.py:103: in __call__
+    await self.app(scope, receive, send)
+backend\app\observability.py:219: in __call__
+    await self.app(scope, receive, lifespan_send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\exceptions.py:49: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\routing.py:670: in __call__
+    await self.middleware_stack(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:2726: in app
+    await self.lifespan(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\routing.py:648: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:265: in __aenter__
+    await self._router._startup()
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:6375: in _startup
+    await handler()
+backend\app\main.py:823: in startup_event
+    initialize_schema()
+backend\app\main.py:807: in initialize_schema
+    normalize_legacy_task_status_values()
+backend\app\main.py:156: in normalize_legacy_task_status_values
+    connection.execute(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1421: in execute
+    return meth(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1848: in _execute_context
+    return self._exec_single_context(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x00000179B73002F0>
+cursor = <sqlite3.Cursor object at 0x00000179DCD29AC0>
+statement = '\n            UPDATE tasks\n            SET status = ?\n            WHERE status = ?\n            '
+parameters = ('WAITING_FOR_REQUIREMENT', 'BATTLE_PLAN')
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x00000179DCD7C290>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: t.project_id
+E       [SQL: 
+E                   UPDATE tasks
+E                   SET status = ?
+E                   WHERE status = ?
+E                   ]
+E       [parameters: ('WAITING_FOR_REQUIREMENT', 'BATTLE_PLAN')]
+E       (Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\default.py:952: OperationalError
+_ ERROR at setup of test_direct_lookup_ignores_invalid_multi_member_direct_rows _
+
+self = <sqlalchemy.engine.base.Connection object at 0x00000179DB4D54F0>
+dialect = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x00000179B73002F0>
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x00000179DCD7F710>
+statement = <sqlalchemy.dialects.sqlite.base.SQLiteCompiler object at 0x00000179DB73FD90>
+parameters = [('WAITING_FOR_REQUIREMENT', 'BATTLE_PLAN')]
+
+    def _exec_single_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+        statement: Union[str, Compiled],
+        parameters: Optional[_AnyMultiExecuteParams],
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for a single DBAPI
+        cursor.execute() or cursor.executemany() call.
+    
+        """
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+    
+            if generic_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor, generic_setinputsizes, context
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e, str(statement), parameters, None, context
+                    )
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters: Optional[_AnyExecuteParams]
+    
+        if not context.executemany:
+            effective_parameters = parameters[0]
+        else:
+            effective_parameters = parameters
+    
+        if self._has_events or self.engine._has_events:
+            for fn in self.dispatch.before_cursor_execute:
+                str_statement, effective_parameters = fn(
+                    self,
+                    cursor,
+                    str_statement,
+                    effective_parameters,
+                    context,
+                    context.executemany,
+                )
+    
+        if self._echo:
+            self._log_info(str_statement)
+    
+            stats = context._get_cache_stats()
+    
+            if not self.engine.hide_parameters:
+                self._log_info(
+                    "[%s] %r",
+                    stats,
+                    sql_util._repr_params(
+                        effective_parameters,
+                        batches=10,
+                        ismulti=context.executemany,
+                    ),
+                )
+            else:
+                self._log_info(
+                    "[%s] [SQL parameters hidden due to hide_parameters=True]",
+                    stats,
+                )
+    
+        evt_handled: bool = False
+        try:
+            if context.execute_style is ExecuteStyle.EXECUTEMANY:
+                effective_parameters = cast(
+                    "_CoreMultiExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_executemany(
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+                    )
+            elif not effective_parameters and context.no_parameters:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute_no_params:
+                        if fn(cursor, str_statement, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_execute_no_params(
+                        cursor, str_statement, context
+                    )
+            else:
+                effective_parameters = cast(
+                    "_CoreSingleExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+>                   self.dialect.do_execute(
+                        cursor, str_statement, effective_parameters, context
+                    )
+
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1969: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x00000179B73002F0>
+cursor = <sqlite3.Cursor object at 0x00000179DD27BDC0>
+statement = '\n            UPDATE tasks\n            SET status = ?\n            WHERE status = ?\n            '
+parameters = ('WAITING_FOR_REQUIREMENT', 'BATTLE_PLAN')
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x00000179DCD7F710>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlite3.OperationalError: no such column: t.project_id
+
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\default.py:952: OperationalError
+
+The above exception was the direct cause of the following exception:
+
+db = <sqlalchemy.orm.session.Session object at 0x00000179DAF1F9D0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000179DCB0BA80>
+
+    @pytest.fixture()
+    def client(db, monkeypatch):
+        from backend.app import database
+        def current_user():
+            return db.get(User, "user-a")
+    
+        app.dependency_overrides[get_db] = override_get_db
+        app.dependency_overrides[get_current_active_user] = current_user
+        monkeypatch.setattr(chat_ws, "SessionLocal", TestingSessionLocal)
+        # Phase 3 publisher resolves the tenant through database.SessionLocal too.
+        monkeypatch.setattr(database, "SessionLocal", TestingSessionLocal)
+        monkeypatch.setattr(chat_ws, "manager", chat_ws.ChatConnectionManager())
+>       with TestClient(app) as test_client:
+             ^^^^^^^^^^^^^^^
+
+backend\tests\test_chat_phase1.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:698: in __enter__
+    portal.call(self.wait_startup)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py:450: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:733: in wait_startup
+    await receive()
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:724: in receive
+    self.task.result()
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py:443: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\concurrent\futures\_base.py:395: in __get_result
+    raise self._exception
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\anyio\from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\testclient.py:714: in lifespan
+    await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+backend\app\oauth_cors.py:28: in dispatch
+    await handler(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\cors.py:80: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py:151: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\base.py:103: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\base.py:103: in __call__
+    await self.app(scope, receive, send)
+backend\app\observability.py:219: in __call__
+    await self.app(scope, receive, lifespan_send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\exceptions.py:49: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\routing.py:670: in __call__
+    await self.middleware_stack(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:2726: in app
+    await self.lifespan(scope, receive, send)
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\routing.py:648: in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\contextlib.py:214: in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:240: in merged_lifespan
+    async with original_context(app) as maybe_original_state:
+               ^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:265: in __aenter__
+    await self._router._startup()
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py:6375: in _startup
+    await handler()
+backend\app\main.py:823: in startup_event
+    initialize_schema()
+backend\app\main.py:807: in initialize_schema
+    normalize_legacy_task_status_values()
+backend\app\main.py:156: in normalize_legacy_task_status_values
+    connection.execute(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1421: in execute
+    return meth(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1848: in _execute_context
+    return self._exec_single_context(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x00000179B73002F0>
+cursor = <sqlite3.Cursor object at 0x00000179DD27BDC0>
+statement = '\n            UPDATE tasks\n            SET status = ?\n            WHERE status = ?\n            '
+parameters = ('WAITING_FOR_REQUIREMENT', 'BATTLE_PLAN')
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x00000179DCD7F710>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: t.project_id
+E       [SQL: 
+E                   UPDATE tasks
+E                   SET status = ?
+E                   WHERE status = ?
+E                   ]
+E       [parameters: ('WAITING_FOR_REQUIREMENT', 'BATTLE_PLAN')]
+E       (Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\engine\default.py:952: OperationalError
+=========================== short test summary info ===========================
+ERROR backend/tests/test_chat_phase1.py::test_create_direct_message_and_prevent_duplicate
+ERROR backend/tests/test_chat_phase1.py::test_direct_lookup_ignores_invalid_multi_member_direct_rows
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 2 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+27 warnings, 2 errors in 16.46s

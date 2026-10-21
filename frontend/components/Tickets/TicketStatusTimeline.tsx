@@ -1,3 +1,4 @@
+import Avatar from '../Avatar';
 import React, { useEffect, useMemo, useState } from 'react';
 import { BoltIcon } from '@heroicons/react/24/solid';
 import api from '../../services/api';
@@ -104,15 +105,7 @@ const TicketStatusTimeline: React.FC<TicketStatusTimelineProps> = ({ ticket, app
 
   const renderAvatar = (userId: string, size: string) => {
     const info = userMap.get(userId);
-    const avatarUrl = getUserAvatarUrl(info);
-    if (avatarUrl) {
-      return <img src={avatarUrl} alt={info?.name} className={`${size} rounded-full object-cover`} />;
-    }
-    return (
-      <div className={`${size} rounded-full bg-white/10 flex items-center justify-center text-[10px] font-semibold text-white`}>
-        {(info?.name || '?').slice(0, 2).toUpperCase()}
-      </div>
-    );
+    return <Avatar user={info ?? { id: userId }} size={24} />;
   };
   return (
     <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 px-3 py-4 sm:px-5 sm:py-5">

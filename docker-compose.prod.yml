@@ -72,6 +72,8 @@ services:
       VEE_VAPID_PUBLIC_KEY: ${VEE_VAPID_PUBLIC_KEY}
       VEE_VAPID_PRIVATE_KEY: ${VEE_VAPID_PRIVATE_KEY}
       VEE_VAPID_SUBJECT: ${VEE_VAPID_SUBJECT}
+    volumes:
+      - avatar_media_data:/app/media/.avatars
     ports:
       - "127.0.0.1:6311:6311"
     depends_on:
@@ -146,3 +148,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  avatar_media_data:

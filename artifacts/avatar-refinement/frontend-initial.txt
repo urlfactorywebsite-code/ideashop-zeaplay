@@ -1,0 +1,16 @@
+
+> vee-task-manager@6.0.1 test
+> node --test --import tsx test/avatar-profile.test.tsx
+
+✔ employee card uses existing designation and safe text without inventing employee data (6.5624ms)
+✔ default avatars are accessible, deterministic and share frame styles (1.4707ms)
+✔ skills editor provides named remove controls and deduplicated suggestions (2.0457ms)
+✔ avatar state discards stale responses and is cleared between sessions (0.6951ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 285.155

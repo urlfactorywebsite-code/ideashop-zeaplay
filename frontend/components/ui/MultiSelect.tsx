@@ -1,3 +1,4 @@
+import Avatar from '../Avatar';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { XMarkIcon } from '../icons';
 import { getUserAvatarUrl } from '../../utils/userAvatar';
@@ -96,11 +97,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                           : 'border-white/20'
                     } bg-black/40 text-xs font-semibold uppercase text-white/60`}
                   >
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt={option.name} className="h-full w-full object-cover" />
-                    ) : (
-                      option.name.slice(0, 2)
-                    )}
+                    <Avatar user={option} size={32} />
                   </span>
                   <span className="flex flex-col">
                     <span className="flex items-center gap-2">

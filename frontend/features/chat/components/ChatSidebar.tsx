@@ -1,8 +1,9 @@
+import Avatar from '../../../components/Avatar';
 import React, { useMemo, useState } from 'react';
 import { BoltIcon, EllipsisVerticalIcon, FunnelIcon, MagnifyingGlassIcon, PlusIcon, StarIcon } from '../../../components/icons';
 import { User } from '../../../types';
 import { ChatConversation, ChatDirectoryUser } from '../types';
-import { getConversationSubtitle, getConversationTitle, initials } from '../utils/conversation';
+import { getConversationSubtitle, getConversationTitle } from '../utils/conversation';
 import { timeAgo } from '../../../utils';
 
 type Props = {
@@ -75,7 +76,7 @@ const RowButton: React.FC<{
       className={`chat-nav-row ${selected ? 'chat-nav-row-active' : ''}`}
     >
       <span className="chat-avatar">
-        {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : initials(title)}
+        <Avatar user={{ id: directMember?.userId || directoryUser?.id, name: title, avatarUrl }} size={40} />
         {presence && <span className={`chat-presence-dot ${presenceClass[presence]}`} />}
       </span>
       <span className="min-w-0 flex-1">

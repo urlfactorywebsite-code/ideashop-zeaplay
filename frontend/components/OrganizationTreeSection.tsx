@@ -1,3 +1,4 @@
+import Avatar from './Avatar';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Department, Role, User } from '../types';
 import { useAuth } from '../hooks/useAuth';
@@ -177,11 +178,7 @@ const UserCard: React.FC<{
       >
         <div className="flex items-center gap-3">
           <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-slate-700/60 text-sm font-semibold text-white">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={user.name} className="h-full w-full object-cover" />
-            ) : (
-              <span>{initialsFromName(user.name)}</span>
-            )}
+            <Avatar user={user} size={40} />
             <span className={`absolute -bottom-1 right-0 h-3 w-3 rounded-full border border-slate-900 ${tone.dot}`} />
           </div>
           <div className="min-w-0">

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import secrets
-import uuid
 from datetime import datetime, timedelta
 from typing import Dict, Iterable, List
 
@@ -11,8 +10,9 @@ from sqlalchemy.orm import Session, joinedload
 
 from .. import models, schemas
 from ..auth import hash_password, verify_password
-from ..database import SessionLocal, get_db, session_scope
-from ..dependencies import get_current_owner
+from ..database import get_db, session_scope
+from ..dependencies import get_current_owner as authenticated_owner
+from ..services.global_data_safety import ensure_single_tenant_installation
 from ..email_utils import EmailDeliveryError, resolve_smtp_config, send_notification_email
 from ..models import task_dependencies
 from ..seed import seed_database
@@ -25,13 +25,11 @@ OTP_MAX_ATTEMPTS = 5
 router = APIRouter(prefix="/admin/data", tags=["admin-data"])
 
 
-def _resolve_tenant_id(employer_id: str | None) -> uuid.UUID:
-    if employer_id:
-        try:
-            return uuid.UUID(str(employer_id))
-        except ValueError:
-            return uuid.uuid5(uuid.NAMESPACE_URL, f"zea-play-tenant:{employer_id}")
-    return uuid.uuid5(uuid.NAMESPACE_URL, "zea-play-tenant:default")
+def get_current_owner(db: Session = Depends(get_db), owner: models.User = Depends(authenticated_owner)):
+    # These legacy handlers serialize/reset global tables, not a tenant dataset.
+    # Do not enter them if any other workspace's records exist.
+    ensure_single_tenant_installation(db, owner)
+    return owner
 
 
 def _serialize_users(users: Iterable[models.User]) -> List[schemas.UserBackup]:
@@ -374,7 +372,7 @@ def import_data(
                     session.add(
                         models.User(
                             id=user.id,
-                            tenant_id=_resolve_tenant_id(user.employer_id),
+                            tenant_id=current_owner.tenant_id,
                             name=user.name,
                             email=user.email,
                             employer_id=user.employer_id,
@@ -516,7 +514,7 @@ def import_data(
             session.add(
                 models.User(
                     id=user.id,
-                    tenant_id=_resolve_tenant_id(user.employer_id),
+                    tenant_id=current_owner.tenant_id,
                     name=user.name,
                     email=user.email,
                     employer_id=user.employer_id,

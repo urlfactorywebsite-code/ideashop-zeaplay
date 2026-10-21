@@ -1183,6 +1183,7 @@ export interface User {
   location?: string;
   timezone?: string;
   notes?: string;
+  profileBio?: string;
   skills?: string[];
   projects?: string[];
   avatarAssetId?: string | null;
@@ -2125,6 +2126,7 @@ export enum NotificationEntityType {
 }
 
 export interface Notification {
+  actorId?: string | null;
   id: string;
   tenantId?: string | null;
   dedupeKey?: string | null;
@@ -2378,6 +2380,7 @@ export interface BackupUser {
   location?: string;
   timezone?: string;
   notes?: string;
+  profileBio?: string;
   skills?: string[];
   projects?: string[];
   points: number;

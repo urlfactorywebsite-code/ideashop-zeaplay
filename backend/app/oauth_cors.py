@@ -2,6 +2,7 @@
 import re
 
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.datastructures import Headers
 
 
 def build_cors_stack(inner, settings):
@@ -19,7 +20,11 @@ def build_cors_stack(inner, settings):
         resource = path.removeprefix('/api')
         if scope.get('method') in {'GET', 'OPTIONS'} and (resource in {'/oauth2/profile', '/oauth2/service'} or
                 re.fullmatch(r'/(?:tasks|projects)(?:/[0-9a-fA-F-]{36})?', resource)):
-            handler = public_reads  # Resources still require explicit bearer auth and scopes/RBAC.
+            # App requests include browser-session credentials, including on
+            # bearer-authenticated reads. Preflights do not carry those cookies,
+            # so select the credentialed policy by the trusted origin instead.
+            if Headers(scope=scope).get('origin') not in settings.cors_allow_origins:
+                handler = public_reads  # External OAuth reads still require bearer auth and scopes/RBAC.
         await handler(scope, receive, send)
 
     return dispatch

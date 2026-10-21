@@ -1,3 +1,4 @@
+import Avatar from '../components/Avatar';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
@@ -963,18 +964,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                             <TaskPriorityBadge priority={task.priority} />
                         </div>
                         <div className="calendar-task-meta mt-2 flex items-center gap-2 text-xs">
-                            <div className="calendar-task-avatar h-6 w-6 rounded-full text-center text-[10px] font-semibold leading-6">
-                                {(() => {
-                                    if (assignees.length === 0) return '??';
-                                    if (assignees.length === 1) {
-                                        return assignees[0]!.name.split(' ').map((n) => n[0]).join('').slice(0, 2);
-                                    }
-                                    if (assignees.length === 2) {
-                                        return assignees.map(a => a!.name.split(' ').map((n) => n[0]).join('').slice(0, 1)).join('');
-                                    }
-                                    return `${assignees.length}`;
-                                })()}
-                            </div>
+                            <div className="flex -space-x-1">{assignees.slice(0, 3).map(assignee => <Avatar key={assignee!.id} user={assignee} size={24} />)}{assignees.length > 3 && <span>+{assignees.length - 3}</span>}</div>
                             <span>{task.status.replace(/_/g, ' ').toLowerCase()}</span>
                             {task.tags && task.tags.length > 0 && <span>/ {task.tags[0]}</span>}
                         </div>

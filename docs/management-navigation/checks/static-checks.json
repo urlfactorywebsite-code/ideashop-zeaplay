@@ -1,0 +1,6 @@
+{
+  "fullTypecheckPassed": false,
+  "diagnostics": 118,
+  "taskFilesWithDiagnostics": [],
+  "lint": "Frontend lint script is not configured; scoped Python ruff check passed."
+}

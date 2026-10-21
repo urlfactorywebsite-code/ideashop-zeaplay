@@ -1,0 +1,141 @@
+frontend/components/Ballpit.tsx(49,12): error TS2301: Initializer of instance member variable '#c' cannot reference identifier 'e' declared in the constructor.
+frontend/components/Ballpit.tsx(136,24): error TS2554: Expected 0 arguments, but got 1.
+frontend/components/Ballpit.tsx(191,27): error TS2554: Expected 0 arguments, but got 1.
+frontend/components/Ballpit.tsx(193,26): error TS2554: Expected 0 arguments, but got 1.
+frontend/components/Ballpit.tsx(411,10): error TS2339: Property 'config' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(412,10): error TS2339: Property 'positionData' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(413,10): error TS2339: Property 'velocityData' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(414,10): error TS2339: Property 'sizeData' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(415,10): error TS2339: Property 'center' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(420,13): error TS2339: Property 'config' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(420,24): error TS2339: Property 'positionData' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(421,10): error TS2339: Property 'center' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(430,13): error TS2339: Property 'config' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(430,24): error TS2339: Property 'sizeData' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(437,13): error TS2339: Property 'config' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(437,24): error TS2339: Property 'center' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(437,35): error TS2339: Property 'positionData' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(437,52): error TS2339: Property 'sizeData' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(437,65): error TS2339: Property 'velocityData' does not exist on type 'W'.
+frontend/components/Ballpit.tsx(525,10): error TS2339: Property 'uniforms' does not exist on type 'Y'.
+frontend/components/Ballpit.tsx(532,10): error TS2339: Property 'defines' does not exist on type 'Y'.
+frontend/components/Ballpit.tsx(533,10): error TS2339: Property 'onBeforeCompile' does not exist on type 'Y'.
+frontend/components/Ballpit.tsx(534,38): error TS2339: Property 'uniforms' does not exist on type 'Y'.
+frontend/components/Ballpit.tsx(547,16): error TS2339: Property 'onBeforeCompile2' does not exist on type 'Y'.
+frontend/components/Ballpit.tsx(547,39): error TS2339: Property 'onBeforeCompile2' does not exist on type 'Y'.
+frontend/components/Ballpit.tsx(587,7): error TS2339: Property 'envMapRotation' does not exist on type 'Y'.
+frontend/components/Ballpit.tsx(589,10): error TS2339: Property 'config' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(590,10): error TS2339: Property 'physics' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(595,10): error TS2339: Property 'ambientLight' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(595,36): error TS2339: Property 'config' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(595,62): error TS2339: Property 'config' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(596,10): error TS2339: Property 'add' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(596,19): error TS2339: Property 'ambientLight' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(597,10): error TS2339: Property 'light' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(597,29): error TS2339: Property 'config' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(597,52): error TS2339: Property 'config' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(598,10): error TS2339: Property 'add' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(598,19): error TS2339: Property 'light' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(628,36): error TS2339: Property 'count' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(629,14): error TS2551: Property 'setColorAt' does not exist on type 'Z'. Did you mean 'setColors'?
+frontend/components/Ballpit.tsx(629,54): error TS2339: Property 'count' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(631,16): error TS2339: Property 'light' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(631,57): error TS2339: Property 'count' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(634,12): error TS2339: Property 'instanceColor' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(638,10): error TS2339: Property 'physics' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(639,34): error TS2339: Property 'count' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(640,33): error TS2339: Property 'physics' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(641,29): error TS2339: Property 'config' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(644,32): error TS2339: Property 'physics' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(647,12): error TS2339: Property 'setMatrixAt' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(648,27): error TS2339: Property 'light' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(650,10): error TS2339: Property 'instanceMatrix' does not exist on type 'Z'.
+frontend/components/Ballpit.tsx(697,3): error TS2322: Type '(e: any) => void' is not assignable to type '() => void'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+frontend/components/Ballpit.tsx(700,3): error TS2322: Type '(e: any) => void' is not assignable to type '() => void'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+frontend/components/CreateLevelModal.tsx(71,9): error TS2353: Object literal may only specify known properties, and 'level_number' does not exist in type 'LevelCreate'.
+frontend/components/CreateUserModal.tsx(275,17): error TS2345: Argument of type '{ name: string; email: string; password: string; employerId: string; role: Role; department: string; avatarAssetId: string; avatarFrame: string; }' is not assignable to parameter of type 'Omit<User, "status" | "id" | "passwordHash" | "points" | "unlockedAchievementIds" | "tasksCreated" | "tasksCompleted" | "clarityScores" | "claimedRewardIds"> & { ...; }'.
+  Type '{ name: string; email: string; password: string; employerId: string; role: Role; department: string; avatarAssetId: string; avatarFrame: string; }' is missing the following properties from type 'Omit<User, "status" | "id" | "passwordHash" | "points" | "unlockedAchievementIds" | "tasksCreated" | "tasksCompleted" | "clarityScores" | "claimedRewardIds">': overallXpPoints, claimedXpPoints
+frontend/components/NotesBoard.tsx(2,10): error TS2305: Module '"../types"' has no exported member 'KanbanNote'.
+frontend/components/NotesBoard.tsx(127,30): error TS2304: Cannot find name 'KanbanNoteCard'.
+frontend/components/ProtectedRoute.tsx(8,13): error TS2503: Cannot find namespace 'JSX'.
+frontend/components/TaskTemplateModal.tsx(273,74): error TS2345: Argument of type '{ featuredImage: File; title: string; description: string; priority: TaskPriority; team: string; subtasks: string[]; attachments: string[]; estimatedHours: number | null; tags: string[]; departmentId: string | null; recurrenceRule: RecurrenceRule; }' is not assignable to parameter of type 'Partial<Omit<TaskTemplate, "id" | "createdAt" | "updatedAt" | "department" | "creator">>'.
+  Types of property 'featuredImage' are incompatible.
+    Type 'File' is not assignable to type 'string'.
+frontend/components/TaskTemplateModal.tsx(276,54): error TS2345: Argument of type '{ featuredImage: File; title: string; description: string; priority: TaskPriority; team: string; subtasks: string[]; attachments: string[]; estimatedHours: number | null; tags: string[]; departmentId: string | null; recurrenceRule: RecurrenceRule; }' is not assignable to parameter of type 'Omit<TaskTemplate, "id" | "createdAt" | "updatedAt" | "department" | "creator">'.
+  Property 'createdById' is missing in type '{ featuredImage: File; title: string; description: string; priority: TaskPriority; team: string; subtasks: string[]; attachments: string[]; estimatedHours: number | null; tags: string[]; departmentId: string | null; recurrenceRule: RecurrenceRule; }' but required in type 'Omit<TaskTemplate, "id" | "createdAt" | "updatedAt" | "department" | "creator">'.
+frontend/components/Tickets/TicketDetailDrawer.tsx(275,17): error TS2322: Type '(payload: TicketApprovalRequestPayload) => Promise<TicketApprovalCycle>' is not assignable to type '(payload: TicketApprovalRequestPayload) => Promise<void>'.
+  Type 'Promise<TicketApprovalCycle>' is not assignable to type 'Promise<void>'.
+    Type 'TicketApprovalCycle' is not assignable to type 'void'.
+frontend/components/Tickets/TicketDetailDrawer.tsx(276,17): error TS2322: Type '(cycleId: string, payload: TicketApprovalActionPayload) => Promise<TicketApprovalCycle>' is not assignable to type '(cycleId: string, payload: TicketApprovalActionPayload) => Promise<void>'.
+  Type 'Promise<TicketApprovalCycle>' is not assignable to type 'Promise<void>'.
+    Type 'TicketApprovalCycle' is not assignable to type 'void'.
+frontend/components/Tickets/TicketDetailDrawer.tsx(277,17): error TS2322: Type '(cycleId: string, payload: TicketApprovalActionPayload) => Promise<TicketApprovalCycle>' is not assignable to type '(cycleId: string, payload: TicketApprovalActionPayload) => Promise<void>'.
+  Type 'Promise<TicketApprovalCycle>' is not assignable to type 'Promise<void>'.
+    Type 'TicketApprovalCycle' is not assignable to type 'void'.
+frontend/pages/Achievements.tsx(2858,53): error TS2322: Type 'Achievement' is not assignable to type 'BadgeAchievement'.
+  Type 'Achievement' is missing the following properties from type '{ status: BadgeStatus; progressPercent: number; tier: string; tierGroup?: string; tierOrder: number; isSystem: boolean; earnedAt?: string; }': status, progressPercent, tier, tierOrder, isSystem
+frontend/pages/GanttView.tsx(236,37): error TS2339: Property 'hasUnassignedTasks' does not exist on type '{ options: { id: string; name: string; }[]; hasUnassigned: boolean; }'.
+frontend/pages/LevelsManager.tsx(144,21): error TS2554: Expected 2 arguments, but got 0.
+frontend/pages/LevelsPage.tsx(17,39): error TS2339: Property 'levelNumber' does not exist on type 'LevelRead'.
+frontend/pages/LevelsPage.tsx(17,55): error TS2339: Property 'levelNumber' does not exist on type 'LevelRead'.
+frontend/pages/LevelsPage.tsx(75,22): error TS2339: Property 'iconUrl' does not exist on type 'Level'.
+frontend/pages/LevelsPage.tsx(77,30): error TS2339: Property 'iconUrl' does not exist on type 'Level'.
+frontend/pages/LevelsPage.tsx(85,76): error TS2339: Property 'levelNumber' does not exist on type 'Level'.
+frontend/pages/LevelsPage.tsx(86,70): error TS2339: Property 'description' does not exist on type 'Level'.
+frontend/pages/LevelsPage.tsx(88,73): error TS2339: Property 'pointsRequired' does not exist on type 'Level'.
+frontend/pages/LevelsPage.tsx(90,22): error TS2339: Property 'rewardId' does not exist on type 'Level'.
+frontend/pages/PointsTableSettings.tsx(683,112): error TS2345: Argument of type 'string' is not assignable to parameter of type '"bonusByPriority" | "penaltyByPriority"'.
+frontend/pages/Tasks.tsx(403,82): error TS2345: Argument of type '{}' is not assignable to parameter of type 'Record<TaskStatus, number> | (() => Record<TaskStatus, number>)'.
+frontend/pages/Tasks.tsx(662,25): error TS2345: Argument of type 'Record<TaskStatus, number> | {}' is not assignable to parameter of type 'SetStateAction<Record<TaskStatus, number>>'.
+  Type '{}' is not assignable to type 'SetStateAction<Record<TaskStatus, number>>'.
+frontend/pages/Tasks.tsx(797,35): error TS2339: Property 'tag' does not exist on type '{ pageSize: number; search: string; priority: TaskPriority; assigneeId: string; projectId: string; team: string; dueDate: string; createdDate: string; quickFilter: string; }'.
+frontend/pages/Tasks.tsx(2164,76): error TS2551: Property 'createdByName' does not exist on type 'Task'. Did you mean 'createdBy'?
+frontend/pages/TemplateEditor.tsx(346,38): error TS2352: Conversion of type '{ kind: "button"; text: string; w: number; h: number; bg: string; color: string; border: { radius: number; width: number; }; fontSize: number; fontWeight: number; align: string; }' to type 'Partial<ButtonElem>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'border' are incompatible.
+    Property 'color' is missing in type '{ radius: number; width: number; }' but required in type '{ color: string; width: number; radius: number; style?: "dashed" | "dotted" | "solid"; }'.
+frontend/pages/TemplateEditor.tsx(590,30): error TS2339: Property 'style' does not exist on type 'Element'.
+frontend/pages/TemplateEditor.tsx(591,31): error TS2339: Property 'style' does not exist on type 'Element'.
+frontend/pages/TemplateEditor.tsx(592,24): error TS2339: Property 'style' does not exist on type 'Element'.
+frontend/pages/TemplateEditor.tsx(823,19): error TS2322: Type '{ id: string; kind: ElemKind; x: number; y: number; w: number; h: number; r?: number; z: number; lock?: boolean; hidden?: boolean; name?: string; parent?: string; children?: string[]; opacity?: number; ... 17 more ...; textShadow?: string; } | ... 6 more ... | { ...; }' is not assignable to type 'Elem'.
+  Type '{ id: string; kind: ElemKind; x: number; y: number; w: number; h: number; r?: number; z: number; lock?: boolean; hidden?: boolean; name?: string; parent?: string; children?: string[]; opacity?: number; ... 17 more ...; textShadow?: string; }' is not assignable to type 'Elem'.
+    Type '{ id: string; kind: ElemKind; x: number; y: number; w: number; h: number; r?: number; z: number; lock?: boolean; hidden?: boolean; name?: string; parent?: string; children?: string[]; opacity?: number; ... 17 more ...; textShadow?: string; }' is not assignable to type 'TextElem'.
+      Types of property 'kind' are incompatible.
+        Type 'ElemKind' is not assignable to type '"text" | "richtext"'.
+          Type '"button"' is not assignable to type '"text" | "richtext"'.
+frontend/pages/TemplateEditor.tsx(985,16): error TS2503: Cannot find namespace 'JSX'.
+frontend/pages/TicketPage.tsx(426,9): error TS2322: Type '(payload: TicketCreatePayload) => Promise<Ticket>' is not assignable to type '(payload: TicketCreatePayload) => Promise<void>'.
+  Type 'Promise<Ticket>' is not assignable to type 'Promise<void>'.
+    Type 'Ticket' is not assignable to type 'void'.
+frontend/services/mockApi.ts(2696,58): error TS2552: Cannot find name 'TicketActivityItem'. Did you mean 'ApiTicketActivity'?
+frontend/services/mockApi.ts(3169,5): error TS2561: Object literal may only specify known properties, but 'levelId' does not exist in type 'LevelNodeRead'. Did you mean to write 'level_id'?
+frontend/services/mockApi.ts(3209,61): error TS2304: Cannot find name 'LevelPreview'.
+frontend/services/mockApi.ts(5023,55): error TS2552: Cannot find name 'TicketActivityItem'. Did you mean 'ApiTicketActivity'?
+frontend/services/mockApi.ts(7256,51): error TS2304: Cannot find name 'LevelPreview'.
+frontend/services/mockApi.ts(7259,32): error TS2304: Cannot find name 'LevelPreview'.
+frontend/services/mockApi.ts(7263,39): error TS2304: Cannot find name 'LevelPreview'.
+frontend/services/seedData.ts(30,3): error TS2739: Type '{ id: string; name: string; email: string; role: Role.OWNER; department: string; passwordHash: string; status: UserStatus.ACTIVE; points: number; unlockedAchievementIds: string[]; tasksCreated: number; tasksCompleted: number; clarityScores: number[]; claimedRewardIds: undefined[]; }' is missing the following properties from type 'User': overallXpPoints, claimedXpPoints
+frontend/services/seedData.ts(31,3): error TS2739: Type '{ id: string; name: string; email: string; role: Role.ADMIN; department: string; passwordHash: string; status: UserStatus.ACTIVE; points: number; unlockedAchievementIds: string[]; tasksCreated: number; tasksCompleted: number; clarityScores: number[]; claimedRewardIds: undefined[]; }' is missing the following properties from type 'User': overallXpPoints, claimedXpPoints
+frontend/services/seedData.ts(32,3): error TS2739: Type '{ id: string; name: string; email: string; role: Role.USER; department: string; passwordHash: string; status: UserStatus.ACTIVE; points: number; unlockedAchievementIds: string[]; tasksCreated: number; tasksCompleted: number; clarityScores: undefined[]; claimedRewardIds: undefined[]; }' is missing the following properties from type 'User': overallXpPoints, claimedXpPoints
+frontend/services/seedData.ts(33,3): error TS2739: Type '{ id: string; name: string; email: string; role: Role.USER; department: string; passwordHash: string; status: UserStatus.ACTIVE; points: number; unlockedAchievementIds: undefined[]; tasksCreated: number; tasksCompleted: number; clarityScores: undefined[]; claimedRewardIds: undefined[]; }' is missing the following properties from type 'User': overallXpPoints, claimedXpPoints
+frontend/services/seedData.ts(34,3): error TS2739: Type '{ id: string; name: string; email: string; role: Role.USER; department: string; passwordHash: string; status: UserStatus.ACTIVE; points: number; unlockedAchievementIds: string[]; tasksCreated: number; tasksCompleted: number; clarityScores: undefined[]; claimedRewardIds: undefined[]; }' is missing the following properties from type 'User': overallXpPoints, claimedXpPoints
+frontend/services/seedData.ts(159,5): error TS2741: Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'.
+frontend/services/seedData.ts(160,5): error TS2741: Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'.
+frontend/services/seedData.ts(161,5): error TS2741: Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'.
+frontend/services/seedData.ts(162,5): error TS2741: Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'.
+frontend/services/seedData.ts(163,5): error TS2741: Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'.
+frontend/services/seedData.ts(164,5): error TS2741: Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'.
+frontend/services/seedData.ts(165,5): error TS2741: Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'.
+frontend/services/seedData.ts(166,5): error TS2741: Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'.
+frontend/services/seedData.ts(167,5): error TS2741: Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'.
+frontend/services/seedData.ts(173,3): error TS2739: Type '{ id: string; title: string; description: string; status: TaskStatus.IN_PROGRESS; priority: TaskPriority.HIGH; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId
+frontend/services/seedData.ts(197,3): error TS2739: Type '{ id: string; title: string; description: string; status: TaskStatus.WAITING_FOR_REQUIREMENT; priority: TaskPriority.URGENT; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId
+frontend/services/seedData.ts(217,3): error TS2739: Type '{ id: string; title: string; description: string; status: TaskStatus.DONE; priority: TaskPriority.MEDIUM; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 9 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId
+frontend/services/seedData.ts(241,3): error TS2739: Type '{ id: string; title: string; description: string; status: TaskStatus.IN_REVIEW; priority: TaskPriority.HIGH; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId
+frontend/services/seedData.ts(261,4): error TS2739: Type '{ id: string; title: string; description: string; status: TaskStatus.ON_HOLD; priority: TaskPriority.LOW; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId
+frontend/services/seedData.ts(281,3): error TS2739: Type '{ id: string; title: string; description: string; status: TaskStatus.TODO; priority: TaskPriority.MEDIUM; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId
+frontend/services/seedData.ts(301,3): error TS2739: Type '{ id: string; title: string; description: string; status: TaskStatus.TODO; priority: TaskPriority.MEDIUM; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId
+frontend/services/seedData.ts(321,3): error TS2739: Type '{ id: string; title: string; description: string; status: TaskStatus.IN_PROGRESS; priority: TaskPriority.HIGH; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId
+frontend/services/seedData.ts(341,3): error TS2739: Type '{ id: string; title: string; description: string; status: TaskStatus.DONE; priority: TaskPriority.URGENT; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 9 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId
+frontend/utils/mentionUtils.ts(40,38): error TS2339: Property 'replace' does not exist on type 'never'.

@@ -336,7 +336,7 @@ class DirectoryService:
                     id=directory_user.id,
                     name=directory_user.name,
                     email=directory_user.email,
-                    avatar_url=directory_user.profile_image_url,
+                    avatar_url=directory_user.avatar_url,
                     presence="OFFLINE",
                     role_name=directory_user.role.value if directory_user.role else None,
                     team_name=directory_user.department.name if directory_user.department else None,

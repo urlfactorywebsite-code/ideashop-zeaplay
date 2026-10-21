@@ -1,3 +1,4 @@
+import Avatar from '../components/Avatar';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useNotificationRefresh } from '../hooks/useNotificationRefresh';
@@ -273,7 +274,7 @@ const ProjectFormModal: React.FC<ProjectFormProps> = ({ project, clients, users,
                 {managerOptions.map((user) => (
                   <label key={user.id} className="flex items-center gap-3 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 dark:border-gray-800">
                     <input type="checkbox" checked={draft.managerIds.includes(user.id)} onChange={() => toggleId('managerIds', user.id)} />
-                    <span>{user.name}</span>
+                    <Avatar user={user} size={24} /><span>{user.name}</span>
                     <span className="ml-auto text-xs text-gray-500">{user.role}</span>
                   </label>
                 ))}
@@ -285,7 +286,7 @@ const ProjectFormModal: React.FC<ProjectFormProps> = ({ project, clients, users,
                 {activeUsers.map((user) => (
                   <label key={user.id} className="flex items-center gap-3 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 dark:border-gray-800">
                     <input type="checkbox" checked={draft.memberIds.includes(user.id)} onChange={() => toggleId('memberIds', user.id)} />
-                    <span>{user.name}</span>
+                    <Avatar user={user} size={24} /><span>{user.name}</span>
                     <span className="ml-auto text-xs text-gray-500">{user.email}</span>
                   </label>
                 ))}
@@ -614,7 +615,7 @@ const Projects: React.FC = () => {
                   <div className="mt-2 space-y-2">
                     {managers.length === 0 ? <p className="text-sm text-gray-500">No managers assigned.</p> : managers.map((member) => (
                       <div key={member.id} className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-800">
-                        <p className="font-medium">{member.name}</p>
+                        <p className="flex items-center gap-2 font-medium"><Avatar user={{ id: member.userId, name: member.name, role: member.userRole }} size={28} />{member.name}</p>
                         <p className="text-xs text-gray-500">{member.email}</p>
                       </div>
                     ))}
@@ -625,7 +626,7 @@ const Projects: React.FC = () => {
                   <div className="mt-2 space-y-2">
                     {members.length === 0 ? <p className="text-sm text-gray-500">No members assigned.</p> : members.map((member) => (
                       <div key={member.id} className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-800">
-                        <p className="font-medium">{member.name}</p>
+                        <p className="flex items-center gap-2 font-medium"><Avatar user={{ id: member.userId, name: member.name, role: member.userRole }} size={28} />{member.name}</p>
                         <p className="text-xs text-gray-500">{member.email}</p>
                       </div>
                     ))}

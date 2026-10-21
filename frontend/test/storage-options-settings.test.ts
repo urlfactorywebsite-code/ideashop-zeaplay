@@ -4,7 +4,7 @@ import test from 'node:test';
 
 test('storage provider controls are moved from media library to settings', () => {
   const mediaLibrarySource = readFileSync(new URL('../pages/MediaLibrary.tsx', import.meta.url), 'utf8');
-  const settingsSource = readFileSync(new URL('../pages/Settings.tsx', import.meta.url), 'utf8');
+  const settingsSource = readFileSync(new URL('../pages/ProfileSettings.tsx', import.meta.url), 'utf8');
   const storagePanelSource = readFileSync(new URL('../components/SettingsStorageOptionsPanel.tsx', import.meta.url), 'utf8');
 
   assert.doesNotMatch(mediaLibrarySource, /ProviderConnect/);

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 import uuid
 
 from ..config import get_settings
+from .. import models
 from ..database import SessionLocal
 from ..tickets.models import WebhookDeliveryLog, WebhookDeliveryStatusEnum, WebhookSubscription
 from . import dispatcher
@@ -123,14 +124,27 @@ def resolve_event_data(db: Session, event_name: str, payload: Any | None) -> dic
     return payloads.get_sample_data(db, event_name)
 
 
-def queue_event(db: Session, *, event_name: str, data: dict[str, Any]) -> list[WebhookDeliveryLog]:
+def queue_event(db: Session, *, event_name: str, data: dict[str, Any], tenant_id=None) -> list[WebhookDeliveryLog]:
     if not _is_event_allowed(event_name):
         return []
     if isinstance(data, dict) and {"event", "occurred_at", "ticket_id", "actor_user_id", "actor_name"}.issubset(data):
         payload = data
     else:
         payload = payloads.build_payload(event_name, data)
-    return dispatcher.queue_webhook_deliveries(db, event_type=event_name, payload=payload)
+    if tenant_id is None:
+        actor = db.get(models.User, db.info.get('lifecycle_actor_id')) if db.info.get('lifecycle_actor_id') else None
+        tenant_id = actor.tenant_id if actor else data.get('tenant_id')
+        if tenant_id is None and data.get('ticket_id'):
+            from ..tickets.models import Ticket
+            ticket = db.get(Ticket, uuid.UUID(str(data['ticket_id'])))
+            tenant_id = ticket.tenant_id if ticket else None
+        task_data = data.get('task') or {}
+        if tenant_id is None and isinstance(task_data, dict) and task_data.get('id'):
+            task = db.get(models.Task, str(task_data['id']))
+            project = db.get(models.Project, task.project_id) if task and task.project_id else None
+            creator = db.get(models.User, task.created_by_id) if task else None
+            tenant_id = project.tenant_id if project else creator.tenant_id if creator else None
+    return dispatcher.queue_webhook_deliveries(db, event_type=event_name, payload=payload, tenant_id=tenant_id)
 
 
 def enqueue_event(event_name: str, payload: Any | None) -> None:
@@ -139,11 +153,7 @@ def enqueue_event(event_name: str, payload: Any | None) -> None:
     try:
         with SessionLocal() as db:
             data = resolve_event_data(db, event_name, payload)
-            dispatcher.queue_webhook_deliveries(
-                db,
-                event_type=event_name,
-                payload=payloads.build_payload(event_name, data),
-            )
+            queue_event(db, event_name=event_name, data=data)
             db.commit()
     except Exception:
         logger.exception("Failed to enqueue webhook event %s", event_name)
@@ -159,7 +169,7 @@ def create_test_delivery(
     payload = payloads.build_payload(event_name, data)
     settings = get_settings()
     log = WebhookDeliveryLog(
-        tenant_id=uuid.UUID(settings.default_tenant_id),
+        tenant_id=webhook.tenant_id,
         subscription_id=webhook.id,
         event_type=event_name,
         payload=payload,

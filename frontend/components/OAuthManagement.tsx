@@ -66,9 +66,9 @@ export default function OAuthManagement() {
   const field = <K extends keyof ClientInput>(key: K, value: ClientInput[K]) => setDraft(d => ({ ...d, [key]: value }));
   const toggle = (key: 'grant_types' | 'scopes', value: string) => field(key, draft[key].includes(value) ? draft[key].filter(s => s !== value) : [...draft[key], value]);
   const filtered = clients.filter(c => (c.name + ' ' + c.client_id).toLowerCase().includes(search.toLowerCase()) && (status === 'all' || c.enabled === (status === 'enabled')));
-  if (!allowed) return <section className="oauth-panel"><h2>OAuth management</h2><p role="alert">Owner or admin privileges are required.</p><Link to="/oauth/applications">Manage your authorized applications</Link></section>;
+  if (!allowed) return <section className="oauth-panel"><h2>OAuth management</h2><p role="alert">Owner or admin privileges are required.</p><Link to="/settings/api/oauth/authorized-apps">Manage your authorized applications</Link></section>;
   return <section className="oauth-panel" aria-label="OAuth management" aria-busy={loading || busy}>
-    <div className="oa-toolbar"><div><h2>OAuth management</h2><p>Control application access to your tenant.</p></div><div className="oa-actions"><Link to="/oauth/applications">My authorized applications</Link><button disabled={loading || busy} onClick={() => void load()}>Refresh</button><button className="oa-primary" disabled={busy} onClick={() => open('new')}>Register application</button></div></div>
+    <div className="oa-toolbar"><div><h2>OAuth management</h2><p>Control application access to your tenant.</p></div><div className="oa-actions"><Link to="/settings/api/oauth/authorized-apps">My authorized applications</Link><button disabled={loading || busy} onClick={() => void load()}>Refresh</button><button className="oa-primary" disabled={busy} onClick={() => open('new')}>Register application</button></div></div>
     {error && <div role="alert" className="oa-message oa-error">{error}</div>}
     {notice && <p role="status" className="oa-message">{notice}</p>}
     {loading && <p role="status">Loading OAuth data…</p>}

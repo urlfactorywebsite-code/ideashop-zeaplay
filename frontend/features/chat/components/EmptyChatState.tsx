@@ -1,7 +1,8 @@
+import Avatar from '../../../components/Avatar';
 import React from 'react';
 import { ChatConversation } from '../types';
 import { User } from '../../../types';
-import { getConversationTitle, initials } from '../utils/conversation';
+import { getConversationTitle } from '../utils/conversation';
 
 type Props = {
   conversation?: ChatConversation | null;
@@ -19,7 +20,7 @@ const EmptyChatState: React.FC<Props> = ({ conversation, currentUser }) => {
     <div className="flex h-full items-center justify-center p-8 text-center text-white">
       <div className="max-w-sm">
         <div className="mx-auto grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-zinc-800 text-2xl font-black text-sky-300 ring-1 ring-white/10">
-          {otherMember?.avatarUrl ? <img src={otherMember.avatarUrl} alt="" className="h-full w-full object-cover" /> : conversation ? initials(title) : '+'}
+          <Avatar user={{ id: otherMember?.userId, name: title, avatarUrl: otherMember?.avatarUrl }} size={64} />
         </div>
         <h2 className="mt-4 text-xl font-black text-white">
           {conversation ? title : 'Choose a conversation'}

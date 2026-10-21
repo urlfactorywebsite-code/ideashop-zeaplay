@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..services.navigation import socket_allowed
+
 import asyncio
 import json
 import logging
@@ -183,7 +185,7 @@ class ChatConnectionManager:
                     user = db.get(models.User, self._socket_meta.get(socket, {}).get("user_id"))
                     if (not user or user.status != models.UserStatusEnum.ACTIVE
                             or str(user.tenant_id) != self._socket_meta.get(socket, {}).get("tenant_id")
-                            or not credentials_match(user, getattr(socket, "scope", {}))):
+                            or not credentials_match(user, getattr(socket, "scope", {})) or not socket_allowed(db, user, 'chat')):
                         await self.disconnect(socket)
                         await socket.close(code=1008)
                         continue
@@ -358,7 +360,7 @@ async def chat_ws(websocket: WebSocket) -> None:
 
     with SessionLocal() as db:
         user = db.execute(select(models.User).where(models.User.id == user_id)).scalar_one_or_none()
-        if not user or user.status != models.UserStatusEnum.ACTIVE or not credentials_match(user, payload):
+        if not user or user.status != models.UserStatusEnum.ACTIVE or not credentials_match(user, payload) or not socket_allowed(db, user, 'chat'):
             await close_policy_violation(websocket)
             return
         token_tenant_id = str(payload.get("tenant_id") or "")
@@ -397,7 +399,7 @@ async def chat_ws(websocket: WebSocket) -> None:
             with SessionLocal() as db:
                 live_user = db.get(models.User, user.id)
                 if (not live_user or live_user.status != models.UserStatusEnum.ACTIVE
-                        or live_user.tenant_id != user.tenant_id or not credentials_match(live_user, websocket.scope)):
+                        or live_user.tenant_id != user.tenant_id or not credentials_match(live_user, websocket.scope) or not socket_allowed(db, live_user, 'chat')):
                     await websocket.close(code=1008)
                     break
                 user = live_user

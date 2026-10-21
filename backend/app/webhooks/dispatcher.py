@@ -68,12 +68,19 @@ def queue_webhook_deliveries(
     *,
     event_type: str,
     payload: dict[str, Any],
+    tenant_id=None,
 ) -> list[WebhookDeliveryLog]:
+    # Unattributed background events must never be sent to another workspace's
+    # installation-default subscriptions. Callers must provide trusted context.
+    if tenant_id is None:
+        return []
+    tenant_id = uuid.UUID(str(tenant_id))
     subscriptions = db.execute(
         select(WebhookSubscription)
         .where(
             WebhookSubscription.enabled.is_(True),
             WebhookSubscription.deleted_at.is_(None),
+            WebhookSubscription.tenant_id == tenant_id,
         )
     ).scalars().all()
 
@@ -92,8 +99,6 @@ def queue_webhook_deliveries(
     if not subscriptions:
         return []
 
-    settings = get_settings()
-    tenant_id = uuid.UUID(settings.default_tenant_id)
     now = _now()
     logs: list[WebhookDeliveryLog] = []
     for subscription in subscriptions:

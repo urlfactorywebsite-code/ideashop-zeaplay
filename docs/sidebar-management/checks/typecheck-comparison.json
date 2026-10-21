@@ -1,0 +1,11 @@
+{
+  "baseline_count": 121,
+  "current_count": 118,
+  "new_diagnostics": [],
+  "resolved_diagnostics": [
+    "components/AvatarCropModal.tsx: error TS2304: Cannot find name 'onCompleteWithMetadata'.",
+    "components/AvatarCropModal.tsx: error TS2304: Cannot find name 'onCompleteWithMetadata'.",
+    "components/AvatarCropModal.tsx: error TS2304: Cannot find name 'onCompleteWithMetadata'."
+  ],
+  "normalization": "Compare file, error code and message, excluding moved source coordinates. Baseline was captured before this Sidebar Management implementation; resolved avatar diagnostics are concurrent work."
+}

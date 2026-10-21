@@ -202,8 +202,13 @@ def test_concurrent_manual_retry_selects_each_due_job_once(data, api):
         assert sum(pool.map(retry, range(3))) == 1
 
 
-def test_system_reset_otp_uses_only_the_owners_explicit_otp_profile(data, api):
+def test_system_reset_otp_uses_only_the_owners_explicit_otp_profile(data, api, monkeypatch):
     from backend.app.routers import data_admin
+    # Global legacy reset is available only in a single-tenant installation.
+    monkeypatch.setattr(get_settings(), 'default_tenant_id', str(data.owner.tenant_id))
+    with data.factory() as db:
+        db.delete(db.get(models.User, data.outsider.id))
+        db.commit()
     api.app.include_router(data_admin.router, prefix='/api')
     profile(api, name='General only', notification_types=['general'])
     # Requesting a code does not perform a reset; confirm/reset execution is never invoked.

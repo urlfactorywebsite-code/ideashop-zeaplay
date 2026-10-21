@@ -11,10 +11,16 @@ from sqlalchemy.pool import StaticPool
 from backend.app.auth import hash_password
 from backend.app.config import get_settings
 from backend.app.database import get_db
-from backend.app.models import AuditEvent, Client, RoleEnum, User, UserStatusEnum
+from backend.app.models import (
+    AuditEvent,
+    Client,
+    NavigationPolicy,
+    RoleEnum,
+    User,
+    UserStatusEnum,
+)
 from backend.app.routers.clients import router as clients_router
 from backend.app.services import clients as client_service
-
 
 engine = create_engine(
     "sqlite://",
@@ -26,6 +32,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 User.__table__.create(bind=engine, checkfirst=True)
 Client.__table__.create(bind=engine, checkfirst=True)
 AuditEvent.__table__.create(bind=engine, checkfirst=True)
+NavigationPolicy.__table__.create(bind=engine, checkfirst=True)
 
 
 def override_get_db():

@@ -8,6 +8,10 @@ export const ROLE_FRAME_CLASSES: Record<Role, string> = {
 };
 
 export const FRAME_OPTIONS = [
+  { id: 'classic', label: 'Classic Slate', description: 'A subtle slate outline.' },
+  { id: 'aurora', label: 'Aurora Neon', description: 'A soft violet glow.' },
+  { id: 'solar', label: 'Solar Flare', description: 'A warm orange outline.' },
+  { id: 'emerald', label: 'Emerald Crest', description: 'A green profile outline.' },
   {
     id: 'role-ring',
     label: 'Role ring',
@@ -29,6 +33,10 @@ export const DEFAULT_FRAME_ID = 'role-ring';
 
 export const getFrameClassName = (frameId: string, role: Role): string => {
   switch (frameId) {
+    case 'classic': return 'ring-2 ring-slate-400';
+    case 'aurora': return 'ring-2 ring-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.35)]';
+    case 'solar': return 'ring-2 ring-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.35)]';
+    case 'emerald': return 'ring-2 ring-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.35)]';
     case 'role-ring':
       return ROLE_FRAME_CLASSES[role] ?? 'border-4 border-indigo-400';
     case 'achievement-glow':

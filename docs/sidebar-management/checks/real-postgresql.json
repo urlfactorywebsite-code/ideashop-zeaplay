@@ -1,0 +1,841 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "case": "OWNER saves enabled Settings/API with only OWNER and ADMIN, using real authenticated policy PUT",
+      "passed": true
+    },
+    {
+      "case": "OWNER actual login: API navigation and OAuth management permission agree",
+      "passed": true,
+      "oauth_management_status": 200
+    },
+    {
+      "case": "ADMIN actual login: API navigation and OAuth management permission agree",
+      "passed": true,
+      "oauth_management_status": 200
+    },
+    {
+      "case": "MANAGER actual login: API navigation and OAuth management permission agree",
+      "passed": true,
+      "oauth_management_status": 403
+    },
+    {
+      "case": "USER actual login: API navigation and OAuth management permission agree",
+      "passed": true,
+      "oauth_management_status": 403
+    },
+    {
+      "case": "MANAGER cannot bypass API via direct/nested routes or configuration requests; own grants remain independent",
+      "passed": true,
+      "statuses": {
+        "/config/api": 403,
+        "/config/smtp/multiple": 403,
+        "/integrations/n8n/config": 403,
+        "/webhooks": 403
+      }
+    },
+    {
+      "case": "USER cannot bypass API via direct/nested routes or configuration requests; own grants remain independent",
+      "passed": true,
+      "statuses": {
+        "/config/api": 403,
+        "/config/smtp/multiple": 403,
+        "/integrations/n8n/config": 403,
+        "/webhooks": 403
+      }
+    },
+    {
+      "case": "OWNER loses API navigation and server management access after API disable",
+      "passed": true
+    },
+    {
+      "case": "ADMIN loses API navigation and server management access after API disable",
+      "passed": true
+    },
+    {
+      "case": "MANAGER loses API navigation and server management access after API disable",
+      "passed": true
+    },
+    {
+      "case": "USER loses API navigation and server management access after API disable",
+      "passed": true
+    },
+    {
+      "case": "Authenticated polling updates another active browser session without a new WebSocket channel",
+      "passed": true
+    },
+    {
+      "case": "Re-enabling restores API only to OWNER/ADMIN without expanding permissions",
+      "passed": true
+    },
+    {
+      "case": "Server policy survives logout/login, HttpOnly-session refresh and a fresh browser context",
+      "passed": true
+    },
+    {
+      "case": "No application console or page errors during real-session scenario",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "role": "owner",
+      "method": "POST",
+      "path": "/api/auth/browser-session/refresh",
+      "status": 401
+    },
+    {
+      "role": "owner",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "PUT",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "status": 204
+    },
+    {
+      "role": "owner",
+      "method": "POST",
+      "path": "/api/auth/browser-session/logout",
+      "status": 204
+    },
+    {
+      "role": "owner",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "POST",
+      "path": "/api/auth/browser-session/refresh",
+      "status": 401
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "POST",
+      "path": "/api/auth/browser-session/refresh",
+      "status": 401
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "POST",
+      "path": "/api/auth/browser-session/refresh",
+      "status": 401
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 403
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 403
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/oauth2/dashboard",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/oauth2/scopes",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/oauth2/events",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/oauth2/grants",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/oauth2/tokens",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/config/api",
+      "status": 403
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/config/smtp/multiple",
+      "status": 403
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/integrations/n8n/config",
+      "status": 403
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/webhooks",
+      "status": 403
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "PUT",
+      "path": "/api/navigation",
+      "status": 403
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/oauth2/my-grants",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/config/api",
+      "status": 403
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/config/smtp/multiple",
+      "status": 403
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/integrations/n8n/config",
+      "status": 403
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/webhooks",
+      "status": 403
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "PUT",
+      "path": "/api/navigation",
+      "status": 403
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/oauth2/my-grants",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "PUT",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 403
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 403
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 403
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 403
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "PUT",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "manager",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 403
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "user",
+      "method": "GET",
+      "path": "/api/oauth2/clients",
+      "status": 403
+    },
+    {
+      "role": "owner",
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "status": 204
+    },
+    {
+      "role": "owner",
+      "method": "POST",
+      "path": "/api/auth/browser-session/logout",
+      "status": 204
+    },
+    {
+      "role": "owner",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "POST",
+      "path": "/api/auth/browser-session/refresh",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "POST",
+      "path": "/api/auth/browser-session/refresh",
+      "status": 401
+    },
+    {
+      "role": "owner",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "role": "admin",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/auth/websocket-ticket",
+      "status": 200
+    },
+    {
+      "role": "owner",
+      "method": "GET",
+      "path": "/api/navigation",
+      "status": 200
+    }
+  ],
+  "scope": "Real Chrome login, JWT/HttpOnly sessions, policy persistence, OAuth/SMTP authorization on an isolated database. Unrelated layout reads are synthetic. No delivery sends."
+}

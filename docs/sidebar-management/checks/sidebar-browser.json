@@ -1,0 +1,88 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "case": "Editor migrated into Settings; popup trigger removed; legacy preferences load without writes",
+      "passed": true
+    },
+    {
+      "case": "Personal rename/arrow ordering saves without global writes, survives reload, preserves obsolete labels",
+      "passed": true
+    },
+    {
+      "case": "Personal preferences remain isolated when switching accounts in the same browser",
+      "passed": true
+    },
+    {
+      "case": "Discard confirmation restores saved values",
+      "passed": true
+    },
+    {
+      "case": "Recovery pages protected and role checkboxes cannot grant existing forbidden API roles; Master Control stays removed",
+      "passed": true
+    },
+    {
+      "case": "Nested Settings role rules immediately update tabs and deny direct API navigation",
+      "passed": true
+    },
+    {
+      "case": "Disabled main module blocks direct access across browsers while another tenant retains defaults",
+      "passed": true
+    },
+    {
+      "case": "Hidden-only support remains independently accessible; active-session focus revalidation removes disabled page",
+      "passed": true
+    },
+    {
+      "case": "Admins can save personal layout but cannot edit workspace access rules",
+      "passed": true
+    },
+    {
+      "case": "Unsaved warning can cancel mouse and keyboard navigation",
+      "passed": true
+    },
+    {
+      "case": "Concurrent update preserves draft, reports conflict, rejects stale save and reloads latest on discard",
+      "passed": true
+    },
+    {
+      "case": "Reset stages defaults, restores visibility and retains permission ceilings",
+      "passed": true
+    },
+    {
+      "case": "Existing drag-and-drop ordering works in the full-page editor",
+      "passed": true
+    },
+    {
+      "case": "Unsaved browser-back navigation can be cancelled without losing the draft",
+      "passed": true
+    },
+    {
+      "case": "Responsive management layout at 320px",
+      "passed": true
+    },
+    {
+      "case": "Responsive management layout at 390px",
+      "passed": true
+    },
+    {
+      "case": "Responsive management layout at 768px",
+      "passed": true
+    },
+    {
+      "case": "Responsive management layout at 1024px",
+      "passed": true
+    },
+    {
+      "case": "Responsive management layout at 1440px",
+      "passed": true
+    },
+    {
+      "case": "No application console or page errors",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "writes": 6,
+  "scope": "Real application/router/editor with synthetic API responses; backend security tested separately."
+}

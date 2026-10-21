@@ -1,0 +1,30 @@
+{
+  "frontend_tests": {
+    "passed": 141,
+    "failed": 0
+  },
+  "settings_browser": {
+    "passed_groups": 22,
+    "page_or_application_console_errors": 0
+  },
+  "push_browser": {
+    "passed_groups": 14
+  },
+  "sidebar_editor_browser": {
+    "passed": true
+  },
+  "build": {
+    "passed": true
+  },
+  "typecheck": {
+    "passed": false,
+    "before": 125,
+    "after": 121,
+    "new": 0
+  },
+  "lint": {
+    "available": false,
+    "reason": "No lint script in frontend/package.json"
+  },
+  "production_deployed": false
+}

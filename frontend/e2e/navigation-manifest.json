@@ -1,0 +1,406 @@
+[
+  {
+    "id": "dashboard",
+    "parentId": null,
+    "defaultLabel": "Dashboard",
+    "route": "/dashboard",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": true,
+    "sortOrder": 0
+  },
+  {
+    "id": "tasks",
+    "parentId": null,
+    "defaultLabel": "All Tasks",
+    "route": "/tasks",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 1
+  },
+  {
+    "id": "chat",
+    "parentId": null,
+    "defaultLabel": "Chat",
+    "route": "/chat",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 2
+  },
+  {
+    "id": "authorized-apps",
+    "parentId": "settings.oauth",
+    "defaultLabel": "Authorized apps",
+    "route": "/settings/oauth/authorized-apps",
+    "navigationLocation": "settings-tab",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 3
+  },
+  {
+    "id": "projects",
+    "parentId": null,
+    "defaultLabel": "Projects",
+    "route": "/projects",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 4
+  },
+  {
+    "id": "kanban",
+    "parentId": null,
+    "defaultLabel": "Kanban Board",
+    "route": "/kanban",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 5
+  },
+  {
+    "id": "tickets",
+    "parentId": null,
+    "defaultLabel": "Ticket",
+    "route": "/tickets",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 6
+  },
+  {
+    "id": "management",
+    "parentId": null,
+    "defaultLabel": "Management",
+    "route": "/management",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "manager",
+      "admin",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 7
+  },
+  {
+    "id": "users",
+    "parentId": "management",
+    "defaultLabel": "Users Management",
+    "route": "/management/users",
+    "navigationLocation": "management-tab",
+    "permittedRoles": [
+      "manager",
+      "admin",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 8
+  },
+  {
+    "id": "clients",
+    "parentId": "management",
+    "defaultLabel": "Clients",
+    "route": "/management/clients",
+    "navigationLocation": "management-tab",
+    "permittedRoles": [
+      "manager",
+      "admin",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 9
+  },
+  {
+    "id": "gantt",
+    "parentId": null,
+    "defaultLabel": "Gantt Chart",
+    "route": "/gantt",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "manager",
+      "admin",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 10
+  },
+  {
+    "id": "reports",
+    "parentId": null,
+    "defaultLabel": "Reports",
+    "route": "/reports",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 11
+  },
+  {
+    "id": "achievements",
+    "parentId": null,
+    "defaultLabel": "Achievements",
+    "route": "/achievements",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 12
+  },
+  {
+    "id": "settings",
+    "parentId": null,
+    "defaultLabel": "Settings",
+    "route": "/settings",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": true,
+    "sortOrder": 13
+  },
+  {
+    "id": "calendar",
+    "parentId": null,
+    "defaultLabel": "Calendar",
+    "route": "/calendar",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 14
+  },
+  {
+    "id": "tool-library",
+    "parentId": null,
+    "defaultLabel": "Tool Library",
+    "route": "/tool-library",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 15
+  },
+  {
+    "id": "levels",
+    "parentId": "achievements",
+    "defaultLabel": "Levels",
+    "route": "/levels",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 16
+  },
+  {
+    "id": "rewards",
+    "parentId": "achievements",
+    "defaultLabel": "Rewards",
+    "route": "/admin/rewards",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "manager",
+      "admin",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 17
+  },
+  {
+    "id": "points-table",
+    "parentId": "achievements",
+    "defaultLabel": "Points Table",
+    "route": "/admin/points-table",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 18
+  },
+  {
+    "id": "template-editor",
+    "parentId": "achievements",
+    "defaultLabel": "Template Editor",
+    "route": "/template-editor",
+    "navigationLocation": "sidebar",
+    "permittedRoles": [
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 19
+  },
+  {
+    "id": "settings.profile",
+    "parentId": "settings",
+    "defaultLabel": "General / Profile",
+    "route": "/settings/profile",
+    "navigationLocation": "settings-tab",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": true,
+    "sortOrder": 20
+  },
+  {
+    "id": "settings.support",
+    "parentId": "settings",
+    "defaultLabel": "Support",
+    "route": "/settings/support",
+    "navigationLocation": "settings-tab",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 21
+  },
+  {
+    "id": "settings.api",
+    "parentId": "settings",
+    "defaultLabel": "API",
+    "route": "/settings/api",
+    "navigationLocation": "settings-tab",
+    "permittedRoles": [
+      "admin",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 22
+  },
+  {
+    "id": "settings.oauth",
+    "parentId": "settings",
+    "defaultLabel": "OAuth",
+    "route": "/settings/oauth",
+    "navigationLocation": "settings-tab",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 23
+  },
+  {
+    "id": "settings.logs",
+    "parentId": "settings",
+    "defaultLabel": "Logs",
+    "route": "/settings/logs",
+    "navigationLocation": "settings-tab",
+    "permittedRoles": [
+      "manager",
+      "admin",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 24
+  },
+  {
+    "id": "settings.media-library",
+    "parentId": "settings",
+    "defaultLabel": "Media Library",
+    "route": "/settings/media-library",
+    "navigationLocation": "settings-tab",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 25
+  },
+  {
+    "id": "settings.sidebar-management",
+    "parentId": "settings",
+    "defaultLabel": "Sidebar Management",
+    "route": "/settings/sidebar-management",
+    "navigationLocation": "settings-tab",
+    "permittedRoles": [
+      "admin",
+      "owner"
+    ],
+    "isSystemProtected": true,
+    "sortOrder": 26
+  },
+  {
+    "id": "settings.push",
+    "parentId": "settings",
+    "defaultLabel": "Push notifications",
+    "route": "/settings/push",
+    "navigationLocation": "settings-tab",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": false,
+    "sortOrder": 27
+  }
+]

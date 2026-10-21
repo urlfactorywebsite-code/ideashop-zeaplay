@@ -32,6 +32,8 @@ services:
       VEE_JWT_REFRESH_SECRET_KEY: change_me_refresh
       VEE_ENVIRONMENT: development
       VEE_CORS_ALLOW_ORIGINS: '["http://localhost:6300","http://127.0.0.1:6300","http://localhost:5173","http://127.0.0.1:5173","http://localhost:3000","http://127.0.0.1:3000"]'
+    volumes:
+      - avatar_media_data:/app/media/.avatars
     ports:
       - "6311:6311"
     depends_on:
@@ -72,3 +74,4 @@ services:
 
 volumes:
   postgres_data:
+  avatar_media_data:

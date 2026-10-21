@@ -1,0 +1,44 @@
+1447	UP045  	[*] non-pep604-annotation-optional
+ 858	B008   	[ ] function-call-in-default-argument
+ 360	UP006  	[*] non-pep585-annotation
+ 122	UP037  	[*] quoted-annotation
+ 101	I001   	[*] unsorted-imports
+  92	DTZ003 	[ ] call-datetime-utcnow
+  71	BLE001 	[ ] blind-except
+  48	UP035  	[-] deprecated-import
+  34	F401   	[-] unused-import
+  14	SIM102 	[ ] collapsible-if
+  14	S110   	[ ] try-except-pass
+  14	C408   	[ ] unnecessary-collection-call
+   6	F841   	[ ] unused-variable
+   4	DTZ001 	[ ] call-datetime-without-tzinfo
+   3	TRY002 	[ ] raise-vanilla-class
+   3	RUF046 	[ ] unnecessary-cast-to-int
+   3	PIE790 	[*] unnecessary-placeholder
+   2	RUF010 	[*] explicit-f-string-type-conversion
+   2	SIM114 	[*] if-with-same-arms
+   2	PLE0704	[ ] misplaced-bare-raise
+   2	SIM103 	[ ] needless-bool
+   2	F811   	[ ] redefined-while-unused
+   2	B010   	[*] set-attr-with-constant
+   2	F821   	[ ] undefined-name
+   2	C401   	[ ] unnecessary-generator-set
+   2	RET501 	[*] unnecessary-return-none
+   2	RUF022 	[*] unsorted-dunder-all
+   2	RUF100 	[*] unused-noqa
+   2	PLR1711	[*] useless-return
+   1	FURB132	[ ] check-and-remove-from-set
+   1	RUF013 	[ ] implicit-optional
+   1	SIM118 	[ ] in-dict-keys
+   1	PLC0208	[*] iteration-over-set
+   1	PIE810 	[ ] multiple-starts-ends-with
+   1	SIM117 	[ ] multiple-with-statements
+   1	UP007  	[ ] non-pep604-annotation-union
+   1	SIM115 	[ ] open-file-with-context-handler
+   1	LOG015 	[ ] root-logger-call
+   1	FURB192	[ ] sorted-min-max
+   1	UP041  	[*] timeout-error-alias
+   1	S112   	[ ] try-except-continue
+   1	TRY004 	[ ] type-check-without-type-error
+Found 3231 errors.
+[*] 2101 fixable with the `--fix` option (32 hidden fixes can be enabled with the `--unsafe-fixes` option).

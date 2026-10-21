@@ -1,3 +1,5 @@
+import type { AvatarCropMetadata } from '../types';
+import { profileGeneration, publishAvatarAsset, publishProfile } from './profileEvents';
 import type { SmtpProfile, SmtpProfileInput, SmtpHealth, SmtpJob, SmtpAttempt } from '../types/smtp';
 import type { WorkSnapshot } from '../types/activeWork';
 import { getApiBaseUrl } from './endpoints';
@@ -422,6 +424,7 @@ type ApiUser = {
   avatar_frame?: string | null;
   avatar_asset?: ApiAvatarAsset | null;
   avatar_url?: string | null;
+  profile_bio?: string | null;
   profile_image_key?: string | null;
   profile_image_url?: string | null;
   points: number;
@@ -1470,6 +1473,7 @@ type ApiSeason = {
 };
 
 type ApiNotification = {
+  actor_id?: string | null;
   id: string;
   tenant_id?: string | null;
   user_id: string;
@@ -1979,7 +1983,7 @@ function mapAvatarAsset(asset?: ApiAvatarAsset | null): AvatarAsset | null {
 
 function mapUser(user: ApiUser): User {
   const avatarAsset = mapAvatarAsset(user.avatar_asset);
-  return {
+  return publishProfile({
     id: user.id,
     tenantId: user.tenant_id ?? null,
     name: user.name,
@@ -2004,12 +2008,13 @@ function mapUser(user: ApiUser): User {
     location: user.location ?? undefined,
     timezone: user.timezone ?? undefined,
     notes: user.notes ?? undefined,
+    profileBio: user.profile_bio ?? undefined,
     skills: user.skills ?? undefined,
     projects: user.projects ?? undefined,
     avatarAssetId: user.avatar_asset_id ?? null,
     avatarFrame: user.avatar_frame ?? null,
     avatarAsset,
-    avatarUrl: user.profile_image_url ?? user.avatar_url ?? avatarAsset?.url ?? null,
+    avatarUrl: user.avatar_url !== undefined ? user.avatar_url : user.profile_image_url ?? avatarAsset?.url ?? null,
     profileImageKey: user.profile_image_key ?? null,
     profileImageUrl: user.profile_image_url ?? null,
     status: user.status as UserStatus,
@@ -2023,7 +2028,7 @@ function mapUser(user: ApiUser): User {
     claimedRewardIds: user.claimed_reward_ids ?? [],
     createdAt: user.created_at,
     updatedAt: user.updated_at,
-  };
+  });
 }
 
 function mapClient(client: ApiClient): Client {
@@ -3089,6 +3094,7 @@ function mapAuditRetention(config: ApiAuditRetentionConfig): AuditRetentionConfi
 function mapNotification(notification: ApiNotification): Notification {
   return {
     id: notification.id,
+    actorId: notification.actor_id ?? null,
     tenantId: notification.tenant_id ?? null,
     userId: notification.user_id,
     dedupeKey: notification.dedupe_key ?? null,
@@ -3593,8 +3599,10 @@ const api = {
   },
 
     async getCurrentUser(): Promise<User | null> {
+      const generation = profileGeneration();
       try {
         const { data } = await http.get<ApiUser>('/auth/me', { timeout: 8000 });
+        if (generation !== profileGeneration()) return null;
         return mapUser(data);
       } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -3919,7 +3927,18 @@ const api = {
     }
   },
 
+  async getUserProfile(userId: string): Promise<User> {
+    const generation = profileGeneration();
+    try {
+      const { data } = await http.get<ApiUser>(`/users/${encodeURIComponent(userId)}`);
+      if (generation !== profileGeneration()) throw new Error('Profile session ended');
+      return mapUser(data);
+    }
+    catch (error) { mapAxiosError(error); }
+  },
+
   async getUsers(): Promise<User[]> {
+    const generation = profileGeneration();
     try {
       const cacheKey = 'users';
       const cached = getCached<User[]>(cacheKey);
@@ -3927,6 +3946,7 @@ const api = {
         return cached;
       }
       const { data } = await http.get<ApiUser[]>('/users');
+      if (generation !== profileGeneration()) throw new Error('Profile session ended');
       const mapped = data.map(mapUser);
       if (mapped.length > 0) {
         setCached(cacheKey, mapped);
@@ -4295,6 +4315,9 @@ const api = {
   async updateUser(userId: string, updates: Partial<User>, _currentUserId: string): Promise<User> {
     try {
       const body: Record<string, unknown> = {};
+      if (updates.profileBio !== undefined) body.profile_bio = updates.profileBio || null;
+      if (updates.updatedAt !== undefined) body.expected_updated_at = updates.updatedAt;
+
       if (updates.name !== undefined) body.name = updates.name;
       if (updates.role !== undefined) body.role = updates.role;
       if (updates.status !== undefined) body.status = updates.status;
@@ -4337,6 +4360,7 @@ const api = {
         departmentCache = null;
       }
       invalidateCache('users');
+      if (updates.avatarAssetId !== undefined) invalidateCache('avatar-assets');
       return mapUser(data);
     } catch (error) {
       mapAxiosError(error);
@@ -4351,9 +4375,17 @@ const api = {
     }
   },
 
-  async updateCurrentUserProfile(userId: string, updates: Partial<Pick<User, 'name' | 'department' | 'employerId' | 'avatarAssetId' | 'avatarFrame'>>): Promise<User> {
+  async updateCurrentUserProfile(userId: string, updates: Partial<Pick<User, 'name' | 'department' | 'employerId' | 'avatarAssetId' | 'avatarFrame' | 'profileBio' | 'skills' | 'phone' | 'location' | 'timezone' | 'updatedAt'>>): Promise<User> {
     try {
       const body: Record<string, unknown> = {};
+      if (updates.skills !== undefined) body.skills = updates.skills;
+      if (updates.phone !== undefined) body.phone = updates.phone || null;
+      if (updates.location !== undefined) body.location = updates.location || null;
+      if (updates.timezone !== undefined) body.timezone = updates.timezone || null;
+
+      if (updates.profileBio !== undefined) body.profile_bio = updates.profileBio || null;
+      if (updates.updatedAt !== undefined) body.expected_updated_at = updates.updatedAt;
+
       if (updates.name !== undefined) body.name = updates.name;
       if (updates.department !== undefined) {
         body.department_id = await resolveDepartmentId(updates.department);
@@ -4366,24 +4398,29 @@ const api = {
         departmentCache = null;
       }
       invalidateCache('users');
+      if (updates.avatarAssetId !== undefined) invalidateCache('avatar-assets');
       return mapUser(data);
     } catch (error) {
       mapAxiosError(error);
     }
   },
 
-  async uploadUserAvatar(userId: string, dataUrl: string): Promise<User> {
+  async uploadUserAvatar(userId: string, dataUrl: string, crop?: AvatarCropMetadata, onProgress?: (progress: number) => void, expectedUpdatedAt?: string): Promise<User> {
     try {
-      const { data } = await http.post<ApiUser>(`/users/${userId}/avatar`, { data_url: dataUrl });
+      const { data } = await http.post<ApiUser>(`/users/${userId}/avatar`, { data_url: dataUrl, crop, expected_updated_at: expectedUpdatedAt }, { onUploadProgress: event => onProgress?.(Math.round((event.loaded / (event.total || event.loaded || 1)) * 100)) });
+      invalidateCache('users');
+      invalidateCache('avatar-assets');
       return mapUser(data);
     } catch (error) {
       mapAxiosError(error);
     }
   },
 
-  async uploadCurrentUserAvatar(dataUrl: string): Promise<User> {
+  async uploadCurrentUserAvatar(dataUrl: string, crop?: AvatarCropMetadata, onProgress?: (progress: number) => void, expectedUpdatedAt?: string): Promise<User> {
     try {
-      const { data } = await http.post<ApiUser>('/users/me/avatar', { data_url: dataUrl });
+      const { data } = await http.post<ApiUser>('/users/me/avatar', { data_url: dataUrl, crop, expected_updated_at: expectedUpdatedAt }, { onUploadProgress: event => onProgress?.(Math.round((event.loaded / (event.total || event.loaded || 1)) * 100)) });
+      invalidateCache('users');
+      invalidateCache('avatar-assets');
       return mapUser(data);
     } catch (error) {
       mapAxiosError(error);
@@ -4444,6 +4481,8 @@ const api = {
         throw new Error('Failed to map avatar asset');
       }
       invalidateCache('avatar-assets');
+      invalidateCache('users');
+      publishAvatarAsset(mapped);
       return mapped;
     } catch (error) {
       mapAxiosError(error);

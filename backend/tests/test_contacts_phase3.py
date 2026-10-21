@@ -12,10 +12,21 @@ from sqlalchemy.pool import StaticPool
 from backend.app.auth import hash_password
 from backend.app.config import get_settings
 from backend.app.database import get_db
-from backend.app.models import AuditEvent, AvatarAsset, Client, ClientContact, Contact, Department, RoleEnum, User, UserStatusEnum
+from backend.app.models import (
+    AuditEvent,
+    AvatarAsset,
+    Client,
+    ClientContact,
+    Contact,
+    Department,
+    NavigationPolicy,
+    RoleEnum,
+    User,
+    UserStatusEnum,
+)
 from backend.app.routers.clients import router as clients_router
-from backend.app.routers.contacts import client_contacts_router, router as contacts_router
-
+from backend.app.routers.contacts import client_contacts_router
+from backend.app.routers.contacts import router as contacts_router
 
 engine = create_engine(
     "sqlite://",
@@ -38,6 +49,7 @@ Client.__table__.create(bind=engine, checkfirst=True)
 Contact.__table__.create(bind=engine, checkfirst=True)
 ClientContact.__table__.create(bind=engine, checkfirst=True)
 AuditEvent.__table__.create(bind=engine, checkfirst=True)
+NavigationPolicy.__table__.create(bind=engine, checkfirst=True)
 
 
 def override_get_db():
@@ -139,7 +151,7 @@ def test_contact_create_link_primary_list_and_update():
     body = created.json()
     assert body["display_name"] == "Priya Shah"
     assert {item["company_name"] for item in body["clients"]} == {"Acme India", "Beta India", "Cobalt India"}
-    assert [item for item in body["clients"] if item["is_primary"]][0]["id"] == client_a
+    assert next(item for item in body["clients"] if item["is_primary"])["id"] == client_a
 
     client_contacts = client.get(f"/api/clients/{client_a}/contacts", headers=headers)
     assert client_contacts.status_code == 200, client_contacts.text

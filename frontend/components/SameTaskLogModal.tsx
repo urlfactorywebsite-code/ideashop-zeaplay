@@ -1,8 +1,8 @@
+import Avatar from './Avatar';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import api from '../services/mockApi';
 import { Task, User } from '../types';
 import { formatDate, timeAgo, formatTaskStatus } from '../utils';
-import { getUserAvatarUrl } from '../utils/userAvatar';
 import TaskStatusBadge from './ui/TaskStatusBadge';
 
 interface SameTaskLogModalProps {
@@ -63,21 +63,7 @@ const SameTaskLogModal: React.FC<SameTaskLogModalProps> = ({ isOpen, onClose, ta
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [tasks]);
 
-  const renderUserAvatar = (user?: User) => {
-    if (!user) {
-      return (
-        <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/40 text-xs uppercase text-white/70">
-          ??
-        </span>
-      );
-    }
-    const avatarUrl = getUserAvatarUrl(user);
-    return (
-      <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-black/40 text-xs font-semibold uppercase text-white/70">
-        {avatarUrl ? <img src={avatarUrl} alt={user.name} className="h-full w-full object-cover" /> : user.name.slice(0, 2)}
-      </span>
-    );
-  };
+  const renderUserAvatar = (user?: User) => <Avatar user={user} size={40} />;
 
   if (!isOpen) return null;
 

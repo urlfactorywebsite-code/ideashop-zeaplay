@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { SupportIcon, XMarkIcon } from './icons';
 import { User } from '../types';
+import { http } from '../services/mockApi';
 
 interface SupportFormModalProps {
   isOpen: boolean;
   onClose: () => void;
+  embedded?: boolean;
 }
 
-const WEBHOOK_URL = 'https://n8n.urlfactory.website/webhook/task-support';
 
 const categories = ['Bug', 'Feature Request', 'Access Issue', 'Other'];
 const priorities = ['Low', 'Medium', 'High', 'Critical'];
 
-const SupportFormModal: React.FC<SupportFormModalProps> = ({ isOpen, onClose }) => {
+const SupportFormModal: React.FC<SupportFormModalProps> = ({ isOpen, onClose, embedded = false }) => {
   const { user: currentUser } = useAuth();
 
   const [name, setName] = useState('');
@@ -102,17 +103,7 @@ const [selectedFile, setSelectedFile] = useState<File | null>(null);
         ...(currentUser && { user_id: currentUser.id }),
       };
 
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send request');
-      }
+      await http.post('/support/requests', payload);
 
       setSuccess('Your support request has been sent successfully.');
       setTimeout(() => {
@@ -136,8 +127,8 @@ const [selectedFile, setSelectedFile] = useState<File | null>(null);
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-      <div className="relative flex h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[32px] border border-white/15 bg-gradient-to-br from-slate-950/95 via-slate-900/95 to-slate-950/95 text-white shadow-[0_40px_80px_rgba(15,23,42,0.65)]">
+    <div className={embedded ? 'min-w-0' : 'fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4'}>
+      <div className={`relative flex w-full flex-col overflow-hidden rounded-[32px] border border-white/15 bg-gradient-to-br from-slate-950/95 via-slate-900/95 to-slate-950/95 text-white shadow-[0_40px_80px_rgba(15,23,42,0.65)] ${embedded ? 'min-h-0' : 'h-[90vh] max-w-2xl'}`}>
         <div className="pointer-events-none absolute -right-16 top-0 h-64 w-64 rounded-full bg-primary/25 blur-3xl" />
         <div className="pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full bg-emerald-500/20 blur-3xl" />
 

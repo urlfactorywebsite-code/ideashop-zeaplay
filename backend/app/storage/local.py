@@ -26,7 +26,7 @@ class LocalAdapter(StorageAdapter):
     def _full_path(self, relative_path: str) -> Path:
         normalized = self._normalize(relative_path)
         full = (self.root / normalized).resolve()
-        if not str(full).startswith(str(self.root)):
+        if not full.is_relative_to(self.root):
             raise ValueError("Attempted path traversal outside MEDIA_ROOT")
         return full
 
@@ -47,6 +47,12 @@ class LocalAdapter(StorageAdapter):
             full_path.unlink()
         except FileNotFoundError:
             return
+
+    def save_private(self, data: bytes, relative_path: str, *, content_type: str) -> StoredObject:
+        return self.save(data, relative_path, content_type=content_type)
+
+    def read(self, relative_path: str) -> bytes:
+        return self._full_path(relative_path).read_bytes()
 
     def get_public_url(self, relative_path: str) -> str:
         normalized = self._normalize(relative_path).lstrip("/")

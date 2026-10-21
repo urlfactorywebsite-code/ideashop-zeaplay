@@ -1,3 +1,4 @@
+import { clearProfileCache } from './profileEvents';
 const ACCESS_TOKEN_KEY = 'vee_access_token';
 const REFRESH_TOKEN_KEY = 'vee_refresh_token';
 let accessTokenMemory: string | null = null;
@@ -39,6 +40,7 @@ export function getRefreshToken(): string | null {
 }
 
 export function clearTokens(): void {
+  clearProfileCache();
   accessTokenMemory = refreshTokenMemory = null;
   ++generation;
   try {

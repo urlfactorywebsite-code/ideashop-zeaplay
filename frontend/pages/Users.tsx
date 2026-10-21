@@ -1,3 +1,7 @@
+import Avatar from '../components/Avatar';
+import EmployeeDetails from '../components/EmployeeDetails';
+import ProfileMediaEditor from '../components/ProfileMediaEditor';
+import SkillsEditor from '../components/SkillsEditor';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -87,7 +91,7 @@ const Users: React.FC = () => {
   const { debouncedSearchQuery } = useSearch();
   const { onlineUserIds, status: presenceStatus } = usePresence();
   const [activeSection, setActiveSection] = useState<'list' | 'org' | 'deactivated'>('list');
-  const canEditContacts = currentUser?.role === Role.OWNER;
+  const canEditContacts = currentUser?.role === Role.OWNER || currentUser?.role === Role.ADMIN;
 
   // Filter states
   const [employerIdFilter, setEmployerIdFilter] = useState('');
@@ -117,6 +121,15 @@ const Users: React.FC = () => {
   const [transferError, setTransferError] = useState<string | null>(null);
   const [transferSuccess, setTransferSuccess] = useState<string | null>(null);
   const [contactUser, setContactUser] = useState<User | null>(null);
+  const contactDialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!contactUser) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    contactDialogRef.current?.focus();
+    return () => { document.body.style.overflow = overflow; previous?.focus(); };
+  }, [contactUser?.id]);
   const [isContactEditing, setContactEditing] = useState(false);
   const [contactForm, setContactForm] = useState({
     name: '',
@@ -139,6 +152,7 @@ const Users: React.FC = () => {
     location: '',
     timezone: '',
     notes: '',
+    profileBio: '',
     skills: '',
     projects: '',
   });
@@ -326,50 +340,6 @@ const Users: React.FC = () => {
   }, [fetchData]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      const storedProfiles = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-      if (storedProfiles) {
-        setProfileMap(JSON.parse(storedProfiles));
-      }
-    } catch (error) {
-      console.warn('Failed to load user profiles', error);
-    }
-    try {
-      const storedManagers = window.localStorage.getItem(MANAGER_STORAGE_KEY);
-      if (storedManagers) {
-        setManagerMap(JSON.parse(storedManagers));
-      }
-    } catch (error) {
-      console.warn('Failed to load manager map', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileMap));
-    } catch (error) {
-      console.warn('Failed to persist user profiles', error);
-    }
-  }, [profileMap]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      window.localStorage.setItem(MANAGER_STORAGE_KEY, JSON.stringify(managerMap));
-    } catch (error) {
-      console.warn('Failed to persist manager map', error);
-    }
-  }, [managerMap]);
-
-  useEffect(() => {
     const userIds = new Set(users.map((user) => user.id));
     setManagerMap((prev) => {
       const next: Record<string, string | null> = {};
@@ -472,6 +442,7 @@ const Users: React.FC = () => {
       location: mergedProfile.location ?? '',
       timezone: mergedProfile.timezone ?? '',
       notes: mergedProfile.notes ?? '',
+      profileBio: contactUser.profileBio ?? '',
       skills: tagListToString(mergedProfile.skills),
       projects: tagListToString(mergedProfile.projects),
     });
@@ -703,7 +674,7 @@ const Users: React.FC = () => {
   const handleSaveContact = async () => {
     if (!contactUser || !currentUser) return;
     if (!canEditContacts) {
-      setContactError('Only the owner can edit user details.');
+      setContactError('Only administrators can edit user details.');
       return;
     }
 
@@ -767,6 +738,8 @@ const Users: React.FC = () => {
       location: contactForm.location.trim(),
       timezone: contactForm.timezone.trim(),
       notes: contactForm.notes.trim(),
+      profileBio: contactForm.profileBio.trim(),
+      updatedAt: contactUser.updatedAt,
       skills: profileUpdate.skills,
       projects: profileUpdate.projects,
     };
@@ -782,7 +755,7 @@ const Users: React.FC = () => {
       setContactEditing(false);
     } catch (error) {
       console.error('Failed to update user', error);
-      setContactError('Failed to update user.');
+      setContactError(error instanceof Error ? error.message : 'Failed to update user.');
     } finally {
       setContactLoading(false);
     }
@@ -1825,6 +1798,7 @@ const Users: React.FC = () => {
                 <input
                   type="text"
                   value={nameFilter}
+                  aria-label="Filter by name"
                   onChange={(e) => setNameFilter(e.target.value)}
                   placeholder="Search by name..."
                   className="px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600 focus:shadow-lg"
@@ -1834,14 +1808,15 @@ const Users: React.FC = () => {
             </div>
             <div className="flex flex-col group">
               <label className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 transition-colors group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400">
-                Employer ID
+                Employee ID
               </label>
               <div className="relative">
                 <input
                   type="text"
                   value={employerIdFilter}
+                  aria-label="Filter by employee ID"
                   onChange={(e) => setEmployerIdFilter(e.target.value)}
-                  placeholder="Search by Employer ID..."
+                  placeholder="Search by Employee ID..."
                   className="px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600 focus:shadow-lg"
                 />
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none" />
@@ -1854,6 +1829,7 @@ const Users: React.FC = () => {
               <div className="relative">
                 <select
                   value={roleFilter}
+                  aria-label="Filter by role"
                   onChange={(e) => setRoleFilter(e.target.value as Role | '')}
                   className="pl-4 pr-10 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600 focus:shadow-lg appearance-none"
                 >
@@ -1879,6 +1855,7 @@ const Users: React.FC = () => {
               <div className="relative">
                 <select
                   value={departmentFilter}
+                  aria-label="Filter by department"
                   onChange={(e) => setDepartmentFilter(e.target.value)}
                   className="pl-4 pr-10 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600 focus:shadow-lg appearance-none"
                 >
@@ -1913,11 +1890,11 @@ const Users: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-visible">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
               <thead className="bg-gray-50 dark:bg-gray-800/60">
                 <tr>
-                  {['Name', 'Employer ID', 'Department', 'Role', 'Points', 'Progress', 'Status', 'Last Active', 'Actions'].map(
+                  {['Name', 'Employee ID', 'Department', 'Role', 'Points', 'Progress', 'Status', 'Last Active', 'Actions'].map(
                     (col) => (
                       <th
                         key={col}
@@ -1947,15 +1924,7 @@ const Users: React.FC = () => {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 overflow-hidden rounded-full border border-gray-300 dark:border-gray-600 flex-shrink-0">
-                            {avatarUrl ? (
-                              <img src={avatarUrl} alt={user.name} className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-gray-200 dark:bg-gray-700 text-xs font-semibold uppercase text-gray-700 dark:text-gray-300">
-                                {user.name.slice(0, 2)}
-                              </div>
-                            )}
-                          </div>
+                          <Avatar user={user} size={36} />
                           <div>
                             <div className="flex items-center gap-2">
                               <span
@@ -2042,6 +2011,7 @@ const Users: React.FC = () => {
                             }}
                             className="p-1.5 text-gray-500 hover:text-gray-200 dark:text-gray-400 hover:bg-white/5 dark:hover:bg-white/5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                             aria-haspopup="menu"
+                            aria-label={`Actions for ${user.name}`}
                             aria-expanded={openMenuId === user.id}
                           >
                             <EllipsisVerticalIcon className="h-5 w-5" />
@@ -2072,12 +2042,22 @@ const Users: React.FC = () => {
 
       {contactUser &&
         createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
+          <div ref={contactDialogRef} role="dialog" aria-modal="true" aria-labelledby="employee-details-title" tabIndex={-1}
+            onKeyDown={event => {
+              if (!event.currentTarget.contains(event.target as Node)) return;
+              if (event.key === 'Escape') closeContactModal();
+              if (event.key === 'Tab') {
+                const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary')).filter(item => item.getClientRects().length > 0);
+                const first = controls[0], last = controls[controls.length - 1];
+                if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) { event.preventDefault(); last?.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+              }
+            }} className="fixed inset-0 z-[9000] flex items-center justify-center bg-black/70 px-4 py-6">
             <div className="w-full max-w-3xl lg:max-w-4xl max-h-[85vh] overflow-y-auto rounded-2xl border border-white/10 bg-slate-900/95 p-4 sm:p-6 shadow-[0_30px_80px_rgba(15,23,42,0.6)]">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-white/60">User details</p>
-                  <h3 className="mt-2 text-2xl font-semibold text-white">{contactUser.name}</h3>
+                  <h3 id="employee-details-title" className="mt-2 text-2xl font-semibold text-white">{contactUser.name}</h3>
                   <p className="text-sm text-white/60">{contactUser.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -2117,6 +2097,11 @@ const Users: React.FC = () => {
 
               {isContactEditing ? (
                 <>
+                  <div className="mt-5 space-y-4">
+                    <ProfileMediaEditor user={contactUser} self={currentUser?.id === contactUser.id} onSaved={updated => { setContactUser(updated); setUsers(items => items.map(item => item.id === updated.id ? updated : item)); }} />
+                    <label className="block text-sm text-slate-300">Professional bio<textarea maxLength={500} rows={3} value={contactForm.profileBio} onChange={event => setContactForm(previous => ({ ...previous, profileBio: event.target.value }))} className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-white" /></label>
+                    <SkillsEditor value={parseTagInput(contactForm.skills)} suggestions={users.flatMap(item => item.skills || [])} onChange={skills => setContactForm(previous => ({ ...previous, skills: skills.join(', ') }))} />
+                  </div>
                   <div className="mt-6 grid gap-5 md:grid-cols-2">
                     <div className="space-y-4">
                       <div className="rounded-xl border border-white/10 bg-slate-950/70 p-4">
@@ -2142,7 +2127,7 @@ const Users: React.FC = () => {
                             />
                           </label>
                           <label className="block text-xs uppercase tracking-[0.2em] text-white/50">
-                            Employer ID
+                            Employee ID
                             <input
                               type="text"
                               value={contactForm.employerId}
@@ -2363,16 +2348,7 @@ const Users: React.FC = () => {
                       <div className="rounded-xl border border-white/10 bg-slate-950/70 p-4">
                         <p className="text-xs uppercase tracking-[0.2em] text-white/60">Skills & projects</p>
                         <div className="mt-3 space-y-3">
-                          <label className="block text-xs uppercase tracking-[0.2em] text-white/50">
-                            Skills (comma separated)
-                            <input
-                              type="text"
-                              value={contactForm.skills}
-                              onChange={(event) => setContactForm((prev) => ({ ...prev, skills: event.target.value }))}
-                              disabled={!isContactEditing}
-                              className="mt-1 w-full rounded-lg border border-white/10 bg-slate-900/80 px-3 py-2 text-sm text-white disabled:opacity-60"
-                            />
-                          </label>
+
                           <label className="block text-xs uppercase tracking-[0.2em] text-white/50">
                             Projects (comma separated)
                             <input
@@ -2430,165 +2406,7 @@ const Users: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <div className="mt-6 grid gap-5 md:grid-cols-2">
-                    <div className="space-y-4">
-                      <div className="rounded-xl border border-white/10 bg-slate-950/70 p-4">
-                        <p className="text-xs uppercase tracking-[0.2em] text-white/60">Contact</p>
-                        <div className="mt-3 space-y-2 text-sm text-white/80">
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Name</span>
-                            <span className="text-right">{contactForm.name || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Email</span>
-                            <span className="text-right">{contactUser.email}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Employer ID</span>
-                            <span className="text-right">{contactForm.employerId || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Title</span>
-                            <span className="text-right">{contactForm.title || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Phone</span>
-                            <span className="text-right">{contactForm.phone || '-'}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-white/10 bg-slate-950/70 p-4">
-                        <p className="text-xs uppercase tracking-[0.2em] text-white/60">Work</p>
-                        <div className="mt-3 space-y-2 text-sm text-white/80">
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Role</span>
-                            <span className="text-right">
-                              {contactForm.role
-                                ? contactForm.role.charAt(0).toUpperCase() + contactForm.role.slice(1).toLowerCase()
-                                : '-'}
-                            </span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Department</span>
-                            <span className="text-right">{contactForm.department || 'Unassigned'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Reports to</span>
-                            <span className="text-right">{contactManagerName}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Manager email</span>
-                            <span className="text-right">{contactForm.managerEmail || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Location</span>
-                            <span className="text-right">{contactForm.location || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Timezone</span>
-                            <span className="text-right">{contactForm.timezone || '-'}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-white/10 bg-slate-950/70 p-4">
-                        <p className="text-xs uppercase tracking-[0.2em] text-white/60">Shift</p>
-                        <div className="mt-3 space-y-2 text-sm text-white/80">
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Shift name</span>
-                            <span className="text-right">{contactForm.shiftName || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Shift start</span>
-                            <span className="text-right">{contactForm.shiftStart || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Shift end</span>
-                            <span className="text-right">{contactForm.shiftEnd || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Morning break start</span>
-                            <span className="text-right">{contactForm.morningBreakStart || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Morning break end</span>
-                            <span className="text-right">{contactForm.morningBreakEnd || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Lunch break start</span>
-                            <span className="text-right">{contactForm.lunchBreakStart || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Lunch break end</span>
-                            <span className="text-right">{contactForm.lunchBreakEnd || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Evening break start</span>
-                            <span className="text-right">{contactForm.eveningBreakStart || '-'}</span>
-                          </div>
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs uppercase tracking-[0.2em] text-white/50">Evening break end</span>
-                            <span className="text-right">{contactForm.eveningBreakEnd || '-'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="rounded-xl border border-white/10 bg-slate-950/70 p-4">
-                        <p className="text-xs uppercase tracking-[0.2em] text-white/60">Skills & projects</p>
-                        <div className="mt-3 space-y-4">
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-white/50">Skills</p>
-                            {contactSkills.length > 0 ? (
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {contactSkills.map((skill, index) => (
-                                  <span
-                                    key={`${skill}-${index}`}
-                                    className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100"
-                                  >
-                                    {skill}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="mt-2 text-sm text-white/50">No skills listed.</p>
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-white/50">Projects</p>
-                            {contactProjects.length > 0 ? (
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {contactProjects.map((project, index) => (
-                                  <span
-                                    key={`${project}-${index}`}
-                                    className="rounded-full border border-sky-400/30 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-sky-100"
-                                  >
-                                    {project}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="mt-2 text-sm text-white/50">No projects listed.</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-white/10 bg-slate-950/70 p-4">
-                        <p className="text-xs uppercase tracking-[0.2em] text-white/60">Notes</p>
-                        <p className="mt-3 text-sm text-white/70">
-                          {contactForm.notes.trim() ? contactForm.notes : 'No notes added yet.'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-white/50">
-                    <span>{canEditContacts ? 'Editable by owner' : 'Read only'}</span>
-                    <span>{canEditContacts ? 'Select edit to update details.' : 'Contact the owner to edit.'}</span>
-                  </div>
+                  <EmployeeDetails user={contactUser} managerName={contactManagerName} />
                 </>
               )}
             </div>
@@ -2607,7 +2425,7 @@ const Users: React.FC = () => {
               zIndex: 9999,
               transformOrigin: menuPosition.flip ? 'bottom right' : 'top right',
             }}
-            className={`w-52 rounded-xl shadow-2xl ring-1 ring-white/10 border border-white/10 
+            className={`w-52 rounded-xl shadow-2xl ring-1 ring-white/10 border border-white/10
               bg-neutral-900/90 backdrop-blur-md overflow-hidden
               animate-[fadeSlide_${menuPosition.flip ? 'up' : 'down'}_0.18s_ease-out_forwards]`}
             role="menu"
@@ -2676,7 +2494,7 @@ const Users: React.FC = () => {
                   if (u) handleToggleStatus(u);
                   closeMenu();
                 }}
-                className="w-full group flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/5 focus:bg-white/5 focus:outline-none 
+                className="w-full group flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/5 focus:bg-white/5 focus:outline-none
                   text-gray-200"
                 role="menuitem"
               >
@@ -2748,6 +2566,7 @@ const Users: React.FC = () => {
             </span>
             <select
               value={pageSize}
+              aria-label="Users per page"
               onChange={(e) => setPageSize(Number(e.target.value))}
               className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >

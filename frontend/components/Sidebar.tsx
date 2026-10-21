@@ -1,21 +1,14 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 
 import { NavLink, NavLinkProps } from 'react-router-dom';
-import { Menu, PanelLeftClose, Pencil } from 'lucide-react';
+import { Info, Menu, PanelLeftClose, Settings as SettingsIcon, UsersRound } from 'lucide-react';
 import { BuildingOffice2Icon } from '@heroicons/react/24/outline';
 
-import { useAuth, useTheme } from '../hooks/useAuth';
-import { getUserAvatarUrl } from '../utils/userAvatar';
+import { useTheme } from '../hooks/useAuth';
 
-import { Role } from '../types';
-import SidebarEditor from './SidebarEditor';
-import { applySidebarPreferences, emptySidebarPreferences, parseSidebarPreferences, sidebarStorageKey, type SidebarPreferences } from '../utils/sidebarPreferences';
+import { useNavigation } from '../hooks/useNavigation';
 
 import {
-    ChartPieIcon,
-    CodeBracketSquareIcon,
-    UserCircleIcon,
-    ChatBubbleLeftEllipsisIcon,
     ChatBubbleOvalLeftEllipsisIcon,
 } from './icons';
 
@@ -34,7 +27,6 @@ type SidebarLink = {
 };
 
 interface SidebarProps {
-  onSupportClick: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onVersionClick: () => void;
@@ -78,40 +70,12 @@ const linkKey = (link: SidebarLink) => {
 
 
 
-const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggleCollapse, onVersionClick, versionLabel, hasUnreadChat = false }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse, onVersionClick, versionLabel, hasUnreadChat = false }) => {
 
-    const { user } = useAuth();
     const { theme, setTheme } = useTheme();
     const [resolvedTheme, setResolvedTheme] = useState<ThemeKey>('light');
-    const [isDropupOpen, setDropupOpen] = useState(false);
     const displayVersionLabel = versionLabel ?? 'Zea.Play V6.0.1';
-    const profileAvatar = getUserAvatarUrl(user);
-    const dropupRef = useRef<HTMLDivElement | null>(null);
-    const isOwner = user?.role === Role.OWNER;
-    const preferenceKey = isOwner && user ? sidebarStorageKey(user.tenantId, user.id) : null;
-    const [savedSidebar, setSavedSidebar] = useState<{ key: string | null; value: SidebarPreferences }>({ key: null, value: emptySidebarPreferences() });
-    const [unlock, setUnlock] = useState({ key: preferenceKey, clicks: 0 });
-    const [editorKey, setEditorKey] = useState<string | null>(null);
-    const canEdit = isOwner && unlock.key === preferenceKey && unlock.clicks >= 5;
-
-    useEffect(() => {
-        const read = () => {
-            let value = emptySidebarPreferences();
-            try { if (preferenceKey) value = parseSidebarPreferences(localStorage.getItem(preferenceKey)); } catch { /* Private browsers can disable storage. */ }
-            setSavedSidebar({ key: preferenceKey, value });
-        };
-        read();
-        const sync = (event: StorageEvent) => { if (event.key === preferenceKey || event.key === null) read(); };
-        window.addEventListener('storage', sync);
-        return () => window.removeEventListener('storage', sync);
-    }, [preferenceKey]);
-
-    const handleMoreClick = () => {
-        setDropupOpen(previous => !previous);
-        if (isOwner) setUnlock(previous => ({ key: preferenceKey, clicks: Math.min(5, (previous.key === preferenceKey ? previous.clicks : 0) + 1) }));
-    };
-
-
+    const navigation = useNavigation();
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -134,20 +98,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
     };
     const themeLabel =
         activeTheme === 'dark' ? 'Dark Mode' : activeTheme === 'light' ? 'Light Mode' : 'Colorful Mode';
-
-    useEffect(() => {
-        if (!isDropupOpen) return;
-        const handleClickOutside = (event: MouseEvent) => {
-            if (!dropupRef.current || dropupRef.current.contains(event.target as Node)) {
-                return;
-            }
-            setDropupOpen(false);
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isDropupOpen]);
-
-
 
     const commonLinks: SidebarLink[] = [
         {
@@ -180,7 +130,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
             label: 'Chat',
             showUnreadDot: hasUnreadChat,
         },
-        { to: '/oauth/applications', icon: <CodeBracketSquareIcon className="h-6 w-6" />, label: 'Authorized apps' },
         {
             to: '/projects',
             icon: (
@@ -210,40 +159,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
             ),
             label: 'Ticket',
         },
-        {
-            to: '/media',
-            icon: (
-                <img
-                    src="https://res.cloudinary.com/dqhcbck76/image/upload/v1770241422/Media_Library_em2ky8.png"
-                    alt="Media Library"
-                    className="h-6 w-6 object-contain"
-                />
-            ),
-            label: 'Media Library',
-        },
+
     ];
 
 
 
     const adminLinks: SidebarLink[] = [
-        {
-            to: '/clients',
-            icon: (
-                <BuildingOffice2Icon className="h-6 w-6" />
-            ),
-            label: 'Clients',
-        },
-        {
-            to: '/admin/users',
-            icon: (
-                <img
-                    src="https://res.cloudinary.com/dqhcbck76/image/upload/v1770241423/Users_b58wty.png"
-                    alt="Users"
-                    className="h-6 w-6 object-contain"
-                />
-            ),
-            label: 'Users',
-        },
+        { to: '/management', label: 'Management', icon: <UsersRound className="h-6 w-6" aria-hidden="true" /> },
         {
             to: '/gantt',
             icon: (
@@ -266,17 +188,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
             ),
             label: 'Reports',
         },
-        {
-            to: '/logs',
-            icon: (
-                <img
-                    src="https://res.cloudinary.com/dqhcbck76/image/upload/v1770623653/log_cbtgmr.png"
-                    alt="Logs"
-                    className="h-6 w-6 object-contain"
-                />
-            ),
-            label: 'Logs',
-        },
+
     ];
 
 
@@ -287,18 +199,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
 
 
 
-        if (user?.role === Role.MANAGER || user?.role === Role.ADMIN || user?.role === Role.OWNER) {
-
-            links = [...links, ...adminLinks];
-
-        }
-
-        if (user?.role === Role.USER) {
-            const reportsLink = adminLinks.find(link => link.to === '/reports');
-            if (reportsLink) links.push(reportsLink);
-        }
-
-
+        links = [...links, ...adminLinks];
 
         links.push({
             to: '/achievements',
@@ -312,23 +213,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
             label: 'Achievements',
         });
 
-        if (user?.role === Role.OWNER) {
-            links.push({
-                to: '/api/overview',
-                icon: (
-                    <img
-                        src="https://res.cloudinary.com/dqhcbck76/image/upload/v1770241421/api_bhcggn.png"
-                        alt="API"
-                        className="h-6 w-6 object-contain"
-                    />
-                ),
-                label: 'API',
-            });
-        }
-        if (user?.role === Role.ADMIN) {
-            links.push({ to: '/api/oauth-apps', label: 'OAuth', icon: <CodeBracketSquareIcon className="h-6 w-6" /> });
-            links.push({ to: '/api/smtp', label: 'SMTP', icon: <span aria-hidden="true">✉</span> });
-        }
+        links.push({ to: '/settings', label: 'Settings', icon: <SettingsIcon className="h-6 w-6" aria-hidden="true" /> });
         const seen = new Set<string>();
 
         return links.filter((link) => {
@@ -351,9 +236,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
 
 
 
-    const defaultLinks = getNavLinks();
-    const navLinks = applySidebarPreferences(defaultLinks, linkKey,
-        isOwner && savedSidebar.key === preferenceKey ? savedSidebar.value : emptySidebarPreferences());
+    const navLinks = navigation.decorate(getNavLinks());
 
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
         `sidebar-link flex items-center ${isCollapsed ? 'justify-center px-2' : 'space-x-3 px-4'} py-3 rounded-lg transition-all duration-300 ease-in-out ${
@@ -430,105 +313,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onSupportClick, isCollapsed, onToggle
                 ))}
             </nav>
 
-            {canEdit && isCollapsed && <div className="flex justify-center pb-2">
-                <button type="button" aria-label="Edit sidebar" title="Edit sidebar" onClick={() => { setDropupOpen(false); setEditorKey(preferenceKey); }}
-                    className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-blue-400">
-                    <Pencil className="h-4 w-4" aria-hidden="true" />
+            <footer className={`mt-auto flex items-center gap-2 border-t border-border-color px-3 py-3 text-text-secondary ${isCollapsed ? 'flex-col' : ''}`}>
+                {!isCollapsed && <span className="min-w-0 flex-1 text-xs">&copy; {displayVersionLabel}</span>}
+                <button type="button" aria-label="Open release notes" title="Release notes" onClick={onVersionClick}
+                    className="rounded-lg p-2 transition hover:bg-surface hover:text-text-primary focus-visible:ring-2 focus-visible:ring-primary">
+                    <Info className="h-4 w-4" aria-hidden="true" />
                 </button>
-            </div>}
-            {canEdit && preferenceKey && editorKey === preferenceKey && <SidebarEditor key={preferenceKey}
-                items={navLinks.map(link => ({ id: linkKey(link), label: link.label,
-                    originalLabel: defaultLinks.find(original => linkKey(original) === linkKey(link))!.label,
-                    defaultIndex: defaultLinks.findIndex(original => linkKey(original) === linkKey(link)) }))}
-                onClose={() => setEditorKey(null)}
-                onSave={value => {
-                    if (!isOwner || !preferenceKey) return;
-                    localStorage.setItem(preferenceKey, JSON.stringify(value));
-                    setSavedSidebar({ key: preferenceKey, value });
-                    setEditorKey(null);
-                }} />}
-
-            {!isCollapsed && (
-            <div className="relative mt-auto px-4 py-3 border-t border-gray-200 dark:border-gray-900 text-sm" ref={dropupRef}>
-                {isDropupOpen && (
-                    <div className="absolute left-0 bottom-12 z-20 w-56 overflow-hidden rounded-2xl border border-sky-300/40 bg-slate-950/95 text-slate-100 shadow-[0_18px_40px_rgba(2,6,23,0.6)]">
-                        <NavLink
-                            to="/settings"
-                            className="flex items-center gap-3 px-4 py-3 text-sm font-semibold transition hover:bg-white/10"
-                            onClick={() => setDropupOpen(false)}
-                        >
-                            {profileAvatar ? (
-                                <img
-                                    src={profileAvatar}
-                                    alt={user?.name ? `${user.name} profile` : 'Profile'}
-                                    className="h-7 w-7 rounded-full object-cover"
-                                />
-                            ) : (
-                                <img
-                                    src="https://res.cloudinary.com/dqhcbck76/image/upload/v1770343495/avatar-design_p5updr.png"
-                                    alt="Profile"
-                                    className="h-6 w-6 object-contain"
-                                />
-                            )}
-                            <span>Profile</span>
-                        </NavLink>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                onSupportClick();
-                                setDropupOpen(false);
-                            }}
-                            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold transition hover:bg-white/10"
-                        >
-                            <img
-                                src="https://res.cloudinary.com/dqhcbck76/image/upload/v1770241422/customer-service_cra3yp.png"
-                                alt="Support"
-                                className="h-6 w-6 object-contain"
-                            />
-                            <span>Support</span>
-                        </button>
-                        {user?.role === Role.OWNER && (
-                            <NavLink
-                                to="/master-control"
-                                className="flex items-center gap-3 px-4 py-3 text-sm font-semibold transition hover:bg-white/10"
-                                onClick={() => setDropupOpen(false)}
-                            >
-                                <img
-                                    src="https://res.cloudinary.com/dqhcbck76/image/upload/v1770241421/api_bhcggn.png"
-                                    alt="Master Control"
-                                    className="h-6 w-6 object-contain"
-                                />
-                                <span>Master Control</span>
-                            </NavLink>
-                        )}
-                    </div>
-                )}
-                <div className="flex items-center justify-between gap-3">
-                    <button
-                        type="button"
-                        onClick={onVersionClick}
-                        className="text-gray-400 hover:text-gray-200 transition"
-                        aria-label="Open release notes"
-                    >
-                        Â© {displayVersionLabel}
-                    </button>
-                    {canEdit && <button type="button" aria-label="Edit sidebar" title="Edit sidebar" onClick={() => { setDropupOpen(false); setEditorKey(preferenceKey); }}
-                        className="shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-blue-400">
-                        <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </button>}
-                    <button
-                        type="button"
-                        onClick={handleMoreClick}
-                        className="flex h-8 w-8 items-center justify-center rounded-full border border-sky-300/60 bg-slate-950/90 text-sky-100 shadow-[0_0_12px_rgba(56,189,248,0.35)] transition hover:scale-105 hover:border-sky-200/80 hover:text-white"
-                        aria-expanded={isDropupOpen}
-                        aria-label="More"
-                        title="More"
-                    >
-                        <span className={`text-xs font-semibold transition ${isDropupOpen ? 'rotate-180' : ''}`}>{'^'}</span>
-                    </button>
-                </div>
-            </div>
-            )}
+            </footer>
 
         </div>
 

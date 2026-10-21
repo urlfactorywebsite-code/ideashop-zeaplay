@@ -1,3 +1,4 @@
+import Avatar from '../Avatar';
 import React, { useMemo } from 'react';
 import { User, UserStatus } from '../../types';
 
@@ -37,9 +38,7 @@ const MentionPicker: React.FC<MentionPickerProps> = ({ users, query, isOpen, onS
               onClick={() => onSelect(user)}
               className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold uppercase text-gray-600 dark:bg-gray-800 dark:text-gray-200">
-                {user.name.slice(0, 2)}
-              </span>
+              <Avatar user={user} size={32} />
               <span className="flex-1">
                 <span className="block font-semibold">{user.name}</span>
                 <span className="block text-xs text-gray-400">{user.email}</span>

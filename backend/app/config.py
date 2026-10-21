@@ -81,6 +81,8 @@ class Settings(BaseSettings):
     media_public_base: str = "/uploads"
     storage_provider: str = "local"
     media_max_file_size_mb: int = 200
+    avatar_max_file_size_mb: int = Field(default=5, ge=1, le=20)
+    avatar_max_pixels: int = Field(default=25_000_000, ge=1024, le=100_000_000)
     max_request_body_mb: int = 250
     media_presign_rate_limit: int = 30
     media_presign_rate_window_seconds: int = 60

@@ -597,6 +597,7 @@ def reject_claim(db: Session, *, claim_id: str, actor: models.User) -> schemas.R
 def list_logs(
     db: Session,
     *,
+    tenant_id,
     subject_type: Optional[str] = None,
     subject_id: Optional[str] = None,
     action: Optional[models.RewardLogActionEnum] = None,
@@ -604,7 +605,9 @@ def list_logs(
     page_size: int = DEFAULT_PAGE_SIZE,
 ) -> schemas.RewardLogListResponse:
     page, page_size = _paginate(page, page_size)
-    query = db.query(models.RewardLog).order_by(models.RewardLog.created_at.desc())
+    query = db.query(models.RewardLog).filter(models.RewardLog.actor_id.in_(
+        select(models.User.id).where(models.User.tenant_id == tenant_id)
+    )).order_by(models.RewardLog.created_at.desc())
     if subject_type:
         query = query.filter(models.RewardLog.subject_type == subject_type)
     if subject_id:

@@ -1,0 +1,21 @@
+{
+  "results": [
+    "Profile settings load with existing theme and password sections",
+    "Original image crop and upload persist through real API",
+    "Header updates immediately without reload",
+    "Bio, structured skills, duplicate prevention and removal save",
+    "Avatar and frame persist after refresh",
+    "Directory pagination, page size, role, department, employee ID filters and existing actions",
+    "Directory name filters remain functional",
+    "Directory opens digital ID and safe multiline bio with Additional Details",
+    "Tablet employee card stays inside viewport",
+    "Mobile employee card stays inside viewport",
+    "Unsupported file feedback is visible",
+    "Avatar replacement succeeds on mobile",
+    "Removal restores initials and retains frame",
+    "Regular users edit personal fields without sending protected employment fields",
+    "Header, Projects, Tasks and Comments update without reload and share variant requests",
+    "Removal propagates to mounted project, task and comment avatars"
+  ],
+  "errors": []
+}

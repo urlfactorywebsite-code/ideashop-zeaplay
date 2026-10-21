@@ -1,0 +1,36 @@
+.........F.........                                                      [100%]
+================================== FAILURES ===================================
+_ test_savepoint_cleanup_and_outer_rollback_preserve_committed_photo[sqlite] __
+
+setup = (<starlette.testclient.TestClient object at 0x000001761C839D00>, <backend.app.models.User object at 0x000001761B3B9F30>, <backend.app.storage.local.LocalAdapter object at 0x000001761CAC87D0>)
+data = namespace(factory=sessionmaker(class_='Session', bind=Engine(sqlite:///C:/Users/Lenovo/AppData/Local/Temp/pytest-of-Le...backend.app.models.Task object at 0x000001761CAB8B50>, child=<backend.app.models.Subtask object at 0x000001761CAB8E50>)
+
+    def test_savepoint_cleanup_and_outer_rollback_preserve_committed_photo(setup, data):
+        client, member, adapter = setup
+        original = client.post('/api/users/me/avatar', headers=headers(member), json={'data_url': picture()}).json()
+        with data.factory() as db:
+            user = db.get(models.User, member.id)
+            with db.begin_nested():
+                set_user_avatar_from_data_url(db, user, data_url=picture(color='blue'), actor=user)
+            db.rollback()
+        assert client.get(original['avatar_url'], headers=headers(member)).status_code == 200
+        assert len(list(adapter.root.rglob('*.webp'))) == 2
+        with data.factory() as db:
+            user = db.get(models.User, member.id)
+            set_user_avatar_from_data_url(db, user, data_url=picture(color='green'), actor=user)
+            nested = db.begin_nested()
+            set_user_avatar_from_data_url(db, user, data_url=picture(color='blue'), actor=user)
+            nested.rollback()
+            db.commit()
+>       assert len(list(adapter.root.rglob('*.webp'))) == 2
+E       AssertionError: assert 4 == 2
+E        +  where 4 = len([WindowsPath('C:/Users/Lenovo/AppData/Local/Temp/pytest-of-Lenovo/pytest-248/test_savepoint_cleanup_and_out0/media/.av...nup_and_out0/media/.avatars/80ed0059-0852-46f4-b7bc-50e9d626c30c/afdbebf6-c708-4af8-82fa-ee6cb42c9df1/thumbnail.webp')])
+E        +    where [WindowsPath('C:/Users/Lenovo/AppData/Local/Temp/pytest-of-Lenovo/pytest-248/test_savepoint_cleanup_and_out0/media/.av...nup_and_out0/media/.avatars/80ed0059-0852-46f4-b7bc-50e9d626c30c/afdbebf6-c708-4af8-82fa-ee6cb42c9df1/thumbnail.webp')] = list(<map object at 0x000001761C993C00>)
+E        +      where <map object at 0x000001761C993C00> = rglob('*.webp')
+E        +        where rglob = WindowsPath('C:/Users/Lenovo/AppData/Local/Temp/pytest-of-Lenovo/pytest-248/test_savepoint_cleanup_and_out0/media').rglob
+E        +          where WindowsPath('C:/Users/Lenovo/AppData/Local/Temp/pytest-of-Lenovo/pytest-248/test_savepoint_cleanup_and_out0/media') = <backend.app.storage.local.LocalAdapter object at 0x000001761CAC87D0>.root
+
+backend\tests\test_avatar_refinement.py:148: AssertionError
+=========================== short test summary info ===========================
+FAILED backend/tests/test_avatar_refinement.py::test_savepoint_cleanup_and_outer_rollback_preserve_committed_photo[sqlite]
+1 failed, 18 passed, 329 warnings in 44.51s

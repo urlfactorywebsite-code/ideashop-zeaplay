@@ -1,0 +1,3 @@
+.....ssss....ssss.s.s.s.s...sss............ssssssssssss.......sssssss.s. [ 51%]
+s.s...sss.s.s.s.s.s.s...sss.s.s.s.s.s.s...sss.s.s.s.s.s.s.s.s.s.s.s      [100%]
+70 passed, 69 skipped, 833 warnings in 140.78s (0:02:20)

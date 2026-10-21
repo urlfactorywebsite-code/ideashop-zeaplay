@@ -1,10 +1,11 @@
+import Avatar from './Avatar';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import TaskDocumentation from './TaskDocumentation';
+import { Settings as SettingsIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, useSearch, useTheme } from '../hooks/useAuth';
 import api from '../services/mockApi';
 import { timeAgo } from '../utils';
-import { getUserAvatarUrl } from '../utils/userAvatar';
 import {
   UserIcon,
   ArrowRightOnRectangleIcon,
@@ -355,12 +356,12 @@ const themePresentation = {
   },
 };
 
-const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick, onOpenWork = onNotificationClick }) => {
+const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = onNotificationClick }) => {
   const { user, logout } = useAuth();
   const { searchQuery, setSearchQuery } = useSearch();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
-  const profileAvatar = getUserAvatarUrl(user);
+
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [docModalOpen, setDocModalOpen] = useState(false);
@@ -402,7 +403,7 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const mediaQuery = window.matchMedia('(max-width: 1023px)');
+    const mediaQuery = window.matchMedia('(max-width: 1279px)');
     const updateMobileView = () => setIsMobileView(mediaQuery.matches);
     updateMobileView();
     mediaQuery.addEventListener('change', updateMobileView);
@@ -739,7 +740,7 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
                                     isUnread ? `${accent.ring} ${accent.glow} ${accent.bg}` : 'border-white/10 shadow-none'
                                   }`}
                                 >
-                                  <Icon className={`h-5 w-5 ${isUnread ? accent.icon : 'text-text-muted'}`} />
+                                  <>{notif.actorId ? <Avatar user={{ id: notif.actorId }} size={28} /> : <Icon className={`h-5 w-5 ${isUnread ? accent.icon : 'text-text-muted'}`} />}</>
                                 </div>
                               );
                             })()}
@@ -774,15 +775,7 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
                     className="zea-header-profile-button flex items-center gap-2 p-2"
                   >
                     <div className="relative">
-                      {profileAvatar ? (
-                        <img
-                          src={profileAvatar}
-                          alt="Profile"
-                          className="h-8 w-8 rounded-full object-cover border-2 border-white/20"
-                        />
-                      ) : (
-                        <UserIcon className="h-8 w-8" />
-                      )}
+                      <Avatar user={user} size={32} />
                     </div>
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-medium leading-tight">{user?.name}</span>
@@ -796,12 +789,12 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
                         <p className="text-xs">{user?.email}</p>
                       </div>
                       <Link
-                        to="/settings"
+                        to="/settings/profile"
                         onClick={() => setProfileDropdownOpen(false)}
                         className="block px-4 py-2 text-sm hover:bg-surface"
                       >
-                        <UserCircleIcon className="inline h-5 w-5 mr-2" />
-                        My Profile
+                        <SettingsIcon className="inline h-5 w-5 mr-2" aria-hidden="true" />
+                        Settings
                       </Link>
                       <button
                         onClick={handleLogout}
@@ -953,7 +946,7 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
                             isUnread ? `${accent.ring} ${accent.glow} ${accent.bg}` : 'border-white/10 shadow-none'
                           }`}
                         >
-                          <Icon className={`h-5 w-5 ${isUnread ? accent.icon : 'text-text-muted'}`} />
+                          <>{notif.actorId ? <Avatar user={{ id: notif.actorId }} size={28} /> : <Icon className={`h-5 w-5 ${isUnread ? accent.icon : 'text-text-muted'}`} />}</>
                         </div>
                       );
                     })()}
@@ -989,15 +982,7 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
             className="zea-header-profile-button flex items-center gap-2 px-2 py-1.5"
           >
             <div className="relative">
-              {profileAvatar ? (
-                <img
-                  src={profileAvatar}
-                  alt="Profile"
-                  className="zea-header-avatar h-8 w-8 rounded-full object-cover"
-                />
-              ) : (
-                <UserIcon className="h-8 w-8" />
-              )}
+              <Avatar user={user} size={32} />
             </div>
             <div className="flex flex-col items-start">
               <span className="text-sm font-semibold leading-tight">{user?.name}</span>
@@ -1011,12 +996,12 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onSupportClick
                 <p className="text-xs">{user?.email}</p>
               </div>
               <Link
-                to="/settings"
+                to="/settings/profile"
                 onClick={() => setProfileDropdownOpen(false)}
                 className="block px-4 py-2 text-sm hover:bg-surface"
               >
-                <UserCircleIcon className="inline h-5 w-5 mr-2" />
-                My Profile
+                <SettingsIcon className="inline h-5 w-5 mr-2" aria-hidden="true" />
+                Settings
               </Link>
               <button
                 onClick={handleLogout}

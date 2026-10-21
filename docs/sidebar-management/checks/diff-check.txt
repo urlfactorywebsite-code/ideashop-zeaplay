@@ -1,0 +1,22 @@
+PASS: git diff --check exit 0.
+warning: in the working copy of 'backend/app/config.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/dependencies.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/models.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/oauth_cors.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/routers/n8n.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/routers/webhooks.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/services/rewards.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/storage/base.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/storage/local.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/webhooks/dispatcher.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/app/webhooks/service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/tests/test_oauth_refinement.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/tests/test_push_management.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/tests/test_smtp_refinement.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/components/OrganizationTreeSection.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/components/SettingsStorageOptionsPanel.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/components/SidebarEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/components/Tickets/TicketApprovalPanel.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/components/ui/MultiSelect.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/test/storage-options-settings.test.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/utils/userAvatar.ts', LF will be replaced by CRLF the next time Git touches it

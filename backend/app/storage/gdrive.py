@@ -163,6 +163,28 @@ class GoogleDriveAdapter(StorageAdapter):
             if relative_path in self._file_cache:
                 del self._file_cache[relative_path]
 
+    def save_private(self, data: bytes, relative_path: str, *, content_type: str) -> StoredObject:
+        page = None
+        while True:
+            permissions = self.service.permissions().list(fileId=self.parent_folder_id,
+                fields='permissions(type),nextPageToken', pageToken=page).execute()
+            if 'permissions' not in permissions or any(p.get('type') in {'anyone', 'domain'} for p in permissions['permissions']):
+                raise ValueError('Avatar uploads require a private Google Drive folder')
+            page = permissions.get('nextPageToken')
+            if not page:
+                break
+        media = MediaIoBaseUpload(io.BytesIO(data), mimetype=content_type, resumable=True)
+        file = self.service.files().create(body={'name': relative_path, 'parents': [self.parent_folder_id]},
+            media_body=media, fields='id').execute()
+        self._file_cache[relative_path] = file['id']
+        return StoredObject(relative_path, len(data), content_type, '')
+
+    def read(self, relative_path: str) -> bytes:
+        file_id = self._get_file_id(relative_path)
+        if not file_id:
+            raise FileNotFoundError(relative_path)
+        return self.service.files().get_media(fileId=file_id).execute()
+
     def get_public_url(self, relative_path: str) -> str:
         file_id = self._get_file_id(relative_path)
         if file_id:

@@ -2,7 +2,7 @@
 from pathlib import Path
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
+from .avatar_static import AvatarSafeStaticFiles as StaticFiles
 from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import ProgrammingError
 
@@ -29,6 +29,8 @@ from .routers import (
     levels,
     n8n,
     notifications,
+    navigation,
+    support,
     notification_preferences,
     oauth2_server,
     projects,
@@ -887,6 +889,10 @@ app.include_router(chat_ws.router)
 app.include_router(webhooks.router)
 app.include_router(webhooks.internal_router)
 
+app.include_router(navigation.router)
+app.include_router(navigation.router, prefix="/api")
+app.include_router(support.router)
+app.include_router(support.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(clients.router, prefix="/api")
 app.include_router(contacts.router, prefix="/api")
@@ -954,6 +960,7 @@ async def readiness():
     try:
         with SessionLocal() as db:
             db.execute(text("SELECT 1"))
+            db.execute(select(models.NavigationPolicy.revision).limit(1))
         database_ok = True
     except Exception:
         database_ok = False

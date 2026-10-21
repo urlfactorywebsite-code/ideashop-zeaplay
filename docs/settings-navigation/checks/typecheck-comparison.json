@@ -1,0 +1,11 @@
+{
+  "before": 125,
+  "after": 121,
+  "new": [],
+  "removed": [
+    "pages/ProfileSettings.tsx: error TS2304: Cannot find name 'MultipleSmtpConfigInput'.",
+    "pages/ProfileSettings.tsx: error TS2367: This comparison appears to be unintentional because the types '\"tasks\" | \"rewards\" | \"users\" | DataExportScope.USERS | DataExportScope.TASKS | DataExportScope.ALL | \"notifications\" | \"kanban-columns\" | \"achievements\" | \"user-rewards\" | \"user-achievements\"' and 'DataExportScope.DEPARTMENTS' have no overlap.",
+    "pages/ProfileSettings.tsx: error TS2367: This comparison appears to be unintentional because the types '\"tasks\" | \"rewards\" | DataExportScope.TASKS | DataExportScope.ALL | \"notifications\" | \"kanban-columns\" | \"achievements\" | \"user-rewards\" | \"user-achievements\"' and 'DataExportScope.USERS' have no overlap.",
+    "pages/ProfileSettings.tsx: error TS2367: This comparison appears to be unintentional because the types '\"rewards\" | DataExportScope.ALL | \"notifications\" | \"kanban-columns\" | \"achievements\" | \"user-rewards\" | \"user-achievements\"' and 'DataExportScope.TASKS' have no overlap."
+  ]
+}

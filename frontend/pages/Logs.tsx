@@ -1,3 +1,4 @@
+import Avatar from '../components/Avatar';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -1079,7 +1080,7 @@ const Logs: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <span className="block max-w-[160px] truncate font-medium text-slate-100">{actorName}</span>
+                      <span className="flex items-center gap-2"><Avatar user={{ id: log.actorId || undefined, name: actorName }} size={24} /><span className="block max-w-[160px] truncate font-medium text-slate-100">{actorName}</span></span>
                       {log.actor?.role && <span className="text-xs text-slate-500">{formatLabel(String(log.actor.role))}</span>}
                     </td>
                     <td className="px-4 py-3 align-top">
