@@ -8,6 +8,8 @@ The updated local backend and frontend are running. Open [Settings → Push noti
 
 ## Using the tab
 
+For live `/sw.js` HTTP 403 or invalid VAPID settings, use the [VPS repair runbook](vps-repair.md).
+
 - **Enable this browser** requests permission and registers this browser to the signed-in account. **Reconnect this browser** repairs registration after configuration changes. Permission, account registration and server readiness are displayed separately.
 - **Disable this browser** stops its subscription. Signing out also clears the browser's account binding and attempts server revocation before invalidating the session.
 - **Alert categories** manages Tasks, Tickets, Chat, Comments, Users and Departments across the account's registered devices. Individual changes update only that category. Enable all and Mute all are explicit batch actions. In-app history is retained.

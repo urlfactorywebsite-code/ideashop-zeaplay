@@ -67,6 +67,7 @@ Create **two Proxy Hosts**, one per public hostname. Use these settings on both:
 | Forward hostname | `zeaplay_frontend` |
 | Forward port | `80` |
 | Websocket support | On |
+| Cache Assets | Off (runtime configuration and service worker must revalidate) |
 | Certificate | Valid for that exact hostname |
 | Force SSL | On |
 
