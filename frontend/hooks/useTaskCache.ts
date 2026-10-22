@@ -4,6 +4,7 @@ import { LRUCache } from '../utils/lruCache';
 const DEFAULT_TASK_CACHE_TTL_MS = 60000;
 
 export type TaskListCacheParams = {
+  timezone?: string;
   viewMode: 'list' | 'grid' | 'kanban';
   page: number;
   pageSize: number;
@@ -22,6 +23,7 @@ export type TaskListCacheParams = {
 };
 
 export type TaskKanbanCacheParams = {
+  timezone?: string;
   pageSize?: number;
   search?: string;
   priority?: TaskPriority;

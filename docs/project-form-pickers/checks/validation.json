@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-22",
+  "projectFormBrowserGroups": 9,
+  "taskProjectPickerRegressionGroups": 5,
+  "frontendTestsPassed": 152,
+  "typecheck": {
+    "existingErrors": 116,
+    "newDiagnostics": 0
+  },
+  "containerBuild": "passed",
+  "localFrontendUpdated": true,
+  "sourceFiles": [
+    "frontend/pages/Projects.tsx",
+    "frontend/components/ClientSelect.tsx"
+  ],
+  "backendSourceChanged": false,
+  "productionChanged": false,
+  "normalZoomViewportChecks": [
+    [
+      1920,
+      930
+    ],
+    [
+      1366,
+      768
+    ],
+    [
+      1280,
+      600
+    ],
+    [
+      1024,
+      600
+    ],
+    [
+      390,
+      640
+    ]
+  ],
+  "modalLayering": "document.body portal, z-index 100, pinned header/footer, scrollable details"
+}

@@ -1,0 +1,7 @@
+{
+  "environment": "Local Windows pytest; disposable SQLite and loopback PostgreSQL 15",
+  "sqlite": {"passed": 78, "command": "python -m pytest backend/tests/test_navigation.py -q -k 'sqlite or manifest' --disable-warnings --tb=short"},
+  "postgresql": {"passed": 77, "command": "python -m pytest backend/tests/test_navigation.py -q -k postgresql --disable-warnings --tb=short"},
+  "lint": {"passed": true, "command": "python -m ruff check backend/app/navigation_registry.py backend/tests/test_navigation.py"},
+  "production_deployed": false
+}

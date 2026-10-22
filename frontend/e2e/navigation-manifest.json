@@ -30,6 +30,21 @@
     "sortOrder": 1
   },
   {
+    "id": "tasks.list",
+    "parentId": "tasks",
+    "defaultLabel": "All Tasks",
+    "route": "/tasks",
+    "navigationLocation": "task-tab",
+    "permittedRoles": [
+      "user",
+      "admin",
+      "manager",
+      "owner"
+    ],
+    "isSystemProtected": true,
+    "sortOrder": 2
+  },
+  {
     "id": "chat",
     "parentId": null,
     "defaultLabel": "Chat",
@@ -42,7 +57,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 2
+    "sortOrder": 3
   },
   {
     "id": "authorized-apps",
@@ -57,7 +72,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 3
+    "sortOrder": 4
   },
   {
     "id": "projects",
@@ -72,14 +87,14 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 4
+    "sortOrder": 5
   },
   {
     "id": "kanban",
-    "parentId": null,
+    "parentId": "tasks",
     "defaultLabel": "Kanban Board",
-    "route": "/kanban",
-    "navigationLocation": "sidebar",
+    "route": "/tasks/kanban",
+    "navigationLocation": "task-tab",
     "permittedRoles": [
       "user",
       "admin",
@@ -87,7 +102,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 5
+    "sortOrder": 6
   },
   {
     "id": "tickets",
@@ -102,7 +117,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 6
+    "sortOrder": 7
   },
   {
     "id": "management",
@@ -116,7 +131,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 7
+    "sortOrder": 8
   },
   {
     "id": "users",
@@ -130,7 +145,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 8
+    "sortOrder": 9
   },
   {
     "id": "clients",
@@ -144,21 +159,21 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 9
+    "sortOrder": 10
   },
   {
     "id": "gantt",
-    "parentId": null,
+    "parentId": "tasks",
     "defaultLabel": "Gantt Chart",
-    "route": "/gantt",
-    "navigationLocation": "sidebar",
+    "route": "/tasks/gantt",
+    "navigationLocation": "task-tab",
     "permittedRoles": [
       "manager",
       "admin",
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 10
+    "sortOrder": 11
   },
   {
     "id": "reports",
@@ -173,7 +188,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 11
+    "sortOrder": 12
   },
   {
     "id": "achievements",
@@ -188,7 +203,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 12
+    "sortOrder": 13
   },
   {
     "id": "settings",
@@ -203,14 +218,14 @@
       "owner"
     ],
     "isSystemProtected": true,
-    "sortOrder": 13
+    "sortOrder": 14
   },
   {
     "id": "calendar",
-    "parentId": null,
+    "parentId": "tasks",
     "defaultLabel": "Calendar",
-    "route": "/calendar",
-    "navigationLocation": "sidebar",
+    "route": "/tasks/calendar",
+    "navigationLocation": "task-tab",
     "permittedRoles": [
       "user",
       "admin",
@@ -218,7 +233,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 14
+    "sortOrder": 15
   },
   {
     "id": "tool-library",
@@ -233,7 +248,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 15
+    "sortOrder": 16
   },
   {
     "id": "levels",
@@ -248,7 +263,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 16
+    "sortOrder": 17
   },
   {
     "id": "rewards",
@@ -262,7 +277,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 17
+    "sortOrder": 18
   },
   {
     "id": "points-table",
@@ -274,7 +289,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 18
+    "sortOrder": 19
   },
   {
     "id": "template-editor",
@@ -286,7 +301,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 19
+    "sortOrder": 20
   },
   {
     "id": "settings.profile",
@@ -301,7 +316,7 @@
       "owner"
     ],
     "isSystemProtected": true,
-    "sortOrder": 20
+    "sortOrder": 21
   },
   {
     "id": "settings.support",
@@ -316,7 +331,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 21
+    "sortOrder": 22
   },
   {
     "id": "settings.api",
@@ -329,7 +344,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 22
+    "sortOrder": 23
   },
   {
     "id": "settings.oauth",
@@ -344,7 +359,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 23
+    "sortOrder": 24
   },
   {
     "id": "settings.logs",
@@ -358,7 +373,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 24
+    "sortOrder": 25
   },
   {
     "id": "settings.media-library",
@@ -373,7 +388,7 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 25
+    "sortOrder": 26
   },
   {
     "id": "settings.sidebar-management",
@@ -386,7 +401,7 @@
       "owner"
     ],
     "isSystemProtected": true,
-    "sortOrder": 26
+    "sortOrder": 27
   },
   {
     "id": "settings.push",
@@ -401,6 +416,6 @@
       "owner"
     ],
     "isSystemProtected": false,
-    "sortOrder": 27
+    "sortOrder": 28
   }
 ]

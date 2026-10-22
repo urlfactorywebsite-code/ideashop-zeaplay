@@ -1,3 +1,4 @@
+import LinkedClientsSelect from '../components/LinkedClientsSelect';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useNotificationRefresh } from '../hooks/useNotificationRefresh';
@@ -52,7 +53,7 @@ type ClientFormModalProps = {
 
 type ContactFormModalProps = {
   contact: Contact | null;
-  clients: Client[];
+  defaultClient?: Client | null;
   defaultClientId?: string | null;
   saving: boolean;
   error: string | null;
@@ -86,7 +87,7 @@ const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleD
 const toContactDraft = (contact: Contact | null, defaultClientId?: string | null): ContactDraft => {
   const base = emptyContactDraft();
   const linkedClientIds = contact?.clients.map((client) => client.id) ?? (defaultClientId ? [defaultClientId] : []);
-  const primaryClient = contact?.clients.find((client) => client.isPrimary)?.id ?? defaultClientId ?? null;
+  const primaryClient = contact ? contact.clients.find((client) => client.isPrimary)?.id ?? null : defaultClientId ?? null;
   return {
     ...base,
     firstName: contact?.firstName ?? '',
@@ -97,6 +98,7 @@ const toContactDraft = (contact: Contact | null, defaultClientId?: string | null
     notes: contact?.notes ?? '',
     clientIds: linkedClientIds,
     primaryClientId: primaryClient,
+    primaryClientIds: contact ? contact.clients.filter(client => client.isPrimary).map(client => client.id) : (primaryClient ? [primaryClient] : []),
   };
 };
 
@@ -263,7 +265,7 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({ client, saving, error
   );
 };
 
-const ContactFormModal: React.FC<ContactFormModalProps> = ({ contact, clients, defaultClientId, saving, error, onClose, onSubmit }) => {
+const ContactFormModal: React.FC<ContactFormModalProps> = ({ contact, defaultClient, defaultClientId, saving, error, onClose, onSubmit }) => {
   const [draft, setDraft] = useState<ContactDraft>(() => toContactDraft(contact, defaultClientId));
   const [errors, setErrors] = useState<ContactValidationErrors>({});
 
@@ -277,14 +279,21 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ contact, clients, d
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const toggleClient = (clientId: string) => {
+  const initialClients = useMemo(() => {
+    const linked = contact?.clients ?? [];
+    return defaultClient ? [...linked.filter(client => client.id !== defaultClient.id), defaultClient] : linked;
+  }, [contact, defaultClient]);
+
+  const changeClients = (clientIds: string[]) => {
     setDraft((prev) => {
-      const hasClient = prev.clientIds.includes(clientId);
-      const clientIds = hasClient ? prev.clientIds.filter((id) => id !== clientId) : [...prev.clientIds, clientId];
+      const primaryClientId = clientIds.includes(prev.primaryClientId ?? '') ? prev.primaryClientId : clientIds[0] ?? null;
+      const primaryClientIds = (prev.primaryClientIds ?? []).filter(id => clientIds.includes(id));
+      if (!primaryClientIds.length && primaryClientId) primaryClientIds.push(primaryClientId);
       return {
         ...prev,
         clientIds,
-        primaryClientId: clientIds.includes(prev.primaryClientId ?? '') ? prev.primaryClientId : clientIds[0] ?? null,
+        primaryClientIds,
+        primaryClientId,
       };
     });
   };
@@ -337,24 +346,10 @@ const ContactFormModal: React.FC<ContactFormModalProps> = ({ contact, clients, d
             <input value={draft.title ?? ''} onChange={(event) => update('title', event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950" />
           </label>
           <div className="md:col-span-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Linked clients</span>
-            <div className="mt-2 max-h-44 space-y-2 overflow-auto rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              {clients.map((client) => (
-                <label key={client.id} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex items-center gap-2">
-                    <input type="checkbox" checked={draft.clientIds.includes(client.id)} onChange={() => toggleClient(client.id)} />
-                    {client.companyName}
-                  </span>
-                  {draft.clientIds.includes(client.id) && (
-                    <span className="flex items-center gap-1 text-xs text-gray-500">
-                      <input type="radio" name="primaryClient" checked={draft.primaryClientId === client.id} onChange={() => setDraft((prev) => ({ ...prev, primaryClientId: client.id }))} />
-                      Primary
-                    </span>
-                  )}
-                </label>
-              ))}
-              {clients.length === 0 && <p className="text-sm text-gray-500">No active clients available.</p>}
-            </div>
+            <label htmlFor="linkedClients" className="text-xs uppercase tracking-[0.25em] text-gray-700 dark:text-white/50">Linked clients</label>
+            <LinkedClientsSelect initialClients={initialClients} value={draft.clientIds}
+              primaryClientId={draft.primaryClientId} onChange={changeClients}
+              onPrimaryChange={id => setDraft(prev => ({ ...prev, primaryClientId: id, primaryClientIds: [id] }))} />
           </div>
           <label className="md:col-span-2">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Notes</span>
@@ -398,7 +393,6 @@ const Clients: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [clientContacts, setClientContacts] = useState<Contact[]>([]);
   const [contactsLoading, setContactsLoading] = useState(false);
-  const [availableClients, setAvailableClients] = useState<Client[]>([]);
   const [contactFormContact, setContactFormContact] = useState<Contact | null>(null);
   const [isContactFormOpen, setContactFormOpen] = useState(false);
   const [contactFormError, setContactFormError] = useState<string | null>(null);
@@ -493,23 +487,15 @@ const Clients: React.FC = () => {
     setFormOpen(true);
   };
 
-  const ensureAvailableClients = async () => {
-    const response = await api.getClients({ page: 1, pageSize: 100, status: '', sortBy: 'company_name', sortOrder: 'asc' });
-    setAvailableClients(response.items);
-    return response.items;
-  };
-
   const openCreateContact = async () => {
     setContactFormContact(null);
     setContactFormError(null);
-    await ensureAvailableClients();
     setContactFormOpen(true);
   };
 
   const openEditContact = async (contact: Contact) => {
     setContactFormContact(contact);
     setContactFormError(null);
-    await ensureAvailableClients();
     setContactFormOpen(true);
   };
 
@@ -818,7 +804,8 @@ const Clients: React.FC = () => {
       {isContactFormOpen && (
         <ContactFormModal
           contact={contactFormContact}
-          clients={availableClients}
+          key={`${user?.tenantId}:${user?.id}:${contactFormContact?.id ?? "new"}`}
+          defaultClient={selectedClient}
           defaultClientId={selectedClient?.id ?? null}
           saving={actionLoading}
           error={contactFormError}

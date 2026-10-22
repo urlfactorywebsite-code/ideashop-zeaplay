@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import api from '../services/mockApi';
 import { TaskPageResponse } from '../types';
@@ -22,6 +22,7 @@ export const useTaskList = ({ params, enabled = true }: UseTaskListOptions): Use
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const lastRefresh = useRef(0);
 
   const cacheKey = useMemo(() => buildTaskListKey(params), [params]);
 
@@ -36,10 +37,12 @@ export const useTaskList = ({ params, enabled = true }: UseTaskListOptions): Use
     }
 
     const cached = listCache.get(cacheKey);
+    const explicitlyRefreshed = lastRefresh.current !== refreshTick;
     if (cached) {
       setData(cached);
       setError(null);
       setLoading(false);
+      if (!explicitlyRefreshed) return;
     } else {
       setLoading(true);
     }
@@ -49,6 +52,7 @@ export const useTaskList = ({ params, enabled = true }: UseTaskListOptions): Use
 
     api
       .getTasksPage({
+        timezone: params.timezone,
         page: params.page,
         pageSize: params.pageSize,
         search: params.search,
@@ -70,6 +74,7 @@ export const useTaskList = ({ params, enabled = true }: UseTaskListOptions): Use
           return;
         }
         listCache.set(cacheKey, response, ttlMs);
+        lastRefresh.current = refreshTick;
         setData(response);
         setError(null);
         setLoading(false);
@@ -82,12 +87,12 @@ export const useTaskList = ({ params, enabled = true }: UseTaskListOptions): Use
         setLoading(false);
       })
       .finally(() => {
-        inflightControllers.delete(cacheKey);
+        if (inflightControllers.get(cacheKey) === controller) inflightControllers.delete(cacheKey);
       });
 
     return () => {
       controller.abort();
-      inflightControllers.delete(cacheKey);
+      if (inflightControllers.get(cacheKey) === controller) inflightControllers.delete(cacheKey);
     };
   }, [cacheKey, enabled, inflightControllers, listCache, params, refreshTick, ttlMs]);
 

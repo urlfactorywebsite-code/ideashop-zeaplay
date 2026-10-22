@@ -1,4 +1,5 @@
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time, timedelta, timezone as utc_timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import hashlib
 import json
 import time as perf_time
@@ -1253,6 +1254,7 @@ def act_on_transfer_request(
 @router.get("/page", response_model=schemas.TaskListResponse)
 def list_tasks_page(
     request: Request,
+    timezone_name: str | None = Query(default=None, alias="timezone"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
     search: Optional[str] = Query(default=None, description="Search title, description, team, or assignee name."),
@@ -1272,8 +1274,10 @@ def list_tasks_page(
     current_user: models.User = Depends(get_current_active_user),
 ) -> schemas.TaskListResponse:
     started_at = perf_time.perf_counter()
+    zone = _calendar_zone(timezone_name, current_user) if timezone_name else None
     tenant_id = str(current_user.tenant_id or settings.default_tenant_id)
     cache_params = {
+        "timezone": zone.key if zone else None,
         "page": page,
         "page_size": page_size,
         "cursor": cursor,
@@ -1306,16 +1310,19 @@ def list_tasks_page(
         project_id=project_id,
         team=team,
         tag=tag,
-        due_date=due_date,
-        created_date=created_date,
+        due_date=None if zone else due_date,
+        created_date=None if zone else created_date,
         quick_filter=quick_filter,
     )
+    if zone:
+        stmt = _calendar_date_filters(stmt, due_date, created_date, zone)
+
     stmt, order_column = _resolve_sort_column(stmt, sort_by)
 
     if sort_order == "asc":
-        stmt = stmt.order_by(order_column.asc().nullslast())
+        stmt = stmt.order_by(order_column.asc().nullslast(), models.Task.id.asc())
     else:
-        stmt = stmt.order_by(order_column.desc().nullslast())
+        stmt = stmt.order_by(order_column.desc().nullslast(), models.Task.id.desc())
 
     base_stmt = stmt
     base_subquery = base_stmt.order_by(None).subquery()
@@ -1368,6 +1375,8 @@ def list_tasks_page(
 @router.get("/kanban", response_model=schemas.TaskKanbanResponse)
 def list_tasks_kanban(
     request: Request,
+    timezone_name: str | None = Query(default=None, alias="timezone"),
+    page: int = Query(default=1, ge=1),
     page_size: int = Query(
         default_factory=lambda: settings.kanban_page_size_per_column, ge=1, le=200
     ),
@@ -1384,9 +1393,12 @@ def list_tasks_kanban(
     current_user: models.User = Depends(get_current_active_user),
 ) -> schemas.TaskKanbanResponse:
     started_at = perf_time.perf_counter()
+    zone = _calendar_zone(timezone_name, current_user) if timezone_name else None
     tenant_id = str(current_user.tenant_id or settings.default_tenant_id)
     cache_params = {
+        "timezone": zone.key if zone else None,
         "page_size": page_size,
+        "page": page,
         "search": search,
         "priority": priority.value if priority else None,
         "assignee_id": assignee_id,
@@ -1412,10 +1424,13 @@ def list_tasks_kanban(
         project_id=project_id,
         team=team,
         tag=tag,
-        due_date=due_date,
-        created_date=created_date,
+        due_date=None if zone else due_date,
+        created_date=None if zone else created_date,
         quick_filter=quick_filter,
     )
+
+    if zone:
+        base_stmt = _calendar_date_filters(base_stmt, due_date, created_date, zone)
 
     columns = db.execute(
         select(models.KanbanColumn).order_by(models.KanbanColumn.order)
@@ -1434,7 +1449,8 @@ def list_tasks_kanban(
         status_value = column.id
         tasks = db.execute(
             base_stmt.where(models.Task.status == status_value)
-            .order_by(models.Task.updated_at.desc())
+            .order_by(models.Task.updated_at.desc(), models.Task.id.asc())
+            .offset((page - 1) * page_size)
             .limit(page_size)
         ).scalars().all()
         column_payloads.append(
@@ -1464,12 +1480,51 @@ def _parse_required_date(value: str, field_name: str) -> date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid {field_name}")
 
 
-def _date_bounds(start_date: date, end_date: date) -> tuple[datetime, datetime]:
-    return datetime.combine(start_date, time.min), datetime.combine(end_date, time.max)
+def _calendar_zone(value: str | None, user: models.User) -> ZoneInfo:
+    try:
+        return ZoneInfo(value or user.timezone or "UTC")
+    except (ZoneInfoNotFoundError, ValueError) as exc:
+        raise HTTPException(400, "Invalid calendar timezone") from exc
+
+
+def _date_bounds(start_date: date, end_date: date, zone: ZoneInfo | None = None) -> tuple[datetime, datetime]:
+    # Task DateTime columns hold naive UTC. Use a half-open range between local
+    # midnights so DST days and the last fractional second are handled correctly.
+    zone = zone or ZoneInfo("UTC")
+    try:
+        lower = datetime.combine(start_date, time.min, tzinfo=zone).astimezone(utc_timezone.utc).replace(tzinfo=None)
+        upper = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=zone).astimezone(utc_timezone.utc).replace(tzinfo=None)
+    except OverflowError as exc:
+        raise HTTPException(400, "Calendar dates are outside the supported range") from exc
+    return lower, upper
+
+
+def _calendar_date_filters(stmt, due_date, created_date, zone):
+    for value, column in ((due_date, models.Task.due_at), (created_date, models.Task.created_at)):
+        bounds = _parse_date_filter(value)
+        if bounds:
+            lower, upper = _date_bounds(bounds[0].date(), bounds[1].date(), zone)
+            stmt = stmt.where(column >= lower, column < upper)
+    return stmt
+
+
+def _calendar_day(column, start, end, zone, dialect):
+    if dialect == "postgresql":
+        return func.date(func.timezone(zone.key, func.timezone("UTC", column)))
+    # SQLite has no IANA timezone function. Civil-day UTC bounds preserve the
+    # same semantics for isolated tests without fetching every task into Python.
+    buckets = []
+    day = start
+    while day <= end:
+        lower, upper = _date_bounds(day, day, zone)
+        buckets.append((and_(column >= lower, column < upper), day.isoformat()))
+        day += timedelta(days=1)
+    return case(*buckets)
 
 
 @router.get("/calendar/summary", response_model=schemas.TaskCalendarSummaryResponse)
 def get_calendar_summary(
+    timezone_name: str | None = Query(default=None, alias="timezone"),
     start_date: str = Query(..., description="Visible range start date, YYYY-MM-DD."),
     end_date: str = Query(..., description="Visible range end date, YYYY-MM-DD."),
     search: Optional[str] = Query(default=None),
@@ -1490,10 +1545,14 @@ def get_calendar_summary(
     end = _parse_required_date(end_date, "end_date")
     if start > end:
         start, end = end, start
-    range_start, range_end = _date_bounds(start, end)
+    if (end - start).days > 366:
+        raise HTTPException(400, "Calendar range must not exceed 367 days")
+    zone = _calendar_zone(timezone_name, current_user)
+    range_start, range_end = _date_bounds(start, end, zone)
     tenant_id = str(current_user.tenant_id or settings.default_tenant_id)
     cache_params = {
         "start_date": start.isoformat(),
+        "timezone": zone.key,
         "end_date": end.isoformat(),
         "search": search,
         "status": status_filter.value if status_filter else None,
@@ -1522,12 +1581,13 @@ def get_calendar_summary(
         project_id=project_id,
         team=team,
         tag=tag,
-        due_date=due_date,
-        created_date=created_date,
+        due_date=None,
+        created_date=None,
         quick_filter=quick_filter,
-    ).where(models.Task.due_at.between(range_start, range_end))
+    )
+    stmt = _calendar_date_filters(stmt, due_date, created_date, zone).where(models.Task.due_at >= range_start, models.Task.due_at < range_end)
     filtered = stmt.order_by(None).subquery()
-    day_expr = func.date(filtered.c.due_at)
+    day_expr = _calendar_day(filtered.c.due_at, start, end, zone, db.get_bind().dialect.name)
     now = datetime.utcnow()
     rows = db.execute(
         select(
@@ -1572,6 +1632,7 @@ def get_calendar_summary(
 
 @router.get("/calendar/tasks", response_model=List[schemas.TaskRead])
 def get_calendar_tasks(
+    timezone_name: str | None = Query(default=None, alias="timezone"),
     start_date: str = Query(...),
     end_date: Optional[str] = Query(default=None),
     search: Optional[str] = Query(default=None),
@@ -1592,7 +1653,10 @@ def get_calendar_tasks(
     end = _parse_required_date(end_date or start_date, "end_date")
     if start > end:
         start, end = end, start
-    range_start, range_end = _date_bounds(start, end)
+    if (end - start).days > 366:
+        raise HTTPException(400, "Calendar range must not exceed 367 days")
+    zone = _calendar_zone(timezone_name, current_user)
+    range_start, range_end = _date_bounds(start, end, zone)
     stmt = _apply_task_filters(
         _task_query().order_by(None),
         db,
@@ -1604,10 +1668,11 @@ def get_calendar_tasks(
         project_id=project_id,
         team=team,
         tag=tag,
-        due_date=due_date,
-        created_date=created_date,
+        due_date=None,
+        created_date=None,
         quick_filter=quick_filter,
-    ).where(models.Task.due_at.between(range_start, range_end)).order_by(models.Task.due_at.asc(), models.Task.created_at.desc())
+    )
+    stmt = _calendar_date_filters(stmt, due_date, created_date, zone).where(models.Task.due_at >= range_start, models.Task.due_at < range_end).order_by(models.Task.due_at.asc(), models.Task.created_at.desc())
     tasks = db.execute(stmt).unique().scalars().all()
     status_title_map = _status_title_map(db)
     _log_slow_endpoint("tasks.calendar.tasks", started_at)

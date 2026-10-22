@@ -14,14 +14,12 @@ import NotFound from './pages/NotFound';
 import { Role } from './types';
 import { NavigationProvider } from './hooks/useNavigation';
 import NavigationGuard, { NavigationUnavailable } from './components/NavigationGuard';
+import RouteErrorPage from './components/RouteErrorPage';
 
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
-const Tasks = React.lazy(() => import('./pages/Tasks'));
+const Tasks = React.lazy(() => import('./pages/AllTasks'));
 const Management = React.lazy(() => import('./pages/Management'));
 const Projects = React.lazy(() => import('./pages/Projects'));
-const KanbanBoard = React.lazy(() => import('./pages/KanbanBoard'));
-const CalendarView = React.lazy(() => import('./pages/CalendarView'));
-const GanttView = React.lazy(() => import('./pages/GanttView'));
 const Reports = React.lazy(() => import('./pages/Reports'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const Achievements = React.lazy(() => import('./pages/Achievements'));
@@ -56,16 +54,16 @@ const AppRoutes: React.FC = () => {
                 <Route path="navigation-unavailable" element={<NavigationUnavailable />} />
                 
                 <Route path="dashboard" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><Dashboard /></ProtectedRoute>} />
-                <Route path="tasks" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><Tasks /></ProtectedRoute>} />
+                <Route path="tasks/*" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><Tasks /></ProtectedRoute>} />
                 <Route path="clients" element={<SettingsRedirect to="/management/clients" />} />
                 <Route path="management/*" element={<ProtectedRoute roles={[Role.MANAGER, Role.ADMIN, Role.OWNER]}><Management /></ProtectedRoute>} />
                 <Route path="projects" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><Projects /></ProtectedRoute>} />
                 <Route path="admin/users" element={<SettingsRedirect to="/management/users" />} />
                 <Route path="admin/rewards" element={<ProtectedRoute roles={[Role.MANAGER, Role.ADMIN, Role.OWNER]}><Navigate to="/achievements?tab=rewards" replace /></ProtectedRoute>} />
                 <Route path="admin/points-table" element={<ProtectedRoute roles={[Role.OWNER]}><Navigate to="/achievements?tab=points" replace /></ProtectedRoute>} />
-                <Route path="kanban" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><KanbanBoard /></ProtectedRoute>} />
-                <Route path="calendar" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><CalendarView /></ProtectedRoute>} />
-                <Route path="gantt" element={<ProtectedRoute roles={[Role.MANAGER, Role.ADMIN, Role.OWNER]}><GanttView /></ProtectedRoute>} />
+                <Route path="kanban" element={<SettingsRedirect to="/tasks/kanban" />} />
+                <Route path="calendar" element={<SettingsRedirect to="/tasks/calendar" />} />
+                <Route path="gantt" element={<SettingsRedirect to="/tasks/gantt" />} />
                 <Route path="reports" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><Reports /></ProtectedRoute>} />
                 <Route path="tool-library" element={<ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}><ToolLibrary /></ProtectedRoute>} />
                 {Object.entries(LEGACY_SETTINGS_ROUTES).map(([from, to]) => <Route key={from} path={from.slice(1)} element={<SettingsRedirect to={to} />} />)}
@@ -112,7 +110,7 @@ const AppProviders: React.FC = () => {
 };
 
 // A data router retains the existing hash URLs and supports reliable form blockers.
-const router = createHashRouter([{ path: '*', element: <AppProviders /> }]);
+const router = createHashRouter([{ path: '*', element: <AppProviders />, errorElement: <RouteErrorPage /> }]);
 const App: React.FC = () => <RouterProvider router={router} />;
 
 export default App;

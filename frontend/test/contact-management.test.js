@@ -44,3 +44,16 @@ test('contact validation rejects bad email and weak phone', () => {
   assert.match(errors.email ?? '', /valid email/);
   assert.match(errors.phone ?? '', /at least 7/);
 });
+
+test('editing preserves primary flags on every linked client, including archived relationships', () => {
+  const draft = { ...emptyContactDraft(), firstName: 'Priya', clientIds: ['active', 'archived', 'another'],
+    primaryClientId: 'active', primaryClientIds: ['active', 'archived'] };
+  assert.deepEqual(toContactPayload(draft).clientLinks, [
+    { clientId: 'active', isPrimary: true },
+    { clientId: 'archived', isPrimary: true },
+    { clientId: 'another', isPrimary: false },
+  ]);
+  assert.deepEqual(toContactPayload({ ...draft, clientIds: ['active', 'another'] }).clientLinks, [
+    { clientId: 'active', isPrimary: true }, { clientId: 'another', isPrimary: false },
+  ]);
+});

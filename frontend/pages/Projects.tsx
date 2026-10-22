@@ -1,5 +1,8 @@
 import Avatar from '../components/Avatar';
+import ClientSelect from '../components/ClientSelect';
+import SearchableMultiSelect from '../components/ui/SearchableMultiSelect';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useNotificationRefresh } from '../hooks/useNotificationRefresh';
 import {
@@ -185,17 +188,43 @@ const DashboardTaskRow: React.FC<{
 const ProjectFormModal: React.FC<ProjectFormProps> = ({ project, clients, users, saving, error, onClose, onSubmit }) => {
   const [draft, setDraft] = useState<ProjectDraft>(() => toDraft(project, clients));
   const [localError, setLocalError] = useState<string | null>(null);
+  const [managerSearch, setManagerSearch] = useState('');
+  const [memberSearch, setMemberSearch] = useState('');
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, []);
 
   useEffect(() => {
     setDraft(toDraft(project, clients));
     setLocalError(null);
+  }, [project]);
+
+  useEffect(() => {
+    if (!project && clients.length) setDraft(current => current.clientId ? current : { ...current, clientId: clients[0].id });
   }, [project, clients]);
 
-  const activeUsers = useMemo(() => users.filter((user) => user.status === UserStatus.ACTIVE), [users]);
+  // Keep historical selections visible even when a user is inactive or absent
+  // from the current user lookup. New selections retain the existing role rules.
+  const knownUsers = useMemo(() => Array.from(new Map([
+    ...(project?.members ?? []).map(member => ({ ...member, id: member.userId, role: member.userRole,
+      tenantId: member.tenantId || project?.tenantId, avatarUrl: null })),
+    ...users,
+  ].map(person => [person.id, person])).values()), [project, users]);
   const managerOptions = useMemo(
-    () => activeUsers.filter((user) => [Role.MANAGER, Role.ADMIN, Role.OWNER].includes(user.role)),
-    [activeUsers],
+    () => knownUsers.filter(person => draft.managerIds.includes(person.id)
+      || (person.status === UserStatus.ACTIVE && [Role.MANAGER, Role.ADMIN, Role.OWNER].includes(person.role))),
+    [knownUsers, draft.managerIds],
   );
+  const memberOptions = useMemo(() => knownUsers.filter(person => person.status === UserStatus.ACTIVE || draft.memberIds.includes(person.id)), [knownUsers, draft.memberIds]);
+  const userOption = (person: typeof knownUsers[number]) => ({ id: person.id, name: person.name,
+    description: `${person.role} · ${person.email}`, active: person.status === UserStatus.ACTIVE,
+    statusLabel: person.status === UserStatus.ACTIVE ? 'Online' : 'Offline' });
+  const matches = (person: typeof knownUsers[number], term: string) => [person.name, person.email, person.role,
+    'department' in person ? person.department : ''].some(value => (value || '').toLowerCase().includes(term.trim().toLowerCase()));
+  const pickerClass = 'rounded-2xl bg-slate-950/95 text-slate-50 dark:bg-transparent';
 
   const toggleId = (field: 'managerIds' | 'memberIds', userId: string) => {
     setDraft((prev) => {
@@ -217,33 +246,31 @@ const ProjectFormModal: React.FC<ProjectFormProps> = ({ project, clients, users,
     await onSubmit(toProjectPayload(draft));
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
-      <form onSubmit={handleSubmit} className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white shadow-2xl dark:bg-gray-900">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-labelledby="project-form-title"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-4">
+      <form onSubmit={handleSubmit} className="flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-lg bg-white text-gray-900 shadow-2xl dark:bg-gray-900 dark:text-gray-100">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{project ? 'Edit Project' : 'Create Project'}</h2>
+            <h2 id="project-form-title" className="text-lg font-semibold text-gray-900 dark:text-white">{project ? 'Edit Project' : 'Create Project'}</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">Client-linked project workspace</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
+          <button type="button" aria-label="Close project form" onClick={onClose} className="rounded-full p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800">
             <XMarkIcon className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="grid gap-4 p-6 md:grid-cols-2">
+        <div role="region" aria-label="Project details" className="grid min-h-0 gap-4 overflow-y-auto overscroll-contain p-6 custom-scrollbar md:grid-cols-2">
           <label className="md:col-span-2">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Project name</span>
             <input value={draft.name} onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950" autoFocus />
           </label>
-          <label>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Client</span>
-            <select value={draft.clientId} onChange={(event) => setDraft((prev) => ({ ...prev, clientId: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950">
-              <option value="">Select client</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>{client.companyName}</option>
-              ))}
-            </select>
-          </label>
+          <div>
+            <label htmlFor="projectClient" className="text-xs uppercase tracking-[0.25em] text-gray-700 dark:text-white/50">Client</label>
+            <ClientSelect value={draft.clientId} initialClient={clients.find(client => client.id === draft.clientId)
+              ?? (project?.client.id === draft.clientId ? project.client : null)}
+              onChange={clientId => setDraft(current => ({ ...current, clientId }))} />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <label>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Start</span>
@@ -269,40 +296,38 @@ const ProjectFormModal: React.FC<ProjectFormProps> = ({ project, clients, users,
 
           <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Managers</h3>
-              <div className="mt-2 max-h-52 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                {managerOptions.map((user) => (
-                  <label key={user.id} className="flex items-center gap-3 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 dark:border-gray-800">
-                    <input type="checkbox" checked={draft.managerIds.includes(user.id)} onChange={() => toggleId('managerIds', user.id)} />
-                    <Avatar user={user} size={24} /><span>{user.name}</span>
-                    <span className="ml-auto text-xs text-gray-500">{user.role}</span>
-                  </label>
-                ))}
-              </div>
+              <label htmlFor="projectManagers" className="text-xs uppercase tracking-[0.25em] text-gray-700 dark:text-white/50">Managers</label>
+              <SearchableMultiSelect id="projectManagers" label="Managers" avoidClipping className={pickerClass}
+                options={managerOptions.filter(person => matches(person, managerSearch)).map(userOption)}
+                selectedOptions={knownUsers.filter(person => draft.managerIds.includes(person.id)).map(userOption)}
+                value={draft.managerIds} onToggle={id => toggleId('managerIds', id)}
+                search={managerSearch} onSearchChange={setManagerSearch} placeholder="Search and select managers..."
+                searchPlaceholder="Search managers by name, role, email, team..." emptyMessage="No managers match your search."
+                loadingMessage="Loading managers..." selectedStatusLabel="Added"
+                renderAvatar={(option, size) => <Avatar user={knownUsers.find(person => person.id === option.id)} size={size} />} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Members</h3>
-              <div className="mt-2 max-h-52 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                {activeUsers.map((user) => (
-                  <label key={user.id} className="flex items-center gap-3 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 dark:border-gray-800">
-                    <input type="checkbox" checked={draft.memberIds.includes(user.id)} onChange={() => toggleId('memberIds', user.id)} />
-                    <Avatar user={user} size={24} /><span>{user.name}</span>
-                    <span className="ml-auto text-xs text-gray-500">{user.email}</span>
-                  </label>
-                ))}
-              </div>
+              <label htmlFor="projectMembers" className="text-xs uppercase tracking-[0.25em] text-gray-700 dark:text-white/50">Members</label>
+              <SearchableMultiSelect id="projectMembers" label="Members" avoidClipping className={pickerClass}
+                options={memberOptions.filter(person => matches(person, memberSearch)).map(userOption)}
+                selectedOptions={knownUsers.filter(person => draft.memberIds.includes(person.id)).map(userOption)}
+                value={draft.memberIds} onToggle={id => toggleId('memberIds', id)}
+                search={memberSearch} onSearchChange={setMemberSearch} placeholder="Search and select members..."
+                searchPlaceholder="Search members by name, role, email, team..." emptyMessage="No members match your search."
+                loadingMessage="Loading members..." selectedStatusLabel="Added"
+                renderAvatar={(option, size) => <Avatar user={knownUsers.find(person => person.id === option.id)} size={size} />} />
             </div>
           </div>
 
           {(localError || error) && <div className="md:col-span-2 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">{localError || error}</div>}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-700">
+        <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-700">
           <button type="button" onClick={onClose} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium dark:border-gray-700">Cancel</button>
           <button type="submit" disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">{saving ? 'Saving...' : project ? 'Save Project' : 'Create Project'}</button>
         </div>
       </form>
-    </div>
+    </div>, document.body
   );
 };
 
@@ -807,6 +832,7 @@ const Projects: React.FC = () => {
         error={restoreError} onClose={() => setRestoreTarget(null)} onConfirm={() => void handleRestore()} />}
       {isFormOpen && (
         <ProjectFormModal
+          key={`${user?.tenantId}:${user?.id}:${formProject?.id ?? 'new'}`}
           project={formProject}
           clients={clients}
           users={users}

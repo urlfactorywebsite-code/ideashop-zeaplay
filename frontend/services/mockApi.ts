@@ -264,6 +264,16 @@ const DEFAULT_CACHE_TTL_MS = 60000;
 const DEFAULT_PERSISTED_CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_STORAGE_PREFIX = `zea-play-cache:${encodeURIComponent(NORMALIZED_API_BASE_URL)}:`;
 const responseCache = new Map<string, CacheEntry<unknown>>();
+
+// Task views and their metadata must not reuse another browser session's data.
+// Capture the generation before the request, so a late response stays in its
+// original scope. React Query and this memory cache still deduplicate readers.
+const taskSessionCacheKey = (key: string): string => `@task-session:${tokenGeneration()}:${key}`;
+const resourceCacheKey = (key: string): string => key.replace(/^@task-session:\d+:/, '');
+const taskCacheGeneration = (key: string): number | null => {
+  const match = /^@task-session:(\d+):/.exec(key);
+  return match ? Number(match[1]) : null;
+};
 const listCacheGeneration = { clients: 0, projects: 0 };
 const storageAvailable =
   typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
@@ -330,8 +340,11 @@ function buildCacheKey(base: string, params?: Record<string, unknown>): string {
 }
 
 function getCached<T>(key: string): T | null {
+  const generation = taskCacheGeneration(key);
+  if (generation !== null && generation !== tokenGeneration()) return null;
   const entry = responseCache.get(key);
   if (!entry) {
+    if (generation !== null) return null;
     const persisted = readPersistedCache<T>(key);
     if (!persisted) {
       return null;
@@ -341,6 +354,7 @@ function getCached<T>(key: string): T | null {
   }
   if (Date.now() > entry.expiresAt) {
     responseCache.delete(key);
+    if (generation !== null) return null;
     const persisted = readPersistedCache<T>(key);
     if (!persisted) {
       return null;
@@ -352,8 +366,11 @@ function getCached<T>(key: string): T | null {
 }
 
 function setCached<T>(key: string, value: T, ttlMs: number = DEFAULT_CACHE_TTL_MS): void {
+  const generation = taskCacheGeneration(key);
+  if (generation !== null && generation !== tokenGeneration()) return;
   const expiresAt = Date.now() + ttlMs;
   responseCache.set(key, { value, expiresAt });
+  if (generation !== null) return;
   writePersistedCache(key, value, Math.max(ttlMs, DEFAULT_PERSISTED_CACHE_TTL_MS));
 }
 
@@ -362,7 +379,7 @@ function invalidateCache(prefix: string): void {
     if (key.startsWith(prefix)) listCacheGeneration[key]++;
   }
   responseCache.forEach((_value, key) => {
-    if (key.startsWith(prefix)) {
+    if (resourceCacheKey(key).startsWith(prefix)) {
       responseCache.delete(key);
     }
   });
@@ -383,6 +400,8 @@ function invalidateCache(prefix: string): void {
 
 // Retire pre-security-fix SMTP cache entries without reading or displaying them.
 invalidateCache('smtp-');
+// Retire older private task-view caches without reading their contents.
+for (const prefix of ['task', 'users', 'departments', 'projects', 'comments:']) invalidateCache(prefix);
 if (storageAvailable) {
   try {
     for (let index = window.localStorage.length - 1; index >= 0; index--) {
@@ -677,6 +696,7 @@ type ApiCompletionSubmission = {
 
 type ApiTask = {
   id: string;
+  dependencies?: { id: string; title: string }[];
   can_edit?: boolean;
   can_manage_subtasks?: boolean;
   can_review_subtasks?: boolean;
@@ -2459,6 +2479,7 @@ function mapTask(task: ApiTask): Task {
 
   const mapped: Task = {
     id: task.id,
+    dependencies: task.dependencies ?? [],
     canEdit: task.can_edit,
     canManageSubtasks: task.can_manage_subtasks,
     canReviewSubtasks: task.can_review_subtasks,
@@ -3940,7 +3961,7 @@ const api = {
   async getUsers(): Promise<User[]> {
     const generation = profileGeneration();
     try {
-      const cacheKey = 'users';
+      const cacheKey = taskSessionCacheKey('users');
       const cached = getCached<User[]>(cacheKey);
       if (cached && cached.length > 0) {
         return cached;
@@ -4155,7 +4176,7 @@ const api = {
         sort_by: filters.sortBy ?? 'name',
         sort_order: filters.sortOrder ?? 'asc',
       };
-      const cacheKey = buildCacheKey('projects', params as Record<string, unknown>);
+      const cacheKey = taskSessionCacheKey(buildCacheKey('projects', params as Record<string, unknown>));
       const cached = getCached<ProjectListResponse>(cacheKey);
       if (cached) {
         return cached;
@@ -4519,14 +4540,14 @@ const api = {
     }
   },
 
-    async getTasks(_userId: string, _userRole: Role): Promise<Task[]> {
+    async getTasks(_userId: string, _userRole: Role, options: { fresh?: boolean; signal?: AbortSignal } = {}): Promise<Task[]> {
       try {
-      const cacheKey = buildCacheKey('tasks', { userId: _userId, role: _userRole });
-      const cached = getCached<Task[]>(cacheKey);
+      const cacheKey = taskSessionCacheKey(buildCacheKey('tasks', { userId: _userId, role: _userRole }));
+      const cached = options.fresh ? null : getCached<Task[]>(cacheKey);
       if (cached) {
         return cached;
       }
-      const { data } = await http.get<ApiTask[]>('/tasks');
+      const { data } = await http.get<ApiTask[]>('/tasks', { signal: options.signal });
       const mapped = data.map(mapTask);
       setCached(cacheKey, mapped);
       return mapped;
@@ -4537,7 +4558,7 @@ const api = {
 
   async getLeaderboardTasks(): Promise<Task[]> {
     try {
-      const cacheKey = 'tasks:leaderboard';
+      const cacheKey = taskSessionCacheKey('tasks:leaderboard');
       const cached = getCached<Task[]>(cacheKey);
       if (cached) {
         return cached;
@@ -4554,7 +4575,7 @@ const api = {
 
   async getTask(taskId: string, options: { fresh?: boolean; signal?: AbortSignal } = {}): Promise<Task> {
     try {
-      const cacheKey = `task:${taskId}`;
+      const cacheKey = taskSessionCacheKey(`task:${taskId}`);
       const cached = options.fresh ? null : getCached<Task>(cacheKey);
       if (cached) {
         return cached;
@@ -4617,7 +4638,7 @@ const api = {
 
   async getTaskGroup(taskId: string): Promise<Task[]> {
     try {
-      const cacheKey = `task-group:${taskId}`;
+      const cacheKey = taskSessionCacheKey(`task-group:${taskId}`);
       const cached = getCached<Task[]>(cacheKey);
       if (cached) {
         return cached;
@@ -5343,7 +5364,7 @@ const api = {
 
   async getComments(taskId: string): Promise<Comment[]> {
     try {
-      const cacheKey = `comments:${taskId}`;
+      const cacheKey = taskSessionCacheKey(`comments:${taskId}`);
       const cached = getCached<Comment[]>(cacheKey);
       if (cached) {
         return cached;
@@ -5374,7 +5395,7 @@ const api = {
 
   async getDepartments(): Promise<Department[]> {
     try {
-      const cacheKey = 'departments';
+      const cacheKey = taskSessionCacheKey('departments');
       const cached = getCached<Department[]>(cacheKey);
       if (cached) {
         departmentCache = cached;
@@ -6252,6 +6273,7 @@ const api = {
     },
 
     async getTasksPage(params: {
+      timezone?: string;
       page: number;
       pageSize: number;
       cursor?: string | null;
@@ -6275,6 +6297,7 @@ const api = {
           page_size: params.pageSize,
         };
         if (params.cursor) query.cursor = params.cursor;
+        if (params.timezone) query.timezone = params.timezone;
         if (params.search) query.search = params.search;
         if (params.status) query.status = params.status;
         if (params.priority) query.priority = params.priority;
@@ -6313,6 +6336,7 @@ const api = {
     },
 
     async getTaskCalendarSummary(params: {
+      timezone?: string;
       startDate: string;
       endDate: string;
       search?: string;
@@ -6332,6 +6356,7 @@ const api = {
           start_date: params.startDate,
           end_date: params.endDate,
         };
+        if (params.timezone) query.timezone = params.timezone;
         if (params.search) query.search = params.search;
         if (params.status) query.status = params.status;
         if (params.priority) query.priority = params.priority;
@@ -6353,6 +6378,7 @@ const api = {
     },
 
     async getTaskCalendarTasks(params: {
+      timezone?: string;
       startDate: string;
       endDate?: string;
       search?: string;
@@ -6372,6 +6398,7 @@ const api = {
           start_date: params.startDate,
         };
         if (params.endDate) query.end_date = params.endDate;
+        if (params.timezone) query.timezone = params.timezone;
         if (params.search) query.search = params.search;
         if (params.status) query.status = params.status;
         if (params.priority) query.priority = params.priority;
@@ -6393,6 +6420,8 @@ const api = {
     },
 
     async getTasksKanban(params: {
+      timezone?: string;
+      page?: number;
       pageSize?: number;
       search?: string;
       priority?: TaskPriority;
@@ -6407,7 +6436,9 @@ const api = {
     }): Promise<TaskKanbanResponse> {
       try {
         const query: Record<string, unknown> = {};
+        if (params.page) query.page = params.page;
         if (params.pageSize) query.page_size = params.pageSize;
+        if (params.timezone) query.timezone = params.timezone;
         if (params.search) query.search = params.search;
         if (params.priority) query.priority = params.priority;
         if (params.assigneeId) query.assignee_id = params.assigneeId;

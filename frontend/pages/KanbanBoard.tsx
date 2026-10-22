@@ -1,3 +1,6 @@
+import { workTimezone } from '../utils/activeWork';
+import { calendarToday, taskInstant } from '../utils/taskDates';
+import { useTaskFilter, useTaskViewActive } from '../hooks/useTaskView';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,9 +11,9 @@ import api from '../services/mockApi';
 import TaskDetailModal from '../components/TaskDetailModal';
 import PageLoader from '../components/loading/PageLoader';
 import Tooltip from '../components/ui/Tooltip';
-import { formatDate, formatTaskStatus } from '../utils';
+import { formatTaskStatus } from '../utils';
 import { loadPointsConfig, POINTS_CONFIG_UPDATED_EVENT } from '../utils/pointsConfigStorage';
-import { augmentTasksWithPoints, summarizeTaskPoints, formatPointsValue, normalizeDepartmentKey } from '../utils/taskPoints';
+import { augmentTasksWithPoints, summarizeTaskPoints, formatPointsValue } from '../utils/taskPoints';
 import { priorityPillStyle } from '../utils/themeTokens';
 import {
   PlusIcon,
@@ -303,12 +306,7 @@ const getPriorityBadgeStyle = (priority: TaskPriority, mode: ResolvedTheme): Rea
   };
 };
 
-const overdueExcludedStatuses = new Set<TaskStatus>([
-  TaskStatus.DONE,
-  TaskStatus.DEPLOYED,
-  TaskStatus.FAILED,
-  TaskStatus.GRAVEYARD,
-]);
+
 
 const formatPriority = (value: TaskPriority) =>
   value
@@ -359,7 +357,8 @@ const toIsoDate = (value: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, onClick, onEdit, theme, user }) => {
+const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, onClick, onEdit, theme, user, timezone }) => {
+  const formatDate = (value: string | null, includeTime = false) => value ? taskInstant(value).setZone(timezone).toLocaleString({ year: 'numeric', month: 'short', day: 'numeric', ...(includeTime ? { hour: 'numeric', minute: '2-digit' } : {}) }) : 'N/A';
   const isLight = theme === 'light';
   const isBright = theme === 'light' || theme === 'colorful';
   const statusVisual = getKanbanStatusVisual(task.status);
@@ -379,7 +378,7 @@ const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, 
 
   return (
     <div
-      draggable
+      draggable={task.canEdit !== false}
       onDragStart={(e) => onDragStart(e, task.id)}
       onClick={() => onClick(task.id)}
       className={`group relative overflow-hidden rounded-2xl border p-4 transition duration-200 hover:-translate-y-1 hover:shadow-xl ${cardSurface}`}
@@ -527,12 +526,14 @@ const FilterDropdown: React.FC<{
 
 const KanbanBoard: React.FC = () => {
   const queryClient = useQueryClient();
+    const active = useTaskViewActive();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+    const zone = workTimezone(user?.timezone);
   const { searchQuery, setSearchQuery, debouncedSearchQuery } = useSearch();
   const { theme } = useTheme();
   const resolvedTheme = useResolvedTheme(theme as ThemeMode);
@@ -551,22 +552,29 @@ const KanbanBoard: React.FC = () => {
   });
 
   // Filtering and sorting state
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [priorityFilter, setPriorityFilter] = useState<string>('');
-  const [assigneeFilter, setAssigneeFilter] = useState<string>('');
-  const [teamFilter, setTeamFilter] = useState<string>('');
-  const [dueDateFilter, setDueDateFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useTaskFilter<string>('status', '');
+  const [priorityFilter, setPriorityFilter] = useTaskFilter<string>('priority', '');
+  const [assigneeFilter, setAssigneeFilter] = useTaskFilter<string>('assigneeId', '');
+  const [projectFilter] = useTaskFilter('projectId');
+  const [teamFilter, setTeamFilter] = useTaskFilter<string>('team', '');
+  const [dueDateFilter, setDueDateFilter] = useTaskFilter<string>('dueDate', '');
   const [isDateRangeOpen, setDateRangeOpen] = useState(false);
   const [activeDatePreset, setActiveDatePreset] = useState<'7d' | '30d' | 'mtd' | 'ytd' | 'custom' | ''>('');
-  const [quickFilter, setQuickFilter] = useState<string>('');
+  const [quickFilter, setQuickFilter] = useTaskFilter<string>('quickFilter', '');
   const [pageSize, setPageSize] = useState<number>(20);
-  const [pageIndex, setPageIndex] = useState<number>(0);
+  const paginationScope = JSON.stringify([debouncedSearchQuery, statusFilter, priorityFilter, assigneeFilter, projectFilter, teamFilter, dueDateFilter, quickFilter, pageSize]);
+  const [pagination, setPagination] = useState({ scope: paginationScope, index: 0 });
+  const pageIndex = pagination.scope === paginationScope ? pagination.index : 0;
+  const setPageIndex = (value: React.SetStateAction<number>) => setPagination(previous => ({
+    scope: paginationScope,
+    index: typeof value === 'function' ? value(previous.scope === paginationScope ? previous.index : 0) : value,
+  }));
 
   const dateRangeLabel = useMemo(() => formatRangeLabel(dueDateFilter), [dueDateFilter]);
   const dateRangeTokens = useMemo(() => parseRangeToken(dueDateFilter), [dueDateFilter]);
 
   const applyDatePreset = useCallback((preset: '7d' | '30d' | 'mtd' | 'ytd') => {
-    const now = new Date();
+    const now = calendarToday(zone);
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     let start = new Date(today);
     if (preset === '7d') {
@@ -582,7 +590,7 @@ const KanbanBoard: React.FC = () => {
     const endIso = toIsoDate(today);
     setDueDateFilter(`${startIso}..${endIso}`);
     setActiveDatePreset(preset);
-  }, []);
+  }, [zone]);
 
   const updateDateRange = useCallback((start: string, end: string) => {
     if (!start && !end) {
@@ -600,35 +608,38 @@ const KanbanBoard: React.FC = () => {
   }, []);
 
   const kanbanQueryParams = useMemo(() => ({
+    page: pageIndex + 1,
+    timezone: zone,
     pageSize,
     search: debouncedSearchQuery || undefined,
     priority: priorityFilter ? (priorityFilter as TaskPriority) : undefined,
     assigneeId: assigneeFilter || undefined,
+    projectId: projectFilter || undefined,
     team: teamFilter || undefined,
     dueDate: dueDateFilter || undefined,
     quickFilter: quickFilter || undefined,
-  }), [assigneeFilter, debouncedSearchQuery, dueDateFilter, pageSize, priorityFilter, quickFilter, teamFilter]);
+  }), [assigneeFilter, projectFilter, debouncedSearchQuery, dueDateFilter, zone, pageIndex, pageSize, priorityFilter, quickFilter, teamFilter]);
 
   const kanbanQuery = useQuery({
-    queryKey: ['tasks', 'kanban-board', kanbanQueryParams],
+    queryKey: ['tasks', 'kanban-board', user?.tenantId, user?.id, user?.role, kanbanQueryParams],
     queryFn: ({ signal }) => api.getTasksKanban({ ...kanbanQueryParams, signal }),
-    enabled: Boolean(user),
+    enabled: Boolean(user) && active,
     staleTime: 45_000,
     placeholderData: keepPreviousData,
   });
 
   const usersQuery = useQuery({
-    queryKey: ['users', 'kanban-board'],
+    queryKey: ['users', 'task-views', user?.tenantId, user?.id, user?.role],
     queryFn: () => api.getUsers(),
-    enabled: Boolean(user),
+    enabled: Boolean(user) && active,
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
 
   const departmentsQuery = useQuery({
-    queryKey: ['departments', 'kanban-board'],
+    queryKey: ['departments', 'task-views', user?.tenantId, user?.id, user?.role],
     queryFn: () => api.getDepartments(),
-    enabled: Boolean(user),
+    enabled: Boolean(user) && active,
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
@@ -713,7 +724,7 @@ const KanbanBoard: React.FC = () => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData('taskId');
     const task = tasks.find((t) => t.id === taskId);
-    if (!task || task.status === newStatus || !user) return;
+    if (!task || task.canEdit === false || task.status === newStatus || !user) return;
 
     try {
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
@@ -721,6 +732,9 @@ const KanbanBoard: React.FC = () => {
       void queryClient.invalidateQueries({ queryKey: ['tasks', 'kanban-board'] });
     } catch (err) {
       console.error('Failed to update task:', err);
+      // Refetch can return a structurally identical cached response, so restore
+      // the optimistic card explicitly before reconciling with the server.
+      setTasks(previous => previous.map(current => current.id === taskId ? task : current));
       fetchData();
     }
   };
@@ -745,6 +759,8 @@ const KanbanBoard: React.FC = () => {
 
   const handleBoardMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!boardRef.current) return;
+    // Cards use native drag/drop; board panning must not consume that gesture.
+    if ((event.target as HTMLElement).closest('[draggable="true"], button, input, select, textarea, a')) return;
     boardDragState.current.isDragging = true;
     boardDragState.current.startX = event.pageX - boardRef.current.offsetLeft;
     boardDragState.current.scrollLeft = boardRef.current.scrollLeft;
@@ -785,84 +801,12 @@ const KanbanBoard: React.FC = () => {
     fetchData();
   };
 
-  const filteredTasks = useMemo(() => {
-    let filtered: Task[] = tasks;
+  // The server already applies shared filters before pagination. Reapplying
+  // approximate client date/search filters would hide valid rows on each page.
+  const filteredTasks = useMemo(() => statusFilter ? tasks.filter(task => task.status === statusFilter) : tasks, [tasks, statusFilter]);
 
-    // Apply search
-    if (typeof debouncedSearchQuery === 'string' && debouncedSearchQuery.length > 0) {
-      const lowercasedQuery = debouncedSearchQuery.toLowerCase();
-      filtered = filtered.filter((task) => {
-        const assigneeNames = (task.assignedTo ?? [])
-          .map((id) => usersMap.get(id)?.name?.toLowerCase() || '')
-          .filter((name) => name !== '');
-        const matchesAssignee = assigneeNames.some(name => name.includes(lowercasedQuery));
-        return (
-          task.title.toLowerCase().includes(lowercasedQuery) ||
-          task.description.toLowerCase().includes(lowercasedQuery) ||
-          task.team.toLowerCase().includes(lowercasedQuery) ||
-          matchesAssignee ||
-          (task.tags && task.tags.some(tag => tag.toLowerCase().includes(lowercasedQuery)))
-        );
-      });
-    }
-
-    // Apply filters
-    if (statusFilter) {
-      filtered = filtered.filter((task) => task.status === statusFilter as TaskStatus);
-    }
-    if (priorityFilter) {
-      filtered = filtered.filter((task) => task.priority === priorityFilter as TaskPriority);
-    }
-    if (assigneeFilter) {
-      filtered = filtered.filter((task) => task.assignedTo?.includes(assigneeFilter));
-    }
-    if (teamFilter) {
-      const normalizedFilter = normalizeDepartmentKey(teamFilter);
-      filtered = filtered.filter((task) => normalizeDepartmentKey(task.team) === normalizedFilter);
-    }
-    if (dueDateFilter) {
-      const { start, end } = parseRangeToken(dueDateFilter);
-      const lower = start ? new Date(`${start}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
-      const upper = end ? new Date(`${end}T23:59:59`).getTime() : Number.POSITIVE_INFINITY;
-      filtered = filtered.filter((task) => {
-        if (!task.dueAt) {
-          return false;
-        }
-        const dueAt = new Date(task.dueAt).getTime();
-        if (Number.isNaN(dueAt)) {
-          return false;
-        }
-        return dueAt >= lower && dueAt <= upper;
-      });
-    }
-    // Apply quick filters
-    if (quickFilter === 'createdByMe') {
-      filtered = filtered.filter((task) => (user?.id ? task.createdBy === user.id : false));
-    } else if (quickFilter === 'myTasks') {
-      filtered = filtered.filter((task) => (user?.id ? task.assignedTo?.includes(user.id) : false));
-    } else if (quickFilter === 'overdue') {
-      filtered = filtered.filter(
-        (task) =>
-          task.dueAt &&
-          new Date(task.dueAt).getTime() < Date.now() &&
-          !overdueExcludedStatuses.has(task.status),
-      );
-    } else if (quickFilter === 'completed') {
-      filtered = filtered.filter((task) => task.status === TaskStatus.DONE || task.status === TaskStatus.DEPLOYED);
-    }
-
-    return filtered;
-  }, [tasks, debouncedSearchQuery, usersMap, statusFilter, priorityFilter, assigneeFilter, teamFilter, dueDateFilter, quickFilter, user?.id]);
-
-  const maxTasksInColumn = useMemo(() => {
-    if (!columns.length) return 0;
-    return columns.reduce((max, column) => {
-      const count = filteredTasks.filter(
-        (t) => statusDetails[t.status]?.label === column.title
-      ).length;
-      return Math.max(max, count);
-    }, 0);
-  }, [columns, filteredTasks]);
+  const maxTasksInColumn = useMemo(() => Math.max(0, ...(kanbanQuery.data?.columns || [])
+    .filter(column => !statusFilter || column.status === statusFilter).map(column => column.count)), [kanbanQuery.data, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(maxTasksInColumn / pageSize));
   const canGoPrev = pageIndex > 0;
@@ -1052,9 +996,9 @@ const KanbanBoard: React.FC = () => {
         <p className={`text-[11px] font-semibold uppercase tracking-[0.34em] ${isBrightMode ? 'text-fuchsia-600' : 'text-cyan-200/80'}`}>
           Mission Control
         </p>
-        <h1 className={`text-3xl font-bold ${boardTextClass}`}>
+        <h2 className={`text-3xl font-bold ${boardTextClass}`}>
           Battle Board <span className={isBrightMode ? 'text-fuchsia-500' : 'text-cyan-200'}>⚔️</span>
-        </h1>
+        </h2>
       </div>
 
       <div className={`${controlsPanelClass} space-y-3`}>
@@ -1281,17 +1225,17 @@ const KanbanBoard: React.FC = () => {
       >
         {columns.map((column) => {
           const tasksInColumn = filteredTasks.filter(
-            (t) => statusDetails[t.status]?.label === column.title
+            (t) => t.status === column.id
           );
-          const startIndex = pageIndex * pageSize;
-          const visibleTasks = tasksInColumn.slice(startIndex, startIndex + pageSize);
-          const detail = Object.values(statusDetails).find((s) => s.label === column.title);
+          const visibleTasks = tasksInColumn;
+          const detail = statusDetails[column.id as TaskStatus];
           if (!detail) return null;
           const Icon = detail.icon;
 
           return (
             <div
               key={column.id}
+              data-task-status={column.id}
               className="relative w-72 flex-shrink-0 overflow-hidden rounded-3xl border p-5 backdrop-blur transition duration-200 hover:-translate-y-0.5"
               onDrop={(e) => handleDrop(e, column.id as TaskStatus)}
               onDragOver={handleDragOver}
@@ -1315,7 +1259,7 @@ const KanbanBoard: React.FC = () => {
                       <Icon className="h-4 w-4" />
                     </span>
                     <Tooltip text={String(column.id)} triggerClassName="inline-flex items-center">
-                      <span>{detail.label}</span>
+                      <span>{column.title || detail.label}</span>
                     </Tooltip>
                   </h3>
                   <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${boardMutedTextClass}`} style={{ borderColor: isBrightMode ? 'rgba(148, 163, 184, 0.22)' : 'rgba(255, 255, 255, 0.1)', background: isBrightMode ? 'rgba(255, 255, 255, 0.58)' : 'rgba(255, 255, 255, 0.06)' }}>
@@ -1337,6 +1281,7 @@ const KanbanBoard: React.FC = () => {
                         onClick={handleTaskClick}
                         onEdit={handleTaskEdit}
                         theme={resolvedTheme}
+                        timezone={zone}
                         user={user || null}
                       />
                     );

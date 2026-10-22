@@ -3,6 +3,7 @@ import { ContactCreatePayload } from '../types';
 export type ContactDraft = Omit<ContactCreatePayload, 'clientLinks'> & {
   clientIds: string[];
   primaryClientId?: string | null;
+  primaryClientIds?: string[];
 };
 
 export type ContactValidationErrors = Partial<Record<keyof ContactDraft, string>>;
@@ -36,6 +37,7 @@ export function normalizeContactDraft(draft: ContactDraft): ContactDraft {
     title: clean(draft.title),
     notes: clean(draft.notes),
     clientIds,
+    primaryClientIds: draft.primaryClientIds?.filter(id => clientIds.includes(id)),
     primaryClientId: draft.primaryClientId && clientIds.includes(draft.primaryClientId) ? draft.primaryClientId : null,
   };
 }
@@ -68,7 +70,7 @@ export function toContactPayload(draft: ContactDraft): ContactCreatePayload {
     notes: payload.notes,
     clientLinks: payload.clientIds.map((clientId) => ({
       clientId,
-      isPrimary: payload.primaryClientId === clientId,
+      isPrimary: payload.primaryClientIds ? payload.primaryClientIds.includes(clientId) : payload.primaryClientId === clientId,
     })),
   };
 }

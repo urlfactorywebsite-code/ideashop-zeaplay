@@ -1,0 +1,260 @@
+ZEA.PLAY - ALL TASKS TABS REFACTOR VALIDATION
+22 October 2026 | F:\Projects\ideashop-zeaplay-v5
+
+DECISION
+Overall automated release gate: FAIL (existing baseline failures remain).
+The 19 functional/refactor criteria below pass within the stated local test
+scope after fixes. Production build passes. This is local validation, not a
+production certification. No deployment, commit, migration, live database
+operation, or rebuild of the application's existing containers was performed.
+
+SCOPE AND EVIDENCE MODEL
+Reviewed the existing uncommitted refactor and fixed related defects only.
+Preserved unrelated dirty work, including the earlier route-error recovery and
+nginx hardening changes. Backend changes in this review are confined to task
+read endpoints: calendar timezone bounds/aggregation, optional timezone-aware
+date filters, stable list sorting, and Kanban pagination. Workflow, timer,
+notification, attachment, and task-write services were not rewritten.
+
+Browser evidence: headless installed Chrome, loopback Vite on 127.0.0.1:16300,
+real application components, synthetic service fixtures, controlled socket wire
+messages, and a separately exercised real HTTP task mapper/cache. This proves
+client behavior; it does not prove a live multi-user WebSocket deployment.
+External requests were blocked. External images therefore appear broken in the
+saved screenshots; local icon controls, layout, tab behavior and overflow were
+still exercised. No outside task-data POSTs were observed.
+
+Backend evidence: FastAPI tests against disposable SQLite and PostgreSQL 15
+schemas, source mounted read-only in a temporary verification image, isolated
+internal Docker network. No application database or production database was
+used. Timer/history/authorization assertions ran against persisted test data.
+
+REQUIREMENT MATRIX
+1. PASS - Kanban/Gantt are absent as independent sidebar items.
+   Sidebar.tsx has one /tasks destination; navigation registry marks the child
+   views as task-tab entries. Browser smoke checks the rendered sidebar.
+
+2. PASS - All Tasks is one sidebar item with no dropdown/submenu.
+   Browser checks sidebar links and active state across all four child views.
+
+3. PASS - All Tasks, Kanban Board, Gantt Chart and Calendar are internal tabs.
+   AllTasks.tsx mounts the existing views through PageTabs. Browser checks tab
+   labels, route changes, active panel, keyboard arrows/Home/End and history.
+   Gantt keeps its existing manager/admin/owner ceiling; regular users see the
+   three views their role permits. This refactor does not expand permissions.
+
+4. PASS - Existing view functionality remains usable in the checked paths.
+   Real list/grid, board drag/drop, Gantt filters/timeline, Calendar navigation,
+   date/task selection, creation and existing Task Details/edit flow exercised.
+   Existing backend lifecycle/timer tests also ran. This is not an exhaustive
+   replay of every combination of every shared task dialog.
+
+5. PASS - The old Calendar popup has been replaced by the page view.
+   No Calendar popup trigger/wrapper remains in Tasks.tsx. /tasks/calendar is a
+   full route panel. Its date drawer and task dialogs remain functional; their
+   existence does not turn the calendar back into a popup. Tested selection,
+   task preview/details/edit, creation and month/week/day controls.
+
+6. PASS - No data loss in isolated persistence validation.
+   New backend snapshot test compares stored task status, due/updated values,
+   dependency IDs, comments, attachments, history events and active TimeEntry
+   fields before/after list, board, Gantt-source and Calendar reads. Identical
+   on SQLite and PostgreSQL. HTTP mapper preserves attachment references and
+   dependencies. No schema migration/deletion added. Production data/file-byte
+   integrity was not inspected and is not claimed.
+
+7. PASS - Board actions retain server workflow enforcement.
+   UI uses the existing task PATCH; canEdit=false cards cannot be dragged.
+   Browser exercises successful drag/drop and rollback on rejected mutation.
+   New real-API test checks DONE with unfinished subtasks -> 409, WAITING
+   dependency activation without privileged force-start reason -> 422, and
+   foreign-tenant mutation -> 404. Rejected actions preserve status/history.
+   Existing lifecycle tests cover dependency activation/reopening and timers.
+
+8. PASS - Gantt date geometry and dependency data are accurate in tested cases.
+   Preserved dependencies in mapTask and displayed predecessor summaries.
+   Civil-day geometry handles DST and naive UTC timestamps. Undated tasks no
+   longer acquire an invented two-day deadline; reversed dates are flagged.
+   The existing chart uses Created-to-Due, not a separate planned-start model.
+   Dependency editing/arrows and automatic rescheduling are not new features.
+
+9. PASS - Calendar uses the profile timezone (browser fallback).
+   Frontend date keys, today marker, selected-day requests, displayed task times,
+   drag scheduling and creation agree on the selected timezone. Creation applies
+   the selected date on first open and sends an explicit UTC instant.
+   Backend groups naive UTC storage into IANA civil days using half-open UTC
+   bounds. SQLite/PostgreSQL tests cover Kolkata midnight, New York's 23-hour
+   spring day and 25-hour autumn day, and the final fractional second.
+   Browser covers Kolkata and Tokyo-profile/Los-Angeles-browser disagreement.
+   Invalid zones and excessive ranges return 400; cache keys include timezone.
+
+10. PASS - Tab switching preserves active timers.
+    The existing Layout ActiveWorkProvider and task socket stay mounted.
+    Browser checks the running duration does not decrease, shared work reads
+    do not repeat on tab switches, and no timer mutation is called by switching.
+    Real persisted timer fields also remain unchanged during view reads.
+
+11. PASS - Realtime invalidation reaches all four views locally.
+    A wire task.updated message through the real useTaskWebSocket hook refreshes
+    list, board, Gantt and Calendar. A genuine controlled disconnect/reconnect
+    reconciles the missing-event gap. Existing backend commit/realtime fanout
+    and tenant-policy tests pass. Production proxy delivery is unverified.
+
+12. PASS - No duplicate task socket or duplicate checked task requests.
+    Exactly one initial task-page call, one users call and one task socket in
+    the browser fixture. Returning to a cached tab adds no task-page/users
+    request. First socket open/ready no longer causes an extra fetch. One
+    disconnect creates one replacement socket. Inactive views pause queries.
+    Project-correct next-page prefetch is consumed once, not fetched again.
+    Switching a later list page to grid starts at page 1 before fetching, so
+    the old page is not requested and immediately cancelled during the reset.
+    Calendar intentionally prefetches adjacent month summaries. Existing
+    navigation revalidation and Active Work polling remain intentional.
+    The separate failing DB SELECT budget is reported under criterion 20.
+
+13. PASS - Sidebar Management rules survive the move.
+    Existing kanban/gantt/calendar policy IDs retained; task parent/child roles,
+    protected list tab, hidden/disabled behavior and inherited shutdown tested.
+    Browser checks the four-entry All Tasks Page Tabs management group. Real
+    navigation API tests cover saved policies, tenant isolation and role ceilings.
+
+14. PASS - Unauthorized direct tab URLs are denied.
+    Regular-user /tasks/gantt is forbidden with no Gantt task read. Disabled
+    board URL is denied; invalid child URLs render Not Found. Parent shutdown
+    blocks protected task APIs. Hidden-only is intentionally still authorized
+    by established Sidebar Management semantics, including direct URLs.
+
+15. PASS - Existing routes/deep links work.
+    /kanban, /gantt and /calendar redirect with replace semantics while retaining
+    query/state. Browser history/refresh checked. Existing /tasks/<UUID> task
+    notification links now normalize to /tasks?taskId=<UUID> and open Task Details
+    while retaining filters/subtask query parameters.
+
+16. PASS - Supported filters, sorting and pagination are retained.
+    Shared supported filters remain URL-backed; each view keeps its supported
+    controls. Project filter now reaches prefetch. List/grid page size matches
+    the UI. Stable ID tie-breakers avoid duplicate/missing equal-date rows.
+    Board page 2 now requests page 2 from the server instead of slicing a
+    truncated first-page response. Custom stage titles use stable status IDs.
+    Isolated API tests traverse every page; browser uses 70 synthetic tasks.
+    Gantt keeps status/assignee/range controls. Calendar/Gantt do not gain the
+    unsupported project filter merely because the URL retains it.
+
+17. PASS - Checked existing actions/dialogs work.
+    Browser creates a task from the list, opens Calendar task details, edits a
+    title, performs accepted/rejected board moves, and creates zoned Calendar
+    tasks. Existing server lifecycle/action/timer regressions ran separately.
+    All upload/download, recurrence and approval combinations are not covered
+    end-to-end by this navigation-focused browser harness.
+
+18. PASS - Checked desktop/tablet/mobile browser layouts are usable.
+    All four panels at widths 360, 768 and 1440 have no document horizontal
+    overflow; tab strip and wide content contain their own scrolling. Keyboard
+    navigation checked; mobile/desktop screenshots visually inspected.
+    Physical touch drag/drop, Safari and assistive-technology testing remain.
+
+19. PASS - Duplicate/stale code introduced or retained by this move removed.
+    Deleted the second inline Kanban implementation and its query/state/render
+    code from Tasks.tsx; one canonical KanbanBoard remains. Removed dead Calendar
+    quick-add/commented implementations and unused state. Existing canonical
+    view modules and legacy redirect routes are intentionally retained.
+    Removed automatic Calendar task-data POST to an external reminder webhook.
+    Local user-authored notes/reminders remain; no reminder delivery is claimed.
+
+20. FAIL - Build passes, but the overall automated gate is not green.
+    Production build: PASS (30.96 seconds, final run).
+    Frontend unit tests: 151 passed, 0 failed, 0 skipped.
+    Browser smoke: 10 groups passed, 0 page errors.
+    Extended browser regression: 11 groups passed, 0 page errors.
+    New backend regressions: 16 passed, 0 failed (70.80 seconds, final run).
+    Broader navigation/lifecycle suite: 250 passed, 4 skipped, 1 failed.
+    Failure: test_reads_have_bounded_queries_and_do_not_load_each_assignee
+      [postgresql], test_task_lifecycle_review.py:262: 13 SELECTs exceeds <=12.
+    Reproduced unchanged using git HEAD task-router/navigation sources in a
+    disposable baseline overlay: same 13-versus-12 failure. The query count is
+    constant with 1 versus 41 children; this did not demonstrate a new N+1.
+    Did not raise the assertion threshold or modify unrelated lifecycle code.
+    Four skips are SQLite variants of PostgreSQL-only snapshot/timezone/lock
+    checks; PostgreSQL variants were executed, not skipped.
+    TypeScript no-emit: FAIL, 116 diagnostics. Saved refactor baseline has 118;
+    no new normalized file/code/message diagnostic signatures. This remains
+    an existing repository-wide type-check problem, not a clean type-check PASS.
+    Ruff new test file: PASS. Task router: 232 current findings versus 233
+    baseline, no new code/message findings. Whole-file lint is not a clean PASS.
+    git diff --check: PASS.
+
+RELATED FIXES MADE DURING REVIEW
+- Correct project/timezone forwarding, abort cleanup and bounded list prefetch.
+- Correct grid page size, synchronous list/filter page reset, list refresh
+  cancellation and stable server ordering.
+- Remove the duplicate inline Kanban and fix real board pagination/status IDs.
+- Centralize civil-date conversions; fix backend aggregation/date filters.
+- Preserve Gantt dependencies and truthful Created-to-Due day geometry.
+- Fix Calendar reschedule rollback, selected-date creation and UTC submission.
+- Remove automatic external reminder export and obsolete Calendar code.
+- Deduplicate task-view user/department lookups; correct socket initial-ready
+  invalidation while keeping genuine reconnect reconciliation.
+- Scope private task/metadata/comment response caches to token generation in
+  memory. Retire legacy private persisted entries without reading them. Discard
+  old-session cache writes. Browser proves a rotated session fetches fresh task
+  data and no task response/private cache entries remain in localStorage.
+- Restore UUID notification deep links to the existing task-details flow.
+
+ACTUAL COMMANDS / ARTIFACTS
+From frontend:
+  npm test
+  npm run build
+  node node_modules/typescript/bin/tsc --noEmit
+  $env:ZEAPLAY_PLAYWRIGHT_MODULE='F:\Projects\Zeaplay-V2\node_modules\@playwright\test\index.mjs'
+  node e2e/task-navigation.mjs
+  node e2e/task-validation.mjs
+The Playwright module path is an existing locally installed test dependency;
+the browser operates on this checkout's loopback application, not that repo.
+
+Backend, inside isolated verification image with explicit rt3_test PostgreSQL:
+  python -m pytest backend/tests/test_navigation.py
+    backend/tests/test_task_tabs_validation.py backend/tests/test_task_lifecycle.py
+    backend/tests/test_task_lifecycle_review.py -q -p no:cacheprovider
+    --basetemp=/tmp/task-validation --junitxml=/results/backend.xml
+    --disable-warnings --tb=short
+  python -m pytest backend/tests/test_task_tabs_validation.py -q
+    -p no:cacheprovider --basetemp=/tmp/task-regressions
+    --junitxml=/results/regressions.xml --disable-warnings --tb=short
+The broad suite ran before the final added boundary/policy regressions; do not
+add its pass count to the final targeted count because the suites overlap.
+
+Evidence files in this directory:
+  production-build.txt; unit-tests.txt; tsc.txt; typecheck.json
+  browser-smoke.txt; browser-extended.txt; browser-extended.json
+  backend.txt; backend.xml; regressions.txt; regressions.xml
+  query-budget-baseline.txt; query-budget-baseline.xml
+  ruff-new-tests.json; ruff-baseline-comparison.json
+  calendar-mobile.png; calendar-desktop.png
+The smoke script's machine-readable result is ../checks/browser.json.
+
+REMAINING RISKS / RELEASE CONDITIONS
+1. Existing TypeScript errors and the reproducible DB query-budget failure
+   prevent an all-green release certification. Vite transpilation success does
+   not substitute for a passing TypeScript check.
+2. Browser tests use synthetic data/controlled transport. Run staging multi-user
+   verification against the intended frontend/backend and reverse proxy before
+   production signoff. No claim is made about the live Settings chunk-load error.
+3. New optional timezone and Kanban page query parameters require the matching
+   backend changes when this source is eventually released. No automatic release
+   or deployment was performed.
+4. Gantt still loads the existing complete authorized task dataset; large tenant
+   load/performance is not benchmarked. Existing Vite large-chunk/lottie/mixed
+   import warnings remain. No unrelated bundler redesign was attempted.
+5. Calendar notes/reminders stay browser-local. No SMTP, push or external reminder
+   delivery proof is supplied. Shared detail-dialog date editing outside this
+   Calendar creation/drop path was not redesigned by this navigation review.
+6. Data preservation evidence concerns persisted isolated test records and
+   attachment references; production records and uploaded file bytes were not
+   audited. Physical mobile/touch and cross-browser certification are pending.
+
+CLEANUP
+Stopped the temporary loopback Vite server, removed the named disposable
+PostgreSQL test container/anonymous test volume and internal test network.
+Existing frontend/backend/presence/PostgreSQL/Redis application containers were
+left running without rebuilds. The local verification image remains available
+as a build cache; it is not a running service.

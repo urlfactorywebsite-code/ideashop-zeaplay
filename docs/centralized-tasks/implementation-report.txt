@@ -1,0 +1,163 @@
+ZEA.PLAY 6.0.1 - CENTRALIZED ALL TASKS
+Local implementation and verification - 22 October 2026
+
+RESULT
+Implemented the unified All Tasks module. Nothing was deployed or committed.
+Existing backend task routes, workflow services, database relationships, timers,
+and realtime transport remain in place. No database migration was added.
+
+NAVIGATION AND ROUTES
+The existing hash router and /tasks canonical route are retained:
+  /tasks          -> All Tasks list (existing Tasks.tsx)
+  /tasks/kanban   -> existing KanbanBoard.tsx
+  /tasks/gantt    -> existing GanttView.tsx
+  /tasks/calendar -> existing CalendarView.tsx, full-page
+Legacy /kanban, /gantt, and /calendar routes redirect with replace semantics to
+their corresponding /tasks child routes. Query parameters and navigation state
+are retained. Invalid /tasks child routes display the existing Not Found page.
+
+All Tasks has the requested title, subtitle, and four horizontal route tabs.
+The existing PageTabs component supplies icons, active state, scrollable tabs,
+roving keyboard focus, arrow keys, Home and End. The parent All Tasks sidebar
+link remains active throughout the module. Kanban/Gantt sidebar entries and
+legacy mobile view shortcuts were removed. The mobile bottom bar now uses the
+existing Projects destination in the former Kanban position. Unrelated links
+remain in place.
+
+The old Calendar popup trigger and popup wrapper were removed. Calendar keeps
+its date navigation, month/week/day modes, summaries, date drawer, task preview,
+task details, creation, drag scheduling, notes/reminders, color coding and
+existing data sources. Its overlays now use a portal so the day drawer appears
+above the application header. Narrow grids and timelines scroll within their
+content areas. Task creation/templates/details and the list's existing controls
+remain in Tasks.tsx.
+
+FILTERS AND STATE
+TaskFiltersProvider uses query parameters for matching filter semantics:
+status, priority, assigneeId, projectId, team, dueDate, createdDate, quickFilter
+and tag where supported. It preserves unrelated query parameters such as taskId.
+Updates merge synchronous multi-field resets and preserve navigation state.
+The existing SearchProvider shares task search between list, Kanban and Calendar.
+
+Each view consumes only supported filters. Project filtering is shared between
+list and Kanban; Calendar and Gantt do not acquire unsupported project filters.
+Gantt retains its distinct range and unassigned filters using ganttRange and
+ganttUnassigned. Pagination, view-specific controls and chart state stay within
+their existing components. Visited views remain mounted, while inactive views
+pause task queries, prefetch and keyboard shortcuts. Views are lazy-loaded on
+first visit. List cache hits avoid an additional request unless explicitly
+refreshed or invalidated. User lookups share an account-scoped query cache.
+
+ROLE AND SIDEBAR MANAGEMENT RULES
+The tasks page remains the parent sidebar policy. Child policies are:
+  tasks.list -> /tasks (protected essential list tab)
+  kanban     -> /tasks/kanban
+  gantt      -> /tasks/gantt
+  calendar   -> /tasks/calendar
+The existing kanban/gantt/calendar IDs were retained so stored workspace rules
+and personal labels/order continue to apply. Sidebar Management has a separate
+All Tasks Page Tabs group, containing four configurable child entries.
+
+User/manager/admin/owner can access list, Kanban and Calendar by default.
+Gantt retains its existing manager/admin/owner ceiling. Owners manage workspace
+access policies; admins retain personal layout management according to the
+existing system. Policies can narrow permissions and cannot grant roles beyond
+the server ceilings. Disabled/forbidden children are denied by direct URL.
+Hidden-only children retain authorized direct access, matching the established
+Sidebar Management behavior. Parent shutdown/revocation applies to children.
+The protected list tab cannot be individually disabled, hidden or role-narrowed;
+an intentional parent module shutdown still applies. No saved rule is rewritten.
+
+REALTIME AND TIMER BEHAVIOR
+ActiveWorkProvider remains above the module in the authenticated Layout. Tab
+navigation does not restart, pause or stop timers and does not open another task
+socket. The existing authenticated task event stream is reused. The hub checks
+event account/tenant identity and batches task-query invalidation at 250 ms.
+The list retains its existing realtime cache refresh. Kanban, Gantt, Calendar
+summaries/ranges and the selected Calendar day use the existing task query cache.
+Gantt fresh reads bypass the service's older response cache after invalidation;
+the existing getTasks caller contract remains compatible through optional options.
+New visualization query keys include account/tenant/role. The legacy unscoped
+list caches are cleared before child effects when entering under an identity.
+
+Two interaction defects exposed by browser verification were repaired:
+  - Board panning no longer consumes native card drag gestures.
+  - Rejected Kanban transitions explicitly restore the prior card state before
+    refetch, even if React Query returns a structurally identical cached response.
+Kanban still calls the existing updateTask API; server transitions, dependencies
+and permissions remain authoritative. No workflow or scheduling rule was added.
+
+FILES CREATED
+  frontend/pages/AllTasks.tsx
+  frontend/hooks/useTaskView.tsx
+  frontend/utils/taskNavigation.ts
+  frontend/test/task-navigation.test.ts
+  frontend/e2e/taskNavigationFixture.tsx
+  frontend/e2e/task-navigation.mjs
+  docs/centralized-tasks/implementation-report.txt
+  docs/centralized-tasks/checks/* (verification results and screenshots)
+
+FILES MODIFIED
+  backend/app/navigation_registry.py
+  backend/tests/test_navigation.py
+  frontend/App.tsx
+  frontend/components/Layout.tsx
+  frontend/components/Sidebar.tsx
+  frontend/components/SidebarEditor.tsx
+  frontend/e2e/navigation-manifest.json
+  frontend/hooks/useNavigation.tsx
+  frontend/hooks/useTaskList.ts
+  frontend/pages/Tasks.tsx
+  frontend/pages/KanbanBoard.tsx
+  frontend/pages/GanttView.tsx
+  frontend/pages/CalendarView.tsx
+  frontend/services/mockApi.ts
+  frontend/types/navigation.ts
+  frontend/utils/navigationPreferences.ts
+
+Pre-existing error-recovery work in App.tsx, nginx.conf, RouteErrorPage.tsx and
+chunk-load-recovery.mjs was preserved. It is separate from this task refactor.
+
+VERIFICATION
+PASS - npm test: 147/147 frontend tests.
+PASS - backend/tests/test_navigation.py: SQLite 78, PostgreSQL 77 (155 total).
+       PostgreSQL used a disposable loopback PostgreSQL 15 container and isolated
+       rt3_test_tasks database/schema. No application database was touched.
+PASS - python -m ruff check backend/app/navigation_registry.py
+       backend/tests/test_navigation.py.
+PASS - npm run build (Vite production build).
+PASS - git diff --check.
+PASS - Chrome frontend interactions, using synthetic API responses on loopback:
+       Sidebar/tab structure; lazy loading; list preservation; all views; active
+       sidebar; keyboard navigation; reload; back/forward; legacy redirects;
+       query preservation; shared update invalidation; one persistent task socket;
+       active timer duration; Kanban native drag/drop and rejected-update rollback;
+       Calendar date/task selection and existing Task Details editing; task
+       creation; Sidebar Management; all four roles; disabled/hidden policies;
+       direct Gantt denial for user; invalid tab; 360/768/1440 viewport layouts.
+       No uncaught browser page errors occurred.
+
+TYPECHECK - Full project check remains FAIL due to pre-existing errors.
+Baseline compiler diagnostics: 119. Current: 118. No new failing call/site was
+introduced by this work. One existing LevelsManager.tsx zero-argument getTasks
+diagnostic now says "Expected 2-3 arguments" instead of "Expected 2 arguments"
+because getTasks gained optional options. That wording-only change is recorded
+separately in checks/typecheck.json; it was not counted as a new error. The
+unrelated existing caller was left untouched. Full diagnostics are retained.
+
+LIMITATIONS AND RELEASE NOTES
+Production and physical-device behavior were not tested or changed. Browser
+interaction coverage uses synthetic service responses and simulated socket
+transport; it verifies shared wiring and rendering, not live multi-user delivery.
+Backend authorization/persistence tests use actual disposable SQLite/PostgreSQL.
+Existing task/subtask workflow services were not modified; this work does not
+claim a new full workflow, SMTP or push-delivery certification.
+
+The frontend has no configured lint script; the configured unit checks and
+production build were run. Existing Vite warnings about bundle size, lottie eval
+and mixed static/dynamic imports remain. Existing Gantt capabilities were reused;
+no new dependency editor, zoom system or drag/resize behavior was invented.
+
+When this change is released separately, frontend and backend registry changes
+must be shipped together. No deployment command was executed. Temporary browser,
+Vite and disposable PostgreSQL verification services were stopped after checks.

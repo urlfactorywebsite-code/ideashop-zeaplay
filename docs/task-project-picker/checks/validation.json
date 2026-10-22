@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-22",
+  "projectBrowserGroups": 5,
+  "linkedClientsBrowserGroups": 10,
+  "frontendTestsPassed": 152,
+  "build": "passed",
+  "typecheck": {
+    "existingErrors": 116,
+    "newDiagnostics": 0
+  },
+  "backend": {
+    "passed": 6,
+    "failed": 1,
+    "fixture": "NavigationPolicy table added to isolated SQLite test engine using verify_backend.py",
+    "failure": "query-budget assertion: 8 SELECTs against limit 7"
+  },
+  "production": "not deployed"
+}

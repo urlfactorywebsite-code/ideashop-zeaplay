@@ -1518,6 +1518,7 @@ export interface TaskPointsBreakdown {
 
 export interface Task {
   id: string;
+  dependencies?: { id: string; title: string }[];
   canEdit?: boolean;
   canManageSubtasks?: boolean;
   canReviewSubtasks?: boolean;

@@ -1,0 +1,15 @@
+{
+  "url": "http://localhost:6300",
+  "indexStatus": 200,
+  "assets": [
+    {
+      "path": "/assets/Projects-ClXiiUBH.js",
+      "status": 200,
+      "accessibleDialog": true,
+      "aboveHeader": true,
+      "viewportHeightLimit": true,
+      "scrollableFormBody": true
+    }
+  ],
+  "frontendOnlyRecreated": true
+}

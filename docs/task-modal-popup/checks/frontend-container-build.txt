@@ -1,0 +1,197 @@
+docker :  Image ideashop-zeaplay-v5-presence Building 
+At line:2 char:1
++ docker compose build frontend > docs/task-modal-popup/checks/frontend ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( Image ideashop...sence Building :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ Image ideashop-zeaplay-v5-frontend Building 
+ Image ideashop-zeaplay-v5-backend Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.75kB done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 1.52kB 0.0s done
+#2 DONE 0.1s
+
+#3 [internal] load metadata for docker.io/library/nginx:alpine
+#3 ...
+
+#4 [auth] library/node:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#5 [auth] library/nginx:pull token for registry-1.docker.io
+#5 DONE 0.0s
+
+#6 [internal] load metadata for docker.io/library/node:18-alpine
+#6 DONE 1.9s
+
+#3 [internal] load metadata for docker.io/library/nginx:alpine
+#3 DONE 1.9s
+
+#7 [internal] load .dockerignore
+#7 transferring context: 133B 0.0s done
+#7 DONE 0.1s
+
+#8 [build 1/6] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#8 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e 0.1s done
+#8 DONE 0.1s
+
+#9 [stage-1 1/7] FROM docker.io/library/nginx:alpine@sha256:060849a174666c53439dc7cecbf8f67e225c7cbfb1a44ca97915d9a172a81e6d
+#9 resolve docker.io/library/nginx:alpine@sha256:060849a174666c53439dc7cecbf8f67e225c7cbfb1a44ca97915d9a172a81e6d 0.1s done
+#9 DONE 0.1s
+
+#10 [internal] load build context
+#10 transferring context: 124.08kB 0.0s done
+#10 DONE 0.1s
+
+#11 [build 2/6] WORKDIR /app
+#11 CACHED
+
+#12 [build 3/6] COPY package*.json ./
+#12 CACHED
+
+#13 [build 4/6] RUN npm install
+#13 CACHED
+
+#14 [build 5/6] COPY . .
+#14 DONE 0.2s
+
+#15 [build 6/6] RUN npm run build
+#15 0.662 
+#15 0.662 > vee-task-manager@6.0.1 build
+#15 0.662 > vite build
+#15 0.662 
+#15 1.064 vite v6.4.2 building for production...
+#15 1.216 transforming...
+#15 26.21 ✓ 5306 modules transformed.
+#15 27.08 node_modules/lottie-web/build/player/lottie.js (14422:32): Use of eval in "node_modules/lottie-web/build/player/lottie.js" is strongly discouraged as it poses security risks and may cause issues with minification.
+#15 27.99 rendering chunks...
+#15 29.34 [plugin vite:reporter] 
+#15 29.34 (!) /app/services/mockApi.ts is dynamically imported by /app/services/avatarResources.ts, /app/services/avatarResources.ts but also statically imported by /app/components/ActiveWork.tsx, /app/components/ChangeRoleModal.tsx, /app/components/ClaimedRewardModal.tsx, /app/components/CreateTaskModal.tsx, /app/components/CreateUserModal.tsx, /app/components/EditUserModal.tsx, /app/components/EmployeeDetails.tsx, /app/components/ForgotPasswordModal.tsx, /app/components/Header.tsx, /app/components/Layout.tsx, /app/components/OAuthDocumentation.tsx, /app/components/OrganizationTreeSection.tsx, /app/components/ProfileInformationForm.tsx, /app/components/ProfileMediaEditor.tsx, /app/components/ResetPasswordModal.tsx, /app/components/SameTaskLogModal.tsx, /app/components/SettingsNotificationsPanel.tsx, /app/components/SmtpManagement.tsx, /app/components/SupportFormModal.tsx, /app/components/TaskDetailModal.tsx, /app/components/TaskExecutionReport.tsx, /app/components/TaskTemplateModal.tsx, /app/hooks/useActiveWork.tsx, /app/hooks/useAuth.tsx, /app/hooks/useNavigation.tsx, /app/hooks/useNotifications.ts, /app/hooks/usePushNotifications.ts, /app/hooks/useTaskJourney.ts, /app/hooks/useTaskList.ts, /app/hooks/useTaskPrefetch.ts, /app/hooks/useTaskReport.ts, /app/pages/Achievements.tsx, /app/pages/ApiOverview.tsx, /app/pages/CalendarView.tsx, /app/pages/Dashboard.tsx, /app/pages/GanttView.tsx, /app/pages/KanbanBoard.tsx, /app/pages/LevelsManager.tsx, /app/pages/PasswordReset.tsx, /app/pages/PointsTableSettings.tsx, /app/pages/ProfileSettings.tsx, /app/pages/RewardManagement.tsx, /app/pages/SidebarManagement.tsx, /app/pages/Tasks.tsx, /app/pages/ToolLibrary.tsx, /app/pages/Users.tsx, /app/services/api.ts, /app/services/oauthApi.ts, /app/services/reportingApi.ts, dynamic import will not move module into another chunk.
+#15 29.34 
+#15 29.54 computing gzip size...
+#15 29.79 dist/index.html                                        16.02 kB │ gzip:   3.89 kB
+#15 29.79 dist/assets/login1-DXI1ochc.png                       566.36 kB
+#15 29.79 dist/assets/login2-AYUC7euC.png                       609.69 kB
+#15 29.79 dist/assets/login3-DZLdV4Y8.png                       688.36 kB
+#15 29.79 dist/assets/RestoreConfirmation-BmVUNV0T.css            1.65 kB │ gzip:   0.70 kB
+#15 29.79 dist/assets/OAuthManagement-BqKLUU9o.css                3.71 kB │ gzip:   1.33 kB
+#15 29.79 dist/assets/SmtpManagement-Cx8eaH4U.css                 4.38 kB │ gzip:   1.45 kB
+#15 29.79 dist/assets/Reports-CQ4RX1b4.css                        9.16 kB │ gzip:   2.14 kB
+#15 29.79 dist/assets/TaskJourneyModal-CSwXLHw5.css              11.69 kB │ gzip:   2.59 kB
+#15 29.79 dist/assets/index-BoXKsFRm.css                        149.21 kB │ gzip:  28.85 kB
+#15 29.79 dist/assets/check-CgIml5Cr.js                           0.30 kB │ gzip:   0.25 kB
+#15 29.79 dist/assets/arrow-down-omhy1BYb.js                      0.33 kB │ gzip:   0.26 kB
+#15 29.79 dist/assets/search-Bl7nk9DN.js                          0.35 kB │ gzip:   0.27 kB
+#15 29.79 dist/assets/clsx-B-dksMZM.js                            0.37 kB │ gzip:   0.24 kB
+#15 29.79 dist/assets/download-HrERx1Ia.js                        0.40 kB │ gzip:   0.29 kB
+#15 29.79 dist/assets/copy-B5cpcRMp.js                            0.41 kB │ gzip:   0.31 kB
+#15 29.79 dist/assets/database-BDrfdeFs.js                        0.42 kB │ gzip:   0.31 kB
+#15 29.79 dist/assets/archive-BSTy9irP.js                         0.43 kB │ gzip:   0.31 kB
+#15 29.79 dist/assets/triangle-alert-ZEVFsaeG.js                  0.44 kB │ gzip:   0.31 kB
+#15 29.79 dist/assets/bell-lmrXzaPX.js                            0.46 kB │ gzip:   0.34 kB
+#15 29.79 dist/assets/XMarkIcon-CHwRN_gr.js                       0.48 kB │ gzip:   0.35 kB
+#15 29.79 dist/assets/shield-check-BKYtjI2h.js                    0.49 kB │ gzip:   0.36 kB
+#15 29.79 dist/assets/ClockIcon-CCfW9C1h.js                       0.50 kB │ gzip:   0.37 kB
+#15 29.79 dist/assets/file-text-COLC_8JQ.js                       0.51 kB │ gzip:   0.32 kB
+#15 29.79 dist/assets/TaskPriorityBadge-XN26gwc8.js               0.66 kB │ gzip:   0.44 kB
+#15 29.79 dist/assets/taskDates-DdrhxSY3.js                       0.75 kB │ gzip:   0.41 kB
+#15 29.79 dist/assets/realtimeRecovery-COYdE9C7.js                0.94 kB │ gzip:   0.51 kB
+#15 29.79 dist/assets/PlusIcon-COsZV45E.js                        0.96 kB │ gzip:   0.41 kB
+#15 29.80 dist/assets/themeTokens-Dnz_SoWn.js                     1.23 kB │ gzip:   0.55 kB
+#15 29.80 dist/assets/video-CNVY57lm.js                           1.27 kB │ gzip:   0.54 kB
+#15 29.80 dist/assets/OAuthManagement-YexNgpaB.js                 1.35 kB │ gzip:   0.63 kB
+#15 29.80 dist/assets/Badge-CL6dr8QC.js                           1.43 kB │ gzip:   0.68 kB
+#15 29.80 dist/assets/PageTabs-BWXO85sn.js                        1.66 kB │ gzip:   0.89 kB
+#15 29.80 dist/assets/OAuthApplications-B17hoOVZ.js               1.72 kB │ gzip:   0.87 kB
+#15 29.80 dist/assets/SingleSelect-17d7Hsrs.js                    1.94 kB │ gzip:   1.05 kB
+#15 29.80 dist/assets/SettingsOAuth-DJD9A48Q.js                   1.95 kB │ gzip:   0.96 kB
+#15 29.80 dist/assets/SettingsApi-DeI2tGR3.js                     1.97 kB │ gzip:   0.99 kB
+#15 29.80 dist/assets/Management-TAXTKrAN.js                      2.95 kB │ gzip:   1.41 kB
+#15 29.80 dist/assets/OAuthAuthorization-BTUIgT8t.js              3.18 kB │ gzip:   1.42 kB
+#15 29.80 dist/assets/RestoreConfirmation-D6ip1fUn.js             3.58 kB │ gzip:   1.40 kB
+#15 29.80 dist/assets/levelsConfigStorage-ChgEJdj-.js             4.73 kB │ gzip:   1.78 kB
+#15 29.80 dist/assets/SearchableMultiSelect-DK9rEDhj.js           6.55 kB │ gzip:   2.65 kB
+#15 29.80 dist/assets/Settings-Cex82p47.js                        6.60 kB │ gzip:   2.44 kB
+#15 29.80 dist/assets/AllTasks-eYbOYZ_H.js                        7.59 kB │ gzip:   3.03 kB
+#15 29.80 dist/assets/SupportFormModal-CfbRMgGo.js                7.66 kB │ gzip:   2.57 kB
+#15 29.80 dist/assets/useQuery-CsRdvRc9.js                        9.57 kB │ gzip:   3.40 kB
+#15 29.80 dist/assets/TaskExecutionReport-CFYibEyu.js            16.37 kB │ gzip:   4.91 kB
+#15 29.80 dist/assets/SidebarManagement-B5Z3nTPC.js              16.70 kB │ gzip:   5.90 kB
+#15 29.80 dist/assets/GanttView-BkacMd0r.js                      17.90 kB │ gzip:   5.50 kB
+#15 29.80 dist/assets/SettingsNotificationsPanel-DyRnYJdb.js     19.28 kB │ gzip:   5.81 kB
+#15 29.80 dist/assets/SmtpManagement-BT93-Ubc.js                 21.23 kB │ gzip:   6.52 kB
+#15 29.80 dist/assets/Dashboard-CdYoKqJI.js                      21.96 kB │ gzip:   6.56 kB
+#15 29.80 dist/assets/OAuthManagement-Be_FzYr8.js                23.42 kB │ gzip:   7.36 kB
+#15 29.80 dist/assets/PointsTableSettings-yOWBB1gu.js            23.43 kB │ gzip:   6.59 kB
+#15 29.80 dist/assets/ToolLibrary-DMlEGoYj.js                    24.75 kB │ gzip:   5.59 kB
+#15 29.80 dist/assets/RewardManagement-Bp0IMXM2.js               26.43 kB │ gzip:   6.64 kB
+#15 29.80 dist/assets/TemplateEditor-Do27i7u2.js                 30.86 kB │ gzip:   8.65 kB
+#15 29.80 dist/assets/Clients-DPE3IJkJ.js                        31.43 kB │ gzip:   7.45 kB
+#15 29.80 dist/assets/SkillsEditor-Wd5Bk7vo.js                   31.93 kB │ gzip:  10.45 kB
+#15 29.81 dist/assets/TaskJourneyModal-BC5NzS0F.js               33.95 kB │ gzip:  11.10 kB
+#15 29.81 dist/assets/Projects-CcKwNQ6I.js                       34.79 kB │ gzip:   8.97 kB
+#15 29.81 dist/assets/ProfileSettings-2UC1nI3N.js                36.68 kB │ gzip:  10.66 kB
+#15 29.81 dist/assets/CalendarView-D0iYUC-e.js                   36.79 kB │ gzip:  10.11 kB
+#15 29.81 dist/assets/Logs-BHkQWksD.js                           37.22 kB │ gzip:   9.68 kB
+#15 29.81 dist/assets/KanbanBoard-2Y0iHgaA.js                    39.10 kB │ gzip:  10.74 kB
+#15 29.81 dist/assets/LevelsManager-CwdRogu2.js                  40.60 kB │ gzip:   8.54 kB
+#15 29.81 dist/assets/sharedSocketIo-B6dt6mpC.js                 44.40 kB │ gzip:  14.05 kB
+#15 29.81 dist/assets/Tasks-DA4qd76C.js                          76.23 kB │ gzip:  18.69 kB
+#15 29.81 dist/assets/Achievements-DtUZl6Gl.js                   77.36 kB │ gzip:  19.56 kB
+#15 29.81 dist/assets/ApiOverview-CtUSVabQ.js                    77.41 kB │ gzip:  17.03 kB
+#15 29.81 dist/assets/MediaLibrary-JJ-jr6_U.js                   80.98 kB │ gzip:  23.37 kB
+#15 29.81 dist/assets/TicketPage-CHoNGiSv.js                     92.35 kB │ gzip:  22.05 kB
+#15 29.81 dist/assets/Chat-H1AO0XBd.js                          111.73 kB │ gzip:  28.09 kB
+#15 29.81 dist/assets/Users-Dv03bCYo.js                         136.90 kB │ gzip:  29.29 kB
+#15 29.81 dist/assets/CreateTaskModal-BDGjEdNP.js               242.73 kB │ gzip:  50.01 kB
+#15 29.81 dist/assets/Reports-BltSwUEJ.js                       376.66 kB │ gzip: 111.85 kB
+#15 29.81 dist/assets/index-1dhN6745.js                       2,893.85 kB │ gzip: 843.25 kB
+#15 29.81 
+#15 29.81 (!) Some chunks are larger than 500 kB after minification. Consider:
+#15 29.81 - Using dynamic import() to code-split the application
+#15 29.81 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+#15 29.81 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#15 29.81 ✓ built in 28.69s
+#15 DONE 30.7s
+
+#9 [stage-1 1/7] FROM docker.io/library/nginx:alpine@sha256:060849a174666c53439dc7cecbf8f67e225c7cbfb1a44ca97915d9a172a81e6d
+#9 CACHED
+
+#16 [stage-1 2/7] COPY --from=build /app/dist /usr/share/nginx/html
+#16 DONE 0.2s
+
+#17 [stage-1 3/7] RUN find /usr/share/nginx/html -type d -exec chmod 755 {} +     && find /usr/share/nginx/html -type f -exec chmod 644 {} +
+#17 DONE 1.2s
+
+#18 [stage-1 4/7] COPY nginx.conf /etc/nginx/conf.d/default.conf
+#18 DONE 0.2s
+
+#19 [stage-1 5/7] COPY docker-entrypoint.d/20-trusted-proxy.sh /docker-entrypoint.d/20-trusted-proxy.sh
+#19 DONE 0.2s
+
+#20 [stage-1 6/7] COPY docker-entrypoint.d/99-runtime-config.sh /docker-entrypoint.d/99-runtime-config.sh
+#20 DONE 0.2s
+
+#21 [stage-1 7/7] RUN chmod +x /docker-entrypoint.d/20-trusted-proxy.sh /docker-entrypoint.d/99-runtime-config.sh
+#21 DONE 0.5s
+
+#22 exporting to image
+#22 exporting layers
+#22 exporting layers 0.8s done
+#22 exporting manifest sha256:b440677b6287e9f185867decd5c8d1b6c0901a958de53a56f0387ec12a8e141e 0.0s done
+#22 exporting config sha256:0cdb4b4f5bf54944fb0c13572d4aed61e0be812b4634f128399793d13558001d 0.0s done
+#22 exporting attestation manifest sha256:cb32ede232474af347f956a303bbf6c6e17e07aa211721ce9eba236aec3f5d76
+#22 exporting attestation manifest sha256:cb32ede232474af347f956a303bbf6c6e17e07aa211721ce9eba236aec3f5d76 0.1s done
+#22 exporting manifest list sha256:01be871ab1c25078cf4a33c26e094652c41bb5bcb879558f4bac1da10d030a00 0.0s done
+#22 naming to docker.io/library/ideashop-zeaplay-v5-frontend:latest
+#22 naming to docker.io/library/ideashop-zeaplay-v5-frontend:latest done
+#22 unpacking to docker.io/library/ideashop-zeaplay-v5-frontend:latest
+#22 unpacking to docker.io/library/ideashop-zeaplay-v5-frontend:latest 0.3s done
+#22 DONE 1.4s
+
+#23 resolving provenance for metadata file
+#23 DONE 0.0s
+ Image ideashop-zeaplay-v5-frontend Built 

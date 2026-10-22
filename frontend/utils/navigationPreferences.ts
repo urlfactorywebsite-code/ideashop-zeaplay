@@ -8,6 +8,9 @@ export function pageIdForPath(path: string, search = ''): string | undefined {
     return ({ levels: 'levels', rewards: 'rewards', points: 'points-table', templates: 'template-editor' } as Record<string, string>)[sub || ''] || 'achievements';
   }
   if (path.startsWith('/chat/')) return 'chat';
+  if (path === '/tasks/kanban') return 'kanban';
+  if (path === '/tasks/gantt') return 'gantt';
+  if (path === '/tasks/calendar') return 'calendar';
   if (path === '/management/users') return 'users';
   if (path === '/management/clients') return 'clients';
   if (path === '/management' || path.startsWith('/management/')) return 'management';

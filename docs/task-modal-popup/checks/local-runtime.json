@@ -1,0 +1,13 @@
+{
+  "url": "http://localhost:6300",
+  "indexStatus": 200,
+  "assets": [
+    {
+      "path": "/assets/CreateTaskModal-BDGjEdNP.js",
+      "status": 200,
+      "taskDialogMarker": true,
+      "portalTarget": true
+    }
+  ],
+  "frontendOnlyRecreated": true
+}

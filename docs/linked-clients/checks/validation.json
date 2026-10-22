@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-22",
+  "frontendTests": {
+    "command": "npm test",
+    "passed": 152
+  },
+  "backendTests": {
+    "command": "python -m pytest backend/tests/test_clients_phase2.py backend/tests/test_contacts_phase3.py -q",
+    "passed": 12,
+    "database": "isolated in-memory SQLite"
+  },
+  "browser": {
+    "command": "node frontend/e2e/linked-clients.mjs",
+    "passedGroups": 10,
+    "api": "synthetic responses through the real frontend API adapter; persistence and tenant isolation covered separately by backend tests",
+    "computedStyleComparisons": [
+      "trigger",
+      "counter",
+      "search",
+      "popup",
+      "row",
+      "avatar",
+      "avatarImage",
+      "badge",
+      "chip",
+      "chipAvatar",
+      "truncate",
+      "scrollbar",
+      "sizes",
+      "triggerHeight",
+      "triggerFocus",
+      "triggerHover",
+      "rowHover",
+      "selectedAway",
+      "label"
+    ],
+    "referenceScreenshot": "Unavailable: accessible attachment contains only Pasted text.txt; compared actual Create Task selector and generated screenshots.",
+    "positioning": "Same below-trigger anchor and 8px gap by default; clients constrain list height or open above when needed to avoid contact modal clipping."
+  },
+  "typecheck": {
+    "command": "npx tsc --noEmit --pretty false",
+    "baselineDiagnostics": 116,
+    "currentDiagnostics": 116,
+    "newDiagnostics": []
+  },
+  "lint": {
+    "command": "npm run lint",
+    "status": "unavailable: repository has no lint script/configuration"
+  },
+  "production": "not deployed or tested",
+  "build": {
+    "command": "npm run build",
+    "status": "passed",
+    "warnings": [
+      "bundle size",
+      "mixed dynamic/static import",
+      "lottie eval"
+    ]
+  },
+  "modifiedDuringReview": [
+    "frontend/components/LinkedClientsSelect.tsx",
+    "frontend/components/ui/SearchableMultiSelect.tsx",
+    "frontend/pages/Clients.tsx",
+    "frontend/e2e/linked-clients.mjs",
+    "docs/linked-clients/README.md",
+    "docs/linked-clients/checks/*"
+  ]
+}

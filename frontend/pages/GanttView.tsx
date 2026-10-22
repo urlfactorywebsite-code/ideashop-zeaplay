@@ -1,9 +1,14 @@
+import { DateTime } from 'luxon';
+import { workTimezone } from '../utils/activeWork';
+import { taskDayNumber, taskInstant, taskTimeline } from '../utils/taskDates';
+import { useQuery } from '@tanstack/react-query';
+import { useTaskFilter, useTaskViewActive } from '../hooks/useTaskView';
 import Avatar from '../components/Avatar';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Task, User, TaskStatus } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/mockApi';
-import { formatDate, formatTaskStatus } from '../utils';
+import { formatTaskStatus } from '../utils';
 import PageLoader from '../components/loading/PageLoader';
 
 /**
@@ -129,9 +134,6 @@ const activeStatuses = new Set<TaskStatus>([
   TaskStatus.BLOCKED,
 ]);
 
-const formatShortDate = (value: Date) =>
-  value.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
 const Chip: React.FC<React.PropsWithChildren<{ active?: boolean; onClick?: () => void }>> = ({ active, onClick, children }) => (
   <button
     type="button"
@@ -189,49 +191,48 @@ const PaginationBar: React.FC<{
 );
 
 const GanttRaidMapPage: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  const [assigneeFilter, setAssigneeFilter] = useState<'ALL' | string>('ALL');
-  const [rangeFilter, setRangeFilter] = useState<RangeFilter>('60');
+  const { user } = useAuth();
+  const zone = workTimezone(user?.timezone);
+  const active = useTaskViewActive();
+  const [statusFilter, setStatusFilter] = useTaskFilter<StatusFilter>('status', 'ALL');
+  const [employee, setEmployee] = useTaskFilter<string>('assigneeId', 'ALL');
+  const [unassigned, setUnassigned] = useTaskFilter('ganttUnassigned');
+  const assigneeFilter = unassigned ? UNASSIGNED_FILTER_VALUE : employee;
+  const setAssigneeFilter = (value: string) => {
+    setUnassigned(value === UNASSIGNED_FILTER_VALUE ? '1' : '');
+    if (value !== UNASSIGNED_FILTER_VALUE) setEmployee(value);
+  };
+  const [rangeFilter, setRangeFilter] = useTaskFilter<RangeFilter>('ganttRange', '60');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
-  const { user } = useAuth();
-
-  const fetchData = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const [fetchedTasks, allUsers] = await Promise.all([
-        api.getTasks(user.id, user.role),
-        api.getUsers(),
-      ]);
-
-      const sortedTasks = [...fetchedTasks].sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-      setTasks(sortedTasks);
-
-      const map = new Map<string, User>();
-      allUsers.forEach((entry) => map.set(entry.id, entry));
-      setUsersMap(map);
-    } catch (error) {
-      console.error('Failed to fetch Gantt data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const taskQuery = useQuery({
+    queryKey: ['tasks', 'gantt', user?.tenantId, user?.id, user?.role],
+    queryFn: ({ signal }) => api.getTasks(user!.id, user!.role, { fresh: true, signal }),
+    enabled: Boolean(user) && active,
+    staleTime: 30_000,
+  });
+  const usersQuery = useQuery({
+    queryKey: ['users', 'task-views', user?.tenantId, user?.id, user?.role],
+    queryFn: () => api.getUsers(),
+    enabled: Boolean(user) && active,
+    staleTime: 60_000,
+  });
+  const tasks = useMemo(() => [...(taskQuery.data || [])].sort(
+    (a, b) => taskInstant(a.createdAt).toMillis() - taskInstant(b.createdAt).toMillis()), [taskQuery.data]);
+  const usersMap = useMemo(() => new Map((usersQuery.data || []).map(entry => [entry.id, entry])), [usersQuery.data]);
+  const loading = taskQuery.isLoading || usersQuery.isLoading;
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'r') handleResetFilters();
+    if (!active) return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (event.key.toLowerCase() !== 'r' || event.ctrlKey || event.metaKey || event.altKey
+          || target?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName)) return;
+      setStatusFilter('ALL'); setEmployee('ALL'); setUnassigned(''); setRangeFilter('60');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [active, setStatusFilter, setEmployee, setUnassigned, setRangeFilter]);
 
   const { options: assigneeOptions, hasUnassignedTasks } = useMemo(() => {
     const uniqueAssignees = new Set<string>();
@@ -253,9 +254,7 @@ const GanttRaidMapPage: React.FC = () => {
   }, [tasks, usersMap]);
 
   const filteredTasks = useMemo(() => {
-    const now = new Date();
-    const rangeStart = new Date();
-    if (rangeFilter !== 'ALL') rangeStart.setDate(now.getDate() - Number(rangeFilter));
+    const rangeStart = taskDayNumber(new Date(), zone) - Number(rangeFilter);
 
     return tasks
       .filter((task) => {
@@ -266,13 +265,13 @@ const GanttRaidMapPage: React.FC = () => {
           } else if (!task.assignedTo || !task.assignedTo.includes(assigneeFilter)) return false;
         }
         if (rangeFilter !== 'ALL') {
-          const comparisonDate = task.dueAt ? new Date(task.dueAt) : new Date(task.createdAt);
+          const comparisonDate = taskDayNumber(task.dueAt || task.createdAt, zone);
           if (comparisonDate < rangeStart) return false;
         }
         return true;
       })
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }, [tasks, statusFilter, assigneeFilter, rangeFilter]);
+      .sort((a, b) => taskInstant(a.createdAt).toMillis() - taskInstant(b.createdAt).toMillis());
+  }, [tasks, statusFilter, assigneeFilter, rangeFilter, zone]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
 
@@ -287,28 +286,14 @@ const GanttRaidMapPage: React.FC = () => {
     return filteredTasks.slice(start, start + pageSize);
   }, [filteredTasks, currentPage, pageSize]);
 
-  const projectStartDate = useMemo(() => {
-    if (displayedTasks.length === 0) return new Date();
-    const startDates = displayedTasks.map((t) => new Date(t.createdAt).getTime());
-    return new Date(Math.min(...startDates));
-  }, [displayedTasks]);
-
-  const projectEndDate = useMemo(() => {
-    if (displayedTasks.length === 0) return new Date();
-    const endDates = displayedTasks.map((t) => (t.dueAt ? new Date(t.dueAt).getTime() : new Date(t.createdAt).getTime()));
-    return new Date(Math.max(...endDates));
-  }, [displayedTasks]);
-
-  const totalDays = useMemo(() => {
-    const diffTime = projectEndDate.getTime() - projectStartDate.getTime();
-    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return days > 0 ? days : 1;
-  }, [projectStartDate, projectEndDate]);
-
-  const getDayOffset = useCallback((date: Date) => {
-    const diffTime = date.getTime() - projectStartDate.getTime();
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  }, [projectStartDate]);
+  const timelineStart = useMemo(() => displayedTasks.length
+    ? Math.min(...displayedTasks.map(task => taskTimeline(task, zone).start))
+    : taskDayNumber(new Date(), zone), [displayedTasks, zone]);
+  const timelineEnd = useMemo(() => displayedTasks.length
+    ? Math.max(...displayedTasks.map(task => taskTimeline(task, zone).end))
+    : timelineStart, [displayedTasks, timelineStart, zone]);
+  const totalDays = Math.max(1, timelineEnd - timelineStart + 1);
+  const getDayOffset = useCallback((date: Date) => taskDayNumber(date, zone) - timelineStart, [timelineStart, zone]);
 
   const timelineBackgroundStyle = useMemo(() => {
     // Pixel-grid with faint scanlines for arcade feel
@@ -328,13 +313,12 @@ const GanttRaidMapPage: React.FC = () => {
     const interval = Math.max(1, Math.floor(totalDays / segments));
 
     for (let day = 0; day <= totalDays; day += interval) {
-      const markerDate = new Date(projectStartDate);
-      markerDate.setDate(projectStartDate.getDate() + day);
-      markers.push({ position: Math.min(100, (day / totalDays) * 100), label: formatShortDate(markerDate) });
+      const label = DateTime.fromMillis((timelineStart + day) * 86_400_000, { zone: 'utc' }).toFormat('MMM d');
+      markers.push({ position: Math.min(100, (day / totalDays) * 100), label });
     }
 
     return markers;
-  }, [projectStartDate, totalDays]);
+  }, [timelineStart, totalDays]);
 
   const formatAssigneeNames = useCallback((assigneeIds: string[] | null) => {
     if (!assigneeIds || assigneeIds.length === 0) return 'Unassigned hero';
@@ -352,7 +336,7 @@ const GanttRaidMapPage: React.FC = () => {
   const completedQuests = displayedTasks.filter((t) => completedStatuses.has(t.status)).length;
   const activeQuests = displayedTasks.filter((t) => activeStatuses.has(t.status)).length;
   const upcomingQuests = displayedTasks.filter((t) => {
-    const endDate = t.dueAt ? new Date(t.dueAt) : new Date(t.createdAt);
+    const endDate = taskInstant(t.dueAt || t.createdAt).toJSDate();
     return endDate.getTime() >= Date.now();
   }).length;
   const overallProgress = totalQuests > 0 ? Math.round((completedQuests / totalQuests) * 100) : 0;
@@ -363,6 +347,8 @@ const GanttRaidMapPage: React.FC = () => {
     setAssigneeFilter('ALL');
     setRangeFilter('60');
   };
+
+  if (taskQuery.error || usersQuery.error) return <div role="alert" className="rounded-xl border border-border-color p-6"><p>Unable to load the timeline.</p><button type="button" onClick={() => { void taskQuery.refetch(); void usersQuery.refetch(); }} className="mt-3 text-primary">Retry</button></div>;
 
   if (loading) {
     return <PageLoader />;
@@ -377,13 +363,13 @@ const GanttRaidMapPage: React.FC = () => {
         {/* Header */}
         <div className="relative z-10 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-white">Gantt Raid Map</h1>
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">Gantt Raid Map</h2>
             <p className="mt-1 text-sm text-white/70">Track quests, monitor party progress, and line up the next victory run.</p>
           </div>
 
           {/* Filters as chips */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex gap-2">
+            <div className="flex max-w-full flex-wrap gap-2">
               <Chip active={statusFilter === 'ALL'} onClick={() => setStatusFilter('ALL')}>All Lanes</Chip>
               {Object.values(TaskStatus).map((s) => (
                 <Chip key={s} active={statusFilter === s} onClick={() => setStatusFilter(s)}>
@@ -392,7 +378,7 @@ const GanttRaidMapPage: React.FC = () => {
               ))}
             </div>
             <div className="h-6 w-px bg-white/10" />
-            <div className="flex gap-2">
+            <div className="flex max-w-full flex-wrap gap-2">
               <Chip active={assigneeFilter === 'ALL'} onClick={() => setAssigneeFilter('ALL')}>All Champs</Chip>
               {hasUnassignedTasks && (
                 <Chip active={assigneeFilter === UNASSIGNED_FILTER_VALUE} onClick={() => setAssigneeFilter(UNASSIGNED_FILTER_VALUE)}>Unassigned</Chip>
@@ -404,7 +390,7 @@ const GanttRaidMapPage: React.FC = () => {
               ))}
             </div>
             <div className="h-6 w-px bg-white/10" />
-            <div className="flex gap-2">
+            <div className="flex max-w-full flex-wrap gap-2">
               {(['30','60','90','ALL'] as RangeFilter[]).map((r) => (
                 <Chip key={r} active={rangeFilter === r} onClick={() => setRangeFilter(r)}>
                   {r === 'ALL' ? 'All Time' : `${r}d`}
@@ -431,7 +417,7 @@ const GanttRaidMapPage: React.FC = () => {
         </div>
 
         {/* Timeline */}
-        <div className="relative z-10 mt-6 space-y-4 rounded-2xl border border-white/10 bg-black/20 p-3 backdrop-blur">
+        <div className="relative z-10 mt-6 space-y-4 overflow-x-auto rounded-2xl border border-white/10 bg-black/20 p-3 backdrop-blur">
           <PaginationBar
             currentPage={currentPage}
             totalPages={totalPages}
@@ -467,6 +453,9 @@ const GanttRaidMapPage: React.FC = () => {
                             <span className="truncate">{formatAssigneeNames(task.assignedTo)}</span>
                           </div>
                         </div>
+                        {!!task.dependencies?.length && <p className="max-w-64 truncate text-xs text-white/70" title={task.dependencies.map(dependency => dependency.title).join(', ')}>
+                          Depends on: {task.dependencies.map(dependency => dependency.title).join(', ')}
+                        </p>}
                         <span className="whitespace-nowrap rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.25em] text-white/70">
                           {formatTaskStatus(task.status)}
                         </span>
@@ -502,10 +491,9 @@ const GanttRaidMapPage: React.FC = () => {
                   {/* Bars */}
                   <div className="relative">
                     {displayedTasks.map((task) => {
-                      const startDate = new Date(task.createdAt);
-                      const endDate = task.dueAt ? new Date(task.dueAt) : new Date(startDate.getTime() + 2 * 24 * 60 * 60 * 1000);
-                      const startOffset = getDayOffset(startDate);
-                      const duration = Math.max(1, Math.ceil(Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+                      const dates = taskTimeline(task, zone);
+                      const startOffset = dates.start - timelineStart;
+                      const duration = dates.duration;
                       const left = Math.max(0, (startOffset / totalDays) * 100);
                       const width = Math.max(3, (duration / totalDays) * 100);
                       const maxWidth = 100 - left;
@@ -521,8 +509,9 @@ const GanttRaidMapPage: React.FC = () => {
                         <div key={task.id} className="flex h-[80px] items-center border-b border-white/5 px-3 last:border-b-0">
                           <div
                             className={`relative z-10 w-full max-w-full rounded-2xl border border-white/15 ${theme.gradient} ${theme.glow} ${theme.ring}`}
+                            data-task-id={task.id} data-start-offset={startOffset} data-duration-days={duration}
                             style={{ marginLeft: `${left}%`, width: `${clampedWidth}%` }}
-                            title={`${task.title}\n${theme.title} | ${formatTaskStatus(task.status)}\nAssigned: ${assigneeNames}\nStart: ${formatDate(task.createdAt)}\nDue: ${formatDate(task.dueAt)}`}
+                            title={`${task.title}\n${theme.title} | ${formatTaskStatus(task.status)}\nAssigned: ${assigneeNames}\nCreated: ${taskInstant(task.createdAt).setZone(zone).toFormat('MMM d, yyyy')}\nDue: ${task.dueAt ? taskInstant(task.dueAt).setZone(zone).toFormat('MMM d, yyyy') : 'None'}\nDependencies: ${(task.dependencies || []).map(dependency => dependency.title).join(', ') || 'None'}${dates.reversed ? '\nDeadline precedes creation' : ''}`}
                           >
                             {/* Rarity shine */}
                             <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_60%_at_10%_-10%,rgba(255,255,255,0.18),transparent_35%),radial-gradient(80%_80%_at_100%_120%,rgba(255,255,255,0.12),transparent_40%)]" />
@@ -535,7 +524,7 @@ const GanttRaidMapPage: React.FC = () => {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className="whitespace-nowrap rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-[10px] uppercase tracking-[0.25em] text-white/70">{theme.title}</span>
-                                  <span className="whitespace-nowrap text-[11px] text-white/80">{task.dueAt ? `Due ${formatShortDate(new Date(task.dueAt))}` : 'Due TBD'}</span>
+                                  <span className="whitespace-nowrap text-[11px] text-white/80">{task.dueAt ? `Due ${taskInstant(task.dueAt).setZone(zone).toFormat('MMM d')}` : 'Due TBD'}</span>
                                 </div>
                               </div>
                               {/* Progress */}

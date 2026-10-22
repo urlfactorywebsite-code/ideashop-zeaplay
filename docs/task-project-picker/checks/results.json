@@ -1,0 +1,88 @@
+{
+  "results": [
+    "Shared dropdown style, search focus, project avatars/client details/status and pagination",
+    "Case-insensitive client search finds projects beyond the former first 100; single selection closes and retains the project",
+    "Empty/error searches preserve selected metadata; changing project still enforces project membership",
+    "Task creation saves the selected project through the unchanged API contract",
+    "Only-project preselection, mobile layout and outside-click dismissal"
+  ],
+  "calls": [
+    {
+      "page": "1",
+      "page_size": "25",
+      "status": "ACTIVE",
+      "sort_by": "name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "2",
+      "page_size": "25",
+      "status": "ACTIVE",
+      "sort_by": "name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "1",
+      "page_size": "25",
+      "q": "LATE CLIENT COMPANY",
+      "status": "ACTIVE",
+      "sort_by": "name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "1",
+      "page_size": "25",
+      "q": "no-match",
+      "status": "ACTIVE",
+      "sort_by": "name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "1",
+      "page_size": "25",
+      "q": "failure",
+      "status": "ACTIVE",
+      "sort_by": "name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "1",
+      "page_size": "25",
+      "q": "Project 121",
+      "status": "ACTIVE",
+      "sort_by": "name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "1",
+      "page_size": "25",
+      "status": "ACTIVE",
+      "sort_by": "name",
+      "sort_order": "asc"
+    }
+  ],
+  "writes": [
+    {
+      "title": "Project picker browser verification",
+      "description": "",
+      "status": "WAITING_FOR_REQUIREMENT",
+      "priority": "LOW",
+      "team": "Engineering",
+      "project_id": "project-121",
+      "assigned_to_ids": null,
+      "assigned_to_id": null,
+      "follower_ids": [],
+      "task_group_id": null,
+      "due_at": "2026-10-22T20:00:00",
+      "recurrence_rule": "NONE",
+      "recurring_task_id": null,
+      "clarity_rating": null,
+      "attachments": [],
+      "estimated_hours": null,
+      "tags": [],
+      "subtask_approval_required": null,
+      "subtasks": []
+    }
+  ],
+  "errors": []
+}

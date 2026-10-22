@@ -1,0 +1,125 @@
+{
+  "results": [
+    "Client single select, avatars/details, paginated name/email/phone search and preserved selection beyond page one",
+    "Managers retain role eligibility, case-insensitive search, multi-selection, toggling, counts and empty state",
+    "Members multi-select and keyboard controls work; moving a person between fields prevents duplicate roles",
+    "Matching avatar/row spacing, required-manager validation and correct project creation payload",
+    "Editing preloads and preserves client, manager and member selections through searches and save",
+    "All three pickers fit the mobile viewport and support keyboard dismissal",
+    "Historical users missing from lookups remain selected until explicitly removed and cannot be newly reselected",
+    "Late lookup responses preselect the initial client without resetting entered form values",
+    "100% zoom: modal clears z-70 header/transformed scroll container; title/close/actions stay visible across five desktop/mobile viewports"
+  ],
+  "calls": [
+    {
+      "page": "1",
+      "page_size": "100",
+      "status": "ACTIVE",
+      "sort_by": "company_name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "1",
+      "page_size": "25",
+      "status": "ACTIVE",
+      "sort_by": "company_name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "2",
+      "page_size": "25",
+      "status": "ACTIVE",
+      "sort_by": "company_name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "1",
+      "page_size": "25",
+      "q": "OFFICE120@EXAMPLE.TEST",
+      "status": "ACTIVE",
+      "sort_by": "company_name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "1",
+      "page_size": "25",
+      "q": "9876540121",
+      "status": "ACTIVE",
+      "sort_by": "company_name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "1",
+      "page_size": "25",
+      "q": "failure",
+      "status": "ACTIVE",
+      "sort_by": "company_name",
+      "sort_order": "asc"
+    },
+    {
+      "page": "1",
+      "page_size": "25",
+      "q": "Company 120",
+      "status": "ACTIVE",
+      "sort_by": "company_name",
+      "sort_order": "asc"
+    }
+  ],
+  "writes": [
+    {
+      "method": "POST",
+      "body": {
+        "name": "Searchable project form",
+        "client_id": "client-120",
+        "description": null,
+        "start_date": null,
+        "end_date": null,
+        "subtask_approval_required_default": true,
+        "manager_ids": [
+          "bob"
+        ],
+        "member_ids": [
+          "alice",
+          "dana"
+        ]
+      }
+    },
+    {
+      "method": "PATCH",
+      "body": {
+        "name": "Searchable project form",
+        "client_id": "client-120",
+        "description": null,
+        "start_date": null,
+        "end_date": null,
+        "subtask_approval_required_default": true,
+        "manager_ids": [
+          "bob"
+        ],
+        "member_ids": [
+          "alice",
+          "dana"
+        ]
+      }
+    },
+    {
+      "method": "PATCH",
+      "body": {
+        "name": "Searchable project form",
+        "client_id": "client-120",
+        "description": null,
+        "start_date": null,
+        "end_date": null,
+        "subtask_approval_required_default": true,
+        "manager_ids": [
+          "bob"
+        ],
+        "member_ids": [
+          "alice",
+          "dana"
+        ]
+      }
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,6330 @@
+[
+  {
+    "cell": null,
+    "code": "I001",
+    "end_location": {
+      "column": 60,
+      "row": 44
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "import hashlib\r\nimport json\r\nimport os\r\nimport shutil\r\nimport time as perf_time\r\nfrom datetime import date, datetime, time, timedelta\r\nfrom datetime import timezone as utc_timezone\r\nfrom threading import Lock\r\nfrom typing import Any, List, Optional\r\nfrom uuid import uuid4\r\nfrom zoneinfo import ZoneInfo, ZoneInfoNotFoundError\r\n\r\nfrom fastapi import (\r\n    APIRouter,\r\n    BackgroundTasks,\r\n    Depends,\r\n    File,\r\n    Form,\r\n    HTTPException,\r\n    Query,\r\n    Request,\r\n    UploadFile,\r\n    status,\r\n)\r\nfrom fastapi.responses import FileResponse\r\nfrom sqlalchemy import and_, case, func, inspect, or_, select, update\r\nfrom sqlalchemy.exc import IntegrityError\r\nfrom sqlalchemy.orm import Session, joinedload, selectinload\r\nfrom sqlalchemy.orm.attributes import set_committed_value\r\n\r\nfrom .. import models, schemas\r\nfrom ..cache import build_cache_key, get_cached_json, invalidate_prefix, set_cached_json\r\nfrom ..config import get_settings\r\nfrom ..database import get_db\r\nfrom ..dependencies import get_current_active_user\r\nfrom ..integrations import trigger_n8n_event\r\nfrom ..notifiers import get_notifier\r\nfrom ..realtime import capture as realtime_capture\r\nfrom ..services import (\r\n    audit_logger,\r\n    notification_outbox,\r\n    security_audit,\r\n    subtask_completion,\r\n    subtask_notifications,\r\n    subtask_workflow,\r\n    task_events,\r\n    task_notifications,\r\n)\r\nfrom ..services import notifications as notification_service\r\nfrom ..services.badge_engine import BadgeEvent, process_badge_event\r\nfrom ..services.gamification import (\r\n    COMPLETED_STATUSES,\r\n    award_task_completion_points,\r\n    check_and_unlock_achievements,\r\n    record_clarity_rating,\r\n)\r\nfrom ..services.points_table import get_task_creation_points\r\nfrom ..services.task_access import (\r\n    task_belongs_to_user_tenant as _task_belongs_to_user_tenant,\r\n)\r\nfrom ..services.task_access import (\r\n    task_tenant_predicate as _task_tenant_predicate,\r\n)\r\nfrom ..tickets import task_link_service\r\nfrom ..tickets.models import Ticket\r\nfrom .task_lifecycle import router as task_lifecycle_router\r\n\r\n",
+          "end_location": {
+            "column": 1,
+            "row": 46
+          },
+          "location": {
+            "column": 1,
+            "row": 1
+          }
+        }
+      ],
+      "message": "Organize imports"
+    },
+    "location": {
+      "column": 1,
+      "row": 1
+    },
+    "message": "Import block is un-sorted or un-formatted",
+    "name": "unsorted-imports",
+    "noqa_row": 1,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unsorted-imports"
+  },
+  {
+    "cell": null,
+    "code": "UP035",
+    "end_location": {
+      "column": 39,
+      "row": 7
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 7
+    },
+    "message": "`typing.List` is deprecated, use `list` instead",
+    "name": "deprecated-import",
+    "noqa_row": 7,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/deprecated-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 51,
+      "row": 11
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 12
+          },
+          "location": {
+            "column": 1,
+            "row": 11
+          }
+        }
+      ],
+      "message": "Remove unused import: `..realtime.capture`"
+    },
+    "location": {
+      "column": 35,
+      "row": 11
+    },
+    "message": "`..realtime.capture` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 11,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "BLE001",
+    "end_location": {
+      "column": 21,
+      "row": 97
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 12,
+      "row": 97
+    },
+    "message": "Do not catch blind exception: `Exception`",
+    "name": "blind-except",
+    "noqa_row": 97,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/blind-except"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 62,
+      "row": 108
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.Project | None",
+          "end_location": {
+            "column": 62,
+            "row": 108
+          },
+          "location": {
+            "column": 38,
+            "row": 108
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 38,
+      "row": 108
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 108,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 103,
+      "row": 108
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "schemas.TaskProjectSummary | None",
+          "end_location": {
+            "column": 103,
+            "row": 108
+          },
+          "location": {
+            "column": 67,
+            "row": 108
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 67,
+      "row": 108
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 108,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 34,
+      "row": 145
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.User | None",
+          "end_location": {
+            "column": 34,
+            "row": 145
+          },
+          "location": {
+            "column": 13,
+            "row": 145
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 13,
+      "row": 145
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 145,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 73,
+      "row": 174
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.User | None",
+          "end_location": {
+            "column": 73,
+            "row": 174
+          },
+          "location": {
+            "column": 52,
+            "row": 174
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 52,
+      "row": 174
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 174,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 103,
+      "row": 186
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.User | None",
+          "end_location": {
+            "column": 103,
+            "row": 186
+          },
+          "location": {
+            "column": 82,
+            "row": 186
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 82,
+      "row": 186
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 186,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 33,
+      "row": 226
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 33,
+            "row": 226
+          },
+          "location": {
+            "column": 29,
+            "row": 226
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 29,
+      "row": 226
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 226,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 111,
+      "row": 226
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.User | None",
+          "end_location": {
+            "column": 111,
+            "row": 226
+          },
+          "location": {
+            "column": 90,
+            "row": 226
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 90,
+      "row": 226
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 226,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 127,
+      "row": 226
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 127,
+            "row": 226
+          },
+          "location": {
+            "column": 123,
+            "row": 226
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 123,
+      "row": 226
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 226,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 43,
+      "row": 251
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 43,
+            "row": 251
+          },
+          "location": {
+            "column": 39,
+            "row": 251
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 39,
+      "row": 251
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 251,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 65,
+      "row": 251
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 65,
+            "row": 251
+          },
+          "location": {
+            "column": 61,
+            "row": 251
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 61,
+      "row": 251
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 251,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 43,
+      "row": 283
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 43,
+            "row": 283
+          },
+          "location": {
+            "column": 39,
+            "row": 283
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 39,
+      "row": 283
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 283,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 65,
+      "row": 283
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 65,
+            "row": 283
+          },
+          "location": {
+            "column": 61,
+            "row": 283
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 61,
+      "row": 283
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 283,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 45,
+      "row": 292
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 45,
+            "row": 292
+          },
+          "location": {
+            "column": 41,
+            "row": 292
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 41,
+      "row": 292
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 292,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 101,
+      "row": 292
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 101,
+            "row": 292
+          },
+          "location": {
+            "column": 97,
+            "row": 292
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 97,
+      "row": 292
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 292,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 27,
+      "row": 300
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 27,
+            "row": 300
+          },
+          "location": {
+            "column": 14,
+            "row": 300
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 14,
+      "row": 300
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 300,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 34,
+      "row": 301
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list[str] | None",
+          "end_location": {
+            "column": 34,
+            "row": 301
+          },
+          "location": {
+            "column": 15,
+            "row": 301
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 301
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 301,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "S110",
+    "end_location": {
+      "column": 13,
+      "row": 319
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 317
+    },
+    "message": "`try`-`except`-`pass` detected, consider logging the exception",
+    "name": "try-except-pass",
+    "noqa_row": 317,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/try-except-pass"
+  },
+  {
+    "cell": null,
+    "code": "BLE001",
+    "end_location": {
+      "column": 21,
+      "row": 317
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 12,
+      "row": 317
+    },
+    "message": "Do not catch blind exception: `Exception`",
+    "name": "blind-except",
+    "noqa_row": 317,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/blind-except"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 71,
+      "row": 428
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.Project | None",
+          "end_location": {
+            "column": 71,
+            "row": 428
+          },
+          "location": {
+            "column": 47,
+            "row": 428
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 47,
+      "row": 428
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 428,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 99,
+      "row": 428
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 99,
+            "row": 428
+          },
+          "location": {
+            "column": 86,
+            "row": 428
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 86,
+      "row": 428
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 428,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 30,
+      "row": 440
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "bool | None",
+          "end_location": {
+            "column": 30,
+            "row": 440
+          },
+          "location": {
+            "column": 16,
+            "row": 440
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 16,
+      "row": 440
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 440,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 53,
+      "row": 441
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.SubtaskStatusEnum | None",
+          "end_location": {
+            "column": 53,
+            "row": 441
+          },
+          "location": {
+            "column": 19,
+            "row": 441
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 441
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 441,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 55,
+      "row": 442
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.SubtaskStatusEnum | None",
+          "end_location": {
+            "column": 55,
+            "row": 442
+          },
+          "location": {
+            "column": 21,
+            "row": 442
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 21,
+      "row": 442
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 442,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 31,
+      "row": 455
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 31,
+            "row": 455
+          },
+          "location": {
+            "column": 18,
+            "row": 455
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 18,
+      "row": 455
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 455,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 27,
+      "row": 457
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.User | None",
+          "end_location": {
+            "column": 27,
+            "row": 457
+          },
+          "location": {
+            "column": 6,
+            "row": 457
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 6,
+      "row": 457
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 457,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 38,
+      "row": 577
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "List[str] | None",
+          "end_location": {
+            "column": 38,
+            "row": 577
+          },
+          "location": {
+            "column": 19,
+            "row": 577
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 577
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 577,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 32,
+      "row": 577
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 32,
+            "row": 577
+          },
+          "location": {
+            "column": 28,
+            "row": 577
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 28,
+      "row": 577
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 577,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 40,
+      "row": 579
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.User | None",
+          "end_location": {
+            "column": 40,
+            "row": 579
+          },
+          "location": {
+            "column": 19,
+            "row": 579
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 579
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 579,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 36,
+      "row": 580
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "set[str] | None",
+          "end_location": {
+            "column": 36,
+            "row": 580
+          },
+          "location": {
+            "column": 18,
+            "row": 580
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 18,
+      "row": 580
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 580,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 10,
+      "row": 581
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 10,
+            "row": 581
+          },
+          "location": {
+            "column": 6,
+            "row": 581
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 6,
+      "row": 581
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 581,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 19,
+      "row": 586
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 19,
+            "row": 586
+          },
+          "location": {
+            "column": 15,
+            "row": 586
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 15,
+      "row": 586
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 586,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 36,
+      "row": 608
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "set[str] | None",
+          "end_location": {
+            "column": 36,
+            "row": 608
+          },
+          "location": {
+            "column": 18,
+            "row": 608
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 18,
+      "row": 608
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 608,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 29,
+      "row": 610
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 29,
+            "row": 610
+          },
+          "location": {
+            "column": 16,
+            "row": 610
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 16,
+      "row": 610
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 610,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 44,
+      "row": 635
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 44,
+            "row": 635
+          },
+          "location": {
+            "column": 31,
+            "row": 635
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 31,
+      "row": 635
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 635,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 84,
+      "row": 635
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "tuple[datetime, datetime] | None",
+          "end_location": {
+            "column": 84,
+            "row": 635
+          },
+          "location": {
+            "column": 49,
+            "row": 635
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 49,
+      "row": 635
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 635,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "DTZ001",
+    "end_location": {
+      "column": 80,
+      "row": 647
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 21,
+      "row": 647
+    },
+    "message": "`datetime.datetime()` called without a `tzinfo` argument",
+    "name": "call-datetime-without-tzinfo",
+    "noqa_row": 647,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-without-tzinfo"
+  },
+  {
+    "cell": null,
+    "code": "DTZ001",
+    "end_location": {
+      "column": 84,
+      "row": 648
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 648
+    },
+    "message": "`datetime.datetime()` called without a `tzinfo` argument",
+    "name": "call-datetime-without-tzinfo",
+    "noqa_row": 648,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-without-tzinfo"
+  },
+  {
+    "cell": null,
+    "code": "DTZ001",
+    "end_location": {
+      "column": 64,
+      "row": 652
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 652
+    },
+    "message": "`datetime.datetime()` called without a `tzinfo` argument",
+    "name": "call-datetime-without-tzinfo",
+    "noqa_row": 652,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-without-tzinfo"
+  },
+  {
+    "cell": null,
+    "code": "DTZ001",
+    "end_location": {
+      "column": 74,
+      "row": 653
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 15,
+      "row": 653
+    },
+    "message": "`datetime.datetime()` called without a `tzinfo` argument",
+    "name": "call-datetime-without-tzinfo",
+    "noqa_row": 653,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-without-tzinfo"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 26,
+      "row": 717
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 26,
+            "row": 717
+          },
+          "location": {
+            "column": 13,
+            "row": 717
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 13,
+      "row": 717
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 717,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 51,
+      "row": 718
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.TaskStatusEnum | None",
+          "end_location": {
+            "column": 51,
+            "row": 718
+          },
+          "location": {
+            "column": 20,
+            "row": 718
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 20,
+      "row": 718
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 718,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 48,
+      "row": 719
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.TaskPriorityEnum | None",
+          "end_location": {
+            "column": 48,
+            "row": 719
+          },
+          "location": {
+            "column": 15,
+            "row": 719
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 719
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 719,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 31,
+      "row": 720
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 31,
+            "row": 720
+          },
+          "location": {
+            "column": 18,
+            "row": 720
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 18,
+      "row": 720
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 720,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 30,
+      "row": 721
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 30,
+            "row": 721
+          },
+          "location": {
+            "column": 17,
+            "row": 721
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 17,
+      "row": 721
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 721,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 24,
+      "row": 722
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 24,
+            "row": 722
+          },
+          "location": {
+            "column": 11,
+            "row": 722
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 11,
+      "row": 722
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 722,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 23,
+      "row": 723
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 23,
+            "row": 723
+          },
+          "location": {
+            "column": 10,
+            "row": 723
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 10,
+      "row": 723
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 723,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 28,
+      "row": 724
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 28,
+            "row": 724
+          },
+          "location": {
+            "column": 15,
+            "row": 724
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 724
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 724,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 32,
+      "row": 725
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 32,
+            "row": 725
+          },
+          "location": {
+            "column": 19,
+            "row": 725
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 725
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 725,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 32,
+      "row": 726
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 32,
+            "row": 726
+          },
+          "location": {
+            "column": 19,
+            "row": 726
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 726
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 726,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 32,
+      "row": 782
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 15,
+      "row": 782
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 782,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 74,
+      "row": 809
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 74,
+            "row": 809
+          },
+          "location": {
+            "column": 61,
+            "row": 809
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 61,
+      "row": 809
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 809,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 36,
+      "row": 827
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 36,
+            "row": 827
+          },
+          "location": {
+            "column": 32,
+            "row": 827
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 32,
+      "row": 827
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 827,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 33,
+      "row": 830
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 33,
+            "row": 830
+          },
+          "location": {
+            "column": 20,
+            "row": 830
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 20,
+      "row": 830
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 830,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 30,
+      "row": 834
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 30,
+            "row": 834
+          },
+          "location": {
+            "column": 17,
+            "row": 834
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 17,
+      "row": 834
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 834,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 842
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 842
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 842,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 843
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 843
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 843,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 10,
+      "row": 844
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 10,
+            "row": 844
+          },
+          "location": {
+            "column": 6,
+            "row": 844
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 6,
+      "row": 844
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 844,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 28,
+      "row": 876
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 876
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 876,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 970
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 970
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 970,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 971
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 971
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 971,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "SIM102",
+    "end_location": {
+      "column": 105,
+      "row": 988
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 987
+    },
+    "message": "Use a single `if` statement instead of nested `if` statements",
+    "name": "collapsible-if",
+    "noqa_row": 987,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/collapsible-if"
+  },
+  {
+    "cell": null,
+    "code": "SIM102",
+    "end_location": {
+      "column": 11,
+      "row": 995
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 991
+    },
+    "message": "Use a single `if` statement instead of nested `if` statements",
+    "name": "collapsible-if",
+    "noqa_row": 991,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/collapsible-if"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 28,
+      "row": 1003
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 1003
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 1003,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 1048
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 1048
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1048,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 1049
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1049
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1049,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 28,
+      "row": 1073
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 1073
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 1073,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 64,
+      "row": 1159
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 64,
+            "row": 1159
+          },
+          "location": {
+            "column": 60,
+            "row": 1159
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 60,
+      "row": 1159
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 1159,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 59,
+      "row": 1162
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.TaskTransferStatusEnum | None",
+          "end_location": {
+            "column": 59,
+            "row": 1162
+          },
+          "location": {
+            "column": 20,
+            "row": 1162
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 20,
+      "row": 1162
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1162,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 81,
+      "row": 1162
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 62,
+      "row": 1162
+    },
+    "message": "Do not perform function call `Query` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1162,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 1163
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 1163
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1163,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 1164
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1164
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1164,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 10,
+      "row": 1165
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 10,
+            "row": 1165
+          },
+          "location": {
+            "column": 6,
+            "row": 1165
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 6,
+      "row": 1165
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 1165,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 1181
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 1181
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1181,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 1182
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1182
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1182,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 28,
+      "row": 1195
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 1195
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 1195,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 26,
+      "row": 1260
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 26,
+            "row": 1260
+          },
+          "location": {
+            "column": 13,
+            "row": 1260
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 13,
+      "row": 1260
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1260,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 44,
+      "row": 1261
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.TaskStatusEnum | None",
+          "end_location": {
+            "column": 44,
+            "row": 1261
+          },
+          "location": {
+            "column": 13,
+            "row": 1261
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 13,
+      "row": 1261
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1261,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 66,
+      "row": 1261
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 47,
+      "row": 1261
+    },
+    "message": "Do not perform function call `Query` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1261,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 48,
+      "row": 1262
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.TaskPriorityEnum | None",
+          "end_location": {
+            "column": 48,
+            "row": 1262
+          },
+          "location": {
+            "column": 15,
+            "row": 1262
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 1262
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1262,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 70,
+      "row": 1262
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 51,
+      "row": 1262
+    },
+    "message": "Do not perform function call `Query` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1262,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 31,
+      "row": 1263
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 31,
+            "row": 1263
+          },
+          "location": {
+            "column": 18,
+            "row": 1263
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 18,
+      "row": 1263
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1263,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 30,
+      "row": 1264
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 30,
+            "row": 1264
+          },
+          "location": {
+            "column": 17,
+            "row": 1264
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 17,
+      "row": 1264
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1264,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 24,
+      "row": 1265
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 24,
+            "row": 1265
+          },
+          "location": {
+            "column": 11,
+            "row": 1265
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 11,
+      "row": 1265
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1265,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 23,
+      "row": 1266
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 23,
+            "row": 1266
+          },
+          "location": {
+            "column": 10,
+            "row": 1266
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 10,
+      "row": 1266
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1266,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 28,
+      "row": 1267
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 28,
+            "row": 1267
+          },
+          "location": {
+            "column": 15,
+            "row": 1267
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 1267
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1267,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 32,
+      "row": 1268
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 32,
+            "row": 1268
+          },
+          "location": {
+            "column": 19,
+            "row": 1268
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 1268
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1268,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 32,
+      "row": 1269
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 32,
+            "row": 1269
+          },
+          "location": {
+            "column": 19,
+            "row": 1269
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 1269
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1269,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 26,
+      "row": 1272
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 26,
+            "row": 1272
+          },
+          "location": {
+            "column": 13,
+            "row": 1272
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 13,
+      "row": 1272
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1272,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 1273
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 1273
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1273,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 1274
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1274
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1274,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 26,
+      "row": 1383
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 26,
+            "row": 1383
+          },
+          "location": {
+            "column": 13,
+            "row": 1383
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 13,
+      "row": 1383
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1383,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 48,
+      "row": 1384
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.TaskPriorityEnum | None",
+          "end_location": {
+            "column": 48,
+            "row": 1384
+          },
+          "location": {
+            "column": 15,
+            "row": 1384
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 1384
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1384,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 70,
+      "row": 1384
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 51,
+      "row": 1384
+    },
+    "message": "Do not perform function call `Query` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1384,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 31,
+      "row": 1385
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 31,
+            "row": 1385
+          },
+          "location": {
+            "column": 18,
+            "row": 1385
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 18,
+      "row": 1385
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1385,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 30,
+      "row": 1386
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 30,
+            "row": 1386
+          },
+          "location": {
+            "column": 17,
+            "row": 1386
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 17,
+      "row": 1386
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1386,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 24,
+      "row": 1387
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 24,
+            "row": 1387
+          },
+          "location": {
+            "column": 11,
+            "row": 1387
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 11,
+      "row": 1387
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1387,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 23,
+      "row": 1388
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 23,
+            "row": 1388
+          },
+          "location": {
+            "column": 10,
+            "row": 1388
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 10,
+      "row": 1388
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1388,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 28,
+      "row": 1389
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 28,
+            "row": 1389
+          },
+          "location": {
+            "column": 15,
+            "row": 1389
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 1389
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1389,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 32,
+      "row": 1390
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 32,
+            "row": 1390
+          },
+          "location": {
+            "column": 19,
+            "row": 1390
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 1390
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1390,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 32,
+      "row": 1391
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 32,
+            "row": 1391
+          },
+          "location": {
+            "column": 19,
+            "row": 1391
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 1391
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1391,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 1392
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 1392
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1392,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 1393
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1393
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1393,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 26,
+      "row": 1530
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 26,
+            "row": 1530
+          },
+          "location": {
+            "column": 13,
+            "row": 1530
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 13,
+      "row": 1530
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1530,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 51,
+      "row": 1531
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.TaskStatusEnum | None",
+          "end_location": {
+            "column": 51,
+            "row": 1531
+          },
+          "location": {
+            "column": 20,
+            "row": 1531
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 20,
+      "row": 1531
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1531,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 89,
+      "row": 1531
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 54,
+      "row": 1531
+    },
+    "message": "Do not perform function call `Query` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1531,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 48,
+      "row": 1532
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.TaskPriorityEnum | None",
+          "end_location": {
+            "column": 48,
+            "row": 1532
+          },
+          "location": {
+            "column": 15,
+            "row": 1532
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 1532
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1532,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 70,
+      "row": 1532
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 51,
+      "row": 1532
+    },
+    "message": "Do not perform function call `Query` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1532,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 31,
+      "row": 1533
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 31,
+            "row": 1533
+          },
+          "location": {
+            "column": 18,
+            "row": 1533
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 18,
+      "row": 1533
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1533,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 30,
+      "row": 1534
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 30,
+            "row": 1534
+          },
+          "location": {
+            "column": 17,
+            "row": 1534
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 17,
+      "row": 1534
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1534,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 24,
+      "row": 1535
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 24,
+            "row": 1535
+          },
+          "location": {
+            "column": 11,
+            "row": 1535
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 11,
+      "row": 1535
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1535,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 23,
+      "row": 1536
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 23,
+            "row": 1536
+          },
+          "location": {
+            "column": 10,
+            "row": 1536
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 10,
+      "row": 1536
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1536,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 28,
+      "row": 1537
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 28,
+            "row": 1537
+          },
+          "location": {
+            "column": 15,
+            "row": 1537
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 1537
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1537,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 32,
+      "row": 1538
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 32,
+            "row": 1538
+          },
+          "location": {
+            "column": 19,
+            "row": 1538
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 1538
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1538,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 32,
+      "row": 1539
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 32,
+            "row": 1539
+          },
+          "location": {
+            "column": 19,
+            "row": 1539
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 1539
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1539,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 1540
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 1540
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1540,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 1541
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1541
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1541,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 28,
+      "row": 1591
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 1591
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 1591,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 51,
+      "row": 1633
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 51,
+            "row": 1633
+          },
+          "location": {
+            "column": 47,
+            "row": 1633
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 47,
+      "row": 1633
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 1633,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 28,
+      "row": 1637
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 28,
+            "row": 1637
+          },
+          "location": {
+            "column": 15,
+            "row": 1637
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 1637
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1637,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 26,
+      "row": 1638
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 26,
+            "row": 1638
+          },
+          "location": {
+            "column": 13,
+            "row": 1638
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 13,
+      "row": 1638
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1638,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 51,
+      "row": 1639
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.TaskStatusEnum | None",
+          "end_location": {
+            "column": 51,
+            "row": 1639
+          },
+          "location": {
+            "column": 20,
+            "row": 1639
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 20,
+      "row": 1639
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1639,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 89,
+      "row": 1639
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 54,
+      "row": 1639
+    },
+    "message": "Do not perform function call `Query` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1639,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 48,
+      "row": 1640
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.TaskPriorityEnum | None",
+          "end_location": {
+            "column": 48,
+            "row": 1640
+          },
+          "location": {
+            "column": 15,
+            "row": 1640
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 1640
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1640,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 70,
+      "row": 1640
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 51,
+      "row": 1640
+    },
+    "message": "Do not perform function call `Query` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1640,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 31,
+      "row": 1641
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 31,
+            "row": 1641
+          },
+          "location": {
+            "column": 18,
+            "row": 1641
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 18,
+      "row": 1641
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1641,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 30,
+      "row": 1642
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 30,
+            "row": 1642
+          },
+          "location": {
+            "column": 17,
+            "row": 1642
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 17,
+      "row": 1642
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1642,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 24,
+      "row": 1643
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 24,
+            "row": 1643
+          },
+          "location": {
+            "column": 11,
+            "row": 1643
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 11,
+      "row": 1643
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1643,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 23,
+      "row": 1644
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 23,
+            "row": 1644
+          },
+          "location": {
+            "column": 10,
+            "row": 1644
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 10,
+      "row": 1644
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1644,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 28,
+      "row": 1645
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 28,
+            "row": 1645
+          },
+          "location": {
+            "column": 15,
+            "row": 1645
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 15,
+      "row": 1645
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1645,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 32,
+      "row": 1646
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 32,
+            "row": 1646
+          },
+          "location": {
+            "column": 19,
+            "row": 1646
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 1646
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1646,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 32,
+      "row": 1647
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 32,
+            "row": 1647
+          },
+          "location": {
+            "column": 19,
+            "row": 1647
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 19,
+      "row": 1647
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1647,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 1648
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 1648
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1648,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 1649
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1649
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1649,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 10,
+      "row": 1650
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 10,
+            "row": 1650
+          },
+          "location": {
+            "column": 6,
+            "row": 1650
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 6,
+      "row": 1650
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 1650,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 1685
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 1685
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1685,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 1686
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1686
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1686,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 48,
+      "row": 1693
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 48,
+            "row": 1693
+          },
+          "location": {
+            "column": 44,
+            "row": 1693
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 44,
+      "row": 1693
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 1693,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 1696
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 1696
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1696,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 1697
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1697
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1697,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 10,
+      "row": 1698
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 10,
+            "row": 1698
+          },
+          "location": {
+            "column": 6,
+            "row": 1698
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 6,
+      "row": 1698
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 1698,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 37,
+      "row": 1706
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 37,
+            "row": 1706
+          },
+          "location": {
+            "column": 33,
+            "row": 1706
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 33,
+      "row": 1706
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 1706,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 1711
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 1711
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1711,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 1712
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1712
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 1712,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 10,
+      "row": 1713
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 10,
+            "row": 1713
+          },
+          "location": {
+            "column": 6,
+            "row": 1713
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 6,
+      "row": 1713
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 1713,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 31,
+      "row": 1730
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 31,
+            "row": 1730
+          },
+          "location": {
+            "column": 27,
+            "row": 1730
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 27,
+      "row": 1730
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 1730,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 45,
+      "row": 1730
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 45,
+            "row": 1730
+          },
+          "location": {
+            "column": 32,
+            "row": 1730
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 32,
+      "row": 1730
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1730,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 38,
+      "row": 1731
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 38,
+            "row": 1731
+          },
+          "location": {
+            "column": 25,
+            "row": 1731
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 25,
+      "row": 1731
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1731,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 42,
+      "row": 1760
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 42,
+            "row": 1760
+          },
+          "location": {
+            "column": 29,
+            "row": 1760
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 29,
+      "row": 1760
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 1760,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 24,
+      "row": 1786
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 24,
+            "row": 1786
+          },
+          "location": {
+            "column": 20,
+            "row": 1786
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 20,
+      "row": 1786
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 1786,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 42,
+      "row": 1800
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 25,
+      "row": 1800
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 1800,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 50,
+      "row": 1814
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 1814
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 1814,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 28,
+      "row": 1849
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 1849
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 1849,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 46,
+      "row": 2045
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 29,
+      "row": 2045
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 2045,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 51,
+      "row": 2115
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 51,
+            "row": 2115
+          },
+          "location": {
+            "column": 47,
+            "row": 2115
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 47,
+      "row": 2115
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 2115,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 2117
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 2117
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2117,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 2118
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 2118
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2118,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 10,
+      "row": 2119
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 10,
+            "row": 2119
+          },
+          "location": {
+            "column": 6,
+            "row": 2119
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 6,
+      "row": 2119
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 2119,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 44,
+      "row": 2128
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 34,
+      "row": 2128
+    },
+    "message": "Do not perform function call `File` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2128,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 2129
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 2129
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2129,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 2130
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 2130
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2130,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 2184
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 2184
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2184,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 2185
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 2185
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2185,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 44,
+      "row": 2198
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 34,
+      "row": 2198
+    },
+    "message": "Do not perform function call `File` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2198,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 2199
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 2199
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2199,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 2200
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 2200
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2200,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 44,
+      "row": 2259
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 27,
+      "row": 2259
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 2259,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 2269
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 2269
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2269,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 2270
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 2270
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2270,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 73,
+      "row": 2286
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 73,
+            "row": 2286
+          },
+          "location": {
+            "column": 69,
+            "row": 2286
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 69,
+      "row": 2286
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 2286,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 2291
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 2291
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2291,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 2292
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 2292
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2292,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 42,
+      "row": 2319
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 25,
+      "row": 2319
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 2319,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 46,
+      "row": 2363
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 29,
+      "row": 2363
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 2363,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 46,
+      "row": 2414
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 29,
+      "row": 2414
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 2414,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 2506
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 2506
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2506,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 2507
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 2507
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2507,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 52,
+      "row": 2515
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 52,
+            "row": 2515
+          },
+          "location": {
+            "column": 48,
+            "row": 2515
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 48,
+      "row": 2515
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 2515,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 2518
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 2518
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2518,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 2519
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 2519
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2519,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 10,
+      "row": 2520
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 10,
+            "row": 2520
+          },
+          "location": {
+            "column": 6,
+            "row": 2520
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 6,
+      "row": 2520
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 2520,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 2543
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 2543
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2543,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 2544
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 2544
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 2544,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 56,
+      "row": 2587
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "models.User | None",
+          "end_location": {
+            "column": 56,
+            "row": 2587
+          },
+          "location": {
+            "column": 35,
+            "row": 2587
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 35,
+      "row": 2587
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 2587,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 53,
+      "row": 2599
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 36,
+      "row": 2599
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 2599,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 50,
+      "row": 2770
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 2770
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 2770,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 28,
+      "row": 2841
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 2841
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 2841,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "SIM102",
+    "end_location": {
+      "column": 98,
+      "row": 2936
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 2935
+    },
+    "message": "Use a single `if` statement instead of nested `if` statements",
+    "name": "collapsible-if",
+    "noqa_row": 2935,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/collapsible-if"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3010
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3010
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3010,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3011
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3011
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3011,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 28,
+      "row": 3019
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 3019
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 3019,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3116
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3116
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3116,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3117
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3117
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3117,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 28,
+      "row": 3131
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 3131
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 3131,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3193
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3193
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3193,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3194
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3194
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3194,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 42,
+      "row": 3210
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 25,
+      "row": 3210
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 3210,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 41,
+      "row": 3246
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 24,
+      "row": 3246
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 3246,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 38,
+      "row": 3289
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 38,
+            "row": 3289
+          },
+          "location": {
+            "column": 25,
+            "row": 3289
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 25,
+      "row": 3289
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 3289,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 38,
+      "row": 3305
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 38,
+            "row": 3305
+          },
+          "location": {
+            "column": 25,
+            "row": 3305
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 25,
+      "row": 3305
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 3305,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 38,
+      "row": 3330
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "str | None",
+          "end_location": {
+            "column": 38,
+            "row": 3330
+          },
+          "location": {
+            "column": 25,
+            "row": 3330
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 25,
+      "row": 3330
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 3330,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3356
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3356
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3356,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3357
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3357
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3357,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3409
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3409
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3409,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3410
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3410
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3410,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3476
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3476
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3476,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3477
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3477
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3477,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "RET501",
+    "end_location": {
+      "column": 16,
+      "row": 3503
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "return",
+          "end_location": {
+            "column": 16,
+            "row": 3503
+          },
+          "location": {
+            "column": 5,
+            "row": 3503
+          }
+        }
+      ],
+      "message": "Remove explicit `return None`"
+    },
+    "location": {
+      "column": 5,
+      "row": 3503
+    },
+    "message": "Do not explicitly `return None` in function if it is the only possible return value",
+    "name": "unnecessary-return-none",
+    "noqa_row": 3503,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unnecessary-return-none"
+  },
+  {
+    "cell": null,
+    "code": "PLR1711",
+    "end_location": {
+      "column": 16,
+      "row": 3503
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 3504
+          },
+          "location": {
+            "column": 1,
+            "row": 3503
+          }
+        }
+      ],
+      "message": "Remove useless `return` statement"
+    },
+    "location": {
+      "column": 5,
+      "row": 3503
+    },
+    "message": "Useless `return` statement at end of function",
+    "name": "useless-return",
+    "noqa_row": 3503,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/useless-return"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3512
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3512
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3512,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3513
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3513
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3513,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 28,
+      "row": 3571
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 11,
+      "row": 3571
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 3571,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 24,
+      "row": 3699
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 24,
+            "row": 3699
+          },
+          "location": {
+            "column": 20,
+            "row": 3699
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 20,
+      "row": 3699
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 3699,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3704
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3704
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3704,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3705
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3705
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3705,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 10,
+      "row": 3706
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 10,
+            "row": 3706
+          },
+          "location": {
+            "column": 6,
+            "row": 3706
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 6,
+      "row": 3706
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 3706,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "UP045",
+    "end_location": {
+      "column": 38,
+      "row": 3731
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "List[UploadFile] | None",
+          "end_location": {
+            "column": 38,
+            "row": 3731
+          },
+          "location": {
+            "column": 12,
+            "row": 3731
+          }
+        }
+      ],
+      "message": "Convert to `X | None`"
+    },
+    "location": {
+      "column": 12,
+      "row": 3731
+    },
+    "message": "Use `X | None` for type annotations",
+    "name": "non-pep604-annotation-optional",
+    "noqa_row": 3731,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep604-annotation-optional"
+  },
+  {
+    "cell": null,
+    "code": "UP006",
+    "end_location": {
+      "column": 25,
+      "row": 3731
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "list",
+          "end_location": {
+            "column": 25,
+            "row": 3731
+          },
+          "location": {
+            "column": 21,
+            "row": 3731
+          }
+        }
+      ],
+      "message": "Replace with `list`"
+    },
+    "location": {
+      "column": 21,
+      "row": 3731
+    },
+    "message": "Use `list` instead of `List` for type annotation",
+    "name": "non-pep585-annotation",
+    "noqa_row": 3731,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/non-pep585-annotation"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 59,
+      "row": 3731
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 41,
+      "row": 3731
+    },
+    "message": "Do not perform function call `File` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3731,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3732
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3732
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3732,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3733
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3733
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3733,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3852
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3852
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3852,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3853
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3853
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3853,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 40,
+      "row": 3859
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 23,
+      "row": 3859
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 3859,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3926
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3926
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3926,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3927
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3927
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3927,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "DTZ003",
+    "end_location": {
+      "column": 40,
+      "row": 3933
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 23,
+      "row": 3933
+    },
+    "message": "`datetime.datetime.utcnow()` used",
+    "name": "call-datetime-utcnow",
+    "noqa_row": 3933,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/call-datetime-utcnow"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 34,
+      "row": 3997
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 3997
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3997,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  },
+  {
+    "cell": null,
+    "code": "B008",
+    "end_location": {
+      "column": 65,
+      "row": 3998
+    },
+    "filename": "F:\\Projects\\ideashop-zeaplay-v5\\backend\\app\\routers\\tasks.py",
+    "fix": null,
+    "location": {
+      "column": 33,
+      "row": 3998
+    },
+    "message": "Do not perform function call `Depends` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable",
+    "name": "function-call-in-default-argument",
+    "noqa_row": 3998,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+  }
+]

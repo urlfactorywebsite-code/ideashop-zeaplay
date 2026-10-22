@@ -1,0 +1,216 @@
+{
+  "results": [
+    {
+      "name": "One initial task request, one users request and one socket; cached tab return does not refetch",
+      "evidence": [
+        {
+          "method": "restoreBrowserSession",
+          "args": []
+        },
+        {
+          "method": "getCurrentUser",
+          "args": []
+        },
+        {
+          "method": "getNotifications",
+          "args": [
+            "task-reviewer"
+          ]
+        },
+        {
+          "method": "getActiveWork",
+          "args": []
+        },
+        {
+          "method": "getNotifications",
+          "args": [
+            "task-reviewer"
+          ]
+        },
+        {
+          "method": "getChatConversations",
+          "args": []
+        },
+        {
+          "method": "getReleaseNotes",
+          "args": []
+        },
+        {
+          "method": "getUserProfile",
+          "args": [
+            "task-reviewer"
+          ]
+        },
+        {
+          "method": "getTasksPage",
+          "args": [
+            {
+              "timezone": "Asia/Calcutta",
+              "page": 1,
+              "pageSize": 50,
+              "signal": {}
+            }
+          ]
+        },
+        {
+          "method": "getUsers",
+          "args": []
+        },
+        {
+          "method": "getDepartments",
+          "args": []
+        },
+        {
+          "method": "getProjects",
+          "args": [
+            {
+              "status": "ACTIVE",
+              "pageSize": 100,
+              "sortBy": "name",
+              "sortOrder": "asc"
+            }
+          ]
+        },
+        {
+          "method": "getTasksKanban",
+          "args": [
+            {
+              "page": 1,
+              "timezone": "Asia/Calcutta",
+              "pageSize": 20,
+              "signal": {}
+            }
+          ]
+        },
+        {
+          "method": "getTasks",
+          "args": [
+            "task-reviewer",
+            "owner",
+            {
+              "fresh": true,
+              "signal": {}
+            }
+          ]
+        },
+        {
+          "method": "getUserProfile",
+          "args": [
+            "task-reviewer"
+          ]
+        },
+        {
+          "method": "getTaskCalendarSummary",
+          "args": [
+            {
+              "startDate": "2026-09-27",
+              "endDate": "2026-10-31",
+              "timezone": "Asia/Calcutta",
+              "signal": {}
+            }
+          ]
+        },
+        {
+          "method": "getTaskCalendarSummary",
+          "args": [
+            {
+              "startDate": "2026-08-30",
+              "endDate": "2026-10-03",
+              "timezone": "Asia/Calcutta",
+              "signal": {}
+            }
+          ]
+        },
+        {
+          "method": "getTaskCalendarSummary",
+          "args": [
+            {
+              "startDate": "2026-11-01",
+              "endDate": "2026-12-05",
+              "timezone": "Asia/Calcutta",
+              "signal": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Actual HTTP task mapper preserves dependencies/attachments and fresh reads bypass stale response cache",
+      "evidence": {
+        "requests": 2
+      }
+    },
+    {
+      "name": "Wire task event refreshes list, Kanban, Gantt and Calendar without external task exports",
+      "evidence": {
+        "sockets": 1
+      }
+    },
+    {
+      "name": "Genuine task reconnect reconciles cached views",
+      "evidence": {
+        "connectionsAcrossOneDisconnect": 2
+      }
+    },
+    {
+      "name": "Task response cache is session-scoped; legacy private cache is retired and no task data is persisted",
+      "evidence": {
+        "requests": 3,
+        "privateStoredKeys": []
+      }
+    },
+    {
+      "name": "Project-correct list prefetch and server-backed Kanban pagination retain all tasks and custom stage titles",
+      "evidence": {
+        "prefetch": {
+          "method": "getTasksPage",
+          "args": [
+            {
+              "timezone": "Asia/Calcutta",
+              "page": 2,
+              "pageSize": 50,
+              "projectId": "project-0",
+              "signal": {}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Calendar local-day selection and profile timezone: Asia/Kolkata with browser Asia/Kolkata",
+      "evidence": {
+        "startDate": "2026-10-22",
+        "timezone": "Asia/Kolkata",
+        "signal": {}
+      }
+    },
+    {
+      "name": "Calendar creation submits an explicit UTC instant from Asia/Kolkata",
+      "evidence": {
+        "dueAt": "2026-10-21T19:00:00.000Z"
+      }
+    },
+    {
+      "name": "Calendar local-day selection and profile timezone: Asia/Tokyo with browser America/Los_Angeles",
+      "evidence": {
+        "startDate": "2026-10-22",
+        "timezone": "Asia/Tokyo",
+        "signal": {}
+      }
+    },
+    {
+      "name": "Calendar creation submits an explicit UTC instant from Asia/Tokyo",
+      "evidence": {
+        "dueAt": "2026-10-21T15:30:00.000Z"
+      }
+    },
+    {
+      "name": "Legacy notification task UUID opens the existing Task Details dialog with filters preserved",
+      "evidence": {
+        "taskId": "2ad039ec-1f32-4f05-87ab-76cdeec7a991"
+      }
+    }
+  ],
+  "errors": [],
+  "environment": "Loopback Chrome; synthetic service data, controlled socket wire messages"
+}

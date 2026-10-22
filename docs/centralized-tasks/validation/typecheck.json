@@ -1,0 +1,588 @@
+{
+  "baselineCount": 118,
+  "currentCount": 116,
+  "introduced": [],
+  "comparison": "File, code, and diagnostic message with whitespace normalized",
+  "errors": [
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2301,
+      "message": "Initializer of instance member variable '#c' cannot reference identifier 'e' declared in the constructor."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2554,
+      "message": "Expected 0 arguments, but got 1."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'config' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'positionData' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'velocityData' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'sizeData' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'center' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'config' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'positionData' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'center' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'config' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'sizeData' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'config' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'center' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'positionData' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'sizeData' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'velocityData' does not exist on type 'W'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'uniforms' does not exist on type 'Y'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'defines' does not exist on type 'Y'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'onBeforeCompile' does not exist on type 'Y'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'uniforms' does not exist on type 'Y'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'onBeforeCompile2' does not exist on type 'Y'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'onBeforeCompile2' does not exist on type 'Y'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'envMapRotation' does not exist on type 'Y'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'config' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'physics' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'ambientLight' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'config' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'config' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'add' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'ambientLight' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'light' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'config' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'config' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'add' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'light' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'count' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2551,
+      "message": "Property 'setColorAt' does not exist on type 'Z'. Did you mean 'setColors'?"
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'count' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'light' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'count' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'instanceColor' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'physics' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'count' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'physics' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'config' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'physics' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'setMatrixAt' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'light' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2339,
+      "message": "Property 'instanceMatrix' does not exist on type 'Z'."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2322,
+      "message": "Type '(e: any) => void' is not assignable to type '() => void'.\n  Target signature provides too few arguments. Expected 1 or more, but got 0."
+    },
+    {
+      "file": "frontend/components/Ballpit.tsx",
+      "code": 2322,
+      "message": "Type '(e: any) => void' is not assignable to type '() => void'.\n  Target signature provides too few arguments. Expected 1 or more, but got 0."
+    },
+    {
+      "file": "frontend/components/CreateLevelModal.tsx",
+      "code": 2353,
+      "message": "Object literal may only specify known properties, and 'level_number' does not exist in type 'LevelCreate'."
+    },
+    {
+      "file": "frontend/components/CreateUserModal.tsx",
+      "code": 2345,
+      "message": "Argument of type '{ name: string; email: string; password: string; employerId: string; role: Role; department: string; avatarAssetId: string; avatarFrame: string; }' is not assignable to parameter of type 'Omit<User, \"status\" | \"id\" | \"passwordHash\" | \"points\" | \"unlockedAchievementIds\" | \"tasksCreated\" | \"tasksCompleted\" | \"clarityScores\" | \"claimedRewardIds\"> & { ...; }'.\n  Type '{ name: string; email: string; password: string; employerId: string; role: Role; department: string; avatarAssetId: string; avatarFrame: string; }' is missing the following properties from type 'Omit<User, \"status\" | \"id\" | \"passwordHash\" | \"points\" | \"unlockedAchievementIds\" | \"tasksCreated\" | \"tasksCompleted\" | \"clarityScores\" | \"claimedRewardIds\">': overallXpPoints, claimedXpPoints"
+    },
+    {
+      "file": "frontend/components/NotesBoard.tsx",
+      "code": 2305,
+      "message": "Module '\"../types\"' has no exported member 'KanbanNote'."
+    },
+    {
+      "file": "frontend/components/NotesBoard.tsx",
+      "code": 2304,
+      "message": "Cannot find name 'KanbanNoteCard'."
+    },
+    {
+      "file": "frontend/components/ProtectedRoute.tsx",
+      "code": 2503,
+      "message": "Cannot find namespace 'JSX'."
+    },
+    {
+      "file": "frontend/components/TaskTemplateModal.tsx",
+      "code": 2345,
+      "message": "Argument of type '{ featuredImage: File; title: string; description: string; priority: TaskPriority; team: string; subtasks: string[]; attachments: string[]; estimatedHours: number | null; tags: string[]; departmentId: string | null; recurrenceRule: RecurrenceRule; }' is not assignable to parameter of type 'Partial<Omit<TaskTemplate, \"id\" | \"createdAt\" | \"updatedAt\" | \"department\" | \"creator\">>'.\n  Types of property 'featuredImage' are incompatible.\n    Type 'File' is not assignable to type 'string'."
+    },
+    {
+      "file": "frontend/components/TaskTemplateModal.tsx",
+      "code": 2345,
+      "message": "Argument of type '{ featuredImage: File; title: string; description: string; priority: TaskPriority; team: string; subtasks: string[]; attachments: string[]; estimatedHours: number | null; tags: string[]; departmentId: string | null; recurrenceRule: RecurrenceRule; }' is not assignable to parameter of type 'Omit<TaskTemplate, \"id\" | \"createdAt\" | \"updatedAt\" | \"department\" | \"creator\">'.\n  Property 'createdById' is missing in type '{ featuredImage: File; title: string; description: string; priority: TaskPriority; team: string; subtasks: string[]; attachments: string[]; estimatedHours: number | null; tags: string[]; departmentId: string | null; recurrenceRule: RecurrenceRule; }' but required in type 'Omit<TaskTemplate, \"id\" | \"createdAt\" | \"updatedAt\" | \"department\" | \"creator\">'."
+    },
+    {
+      "file": "frontend/components/Tickets/TicketDetailDrawer.tsx",
+      "code": 2322,
+      "message": "Type '(payload: TicketApprovalRequestPayload) => Promise<TicketApprovalCycle>' is not assignable to type '(payload: TicketApprovalRequestPayload) => Promise<void>'.\n  Type 'Promise<TicketApprovalCycle>' is not assignable to type 'Promise<void>'.\n    Type 'TicketApprovalCycle' is not assignable to type 'void'."
+    },
+    {
+      "file": "frontend/components/Tickets/TicketDetailDrawer.tsx",
+      "code": 2322,
+      "message": "Type '(cycleId: string, payload: TicketApprovalActionPayload) => Promise<TicketApprovalCycle>' is not assignable to type '(cycleId: string, payload: TicketApprovalActionPayload) => Promise<void>'.\n  Type 'Promise<TicketApprovalCycle>' is not assignable to type 'Promise<void>'.\n    Type 'TicketApprovalCycle' is not assignable to type 'void'."
+    },
+    {
+      "file": "frontend/components/Tickets/TicketDetailDrawer.tsx",
+      "code": 2322,
+      "message": "Type '(cycleId: string, payload: TicketApprovalActionPayload) => Promise<TicketApprovalCycle>' is not assignable to type '(cycleId: string, payload: TicketApprovalActionPayload) => Promise<void>'.\n  Type 'Promise<TicketApprovalCycle>' is not assignable to type 'Promise<void>'.\n    Type 'TicketApprovalCycle' is not assignable to type 'void'."
+    },
+    {
+      "file": "frontend/pages/Achievements.tsx",
+      "code": 2322,
+      "message": "Type 'Achievement' is not assignable to type 'BadgeAchievement'.\n  Type 'Achievement' is missing the following properties from type '{ status: BadgeStatus; progressPercent: number; tier: string; tierGroup?: string; tierOrder: number; isSystem: boolean; earnedAt?: string; }': status, progressPercent, tier, tierOrder, isSystem"
+    },
+    {
+      "file": "frontend/pages/GanttView.tsx",
+      "code": 2339,
+      "message": "Property 'hasUnassignedTasks' does not exist on type '{ options: { id: string; name: string; }[]; hasUnassigned: boolean; }'."
+    },
+    {
+      "file": "frontend/pages/LevelsManager.tsx",
+      "code": 2554,
+      "message": "Expected 2-3 arguments, but got 0."
+    },
+    {
+      "file": "frontend/pages/LevelsPage.tsx",
+      "code": 2339,
+      "message": "Property 'levelNumber' does not exist on type 'LevelRead'."
+    },
+    {
+      "file": "frontend/pages/LevelsPage.tsx",
+      "code": 2339,
+      "message": "Property 'levelNumber' does not exist on type 'LevelRead'."
+    },
+    {
+      "file": "frontend/pages/LevelsPage.tsx",
+      "code": 2339,
+      "message": "Property 'iconUrl' does not exist on type 'Level'."
+    },
+    {
+      "file": "frontend/pages/LevelsPage.tsx",
+      "code": 2339,
+      "message": "Property 'iconUrl' does not exist on type 'Level'."
+    },
+    {
+      "file": "frontend/pages/LevelsPage.tsx",
+      "code": 2339,
+      "message": "Property 'levelNumber' does not exist on type 'Level'."
+    },
+    {
+      "file": "frontend/pages/LevelsPage.tsx",
+      "code": 2339,
+      "message": "Property 'description' does not exist on type 'Level'."
+    },
+    {
+      "file": "frontend/pages/LevelsPage.tsx",
+      "code": 2339,
+      "message": "Property 'pointsRequired' does not exist on type 'Level'."
+    },
+    {
+      "file": "frontend/pages/LevelsPage.tsx",
+      "code": 2339,
+      "message": "Property 'rewardId' does not exist on type 'Level'."
+    },
+    {
+      "file": "frontend/pages/PointsTableSettings.tsx",
+      "code": 2345,
+      "message": "Argument of type 'string' is not assignable to parameter of type '\"bonusByPriority\" | \"penaltyByPriority\"'."
+    },
+    {
+      "file": "frontend/pages/Tasks.tsx",
+      "code": 2345,
+      "message": "Argument of type '{}' is not assignable to parameter of type 'Record<TaskStatus, number> | (() => Record<TaskStatus, number>)'."
+    },
+    {
+      "file": "frontend/pages/Tasks.tsx",
+      "code": 2345,
+      "message": "Argument of type 'Record<TaskStatus, number> | {}' is not assignable to parameter of type 'SetStateAction<Record<TaskStatus, number>>'.\n  Type '{}' is not assignable to type 'SetStateAction<Record<TaskStatus, number>>'."
+    },
+    {
+      "file": "frontend/pages/TemplateEditor.tsx",
+      "code": 2352,
+      "message": "Conversion of type '{ kind: \"button\"; text: string; w: number; h: number; bg: string; color: string; border: { radius: number; width: number; }; fontSize: number; fontWeight: number; align: string; }' to type 'Partial<ButtonElem>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.\n  Types of property 'border' are incompatible.\n    Property 'color' is missing in type '{ radius: number; width: number; }' but required in type '{ color: string; width: number; radius: number; style?: \"dashed\" | \"dotted\" | \"solid\"; }'."
+    },
+    {
+      "file": "frontend/pages/TemplateEditor.tsx",
+      "code": 2339,
+      "message": "Property 'style' does not exist on type 'Element'."
+    },
+    {
+      "file": "frontend/pages/TemplateEditor.tsx",
+      "code": 2339,
+      "message": "Property 'style' does not exist on type 'Element'."
+    },
+    {
+      "file": "frontend/pages/TemplateEditor.tsx",
+      "code": 2339,
+      "message": "Property 'style' does not exist on type 'Element'."
+    },
+    {
+      "file": "frontend/pages/TemplateEditor.tsx",
+      "code": 2322,
+      "message": "Type '{ id: string; kind: ElemKind; x: number; y: number; w: number; h: number; r?: number; z: number; lock?: boolean; hidden?: boolean; name?: string; parent?: string; children?: string[]; opacity?: number; ... 17 more ...; textShadow?: string; } | ... 6 more ... | { ...; }' is not assignable to type 'Elem'.\n  Type '{ id: string; kind: ElemKind; x: number; y: number; w: number; h: number; r?: number; z: number; lock?: boolean; hidden?: boolean; name?: string; parent?: string; children?: string[]; opacity?: number; ... 17 more ...; textShadow?: string; }' is not assignable to type 'Elem'.\n    Type '{ id: string; kind: ElemKind; x: number; y: number; w: number; h: number; r?: number; z: number; lock?: boolean; hidden?: boolean; name?: string; parent?: string; children?: string[]; opacity?: number; ... 17 more ...; textShadow?: string; }' is not assignable to type 'TextElem'.\n      Types of property 'kind' are incompatible.\n        Type 'ElemKind' is not assignable to type '\"text\" | \"richtext\"'.\n          Type '\"button\"' is not assignable to type '\"text\" | \"richtext\"'."
+    },
+    {
+      "file": "frontend/pages/TemplateEditor.tsx",
+      "code": 2503,
+      "message": "Cannot find namespace 'JSX'."
+    },
+    {
+      "file": "frontend/pages/TicketPage.tsx",
+      "code": 2322,
+      "message": "Type '(payload: TicketCreatePayload) => Promise<Ticket>' is not assignable to type '(payload: TicketCreatePayload) => Promise<void>'.\n  Type 'Promise<Ticket>' is not assignable to type 'Promise<void>'.\n    Type 'Ticket' is not assignable to type 'void'."
+    },
+    {
+      "file": "frontend/services/mockApi.ts",
+      "code": 2552,
+      "message": "Cannot find name 'TicketActivityItem'. Did you mean 'ApiTicketActivity'?"
+    },
+    {
+      "file": "frontend/services/mockApi.ts",
+      "code": 2561,
+      "message": "Object literal may only specify known properties, but 'levelId' does not exist in type 'LevelNodeRead'. Did you mean to write 'level_id'?"
+    },
+    {
+      "file": "frontend/services/mockApi.ts",
+      "code": 2304,
+      "message": "Cannot find name 'LevelPreview'."
+    },
+    {
+      "file": "frontend/services/mockApi.ts",
+      "code": 2552,
+      "message": "Cannot find name 'TicketActivityItem'. Did you mean 'ApiTicketActivity'?"
+    },
+    {
+      "file": "frontend/services/mockApi.ts",
+      "code": 2304,
+      "message": "Cannot find name 'LevelPreview'."
+    },
+    {
+      "file": "frontend/services/mockApi.ts",
+      "code": 2304,
+      "message": "Cannot find name 'LevelPreview'."
+    },
+    {
+      "file": "frontend/services/mockApi.ts",
+      "code": 2304,
+      "message": "Cannot find name 'LevelPreview'."
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; name: string; email: string; role: Role.OWNER; department: string; passwordHash: string; status: UserStatus.ACTIVE; points: number; unlockedAchievementIds: string[]; tasksCreated: number; tasksCompleted: number; clarityScores: number[]; claimedRewardIds: undefined[]; }' is missing the following properties from type 'User': overallXpPoints, claimedXpPoints"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; name: string; email: string; role: Role.ADMIN; department: string; passwordHash: string; status: UserStatus.ACTIVE; points: number; unlockedAchievementIds: string[]; tasksCreated: number; tasksCompleted: number; clarityScores: number[]; claimedRewardIds: undefined[]; }' is missing the following properties from type 'User': overallXpPoints, claimedXpPoints"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; name: string; email: string; role: Role.USER; department: string; passwordHash: string; status: UserStatus.ACTIVE; points: number; unlockedAchievementIds: string[]; tasksCreated: number; tasksCompleted: number; clarityScores: undefined[]; claimedRewardIds: undefined[]; }' is missing the following properties from type 'User': overallXpPoints, claimedXpPoints"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; name: string; email: string; role: Role.USER; department: string; passwordHash: string; status: UserStatus.ACTIVE; points: number; unlockedAchievementIds: undefined[]; tasksCreated: number; tasksCompleted: number; clarityScores: undefined[]; claimedRewardIds: undefined[]; }' is missing the following properties from type 'User': overallXpPoints, claimedXpPoints"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; name: string; email: string; role: Role.USER; department: string; passwordHash: string; status: UserStatus.ACTIVE; points: number; unlockedAchievementIds: string[]; tasksCreated: number; tasksCompleted: number; clarityScores: undefined[]; claimedRewardIds: undefined[]; }' is missing the following properties from type 'User': overallXpPoints, claimedXpPoints"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2741,
+      "message": "Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'."
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2741,
+      "message": "Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'."
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2741,
+      "message": "Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'."
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2741,
+      "message": "Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'."
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2741,
+      "message": "Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'."
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2741,
+      "message": "Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'."
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2741,
+      "message": "Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'."
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2741,
+      "message": "Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'."
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2741,
+      "message": "Property 'pipelineId' is missing in type '{ id: string; title: string; order: number; }' but required in type 'KanbanColumn'."
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; title: string; description: string; status: TaskStatus.IN_PROGRESS; priority: TaskPriority.HIGH; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; title: string; description: string; status: TaskStatus.WAITING_FOR_REQUIREMENT; priority: TaskPriority.URGENT; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; title: string; description: string; status: TaskStatus.DONE; priority: TaskPriority.MEDIUM; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 9 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; title: string; description: string; status: TaskStatus.IN_REVIEW; priority: TaskPriority.HIGH; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; title: string; description: string; status: TaskStatus.ON_HOLD; priority: TaskPriority.LOW; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; title: string; description: string; status: TaskStatus.TODO; priority: TaskPriority.MEDIUM; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; title: string; description: string; status: TaskStatus.TODO; priority: TaskPriority.MEDIUM; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; title: string; description: string; status: TaskStatus.IN_PROGRESS; priority: TaskPriority.HIGH; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 8 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId"
+    },
+    {
+      "file": "frontend/services/seedData.ts",
+      "code": 2739,
+      "message": "Type '{ id: string; title: string; description: string; status: TaskStatus.DONE; priority: TaskPriority.URGENT; team: string; assignedTo: string[]; createdBy: string; createdAt: string; ... 9 more ...; tags: string[]; }' is missing the following properties from type 'Task': category, taskGroupId"
+    },
+    {
+      "file": "frontend/utils/mentionUtils.ts",
+      "code": 2339,
+      "message": "Property 'replace' does not exist on type 'never'."
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "results": [
+    {
+      "theme": "light",
+      "width": 1440,
+      "height": 900,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "nestedAi": true
+    },
+    {
+      "theme": "light",
+      "width": 1366,
+      "height": 768,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 1366,
+        "height": 768
+      },
+      "nestedAi": false
+    },
+    {
+      "theme": "light",
+      "width": 1280,
+      "height": 600,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 600
+      },
+      "nestedAi": false
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "height": 640,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 640
+      },
+      "nestedAi": false
+    },
+    {
+      "theme": "colorful",
+      "width": 1440,
+      "height": 900,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "nestedAi": true
+    },
+    {
+      "theme": "colorful",
+      "width": 1366,
+      "height": 768,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 1366,
+        "height": 768
+      },
+      "nestedAi": false
+    },
+    {
+      "theme": "colorful",
+      "width": 1280,
+      "height": 600,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 600
+      },
+      "nestedAi": false
+    },
+    {
+      "theme": "colorful",
+      "width": 390,
+      "height": 640,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 640
+      },
+      "nestedAi": false
+    },
+    {
+      "theme": "dark",
+      "width": 1440,
+      "height": 900,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 900
+      },
+      "nestedAi": true
+    },
+    {
+      "theme": "dark",
+      "width": 1366,
+      "height": 768,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 1366,
+        "height": 768
+      },
+      "nestedAi": false
+    },
+    {
+      "theme": "dark",
+      "width": 1280,
+      "height": 600,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 600
+      },
+      "nestedAi": false
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "height": 640,
+      "geometry": {
+        "position": "fixed",
+        "directBodyChild": true,
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 640
+      },
+      "nestedAi": false
+    }
+  ],
+  "oldPositions": {
+    "light": "relative",
+    "colorful": "relative"
+  },
+  "errors": []
+}

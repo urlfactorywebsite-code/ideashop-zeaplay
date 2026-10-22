@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 ﻿
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -25,6 +26,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { hasUnreadChat } = useChatUnreadIndicator();
@@ -49,14 +51,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const allUsers = await api.getUsers();
+      const allUsers = await queryClient.fetchQuery({ queryKey: ['users', 'task-views', user?.tenantId, user?.id, user?.role], queryFn: () => api.getUsers(), staleTime: 60_000 });
       const map = new Map<string, User>();
       allUsers.forEach(u => map.set(u.id, u));
       setUsersMap(map);
     } catch (error) {
       console.error("Failed to fetch users for layout:", error);
     }
-  }, []);
+  }, [queryClient, user?.tenantId, user?.id, user?.role]);
 
   const fetchReleaseNotes = useCallback(async () => {
     setReleaseNotesLoading(true);
@@ -174,16 +176,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const mobileLinks = useMemo(() => {
     const links = [
       { to: '/dashboard', label: 'Dashboard', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241422/dashboard_pvjlbg.png' },
-      { to: '/tasks', label: 'Tasks', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241423/task-actions_urhfeq.png' },
+      { to: '/tasks', label: 'All Tasks', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241423/task-actions_urhfeq.png' },
       { to: '/projects', label: 'Projects', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241423/Users_b58wty.png' },
       { to: '/chat', label: 'Chat', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241422/customer-service_cra3yp.png', showUnreadDot: hasUnreadChat },
-      { to: '/kanban', label: 'Kanban', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241422/kanban_ysnojm.png' },
       { to: '/tickets', label: 'Tickets', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770343495/support-ticket_fku5gp.png' },
-      { to: '/calendar', label: 'Calendar', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241422/calendar_xbhksz.png' },
     ];
     links.push(
       { to: '/management', label: 'Management', icon: '' },
-      { to: '/gantt', label: 'Gantt', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770343495/gantt-chart_gjwr5s.png' },
       { to: '/reports', label: 'Reports', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770343494/report_boqlo0.png' },
       { to: '/admin/points-table', label: 'Points', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241423/points_jgi3yh.png' },
       { to: '/template-editor', label: 'Templates', icon: 'https://res.cloudinary.com/dqhcbck76/image/upload/v1770241423/layout_xgg1fa.png' },
@@ -197,7 +196,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [hasUnreadChat, user, navigation.configuration, navigation.preferences]);
 
   const bottomBarLinks = useMemo(
-    () => mobileLinks.filter((link) => ['/dashboard', '/tasks', '/kanban'].includes(String(link.to))),
+    () => mobileLinks.filter((link) => ['/dashboard', '/tasks', '/projects'].includes(String(link.to))),
     [mobileLinks],
   );
 

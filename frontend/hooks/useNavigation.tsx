@@ -78,7 +78,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
   const visible = (id: string) => page(id)?.access === 'allowed' && (id !== 'management'
     || current?.pages.some(entry => entry.parentId === 'management' && entry.access === 'allowed') === true);
   function decorate<T extends { to: unknown; label: string }>(links: T[]): T[] {
-    const keyOf = (link: T) => pageIdForPath(String(link.to)) || '';
+    const keyOf = (link: T) => ('pageId' in link ? String(link.pageId) : pageIdForPath(String(link.to))) || '';
     const baseline = links.filter(link => visible(keyOf(link)))
       .sort((a, b) => (page(keyOf(a))?.sortOrder ?? 1000) - (page(keyOf(b))?.sortOrder ?? 1000));
     return applySidebarPreferences(baseline, keyOf, preferences);

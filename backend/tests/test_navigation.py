@@ -139,6 +139,44 @@ def test_management_tabs_keep_role_ceilings_and_existing_policy_ids(client, peop
         assert entry['access'] == expected
 
 
+@pytest.mark.parametrize('role', ['user', 'manager', 'admin', 'owner'])
+def test_task_tabs_keep_existing_policy_ids_and_role_ceilings(client, people, role):
+    doc = document(client, people[role])
+    assert page(doc, 'tasks')['navigationLocation'] == 'sidebar'
+    for identifier, route in [('tasks.list', '/tasks'), ('kanban', '/tasks/kanban'),
+                              ('gantt', '/tasks/gantt'), ('calendar', '/tasks/calendar')]:
+        entry = page(doc, identifier)
+        assert entry['parentId'] == 'tasks'
+        assert entry['navigationLocation'] == 'task-tab'
+        assert entry['route'] == route
+        assert entry['access'] == ('forbidden' if identifier == 'gantt' and role == 'user' else 'allowed')
+    assert page(doc, 'tasks.list')['isSystemProtected']
+
+
+def test_task_tab_restrictions_survive_move_and_parent_shutdown(client, data, people):
+    # These identifiers were stored before tabs existed. No migration may grant access.
+    with data.factory() as db:
+        db.add(models.NavigationPolicy(tenant_id=str(data.owner.tenant_id), revision=1,
+            updated_by=data.owner.id, updated_at=datetime.now(timezone.utc),
+            rules={'kanban': {'allowedRoles': ['owner']}, 'gantt': {'enabled': False},
+                   'calendar': {'hidden': True}}))
+        db.commit()
+    doc = document(client, people['manager'])
+    assert page(doc, 'kanban')['access'] == 'forbidden'
+    assert page(doc, 'gantt')['access'] == 'disabled'
+    assert page(doc, 'calendar')['access'] == 'hidden'
+    change = payload(document(client, data.owner))
+    page(change, 'tasks')['enabled'] = False
+    assert save(client, data.owner, change).status_code == 200
+    for identifier in ('tasks', 'tasks.list', 'kanban', 'gantt', 'calendar'):
+        assert page(document(client, data.owner), identifier)['access'] == 'disabled'
+    with data.factory() as db:
+        rules = db.get(models.NavigationPolicy, str(data.owner.tenant_id)).rules
+        assert service.api_decision('tasks', data.owner.role, rules) == 'disabled'
+        assert service.api_decision('kanban', data.owner.role, rules) == 'disabled'
+    assert page(document(client, data.outsider), 'calendar')['access'] == 'allowed'
+
+
 def test_management_parent_and_child_policies_apply_independently(client, data, people):
     change = payload(document(client, data.owner))
     page(change, 'users')['allowedRoles'] = ['owner']
@@ -218,7 +256,7 @@ def test_non_owner_cannot_modify_global_policy(client, data, people, role):
     assert document(client, data.owner)['revision'] == 0
 
 
-@pytest.mark.parametrize('id', ['settings', 'settings.profile', 'settings.sidebar-management', 'dashboard'])
+@pytest.mark.parametrize('id', ['settings', 'settings.profile', 'settings.sidebar-management', 'dashboard', 'tasks.list'])
 @pytest.mark.parametrize('restriction', ['disable', 'hide', 'narrow'])
 def test_protected_recovery_pages_cannot_be_restricted(client, data, id, restriction):
     change = payload(document(client, data.owner))

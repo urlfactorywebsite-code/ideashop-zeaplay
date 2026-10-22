@@ -1,5 +1,7 @@
+import SearchableMultiSelect from './ui/SearchableMultiSelect';
 import Avatar from './Avatar';
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { createPortal } from 'react-dom';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import api from '../services/mockApi';
@@ -10,6 +12,7 @@ import { formatRecurrenceRule, formatTaskStatus } from '../utils';
 import { PlusIcon, XMarkIcon, SparklesIcon } from './icons';
 import GenerateTaskWithAIModal from './GenerateTaskWithAIModal';
 import SingleSelect from './ui/SingleSelect';
+import { taskDateTimeInstant } from '../utils/taskDates';
 
 type ThemeMode = 'dark' | 'colorful' | 'light';
 
@@ -169,6 +172,7 @@ interface CreateTaskModalProps {
   onClose: () => void;
   onTaskCreated: () => void;
   initialDueDate?: string | null;
+  dueTimezone?: string;
   ticketId?: string;
   ticketTitle?: string;
   ticketDescription?: string;
@@ -179,6 +183,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     onClose,
     onTaskCreated,
     initialDueDate = null,
+    dueTimezone,
     ticketId,
     ticketTitle,
     ticketDescription,
@@ -198,6 +203,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     const [dueTime, setDueTime] = useState(() => resolveDefaultDueDateTime().time);
     const [team, setTeam] = useState('');
     const [projectId, setProjectId] = useState('');
+    const [projectSearch, setProjectSearch] = useState('');
+    const [projectPage, setProjectPage] = useState(1);
+    const [projectResults, setProjectResults] = useState<Project[]>([]);
+    const [projectHasMore, setProjectHasMore] = useState(false);
+    const [projectError, setProjectError] = useState<string | null>(null);
+    const [projectRetry, setProjectRetry] = useState(0);
     const [subtaskApprovalOverride, setSubtaskApprovalOverride] = useState<'inherit' | 'required' | 'not_required'>('inherit');
     const [approvalRequired, setApprovalRequired] = useState(false);
     const [approverId, setApproverId] = useState<string | null>(null);
@@ -237,13 +248,17 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+    useEffect(() => {
+        if (!isOpen || !initialDueDate) return;
+        const date = new Date(initialDueDate);
+        if (Number.isNaN(date.getTime())) return;
+        setDueDate(formatDateInput(date));
+        setDueTime(date.toTimeString().slice(0, 5));
+        setSelectedDate(date);
+    }, [isOpen, initialDueDate]);
     const [activeAssignmentsSelectId, setActiveAssignmentsSelectId] = useState<string | null>(null);
-    const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
     const [assigneeSearch, setAssigneeSearch] = useState('');
     const [followerSearch, setFollowerSearch] = useState('');
-    const [activeAssigneeIndex, setActiveAssigneeIndex] = useState(0);
-    const assigneePickerRef = useRef<HTMLDivElement>(null);
-    const assigneeSearchRef = useRef<HTMLInputElement>(null);
     const primaryTaskAssigneeId = assignedTo[0] ?? null;
 
     const statusOptions = (columns.length > 0
@@ -268,11 +283,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     }));
 
     const projectOptions = useMemo(
-        () => projects.map((project) => ({
+        () => projectResults.map((project) => ({
             id: project.id,
-            name: project.client?.companyName ? `${project.name} - ${project.client.companyName}` : project.name,
+            name: project.name,
+            description: project.client?.companyName || project.description || 'No client details',
+            active: project.status === ProjectStatus.ACTIVE,
+            statusLabel: project.status,
         })),
-        [projects],
+        [projectResults],
     );
 
     useEffect(() => {
@@ -289,18 +307,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             document.body.style.overflow = previousOverflow;
         };
     }, [isOpen]);
-
-    useEffect(() => {
-        if (!isAssigneePickerOpen) return;
-        const handlePointerDown = (event: MouseEvent) => {
-            if (!assigneePickerRef.current?.contains(event.target as Node)) {
-                setIsAssigneePickerOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handlePointerDown);
-        setTimeout(() => assigneeSearchRef.current?.focus(), 0);
-        return () => document.removeEventListener('mousedown', handlePointerDown);
-    }, [isAssigneePickerOpen]);
 
     const recurrenceOptions = Object.values(RecurrenceRule).map((rule) => ({
         id: rule,
@@ -371,7 +377,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         }));
         setColumns(resolvedColumns);
         setStatus(TaskStatus.WAITING_FOR_REQUIREMENT);
-        setProjectId(projects.length === 1 ? projects[0].id : '');
+        setProjectId('');
+        setProjects([]);
+        setProjectSearch('');
+        setProjectPage(1);
+        setProjectResults([]);
 
         api.getUsers()
             .then((allUsers) => {
@@ -398,36 +408,39 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 }
             });
 
-        if (!isTicketMode) {
-            setIsProjectsLoading(true);
-            api.getProjects({ status: ProjectStatus.ACTIVE, pageSize: 100, sortBy: 'name', sortOrder: 'asc' })
-                .then((response) => {
-                    if (isCancelled) return;
-                    const visibleProjects = (response.items ?? []).filter((project) => project.status === ProjectStatus.ACTIVE);
-                    setProjects(visibleProjects);
-                    setProjectId((current) => {
-                        if (current && visibleProjects.some((project) => project.id === current)) {
-                            return current;
-                        }
-                        return visibleProjects.length === 1 ? visibleProjects[0].id : '';
-                    });
-                })
-                .catch((err) => {
-                    if (isCancelled) return;
-                    console.error('Failed to fetch projects for task creation:', err instanceof Error ? err.message : err);
-                    setProjects([]);
-                })
-                .finally(() => {
-                    if (!isCancelled) {
-                        setIsProjectsLoading(false);
-                    }
-                });
-        }
-
         return () => {
             isCancelled = true;
         };
     }, [isOpen, currentUser, isTicketMode]);
+
+    useEffect(() => {
+        if (!isOpen || !currentUser || isTicketMode) return;
+        let active = true;
+        setIsProjectsLoading(true);
+        setProjectError(null);
+        const timer = window.setTimeout(async () => {
+            try {
+                const response = await api.getProjects({ status: ProjectStatus.ACTIVE, page: projectPage,
+                    pageSize: 25, q: projectSearch.trim(), sortBy: 'name', sortOrder: 'asc' });
+                if (!active) return;
+                const visible = (response.items ?? []).filter(project => project.status === ProjectStatus.ACTIVE);
+                setProjectResults(current => projectPage === 1 ? visible
+                    : Array.from(new Map([...current, ...visible].map(project => [project.id, project])).values()));
+                // Keep selected project metadata while searching other pages. Membership
+                // restrictions and inherited approval settings still use this record.
+                setProjects(current => Array.from(new Map([...current, ...visible].map(project => [project.id, project])).values()));
+                setProjectHasMore(response.page < response.totalPages);
+                if (!projectSearch.trim() && projectPage === 1 && response.total === 1 && visible.length === 1) {
+                    setProjectId(current => current || visible[0].id);
+                }
+            } catch (err) {
+                if (active) setProjectError(err instanceof Error ? err.message : 'Unable to load projects.');
+            } finally {
+                if (active) setIsProjectsLoading(false);
+            }
+        }, projectSearch ? 250 : 0);
+        return () => { active = false; window.clearTimeout(timer); };
+    }, [isOpen, currentUser, isTicketMode, projectSearch, projectPage, projectRetry]);
 
     useEffect(() => {
         if (!isOpen || !isTicketMode) return;
@@ -473,7 +486,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         setSubtaskApprovalOverride('inherit');
         setAssigneeSearch('');
         setFollowerSearch('');
-        setIsAssigneePickerOpen(false);
     };
 
     const handleClose = () => {
@@ -571,17 +583,15 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         setIsSubmitting(true);
         setError('');
         try {
+            const dueAt = dueTimezone
+                ? taskDateTimeInstant(dueDate, dueTime, dueTimezone)
+                : `${dueDate}T${dueTime}:00`;
             if (ticketId) {
                 if (approvalRequired && !approverId) {
                     setError('Select an approver for approval-required tasks.');
                     setIsSubmitting(false);
                     return;
                 }
-                const dueAt = (dueDate && dueTime)
-                    ? `${dueDate}T${dueTime}:00`
-                    : dueDate
-                        ? `${dueDate}T00:00:00`
-                        : null;
             await api.createTicketTask(ticketId, {
                 dueAt,
                 priority,
@@ -611,7 +621,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 projectId,
                 priority,
                 status: status as TaskStatus,
-                dueAt: (dueDate && dueTime) ? `${dueDate}T${dueTime}:00` : dueDate ? `${dueDate}T00:00:00` : null,
+                dueAt,
                 team,
                 recurringTaskId: null,
                 subtasks: finalSubtasks,
@@ -799,34 +809,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     }, [assignedTo, followerSearch, assignableUsers]);
 
     useEffect(() => {
-        setActiveAssigneeIndex((current) => {
-            if (filteredAssignees.length === 0) return 0;
-            return Math.min(current, filteredAssignees.length - 1);
-        });
-    }, [filteredAssignees.length]);
-
-    useEffect(() => {
         if (assignedTo.length === 0) return;
         const assignedSet = new Set(assignedTo);
         setFollowerIds((current) => current.filter((userId) => !assignedSet.has(userId)));
     }, [assignedTo]);
-
-    const handleAssigneeKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!filteredAssignees.length) return;
-        if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            setActiveAssigneeIndex((current) => Math.min(current + 1, filteredAssignees.length - 1));
-        } else if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            setActiveAssigneeIndex((current) => Math.max(current - 1, 0));
-        } else if (event.key === 'Enter') {
-            event.preventDefault();
-            const selected = filteredAssignees[activeAssigneeIndex];
-            if (selected) toggleAssignee(selected.id);
-        } else if (event.key === 'Escape') {
-            setIsAssigneePickerOpen(false);
-        }
-    }, [activeAssigneeIndex, filteredAssignees, toggleAssignee]);
 
     const formatRoleLabel = useCallback((role: Role) => role.charAt(0).toUpperCase() + role.slice(1), []);
 
@@ -951,9 +937,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <>
-            <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-slate-950/25 px-3 py-3 backdrop-blur-sm sm:px-5 sm:py-5">
+            <div role="dialog" aria-modal="true" aria-labelledby="create-task-modal-title"
+                className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-slate-950/25 px-3 py-3 backdrop-blur-sm sm:px-5 sm:py-5">
                 <div
                     className="task-modal relative flex max-h-[90vh] w-full max-w-[94rem] flex-col overflow-hidden rounded-3xl border backdrop-blur-xl transition duration-300 max-sm:h-full max-sm:max-h-none max-sm:rounded-2xl"
                     style={modalStyle}
@@ -979,7 +966,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                         <div className="flex flex-col gap-4 pr-24 lg:flex-row lg:items-center lg:justify-between lg:pr-32">
                             <div className="space-y-2">
                                 <p className="hidden text-xs font-semibold uppercase tracking-[0.35em] modal-muted sm:block">New quest</p>
-                                <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Create Task</h2>
+                                <h2 id="create-task-modal-title" className="text-2xl font-bold tracking-tight sm:text-3xl">Create Task</h2>
                                 <p className="hidden max-w-xl text-sm modal-muted sm:block">
                                     Shape a mission with clear objectives, allies, and loot so the squad can execute flawlessly.
                                 </p>
@@ -1043,105 +1030,48 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                         {!isTicketMode && (
                                             <div className="md:col-span-2 xl:col-span-1 2xl:col-span-2">
                                                 <label htmlFor="projectId" className={labelClass}>Project *</label>
-                                                <SingleSelect
-                                                    id="projectId"
+                                                <SearchableMultiSelect
+                                                    id="projectId" label="Project" selectionMode="single" avoidClipping
                                                     options={projectOptions}
-                                                    value={projectId}
-                                                    onChange={setProjectId}
+                                                    selectedOptions={selectedProject ? [{ id: selectedProject.id,
+                                                        name: selectedProject.client?.companyName ? `${selectedProject.name} - ${selectedProject.client.companyName}` : selectedProject.name,
+                                                        active: true, statusLabel: selectedProject.status }] : []}
+                                                    value={projectId ? [projectId] : []}
+                                                    onToggle={setProjectId}
                                                     onOpenChange={handleAssignmentsSelectOpen}
-                                                    placeholder={isProjectsLoading ? 'Loading projects...' : 'Select project...'}
-                                                    className="mt-2"
+                                                    search={projectSearch} onSearchChange={next => {
+                                                        setProjectSearch(next); setProjectPage(1); setProjectResults([]);
+                                                        setProjectHasMore(false); setIsProjectsLoading(true);
+                                                    }}
+                                                    placeholder="Search and select a project..."
+                                                    searchPlaceholder="Search by project or client name..."
+                                                    emptyMessage="No projects match your search." loadingMessage="Loading projects..."
+                                                    loading={isProjectsLoading} error={projectError}
+                                                    onRetry={() => setProjectRetry(current => current + 1)}
+                                                    hasMore={projectHasMore} onLoadMore={() => { setIsProjectsLoading(true); setProjectPage(current => current + 1); }}
+                                                    selectedStatusLabel="Selected"
+                                                    renderAvatar={(option, size) => <Avatar user={{ name: projects.find(project => project.id === option.id)?.name || option.name, avatarUrl: null }} size={size} />}
                                                 />
                                             </div>
                                         )}
                                         <div>
                                             <label htmlFor="assignedTo" className={labelClass}>Assignees</label>
-                                            <div ref={assigneePickerRef} className="relative mt-2">
-                                                <button
-                                                    id="assignedTo"
-                                                    type="button"
-                                                    onClick={() => setIsAssigneePickerOpen((open) => !open)}
-                                                    className="modal-input flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition hover:scale-[1.01]"
-                                                >
-                                                    <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-                                                        {selectedUsers.length === 0 ? (
-                                                            <span className="text-white/45">
-                                                                {isAssigneesLoading ? 'Loading assignees...' : 'Search and select assignees...'}
-                                                            </span>
-                                                        ) : (
-                                                            selectedUsers.slice(0, 3).map((member) => {
-
-                                                                return (
-                                                                    <span key={member.id} className="modal-chip inline-flex max-w-full items-center gap-2 px-2 py-1 text-xs">
-                                                                        <span className="h-5 w-5 overflow-hidden rounded-full bg-black/40">
-                                                                            <Avatar user={member} size={20} />
-                                                                        </span>
-                                                                        <span className="truncate">{member.name}</span>
-                                                                    </span>
-                                                                );
-                                                            })
-                                                        )}
-                                                        {selectedUsers.length > 3 && (
-                                                            <span className="modal-chip px-2 py-1 text-xs">+{selectedUsers.length - 3}</span>
-                                                        )}
-                                                    </div>
-                                                    <span className="text-xs uppercase tracking-[0.2em] modal-muted">{selectedUsers.length} selected</span>
-                                                </button>
-                                                {isAssigneePickerOpen && (
-                                                    <div className="absolute left-0 right-0 top-full z-[140] mt-2 overflow-hidden rounded-2xl border border-white/15 bg-slate-950/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl">
-                                                        <div className="border-b border-white/10 p-2">
-                                                            <input
-                                                                ref={assigneeSearchRef}
-                                                                type="text"
-                                                                value={assigneeSearch}
-                                                                onChange={(event) => {
-                                                                    setAssigneeSearch(event.target.value);
-                                                                    setActiveAssigneeIndex(0);
-                                                                }}
-                                                                onKeyDown={handleAssigneeKeyDown}
-                                                                placeholder="Search by name, role, email, team..."
-                                                                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-cyan-300/60 focus:outline-none"
-                                                            />
-                                                        </div>
-                                                        <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
-                                                            {isAssigneesLoading && filteredAssignees.length === 0 ? (
-                                                                <div className="px-3 py-3 text-sm text-white/50">Loading assignees...</div>
-                                                            ) : filteredAssignees.length === 0 ? (
-                                                                <div className="px-3 py-3 text-sm text-white/50">No users found.</div>
-                                                            ) : (
-                                                                filteredAssignees.map((member, index) => {
-                                                                    const isSelected = assignedTo.includes(member.id);
-
-                                                                    const isOnline = member.status === UserStatus.ACTIVE;
-                                                                    return (
-                                                                        <button
-                                                                            key={member.id}
-                                                                            type="button"
-                                                                            onMouseEnter={() => setActiveAssigneeIndex(index)}
-                                                                            onClick={() => toggleAssignee(member.id)}
-                                                                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition duration-150 ${
-                                                                                index === activeAssigneeIndex ? 'bg-cyan-400/10' : 'hover:bg-white/10'
-                                                                            } ${isSelected ? 'text-cyan-100' : 'text-white/80'}`}
-                                                                        >
-                                                                            <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/15 bg-black/40">
-                                                                                <Avatar user={member} size={36} />
-                                                                                <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-slate-950 ${isOnline ? 'bg-emerald-400' : 'bg-slate-500'}`} />
-                                                                            </span>
-                                                                            <span className="min-w-0 flex-1">
-                                                                                <span className="block truncate font-semibold">{member.name}</span>
-                                                                                <span className="block truncate text-xs text-white/45">{member.role} · {member.department || 'No team'}</span>
-                                                                            </span>
-                                                                            <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${isSelected ? 'border-cyan-300/60 bg-cyan-400/10 text-cyan-100' : 'border-white/10 text-white/40'}`}>
-                                                                                {isSelected ? 'Added' : isOnline ? 'Online' : 'Offline'}
-                                                                            </span>
-                                                                        </button>
-                                                                    );
-                                                                })
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <SearchableMultiSelect
+                                                id="assignedTo" label="Assignees"
+                                                options={filteredAssignees.map(member => ({ id: member.id, name: member.name,
+                                                    description: `${member.role} · ${member.department || 'No team'}`,
+                                                    active: member.status === UserStatus.ACTIVE,
+                                                    statusLabel: member.status === UserStatus.ACTIVE ? 'Online' : 'Offline' }))}
+                                                selectedOptions={selectedUsers.map(member => ({ id: member.id, name: member.name,
+                                                    active: member.status === UserStatus.ACTIVE, statusLabel: '' }))}
+                                                value={assignedTo} onToggle={toggleAssignee}
+                                                search={assigneeSearch} onSearchChange={setAssigneeSearch}
+                                                placeholder="Search and select assignees..."
+                                                searchPlaceholder="Search by name, role, email, team..."
+                                                emptyMessage="No users found." loadingMessage="Loading assignees..."
+                                                loading={isAssigneesLoading} selectedStatusLabel="Added"
+                                                renderAvatar={(option, size) => <Avatar user={assignableUsers.find(member => member.id === option.id)!} size={size} />}
+                                            />
                                         </div>
                                         <div>
                                             <label htmlFor="status" className={labelClass}>Status</label>
@@ -1169,6 +1099,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                         </div>
                                         <div>
                                             <label htmlFor="dueDate" className={labelClass}>Due date *</label>
+                                            {dueTimezone && <p className="mt-1 text-xs">Timezone: {dueTimezone}</p>}
                                             <div className="mt-2 space-y-2">
                                                 <div className="relative flex gap-2">
                                                     <input
@@ -1789,13 +1720,15 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             </div>
 
             {isAiModalOpen && (
-                <GenerateTaskWithAIModal
-                    isOpen={isAiModalOpen}
-                    onClose={() => setIsAiModalOpen(false)}
-                    onTaskGenerated={handleTaskGenerated}
-                />
+                <div className="relative z-[100]">
+                    <GenerateTaskWithAIModal
+                        isOpen={isAiModalOpen}
+                        onClose={() => setIsAiModalOpen(false)}
+                        onTaskGenerated={handleTaskGenerated}
+                    />
+                </div>
             )}
-        </>
+        </>, document.body
     );
 };
 

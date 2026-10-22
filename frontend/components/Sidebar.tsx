@@ -138,17 +138,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse, onVers
             label: 'Projects',
         },
         {
-            to: '/kanban',
-            icon: (
-                <img
-                    src="https://res.cloudinary.com/dqhcbck76/image/upload/v1770241422/kanban_ysnojm.png"
-                    alt="Kanban Board"
-                    className="h-6 w-6 object-contain"
-                />
-            ),
-            label: 'Kanban Board',
-        },
-        {
             to: '/tickets',
             icon: (
                 <img
@@ -166,17 +155,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggleCollapse, onVers
 
     const adminLinks: SidebarLink[] = [
         { to: '/management', label: 'Management', icon: <UsersRound className="h-6 w-6" aria-hidden="true" /> },
-        {
-            to: '/gantt',
-            icon: (
-                <img
-                    src="https://res.cloudinary.com/dqhcbck76/image/upload/v1770343495/gantt-chart_gjwr5s.png"
-                    alt="Gantt Chart"
-                    className="h-6 w-6 object-contain"
-                />
-            ),
-            label: 'Gantt Chart',
-        },
         {
             to: '/reports',
             icon: (

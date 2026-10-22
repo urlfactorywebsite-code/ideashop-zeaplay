@@ -1,0 +1,18 @@
+Create Project and Edit Project now reuse the existing Assignees searchable dropdown for Client, Managers and Members. Client remains a single selection. Managers and Members keep multi-selection, immediate selected counts, chips, avatars and existing role-transfer behavior. Other form fields and dashboard controls retain their existing layout.
+
+The normal-zoom clipping fix renders the project dialog in a portal attached to the document body at z-index 100, above the application header's z-index 70. Previously the dialog used z-index 50 inside the page. The form is limited to the dynamic viewport height minus 32px; its header and footer stay visible while only the details section scrolls. Background body scrolling is locked while open and restored on close. This applies to both Create Project and Edit Project.
+
+Client search uses the existing authenticated client API, a 250ms debounce, ACTIVE status, 25 records per page and Load more. It searches company name, email and phone, and retains the selected client across searches and editing. The page's existing 100-record client lookup for its separate list filter is unchanged. People search reuses the existing tenant-scoped user lookup and filters name, email, role and team. New managers remain limited to active owners, admins and managers. Selected historical users remain visible until explicitly removed; they cannot be newly reselected after removal. Backend authorization and payload contracts are unchanged.
+
+Validation on 2026-10-22:
+
+- Nine project-form browser groups passed against synthetic API responses through the real frontend API adapter: client search and pagination beyond page one, role eligibility, multi-selection/counts, empty states, duplicate-role prevention, keyboard controls, matching row/avatar dimensions, manager-required validation, create/edit payloads, selected client preservation, mobile clipping, historical selection removal and preservation of typed form values when lookups arrive late.
+- The stacking regression harness includes a z-index 70 application header and a transformed, scrollable page container. At normal viewport scale 1, the dialog title, close and submit controls remain visible and receive pointer hits at 1920x930, 1366x768, 1280x600, 1024x600 and 390x640. Scrolling the form leaves its title/footer in place, dropdowns fit the details viewport, and closing restores body scrolling. Screenshots: `checks/modal-1366x768.png` and `checks/modal-390x640.png`.
+- All 152 frontend tests passed. All five Create Task project-picker browser regression groups passed.
+- TypeScript diagnostics match the saved baseline: 116 existing errors, no new diagnostics. No lint script is configured.
+- Frontend container build and scoped whitespace checks passed.
+- Rebuilt and recreated only the existing development Compose frontend. `http://localhost:6300` and the updated Projects JavaScript asset return HTTP 200, with all three new picker implementations present. No application database or production changes were made.
+
+Modified source: `frontend/pages/Projects.tsx` and new `frontend/components/ClientSelect.tsx`. Browser coverage is in `frontend/e2e/project-form-pickers.mjs` and `frontend/e2e/projectFormFixture.tsx`. Evidence and screenshots are in [checks](checks/). Existing tabs should use Ctrl+Shift+R and reopen Create Project.
+
+To repeat browser verification, start loopback Vite on port 16309, set `ZEAPLAY_PLAYWRIGHT_MODULE` to an existing Playwright `index.mjs`, and run `node frontend/e2e/project-form-pickers.mjs` from the repository root. `ZEAPLAY_PROJECT_FORM_TEST_URL` can select another loopback port.

@@ -34,6 +34,7 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
   const connectAttemptRef = useRef(0);
   const mountedRef = useRef(false);
   const connectingRef = useRef(false);
+  const hasConnectedRef = useRef(false);
 
   useEffect(() => {
     onEventRef.current = onEvent;
@@ -84,8 +85,13 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
         if (socketRef.current !== socket || !mountedRef.current) return;
         reconnectControllerRef.current.reset();
         setStatus('connected');
-        publishTaskRealtime({ userId: user.id, tenantId: user.tenantId ?? null, payload: { type: 'realtime:reconnected' } });
-        onEventRef.current?.({ type: 'realtime:reconnected' });
+        // The mounted readers already fetch once. Only a restored connection
+        // needs to reconcile changes that may have occurred during the gap.
+        if (hasConnectedRef.current) {
+          publishTaskRealtime({ userId: user.id, tenantId: user.tenantId ?? null, payload: { type: 'realtime:reconnected' } });
+          onEventRef.current?.({ type: 'realtime:reconnected' });
+        }
+        hasConnectedRef.current = true;
       };
 
       socket.onmessage = (event) => {
@@ -96,6 +102,7 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
             socket.send(JSON.stringify({ type: 'pong' }));
             return;
           }
+          if (payload?.type === 'realtime:ready') return;
           publishTaskRealtime({ userId: user.id, tenantId: user.tenantId ?? null, payload });
           onEventRef.current?.(payload);
         } catch {
@@ -121,6 +128,7 @@ export const useTaskWebSocket = ({ enabled = true, onEvent }: UseTaskWebSocketOp
 
   useEffect(() => {
     mountedRef.current = true;
+    hasConnectedRef.current = false;
     reconnectControllerRef.current.activate();
     if (!enabled || !user?.id) {
       cleanup();

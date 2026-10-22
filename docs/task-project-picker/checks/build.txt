@@ -1,0 +1,156 @@
+
+> vee-task-manager@6.0.1 build
+> vite build
+
+vite v6.4.2 building for production...
+transforming...
+✓ 5305 modules transformed.
+node.exe : node_modules/lottie-web/build/player/lottie.js (14422:32): Use of eval in 
+"node_modules/lottie-web/build/player/lottie.js" is strongly discouraged as it poses security risks and may cause 
+issues with minification.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\Lenovo\AppData\Roaming ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (node_modules/lo...h minification.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+rendering chunks...
+[plugin vite:reporter] 
+(!) F:/Projects/ideashop-zeaplay-v5/frontend/services/mockApi.ts is dynamically imported by 
+F:/Projects/ideashop-zeaplay-v5/frontend/services/avatarResources.ts, 
+F:/Projects/ideashop-zeaplay-v5/frontend/services/avatarResources.ts but also statically imported by 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/ActiveWork.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/ChangeRoleModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/ClaimedRewardModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/CreateTaskModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/CreateUserModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/EditUserModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/EmployeeDetails.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/ForgotPasswordModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/Header.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/Layout.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/OAuthDocumentation.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/OrganizationTreeSection.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/ProfileInformationForm.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/ProfileMediaEditor.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/ResetPasswordModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/SameTaskLogModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/SettingsNotificationsPanel.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/SmtpManagement.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/SupportFormModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/TaskDetailModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/TaskExecutionReport.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/components/TaskTemplateModal.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/hooks/useActiveWork.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/hooks/useAuth.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/hooks/useNavigation.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/hooks/useNotifications.ts, 
+F:/Projects/ideashop-zeaplay-v5/frontend/hooks/usePushNotifications.ts, 
+F:/Projects/ideashop-zeaplay-v5/frontend/hooks/useTaskJourney.ts, 
+F:/Projects/ideashop-zeaplay-v5/frontend/hooks/useTaskList.ts, 
+F:/Projects/ideashop-zeaplay-v5/frontend/hooks/useTaskPrefetch.ts, 
+F:/Projects/ideashop-zeaplay-v5/frontend/hooks/useTaskReport.ts, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/Achievements.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/ApiOverview.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/CalendarView.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/Dashboard.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/GanttView.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/KanbanBoard.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/LevelsManager.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/PasswordReset.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/PointsTableSettings.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/ProfileSettings.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/RewardManagement.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/SidebarManagement.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/Tasks.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/ToolLibrary.tsx, 
+F:/Projects/ideashop-zeaplay-v5/frontend/pages/Users.tsx, F:/Projects/ideashop-zeaplay-v5/frontend/services/api.ts, 
+F:/Projects/ideashop-zeaplay-v5/frontend/services/oauthApi.ts, 
+F:/Projects/ideashop-zeaplay-v5/frontend/services/reportingApi.ts, dynamic import will not move module into another 
+chunk.
+
+computing gzip size...
+dist/index.html                                        16.02 kB │ gzip:   3.89 kB
+dist/assets/login1-DXI1ochc.png                       566.36 kB
+dist/assets/login2-AYUC7euC.png                       609.69 kB
+dist/assets/login3-DZLdV4Y8.png                       688.36 kB
+dist/assets/RestoreConfirmation-BmVUNV0T.css            1.65 kB │ gzip:   0.70 kB
+dist/assets/OAuthManagement-BqKLUU9o.css                3.71 kB │ gzip:   1.33 kB
+dist/assets/SmtpManagement-Cx8eaH4U.css                 4.38 kB │ gzip:   1.45 kB
+dist/assets/Reports-CQ4RX1b4.css                        9.16 kB │ gzip:   2.14 kB
+dist/assets/TaskJourneyModal-CSwXLHw5.css              11.69 kB │ gzip:   2.59 kB
+dist/assets/index-BoXKsFRm.css                        149.21 kB │ gzip:  28.85 kB
+dist/assets/check-Bh14iHi5.js                           0.30 kB │ gzip:   0.25 kB
+dist/assets/arrow-down-8jrwJwGz.js                      0.33 kB │ gzip:   0.27 kB
+dist/assets/search-DztlM-9u.js                          0.35 kB │ gzip:   0.28 kB
+dist/assets/clsx-B-dksMZM.js                            0.37 kB │ gzip:   0.24 kB
+dist/assets/download-Ci3wY9V8.js                        0.40 kB │ gzip:   0.30 kB
+dist/assets/copy-D__keOEY.js                            0.41 kB │ gzip:   0.31 kB
+dist/assets/database-b0cexPsV.js                        0.42 kB │ gzip:   0.31 kB
+dist/assets/archive-BSPxxYrY.js                         0.43 kB │ gzip:   0.31 kB
+dist/assets/triangle-alert-C47R7lpr.js                  0.44 kB │ gzip:   0.31 kB
+dist/assets/bell-h3WilD0T.js                            0.46 kB │ gzip:   0.35 kB
+dist/assets/XMarkIcon-BoV8sTfg.js                       0.48 kB │ gzip:   0.35 kB
+dist/assets/shield-check-CIgp7u7C.js                    0.49 kB │ gzip:   0.36 kB
+dist/assets/ClockIcon-DzpFOF3V.js                       0.50 kB │ gzip:   0.37 kB
+dist/assets/file-text-CKMYemUZ.js                       0.51 kB │ gzip:   0.32 kB
+dist/assets/TaskPriorityBadge-B0pVLS3s.js               0.66 kB │ gzip:   0.44 kB
+dist/assets/taskDates-BzPS_Lze.js                       0.75 kB │ gzip:   0.41 kB
+dist/assets/realtimeRecovery-COYdE9C7.js                0.94 kB │ gzip:   0.51 kB
+dist/assets/PlusIcon-BEtXjcuf.js                        0.96 kB │ gzip:   0.42 kB
+dist/assets/themeTokens-C3rerMjz.js                     1.23 kB │ gzip:   0.55 kB
+dist/assets/video-Dgid3jPE.js                           1.27 kB │ gzip:   0.54 kB
+dist/assets/OAuthManagement-DYKX98ZK.js                 1.35 kB │ gzip:   0.63 kB
+dist/assets/Badge-REwDuKzM.js                           1.43 kB │ gzip:   0.68 kB
+dist/assets/PageTabs-Cv68VzhC.js                        1.66 kB │ gzip:   0.89 kB
+dist/assets/OAuthApplications-uotqKERo.js               1.72 kB │ gzip:   0.87 kB
+dist/assets/SingleSelect-CgswqXKN.js                    1.94 kB │ gzip:   1.06 kB
+dist/assets/SettingsOAuth-BRkk7Ru6.js                   1.95 kB │ gzip:   0.96 kB
+dist/assets/SettingsApi-D9ZqSf9n.js                     1.97 kB │ gzip:   1.00 kB
+dist/assets/Management-CWi7KzsQ.js                      2.95 kB │ gzip:   1.41 kB
+dist/assets/OAuthAuthorization-B5YpJlxF.js              3.18 kB │ gzip:   1.42 kB
+dist/assets/RestoreConfirmation-Dlgln2k0.js             3.58 kB │ gzip:   1.40 kB
+dist/assets/levelsConfigStorage-ChgEJdj-.js             4.73 kB │ gzip:   1.78 kB
+dist/assets/SearchableMultiSelect-DZEWj1Ii.js           6.55 kB │ gzip:   2.65 kB
+dist/assets/Settings-DV0gf5Co.js                        6.60 kB │ gzip:   2.44 kB
+dist/assets/AllTasks-bug-eL8V.js                        7.59 kB │ gzip:   3.04 kB
+dist/assets/SupportFormModal-DLlHPrKO.js                7.66 kB │ gzip:   2.57 kB
+dist/assets/useQuery-CIc1nMvA.js                        9.57 kB │ gzip:   3.40 kB
+dist/assets/TaskExecutionReport-BLszqU4s.js            16.37 kB │ gzip:   4.91 kB
+dist/assets/SidebarManagement-CzVYkBl0.js              16.70 kB │ gzip:   5.90 kB
+dist/assets/GanttView-_ZilI1mb.js                      17.90 kB │ gzip:   5.50 kB
+dist/assets/SettingsNotificationsPanel-DwkQkt7K.js     19.28 kB │ gzip:   5.81 kB
+dist/assets/SmtpManagement-CQrXxCa8.js                 21.23 kB │ gzip:   6.52 kB
+dist/assets/Dashboard-ChRnP_8x.js                      21.96 kB │ gzip:   6.56 kB
+dist/assets/OAuthManagement-MR5Hb7_r.js                23.42 kB │ gzip:   7.36 kB
+dist/assets/PointsTableSettings-D2Pf4fSl.js            23.43 kB │ gzip:   6.59 kB
+dist/assets/ToolLibrary-CG-5mFqd.js                    24.75 kB │ gzip:   5.59 kB
+dist/assets/RewardManagement-BIoTVlL-.js               26.43 kB │ gzip:   6.65 kB
+dist/assets/TemplateEditor-C-4jYeag.js                 30.86 kB │ gzip:   8.65 kB
+dist/assets/Clients-CWeUBG7F.js                        31.43 kB │ gzip:   7.45 kB
+dist/assets/Projects-C7CcPj4n.js                       31.57 kB │ gzip:   7.62 kB
+dist/assets/SkillsEditor-K7nTqW5i.js                   31.93 kB │ gzip:  10.45 kB
+dist/assets/TaskJourneyModal-BeaOSaEF.js               33.95 kB │ gzip:  11.10 kB
+dist/assets/ProfileSettings-B72a0BIh.js                36.68 kB │ gzip:  10.66 kB
+dist/assets/CalendarView-fy1IJTVd.js                   36.79 kB │ gzip:  10.11 kB
+dist/assets/Logs-COv9ozar.js                           37.22 kB │ gzip:   9.69 kB
+dist/assets/KanbanBoard-BfUY005C.js                    39.10 kB │ gzip:  10.74 kB
+dist/assets/LevelsManager-lqUGusiB.js                  40.60 kB │ gzip:   8.54 kB
+dist/assets/sharedSocketIo-BStnvMGD.js                 44.40 kB │ gzip:  14.05 kB
+dist/assets/Tasks-DQ-lSpHd.js                          76.23 kB │ gzip:  18.69 kB
+dist/assets/Achievements-tLapOTL8.js                   77.36 kB │ gzip:  19.56 kB
+dist/assets/ApiOverview-DG7inMTe.js                    77.41 kB │ gzip:  17.03 kB
+dist/assets/MediaLibrary-Bwpebs_4.js                   80.98 kB │ gzip:  23.37 kB
+dist/assets/TicketPage-BPZdDonc.js                     92.35 kB │ gzip:  22.06 kB
+dist/assets/Chat-DvEX9u4K.js                          111.73 kB │ gzip:  28.09 kB
+dist/assets/Users-C0lTPXhm.js                         136.90 kB │ gzip:  29.30 kB
+dist/assets/CreateTaskModal-D5FJJGQm.js               242.53 kB │ gzip:  49.94 kB
+dist/assets/Reports-MPhsxEQj.js                       376.66 kB │ gzip: 111.85 kB
+dist/assets/index-p7RfYUTd.js                       2,893.60 kB │ gzip: 843.21 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: 
+https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 17.05s

@@ -1,0 +1,44 @@
+.....F.                                                                  [100%]
+================================== FAILURES ===================================
+________ test_project_list_uses_bounded_queries_with_many_team_members ________
+backend\tests\test_projects_phase4.py:442: in test_project_list_uses_bounded_queries_with_many_team_members
+    assert len(statements) <= 7
+E   AssertionError: assert 8 <= 7
+E    +  where 8 = len(['SELECT users.id AS users_id, users.tenant_id AS users_tenant_id, users.name AS users_name, users.email AS users_emai...roject_members.tenant_id AND projects_1.id = project_members.project_id \nWHERE projects_1.id IN (?, ?, ?, ?, ?)', ...])
+============================== warnings summary ===============================
+C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+backend\app\models.py:2731
+  F:\Projects\ideashop-zeaplay-v5\backend\app\models.py:2731: SADeprecationWarning: User-placed attribute Level.created_by on Mapper[Level(levels)] is replacing an existing ORM-mapped attribute.  Behavior is not fully defined in this case.  This use is deprecated and will raise an error in a future release
+    Level.created_by: Mapped["User"] = relationship("User", back_populates="created_levels")
+
+backend\app\schemas.py:3275
+  F:\Projects\ideashop-zeaplay-v5\backend\app\schemas.py:3275: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class FeatureFlagRead(FeatureFlagBase):
+
+backend/tests/test_projects_phase4.py: 879 warnings
+  C:\Users\Lenovo\AppData\Local\Programs\Python\Python314\Lib\site-packages\sqlalchemy\sql\schema.py:3627: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+backend/tests/test_projects_phase4.py::test_project_manager_requirement_duplicates_and_archive_preserve_memberships
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\projects.py:326: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    membership = _membership_payload(
+
+backend/tests/test_projects_phase4.py::test_project_manager_requirement_duplicates_and_archive_preserve_memberships
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\projects.py:454: StarletteDeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    membership = _membership_payload(manager_ids=payload.manager_ids, member_ids=payload.member_ids, actor=actor)
+
+backend/tests/test_projects_phase4.py::test_project_manager_requirement_duplicates_and_archive_preserve_memberships
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\projects.py:495: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    project.archived_at = datetime.utcnow()
+
+backend/tests/test_projects_phase4.py::test_archived_clients_cannot_be_assigned_but_existing_projects_remain_visible
+  F:\Projects\ideashop-zeaplay-v5\backend\app\services\clients.py:287: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    client.archived_at = datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED backend/tests/test_projects_phase4.py::test_project_list_uses_bounded_queries_with_many_team_members
+1 failed, 6 passed, 886 warnings in 22.95s

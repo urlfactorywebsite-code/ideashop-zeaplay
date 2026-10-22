@@ -1,13 +1,15 @@
+import { workTimezone } from '../utils/activeWork';
+import { calendarDateKey as getDateKey, taskDateKey, calendarToday, calendarDateInstant, taskInstant } from '../utils/taskDates';
+import { useTaskFilter, useTaskViewActive } from '../hooks/useTaskView';
 import Avatar from '../components/Avatar';
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
 import {
     Task,
     User,
     TaskPriority,
     TaskStatus,
-    RecurrenceRule,
     Role,
     TaskCalendarDaySummary,
 } from '../types';
@@ -18,10 +20,8 @@ import TaskPriorityBadge from '../components/ui/TaskPriorityBadge';
 import CreateTaskModal from '../components/CreateTaskModal';
 import { PlusIcon, DocumentTextIcon, BellIcon, XMarkIcon, SparklesIcon } from '../components/icons';
 import PageLoader from '../components/loading/PageLoader';
-import GamificationService, { GamificationStats, AchievementPopup } from '../services/gamification';
 import { CUSTOM_STATUS_NAMES } from '../types';
 
-const gamificationService = GamificationService.getInstance();
 
 
 type ThemeMode = 'light' | 'dark' | 'colorful' | 'professional' | 'gamified' | 'system';
@@ -57,33 +57,18 @@ const resolveTheme = (theme: ThemeMode): ResolvedTheme => {
     return 'dark';
 };
 
-const getDateKey = (date: Date) => date.toISOString().split('T')[0];
 const isTaskCompleted = (task: Task) => task.status === TaskStatus.DONE || task.status === TaskStatus.DEPLOYED;
 
 const getTaskTimeState = (task: Task, now = new Date()): TaskTimeState => {
     if (isTaskCompleted(task)) return 'completed';
     if (!task.dueAt) return 'none';
-    const dueTime = new Date(task.dueAt).getTime();
+    const dueTime = taskInstant(task.dueAt).toMillis();
     if (Number.isNaN(dueTime)) return 'none';
     const hoursRemaining = (dueTime - now.getTime()) / 36e5;
     if (hoursRemaining < 0) return 'overdue';
     if (hoursRemaining <= 24) return 'urgent';
     if (hoursRemaining <= 72) return 'warning';
     return 'safe';
-};
-
-const getDateVisualState = (tasks: Task[], date: Date, now = new Date()): DateVisualState => {
-    const todayKey = getDateKey(now);
-    const dateKey = getDateKey(date);
-    if (tasks.length === 0) return dateKey === todayKey ? 'today' : 'empty';
-
-    const taskStates = tasks.map((task) => getTaskTimeState(task, now));
-    if (taskStates.includes('overdue')) return 'overdue';
-    if (taskStates.includes('urgent')) return 'urgent';
-    if (taskStates.includes('warning')) return 'warning';
-    if (dateKey === todayKey) return 'today';
-    if (taskStates.every((state) => state === 'completed')) return 'completed';
-    return 'active';
 };
 
 const getCalendarThemeClasses = (theme: ResolvedTheme) => {
@@ -251,15 +236,16 @@ const getRangeForView = (mode: ViewMode, reference: Date) => {
 
 const createLightweightId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
-const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
+const CalendarView: React.FC = () => {
     const { user } = useAuth() as { user: User | null };
     const queryClient = useQueryClient();
+    const zone = workTimezone(user?.timezone);
+    const active = useTaskViewActive();
     const { theme } = useTheme();
     const resolvedTheme = resolveTheme(theme as ThemeMode);
     const isDark = resolvedTheme === 'dark';
     const isColorful = resolvedTheme === 'colorful';
     const isGamified = resolvedTheme === 'gamified';
-    const isProfessional = resolvedTheme === 'professional' || resolvedTheme === 'light';
     const calendarTheme = useMemo(() => getCalendarThemeClasses(resolvedTheme), [resolvedTheme]);
 
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -268,30 +254,24 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     const [loading, setLoading] = useState(true);
 
     const [viewMode, setViewMode] = useState<ViewMode>('month');
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(() => calendarToday(zone));
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
     const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
     const [selectedPreviewTaskId, setSelectedPreviewTaskId] = useState<string | null>(null);
 
-    const [searchTerm, setSearchTerm] = useState('');
+    const { searchQuery: searchTerm, setSearchQuery: setSearchTerm } = useSearch();
 
     // Filter states
-    const [priorityFilter, setPriorityFilter] = useState<'ALL' | TaskPriority>('ALL');
-    const [statusFilter, setStatusFilter] = useState<'ALL' | TaskStatus>('ALL');
-    const [assigneeFilter, setAssigneeFilter] = useState<'ALL' | 'ME' | string>('ALL');
-    const [teamFilter, setTeamFilter] = useState<string>('');
-    const [tagFilter, setTagFilter] = useState<string>('');
-    const [dueDateFilter, setDueDateFilter] = useState<string>('');
-    const [creationDateFilter, setCreationDateFilter] = useState<string>('');
-    const [quickFilter, setQuickFilter] = useState<string>('');
+    const [priorityFilter, setPriorityFilter] = useTaskFilter<'ALL' | TaskPriority>('priority', 'ALL');
+    const [statusFilter, setStatusFilter] = useTaskFilter<'ALL' | TaskStatus>('status', 'ALL');
+    const [assigneeFilter, setAssigneeFilter] = useTaskFilter<'ALL' | 'ME' | string>('assigneeId', 'ALL');
+    const [teamFilter, setTeamFilter] = useTaskFilter<string>('team', '');
+    const [tagFilter, setTagFilter] = useTaskFilter<string>('tag', '');
+    const [dueDateFilter, setDueDateFilter] = useTaskFilter<string>('dueDate', '');
+    const [creationDateFilter, setCreationDateFilter] = useTaskFilter<string>('createdDate', '');
+    const [quickFilter, setQuickFilter] = useTaskFilter<string>('quickFilter', '');
 
-    // Removed inline quick add UI state and handlers as per user request
-    // const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
-    // const [quickAddTitle, setQuickAddTitle] = useState('');
-    // const [quickAddPriority, setQuickAddPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
-    // const [quickAddLoading, setQuickAddLoading] = useState(false);
     const [activityLog, setActivityLog] = useState<{ message: string; timestamp: string }[]>([]);
-    const reminderSentRef = useRef<Set<string>>(new Set());
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [createModalDate, setCreateModalDate] = useState<string | null>(null);
@@ -305,9 +285,6 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     const remindersStorageKey = useMemo(() => (user ? `calendar-reminders-${user.id}` : null), [user]);
     const canCreateTasks = !!user && [Role.MANAGER, Role.ADMIN, Role.OWNER].includes(user.role);
 
-    // Gamification states
-    const [gamificationStats, setGamificationStats] = useState<GamificationStats | null>(null);
-    const [achievementPopups, setAchievementPopups] = useState<AchievementPopup[]>([]);
 
     const logActivity = useCallback((message: string) => {
         setActivityLog((prev) => {
@@ -382,54 +359,8 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         }
     }, [remindersByDate, remindersStorageKey]);
 
-    // Removed inline quick add handlers
-    // const openQuickAdd = (date: Date) => {
-    //     setQuickAddDate(date.toISOString());
-    //     setQuickAddTitle('');
-    //     setQuickAddPriority(TaskPriority.MEDIUM);
-    // };
 
-    // const submitQuickAdd = async () => {
-    //     if (!quickAddDate || !user || !quickAddTitle.trim()) {
-    //         return;
-    //     }
-    //     setQuickAddLoading(true);
-    //     try {
-    //         await api.createTask(
-    //             {
-    //                 title: quickAddTitle.trim(),
-    //                 description: 'Created from calendar quick add.',
-    //                 status: TaskStatus.TODO,
-    //                 priority: quickAddPriority,
-    //                 team: 'Calendar',
-    //                 assignedTo: assigneeFilter === 'ME' ? user.id : assigneeFilter === 'ALL' ? user.id : assigneeFilter,
-    //                 dueAt: quickAddDate,
-    //                 recurrenceRule: RecurrenceRule.NONE,
-    //                 recurringTaskId: null,
-    //                 clarityRating: null,
-    //                 attachments: [],
-    //                 estimatedHours: null,
-    //                 tags: [],
-    //                 subtasks: [],
-    //             } as any,
-    //             user.id,
-    //         );
-    //         logActivity(`Quick-added "${quickAddTitle.trim()}" for ${new Date(quickAddDate).toLocaleDateString()}`);
-    //         setQuickAddDate(null);
-    //         setQuickAddTitle('');
-    //         fetchData();
-    //     } catch (error) {
-    //         console.error('Failed to quick add task', error);
-    //     } finally {
-    //         setQuickAddLoading(false);
-    //     }
-    // };
 
-    // const handleCancelQuickAdd = () => {
-    //     setQuickAddDate(null);
-    //     setQuickAddTitle('');
-    //     setQuickAddPriority(TaskPriority.MEDIUM);
-    // };
 
     const daysInView = useMemo(() => getRangeForView(viewMode, currentDate), [viewMode, currentDate]);
     const visibleRange = useMemo(() => {
@@ -438,6 +369,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         return { startKey: getDateKey(start), endKey: getDateKey(end) };
     }, [daysInView]);
     const calendarQueryParams = useMemo(() => ({
+        timezone: zone,
         search: searchTerm.trim() || undefined,
         status: statusFilter !== 'ALL' ? statusFilter : undefined,
         priority: priorityFilter !== 'ALL' ? priorityFilter : undefined,
@@ -447,15 +379,15 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         dueDate: dueDateFilter || undefined,
         createdDate: creationDateFilter || undefined,
         quickFilter: quickFilter || undefined,
-    }), [assigneeFilter, creationDateFilter, dueDateFilter, priorityFilter, quickFilter, searchTerm, statusFilter, tagFilter, teamFilter, user?.id]);
+    }), [assigneeFilter, creationDateFilter, dueDateFilter, priorityFilter, quickFilter, searchTerm, statusFilter, tagFilter, teamFilter, user?.id, zone]);
 
     const summaryQueryKey = useMemo(
-        () => ['tasks', 'calendar', 'summary', visibleRange.startKey, visibleRange.endKey, calendarQueryParams] as const,
-        [calendarQueryParams, visibleRange.endKey, visibleRange.startKey],
+        () => ['tasks', 'calendar', 'summary', user?.tenantId, user?.id, user?.role, visibleRange.startKey, visibleRange.endKey, calendarQueryParams] as const,
+        [calendarQueryParams, visibleRange.endKey, visibleRange.startKey, user?.tenantId, user?.id, user?.role],
     );
     const visibleTasksQueryKey = useMemo(
-        () => ['tasks', 'calendar', 'range-tasks', visibleRange.startKey, visibleRange.endKey, calendarQueryParams] as const,
-        [calendarQueryParams, visibleRange.endKey, visibleRange.startKey],
+        () => ['tasks', 'calendar', 'range-tasks', user?.tenantId, user?.id, user?.role, visibleRange.startKey, visibleRange.endKey, calendarQueryParams] as const,
+        [calendarQueryParams, visibleRange.endKey, visibleRange.startKey, user?.tenantId, user?.id, user?.role],
     );
 
     const calendarSummaryQuery = useQuery({
@@ -466,7 +398,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             ...calendarQueryParams,
             signal,
         }),
-        enabled: Boolean(user),
+        enabled: Boolean(user) && active,
         staleTime: 60_000,
         placeholderData: keepPreviousData,
     });
@@ -479,15 +411,28 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             ...calendarQueryParams,
             signal,
         }),
-        enabled: Boolean(user) && viewMode !== 'month',
+        enabled: Boolean(user) && active && viewMode !== 'month',
         staleTime: 30_000,
         placeholderData: keepPreviousData,
     });
 
+    const selectedDayQuery = useQuery({
+        queryKey: ['tasks', 'calendar', 'date-tasks', user?.tenantId, user?.id, user?.role, selectedDateKey, calendarQueryParams],
+        queryFn: ({ signal }) => api.getTaskCalendarTasks({ startDate: selectedDateKey!, ...calendarQueryParams, signal }),
+        enabled: Boolean(user) && active && Boolean(selectedDateKey),
+        staleTime: 30_000,
+    });
+    useEffect(() => {
+        if (!selectedDateKey || !selectedDayQuery.data) return;
+        const dayTasks = selectedDayQuery.data;
+        setTasks(previous => [...previous.filter(task => !task.dueAt || taskDateKey(task.dueAt, zone) !== selectedDateKey), ...dayTasks]);
+        setSelectedPreviewTaskId(previous => dayTasks.some(task => task.id === previous) ? previous : dayTasks[0]?.id ?? null);
+    }, [selectedDateKey, selectedDayQuery.data, zone]);
+
     const usersQuery = useQuery({
-        queryKey: ['users', 'calendar'],
+        queryKey: ['users', 'task-views', user?.tenantId, user?.id, user?.role],
         queryFn: () => api.getUsers(),
-        enabled: Boolean(user),
+        enabled: Boolean(user) && active,
         staleTime: 60_000,
         placeholderData: keepPreviousData,
     });
@@ -536,7 +481,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     }, [calendarSummaryQuery.error, usersQuery.error, visibleTasksQuery.error]);
 
     useEffect(() => {
-        if (!user || viewMode !== 'month') return;
+        if (!user || !active || viewMode !== 'month') return;
         const preload = (monthOffset: number) => {
             const adjacentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + monthOffset, 1);
             const adjacentDays = getRangeForView('month', adjacentDate);
@@ -546,7 +491,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             const startDate = getDateKey(start);
             const endDate = getDateKey(end);
             void queryClient.prefetchQuery({
-                queryKey: ['tasks', 'calendar', 'summary', startDate, endDate, calendarQueryParams],
+                queryKey: ['tasks', 'calendar', 'summary', user?.tenantId, user?.id, user?.role, startDate, endDate, calendarQueryParams],
                 queryFn: ({ signal }) => api.getTaskCalendarSummary({
                     startDate,
                     endDate,
@@ -558,14 +503,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         };
         preload(-1);
         preload(1);
-    }, [calendarQueryParams, currentDate, queryClient, user, viewMode]);
-
-    // Update gamification stats when tasks or user changes
-    useEffect(() => {
-        if (!user || !tasks.length) return;
-        const stats = gamificationService.getGamificationStats(tasks, user);
-        setGamificationStats(stats);
-    }, [tasks, user]);
+    }, [active, calendarQueryParams, currentDate, queryClient, user, viewMode]);
 
     const tasksByDate = useMemo(() => {
         const map = new Map<string, Task[]>();
@@ -573,14 +511,14 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             if (!task.dueAt) {
                 return;
             }
-            const dateKey = getDateKey(new Date(task.dueAt));
+            const dateKey = taskDateKey(task.dueAt, zone);
             if (!map.has(dateKey)) {
                 map.set(dateKey, []);
             }
             map.get(dateKey)!.push(task);
         });
         return map;
-    }, [tasks]);
+    }, [tasks, zone]);
 
     const dateSummaries = useMemo(() => {
         const map = new Map<string, CalendarDateSummary>();
@@ -596,47 +534,12 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         return [...(tasksByDate.get(selectedDateKey) ?? [])].sort((a, b) => {
             const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
             if (priorityDiff !== 0) return priorityDiff;
-            return new Date(a.dueAt ?? 0).getTime() - new Date(b.dueAt ?? 0).getTime();
+            return taskInstant(a.dueAt || '1970-01-01T00:00:00Z').toMillis() - taskInstant(b.dueAt || '1970-01-01T00:00:00Z').toMillis();
         });
     }, [selectedDateKey, tasksByDate]);
     const selectedPreviewTask = useMemo(() => (
         selectedDayTasks.find((task) => task.id === selectedPreviewTaskId) ?? selectedDayTasks[0] ?? null
     ), [selectedDayTasks, selectedPreviewTaskId]);
-
-    useEffect(() => {
-        if (!user) {
-            return;
-        }
-        const now = new Date();
-        const tomorrowStart = new Date(now);
-        tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-        tomorrowStart.setHours(0, 0, 0, 0);
-        const tomorrowEnd = new Date(tomorrowStart);
-        tomorrowEnd.setHours(23, 59, 59, 999);
-
-        tasks.forEach((task) => {
-            if (!task.dueAt) return;
-            if (reminderSentRef.current.has(task.id)) return;
-            const dueDate = new Date(task.dueAt);
-            if (dueDate >= tomorrowStart && dueDate <= tomorrowEnd) {
-                reminderSentRef.current.add(task.id);
-                const payload = {
-                    taskId: task.id,
-                    title: task.title,
-                    dueAt: task.dueAt,
-                    priority: task.priority,
-                    assignedTo: task.assignedTo,
-                    requestedBy: user?.id,
-                };
-                fetch('https://n8n.urlfactory.website/webhook/Remainder', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                }).catch((error) => console.error('Failed to send reminder', error));
-                logActivity(`Reminder scheduled for "${task.title}" (due tomorrow)`);
-            }
-        });
-    }, [tasks, user, logActivity]);
 
     const workloadHeat = useMemo(() => {
         const counts = new Map<string, number>();
@@ -686,38 +589,18 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     };
 
     const handleToday = () => {
-        setCurrentDate(new Date());
+        setCurrentDate(calendarToday(zone));
     };
 
     const handleTaskClick = (taskId: string) => {
         setSelectedTaskId(taskId);
     };
 
-    const openDateDrawer = async (date: Date) => {
+    const openDateDrawer = (date: Date) => {
         const dateKey = getDateKey(date);
         setSelectedDateKey(dateKey);
         setSelectedPreviewTaskId(tasksByDate.get(dateKey)?.[0]?.id ?? null);
         setActiveQuickActionsDay(null);
-        if (!tasksByDate.has(dateKey)) {
-            try {
-                const dayTasks = await queryClient.fetchQuery({
-                    queryKey: ['tasks', 'calendar', 'date-tasks', dateKey, calendarQueryParams],
-                    queryFn: ({ signal }) => api.getTaskCalendarTasks({
-                        startDate: dateKey,
-                        ...calendarQueryParams,
-                        signal,
-                    }),
-                    staleTime: 30_000,
-                });
-                setTasks((prev) => {
-                    const withoutDate = prev.filter((task) => !task.dueAt || getDateKey(new Date(task.dueAt)) !== dateKey);
-                    return [...withoutDate, ...dayTasks];
-                });
-                setSelectedPreviewTaskId(dayTasks[0]?.id ?? null);
-            } catch (error) {
-                console.error('Failed to fetch day tasks:', error);
-            }
-        }
     };
 
     const closeDateDrawer = () => {
@@ -746,7 +629,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             return;
         }
         const movedTask = tasks.find((task) => task.id === taskId);
-        const iso = new Date(date).toISOString();
+        const iso = calendarDateInstant(date, zone);
         try {
             setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, dueAt: iso } : task)));
             await api.updateTask(taskId, { dueAt: iso }, user.id);
@@ -756,60 +639,15 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             }
         } catch (error) {
             console.error('Failed to move task', error);
+            if (movedTask) setTasks(previous => previous.map(task => task.id === taskId ? movedTask : task));
             fetchData();
         }
     };
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
 
-    // Removed inline quick add handlers as per user request
-    // const openQuickAdd = (date: Date) => {
-    //     setQuickAddDate(date.toISOString());
-    //     setQuickAddTitle('');
-    //     setQuickAddPriority(TaskPriority.MEDIUM);
-    // };
 
-    // const submitQuickAdd = async () => {
-    //     if (!quickAddDate || !user || !quickAddTitle.trim()) {
-    //         return;
-    //     }
-    //     setQuickAddLoading(true);
-    //     try {
-    //         await api.createTask(
-    //             {
-    //                 title: quickAddTitle.trim(),
-    //                 description: 'Created from calendar quick add.',
-    //                 status: TaskStatus.TODO,
-    //                 priority: quickAddPriority,
-    //                 team: 'Calendar',
-    //                 assignedTo: assigneeFilter === 'ME' ? user.id : assigneeFilter === 'ALL' ? user.id : assigneeFilter,
-    //                 dueAt: quickAddDate,
-    //                 recurrenceRule: RecurrenceRule.NONE,
-    //                 recurringTaskId: null,
-    //                 clarityRating: null,
-    //                 attachments: [],
-    //                 estimatedHours: null,
-    //                 tags: [],
-    //                 subtasks: [],
-    //             } as any,
-    //             user.id,
-    //         );
-    //         logActivity(`Quick-added "${quickAddTitle.trim()}" for ${new Date(quickAddDate).toLocaleDateString()}`);
-    //         setQuickAddDate(null);
-    //         setQuickAddTitle('');
-    //         fetchData();
-    //     } catch (error) {
-    //         console.error('Failed to quick add task', error);
-    //     } finally {
-    //         setQuickAddLoading(false);
-    //     }
-    // };
 
-    // const handleCancelQuickAdd = () => {
-    //     setQuickAddDate(null);
-    //     setQuickAddTitle('');
-    //     setQuickAddPriority(TaskPriority.MEDIUM);
-    // };
 
     const openCreateModal = (date: Date) => {
         setCreateModalDate(date.toISOString());
@@ -1024,10 +862,10 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     };
 
     const renderCells = () => {
-        const todayKey = getDateKey(new Date());
+        const todayKey = getDateKey(calendarToday(zone));
         const month = currentDate.getMonth();
         const isMonth = viewMode === 'month';
-        const now = new Date();
+        const now = calendarToday(zone);
 
         const rows: React.JSX.Element[] = [];
         const cells: React.JSX.Element[] = [];
@@ -1038,7 +876,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             const summary = dateSummaries.get(dateKey) ?? getDateTaskSummary([]);
             const isSelected = selectedDateKey === dateKey;
             const urgentTotal = summary.priority.urgent + summary.priority.high;
-            const visualState = getVisualStateFromSummary(summary, day, now);
+            const visualState = getVisualStateFromSummary(summary, day, calendarToday(zone));
             const isToday = dateKey === todayKey;
 
             const isQuickActionsOpen = activeQuickActionsDay === dateKey;
@@ -1070,6 +908,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             const cell = (
                 <div
                     key={dateKey}
+                    data-calendar-date={dateKey}
                     role="button"
                     tabIndex={0}
                     onClick={() => openDateDrawer(day)}
@@ -1221,11 +1060,11 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
         });
 
         if (viewMode === 'month') {
-            return <div className="space-y-3 overflow-x-auto pb-2"><div className="min-w-[980px] space-y-3">{rows}</div></div>;
+            return <div className="space-y-3 overflow-x-auto pb-2"><div className="min-w-[560px] space-y-3 sm:min-w-[980px]">{rows}</div></div>;
         }
 
         if (viewMode === 'week') {
-            return <div className="grid grid-cols-7 gap-3">{cells}</div>;
+            return <div className="overflow-x-auto pb-2"><div className="grid min-w-[980px] grid-cols-7 gap-3">{cells}</div></div>;
         }
 
         return <div className="grid gap-3">{cells}</div>;
@@ -1282,6 +1121,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     const dateDetailsDrawer = selectedDateKey && selectedDate ? (
         <div className="fixed inset-0 z-[115] bg-slate-950/60 backdrop-blur-sm" onClick={closeDateDrawer}>
             <aside
+                aria-label="Calendar day details"
                 className={`absolute right-0 top-0 flex h-full w-full max-w-5xl flex-col border-l ${drawerSurface}`}
                 onClick={(event) => event.stopPropagation()}
             >
@@ -1344,7 +1184,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                                                     <span className={`h-1.5 w-1.5 rounded-full ${urgency.dot}`} />
                                                     {urgency.label}
                                                 </span>
-                                                {task.dueAt && <span className={drawerMutedText}>{new Date(task.dueAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                                                {task.dueAt && <span className={drawerMutedText}>{taskInstant(task.dueAt).setZone(zone).toLocaleString({ hour: '2-digit', minute: '2-digit' })}</span>}
                                             </div>
                                         </button>
                                     );
@@ -1364,7 +1204,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                                     <span className="rounded-xl border border-current/10 px-3 py-2">Priority<br /><b>{selectedPreviewTask.priority}</b></span>
                                     <span className="rounded-xl border border-current/10 px-3 py-2">Status<br /><b>{getStatusLabel(selectedPreviewTask.status)}</b></span>
                                     <span className="rounded-xl border border-current/10 px-3 py-2">Squad<br /><b>{selectedPreviewTask.team || 'None'}</b></span>
-                                    <span className="rounded-xl border border-current/10 px-3 py-2">Due<br /><b>{selectedPreviewTask.dueAt ? new Date(selectedPreviewTask.dueAt).toLocaleString() : 'None'}</b></span>
+                                    <span className="rounded-xl border border-current/10 px-3 py-2">Due<br /><b>{selectedPreviewTask.dueAt ? taskInstant(selectedPreviewTask.dueAt).setZone(zone).toLocaleString({ dateStyle: 'medium', timeStyle: 'short' }) : 'None'}</b></span>
                                 </div>
                                 <p className={`whitespace-pre-wrap text-sm leading-6 ${drawerMutedText}`}>
                                     {selectedPreviewTask.description || 'No description available.'}
@@ -1575,7 +1415,7 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             </select>
             <select
                 value={assigneeFilter}
-                onChange={(e) => setAssigneeFilter(e.target.value as 'ALL' | 'ME' | string)}
+                onChange={(e) => setAssigneeFilter(e.target.value === 'ME' ? user?.id || 'ALL' : e.target.value)}
                 className={`rounded-xl border px-4 py-2 text-sm focus:outline-none focus:ring-2 ${fieldClass}`}
             >
                 <option value="ME">My quests</option>
@@ -1614,14 +1454,15 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
     );
 
     const content = loading ? <PageLoader /> : (
-        <div className={`${calendarTheme.page} ${onClose ? 'calendar-page-popup' : ''} space-y-6`}>
-            {!onClose && <h1 className={`text-3xl font-extrabold tracking-tight ${calendarTheme.heading}`}>Mission Calendar</h1>}
+        <div className={`${calendarTheme.page} min-w-0 space-y-6`}>
+            <h2 className={`text-3xl font-extrabold tracking-tight ${calendarTheme.heading}`}>Calendar</h2>
+            <p className={`text-sm ${calendarTheme.muted}`}>Timezone: {zone}</p>
             {controls}
             {filterBar}
             {legend}
             {viewMode === 'month' && (
                 <div className="overflow-x-auto pb-2">
-                    <div className={`grid min-w-[980px] grid-cols-7 gap-3 text-xs font-semibold uppercase tracking-[0.3em] ${calendarTheme.muted}`}>
+                    <div className={`grid min-w-[560px] grid-cols-7 gap-3 sm:min-w-[980px] text-xs font-semibold uppercase tracking-[0.3em] ${calendarTheme.muted}`}>
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                             <div key={day} className={calendarTheme.weekday}>
                                 {day}
@@ -1634,11 +1475,11 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
             <div className={`rounded-2xl border border-dashed p-4 text-xs ${calendarTheme.panel} ${calendarTheme.muted}`}>
                 Advanced automations such as reminders, external calendar sync, exports, smart scheduling, and time-blocking are on the roadmap.
             </div>
-            {(selectedDateKey || quickActionContext || selectedTaskId || isCreateModalOpen) && (
-                <div>
+            {active && (selectedDateKey || quickActionContext || selectedTaskId || isCreateModalOpen) && createPortal(
+                <div className="relative z-[120]">
                     {!selectedTaskId && !isCreateModalOpen && dateDetailsDrawer}
                     {quickActionModal}
-                    {selectedTaskId && (
+                    {active && selectedTaskId && (
                         <TaskDetailModal
                             taskId={selectedTaskId}
                             isOpen={!!selectedTaskId}
@@ -1647,45 +1488,21 @@ const CalendarView: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
                             onTaskDeleted={handleTaskDeleted}
                         />
                     )}
-                    {isCreateModalOpen && (
+                    {active && isCreateModalOpen && (
                         <CreateTaskModal
                             isOpen={isCreateModalOpen}
                             onClose={closeCreateModal}
                             onTaskCreated={closeCreateModal}
                             initialDueDate={createModalDate}
+                            dueTimezone={zone}
                         />
                     )}
-                </div>
+                </div>, document.body
             )}
         </div>
     );
 
-    if (!onClose) return content;
-
-    const dismiss = () => {
-        if (selectedTaskId) closeTaskModal();
-        else if (isCreateModalOpen) closeCreateModal();
-        else if (quickActionContext) closeQuickActionModal();
-        else if (selectedDateKey) closeDateDrawer();
-        else onClose();
-    };
-
-    return (
-        <Dialog open onClose={dismiss} className="fixed inset-0 z-[80]">
-            <DialogBackdrop className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm" />
-            <div className="fixed inset-0 flex items-center justify-center p-2 sm:p-4">
-                <DialogPanel className={`flex max-h-[calc(100dvh-1rem)] w-full max-w-[1600px] flex-col rounded-2xl border shadow-2xl sm:max-h-[calc(100dvh-2rem)] ${isDark ? 'border-slate-700 bg-slate-950 text-white' : 'border-slate-200 bg-slate-50 text-slate-900'}`}>
-                    <header className="flex shrink-0 items-center justify-between gap-4 border-b border-current/10 px-4 py-3 sm:px-6">
-                        <DialogTitle className="text-xl font-bold sm:text-2xl">Mission Calendar</DialogTitle>
-                        <button type="button" onClick={onClose} aria-label="Close calendar" autoFocus className="rounded-full p-2 transition hover:bg-current/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400">
-                            <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                        </button>
-                    </header>
-                    <div className="min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-6">{content}</div>
-                </DialogPanel>
-            </div>
-        </Dialog>
-    );
+    return content;
 };
 
 export default CalendarView;

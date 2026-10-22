@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:6300",
+  "indexStatus": 200,
+  "assets": [
+    {
+      "path": "/assets/CreateTaskModal-CVc86Phx.js",
+      "status": 200,
+      "contentType": "application/javascript",
+      "updatedProjectSearch": true
+    }
+  ],
+  "frontendOnlyRecreated": true,
+  "interactiveBrowserVerification": "No connected browser available; served build verified over HTTP"
+}

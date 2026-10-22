@@ -1,0 +1,164 @@
+
+> vee-task-manager@6.0.1 test
+> node --test --import tsx
+
+✔ duration supports more than 24 hours and excludes paused elapsed time (2.5413ms)
+✔ ranges use local midnights and custom inclusive final day (90.2733ms)
+✔ profile timezone boundaries handle daylight saving without 24-hour assumptions (2.4517ms)
+✔ audit logs page keeps existing API contracts while using the redesigned dashboard (1.9776ms)
+✔ audit logs redesign includes compact tabs, popover filters and safer details rendering (1.0087ms)
+✔ chat aligns current-user messages right and incoming messages left (5.7337ms)
+✔ chat exposes a topbar background color picker persisted locally (36.6569ms)
+✔ normalizes REST snake_case messages before rendering (49.4354ms)
+✔ normalizes websocket camelCase nested sender messages before rendering (5.1995ms)
+✔ renders missing sender, null content, deleted, and attachment-only messages (4.6219ms)
+✔ renders reply previews when original content is missing (2.4098ms)
+✔ message list handles invalid dates without crashing (3.2741ms)
+✔ client validation accepts normalized business inputs (5.1141ms)
+✔ client validation rejects unsafe GST, phone, country and postal code inputs (1.439ms)
+✔ contact validation normalizes identity and client links (4.8174ms)
+✔ contact validation rejects bad email and weak phone (0.762ms)
+✔ editing preserves primary flags on every linked client, including archived relationships (0.4363ms)
+✔ unconfigured local clients use same-origin API and local presence (3.4954ms)
+✔ production runtime directs REST, OAuth, tickets and chat to the API host (1.923ms)
+✔ runtime WebSocket overrides and same-origin presence are respected (0.5622ms)
+✔ blank runtime values fall back without producing empty API paths (0.3349ms)
+✔ task points utility matches backend defaults for completion timing (10.1977ms)
+✔ pending overdue tasks show potential points but do not count as earned XP (1.5434ms)
+✔ legacy calendar gamification does not invent subtask completion XP (0.5907ms)
+✔ audio stays uninitialized by default; mute suppresses every cue (4.6947ms)
+✔ a context suspended before navigation closes immediately even when onended cannot run (0.6767ms)
+✔ an interrupted success tail has bounded cleanup without relying on onended (430.2573ms)
+✔ confirmed-success notes finish across navigation and release the audio context (0.9353ms)
+✔ unavailable audio and rejected resume fail quietly without enabling sound (0.7225ms)
+✔ muting while audio activation is pending cannot turn sound back on (0.5781ms)
+✔ login redesign retains auth handler, redirect, validation, recovery and autofill contracts (2.7154ms)
+✔ all three real supplied PNG backgrounds are bundled, not remote or fabricated artwork (86.1797ms)
+✔ login animation is pausable, reduced-motion safe and has no JS animation loops (1.6738ms)
+✔ migration maps legacy routes to stable IDs without mutating or losing unknown preferences (5.0674ms)
+✔ nested and legacy routes resolve the correct policy, including achievement query tabs (0.6375ms)
+✔ server capabilities override global role for parent editing and subtask management/review (4.1129ms)
+✔ notification stream handles fragmented UTF-8 frames, CRLF, comments and multiple events without duplicates (1.9365ms)
+✔ notification stream authenticates in headers and aborts delivery on stop (152.5151ms)
+✔ notification stream ignores events from a session that changed during streaming (9.3818ms)
+✔ notification navigation focuses a subtask, canonicalizes old ticket links and rejects external links (3.6214ms)
+✔ deleted entity notifications open lists and chat bridges retain their conversation target (1.4316ms)
+✔ legacy user and department links open administration while own-user settings remain intact (1.4102ms)
+✔ token refresh preserves current session and cannot overwrite an account switch (0.9339ms)
+✔ PKCE is unpredictable and uses S256 with an RFC 7636 length verifier (91.0341ms)
+✔ client rejects state/issuer mismatch, missing or duplicate code before exchange (17.3935ms)
+✔ tokens remain in memory, refresh cannot overwrite logout or a new account (56.9593ms)
+✔ refresh events contain generation numbers and never credential material (7.8648ms)
+✔ logout intent blocks cookie restoration and serializes subsequent login (51.4358ms)
+✔ password reset validation agrees with server character and UTF-8 byte limits (1.941ms)
+✔ project dashboard keeps all backend task statuses and labels BUG_FIXING and DEPLOYED (2.7937ms)
+✔ project dashboard keeps SubtaskStatus separate from TaskStatus and exposes workflow metadata (2.7567ms)
+✔ project validation requires client and an active manager selection (1.479ms)
+✔ project payload de-duplicates users and keeps managers authoritative (1.4787ms)
+✔ push support requires a secure context (2.3914ms)
+✔ registration refuses an unrelated worker without unregistering it (3.507ms)
+✔ bound account is acknowledged before registration is considered ready (62.4503ms)
+✔ stale authenticated tab cannot bind a prior account after token change (3.867ms)
+✔ a token change during registration prevents late stale account binding (0.783ms)
+✔ logout clears worker before server revoke and browser unsubscribe (4.1134ms)
+✔ passive signed-out tab preserves the endpoint for the initiating logout to revoke (3.8185ms)
+✔ logout unsubscribes locally even when server revocation fails (5.1307ms)
+✔ logout unsubscribes even when worker refuses account acknowledgement (3.4225ms)
+✔ failed worker operation does not poison subsequent account binding (3.2576ms)
+✔ browser and backend compare endpoints with SHA256 without displaying endpoints (22.9083ms)
+✔ rotated application keys are distinguished from reusable subscriptions (1.0642ms)
+✔ worker waits are bounded and missing active worker reports a useful failure (31.2736ms)
+✔ presence and call hooks share one Socket.IO lease per auth context (1.9006ms)
+✔ native websocket hooks use bounded jittered reconnect and cleanup (0.7545ms)
+✔ offline reconnect scheduling does not accumulate online listeners (0.7245ms)
+✔ event handling is debounced or deduplicated where safe (0.2351ms)
+✔ presence server exposes configurable connection limits (0.22ms)
+✔ snapshot recovery merges newer events and sent optimistic messages exactly once (2.8677ms)
+✔ recovery orders out-of-order events deterministically without using publication as a cursor (25.4722ms)
+✔ persisted id still deduplicates when an update omits client id (0.6664ms)
+✔ event id deduplication is bounded and accepts legacy events without ids (2.5646ms)
+✔ chronological recovery handles UTC-naive database values and explicit offsets (0.4051ms)
+✔ reconciliation requested during a delayed snapshot runs again without parallel fetches (0.3548ms)
+✔ scope cleanup cancels queued reconciliation after an in-flight snapshot (0.3608ms)
+✔ REST-confirmed send buffered during a snapshot survives a stale history response (0.2001ms)
+✔ reporting presets use profile calendar dates including UTC crossover and leap years (57.022ms)
+✔ custom calendar dates remain inclusive and valid across daylight saving changes (4.5126ms)
+✔ URL roundtrip preserves combined report filters and current parent status (1.6241ms)
+✔ recorded effort durations do not wrap after 24 hours (0.5009ms)
+✔ previous period compares the same number of local calendar days across DST (2.4988ms)
+✔ subtask detail opens its actual parent and child without losing report filters (0.6607ms)
+✔ valid recipient push displays content, a stable tag and same-origin hash deep link (72.1855ms)
+✔ missing, malformed, primitive and unscoped payloads do not display or throw (14.0363ms)
+✔ invalid content types use generic text and reject external, credential and non-HTTP assets (10.4209ms)
+✔ binding persists across service-worker restarts and suppresses account or tenant mismatches (8.052ms)
+✔ logout and account switches clear displayed notifications and block queued old-account pushes/clicks (6.4737ms)
+✔ account messages reject missing, non-window and foreign-origin clients (3.2582ms)
+✔ account persistence failures return an error ACK and fail closed for delivery (5.1658ms)
+✔ logout queued during notification display waits then closes the notification (22.0483ms)
+✔ notification display failures are caught and logged without poisoning later delivery (4.6459ms)
+✔ click focuses an exact existing target before considering other app windows (4.3991ms)
+✔ click waits for navigation before focus and falls back when tabs disappear (11.7227ms)
+✔ click opens safe fallback when every app window navigation fails (4.3238ms)
+✔ click handles openWindow rejection without unhandled errors (2.54ms)
+✔ pushsubscriptionchange asks existing app windows to reconcile authenticated subscriptions (1.8006ms)
+✔ user sees only the established Settings permissions (3.3107ms)
+✔ manager sees only the established Settings permissions (2.0995ms)
+✔ admin sees only the established Settings permissions (0.7347ms)
+✔ owner sees only the established Settings permissions (0.5468ms)
+✔ server decisions retain admin SMTP/OAuth without exposing owner tools or user API access (0.713ms)
+✔ saved legacy API restrictions continue to protect OAuth management until OAuth is configured independently (0.6443ms)
+✔ Settings defaults to profile and retains unrelated query parameters (0.5199ms)
+✔ old push links retain query parameters while selecting the canonical route (0.2612ms)
+✔ every relocated bookmark targets an existing Settings section (0.4382ms)
+✔ provider presets define SMTP transports and protect modified values (2.4519ms)
+✔ regional edit controls reflect saved hosts and untouched relay usernames reset safely (4.2382ms)
+✔ blank passwords are omitted from create/update payloads; replacements remain write-only (2.486ms)
+✔ storage provider controls are moved from media library to settings (56.0028ms)
+✔ storage live checks stay admin scoped and use existing providers (1.983ms)
+✔ subtask workflow contract exposes all phase 6 statuses (2.8094ms)
+✔ subtask UI contract keeps legacy completed flag with workflow metadata (0.3898ms)
+✔ phase 7 force-start contract carries an explicit reason (0.3094ms)
+✔ create task UI defaults new subtasks to the parent task assignee until manually changed (2.9225ms)
+✔ phase 9 completion submissions preserve review state and evidence metadata (0.7812ms)
+✔ UTC storage is grouped by the selected timezone, including timestamps without offsets (64.2111ms)
+✔ calendar drops use midnight in the profile timezone and respect DST (7.3308ms)
+✔ timeline geometry counts civil days without inventing deadlines (1.2346ms)
+✔ stored notification task links open the existing details flow and retain filters (0.6356ms)
+✔ roadmap retains all eleven task statuses without mixing subtask vocabulary (7.3404ms)
+✔ roadmap does not fabricate visited stages or collapse reopened transitions (1.4852ms)
+✔ event pagination deduplicates IDs but preserves repeated stages and target isolation (0.8158ms)
+✔ exact timestamps retain server precision, respect offsets and never guess missing times (0.8383ms)
+✔ out-of-order clocks do not fabricate a status duration (0.5549ms)
+✔ time union does not double count overlapping parent and child sessions for one user (0.5785ms)
+✔ parallel users count person time separately and elapsed wall time only once (0.2786ms)
+✔ fractional intervals are rounded after union, not per session (0.2202ms)
+✔ running work across midnight uses server as-of, not stored duration or client time zone (0.2249ms)
+✔ live totals advance only a complete reconciled server snapshot (0.9718ms)
+✔ future legacy starts retain active count without inventing elapsed work (0.5802ms)
+✔ stopped legacy sessions with future end times do not keep accruing live work (0.302ms)
+✔ a gap between recorded statuses cannot be presented as continuous time in one stage (0.2035ms)
+✔ stage durations do not extend into future observations beyond the displayed server clock (0.1519ms)
+✔ prepared live accounting never reparses history on subsequent clock ticks (3.5414ms)
+✔ session displays clamp future stops, reject corrupt timestamps and retain chronological identity (2.3717ms)
+✔ snapshot child comparison ignores ordering but rejects missing, duplicate or changed states (0.5874ms)
+✔ history and sessions cannot silently cross tenant, parent or child boundaries (0.5205ms)
+✔ journey is read-only, lazy-loaded, reduced-motion aware and reuses the existing socket (11.3796ms)
+✔ task tabs resolve canonical paths and existing policy IDs (6.2506ms)
+✔ shared filter updates preserve deep-link arguments and view-specific state (0.9541ms)
+✔ task registry keeps role ceilings and old rules restrictive (2.1018ms)
+✔ completion attempt ordering is chronological, stable and does not collapse repeat completions (20.4591ms)
+✔ unknown evidence and users remain unknown; file names are safe download names (0.5544ms)
+✔ completed legacy tasks with unknown completion times never use now as a fabricated end (0.3463ms)
+✔ only explicit same-user same-target continuations prove a paused interval (0.3607ms)
+✔ phase 8 time-entry contract exposes lifecycle statuses and persisted timestamps (3.3857ms)
+✔ phase 8 task and subtask UI contracts carry tracked totals (0.156ms)
+✔ phase 8 frontend calls the timer APIs and renders timer controls (7.7015ms)
+✔ tool library is launched from the header instead of sidebar navigation (3.7973ms)
+ℹ tests 152
+ℹ suites 0
+ℹ pass 152
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4205.4693

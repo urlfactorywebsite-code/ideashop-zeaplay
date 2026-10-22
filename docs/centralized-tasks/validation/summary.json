@@ -1,0 +1,88 @@
+{
+  "recordedAtUTC": "2026-10-22T09:18:59.716717+00:00",
+  "gitHead": "60a86f62a4d0d1b8ff3589a1cbb9455c35581c9d",
+  "scope": "Local dirty-tree validation, no deployment",
+  "overall": "FAIL: existing typecheck and PostgreSQL query-budget failures",
+  "functionalCriteria": {
+    "passed": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "gateFailed": [
+      20
+    ]
+  },
+  "unitTests": {
+    "passed": 151,
+    "failed": 0
+  },
+  "productionBuild": {
+    "exitCode": 0,
+    "seconds": 30.96
+  },
+  "smoke": {
+    "groups": 10,
+    "pageErrors": []
+  },
+  "extended": {
+    "groups": 11,
+    "pageErrors": []
+  },
+  "typecheck": {
+    "current": 116,
+    "baseline": 118,
+    "introduced": []
+  },
+  "backend": {
+    "backend": {
+      "tests": "255",
+      "failures": "1",
+      "errors": "0",
+      "skipped": "4",
+      "time": "550.985"
+    },
+    "regressions": {
+      "tests": "16",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "70.808"
+    },
+    "query-budget-baseline": {
+      "tests": "1",
+      "failures": "1",
+      "errors": "0",
+      "skipped": "0",
+      "time": "5.395"
+    }
+  },
+  "sourceSHA256": {
+    "frontend/pages/AllTasks.tsx": "96dbcf0656ac45682b7db01261a5c299a4491d1340b237fef8554a8c10b6e644",
+    "frontend/pages/Tasks.tsx": "375bf44303abd527dfef7644ef5a8f733fd04612ca0983f8ce584b538bc106c3",
+    "frontend/pages/KanbanBoard.tsx": "71838e85bc6a490ea4cd302a0010d9ee8673fe22134ba21c2963843e39533066",
+    "frontend/pages/GanttView.tsx": "81891f5ee45840183979b6164a70adbd3f9faad6cb7b815deaf377b0b6f8147b",
+    "frontend/pages/CalendarView.tsx": "8011613f4ff09f94221433e76e57323603dd1b81f27b2e35665b01fe75d2a741",
+    "frontend/components/CreateTaskModal.tsx": "05473281c20eeb94d6d5a1c8b95118f6a0f4c2c8173ed619088427e05b9b5c27",
+    "frontend/services/mockApi.ts": "77c8d6613311dfef1d072c97c37c28bd8cc4f4a6f6fc3131d19b78f53ded2bd5",
+    "frontend/hooks/useTaskWebSocket.ts": "22bf63c8e2cd554a2b334d8b34215923248b0ec2f334e135a2fa2617dd8120f2",
+    "backend/app/routers/tasks.py": "9b836222da2789549ac5b57e1b5dac958dde2fbdb0ab3f6d19cd55604c1b2fa2",
+    "backend/tests/test_task_tabs_validation.py": "3e4a765a1a6dc05a6bb2a609fb9cd04bef39bcca642e8d87bc22bf43440470c6"
+  }
+}

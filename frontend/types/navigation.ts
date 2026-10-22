@@ -1,7 +1,7 @@
 export type PageAccess = 'allowed' | 'hidden' | 'disabled' | 'forbidden';
 export interface NavigationPage {
   id: string; parentId: string | null; defaultLabel: string; route: string;
-  navigationLocation: 'sidebar' | 'settings-tab' | 'management-tab'; enabled: boolean; hidden: boolean;
+  navigationLocation: 'sidebar' | 'settings-tab' | 'management-tab' | 'task-tab'; enabled: boolean; hidden: boolean;
   allowedRoles: string[]; permittedRoles: string[]; sortOrder: number;
   isSystemProtected: boolean; access: PageAccess;
 }
