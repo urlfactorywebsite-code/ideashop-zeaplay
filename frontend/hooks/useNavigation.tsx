@@ -5,7 +5,7 @@ import { http } from '../services/mockApi';
 import type { NavigationDocument, NavigationPage } from '../types/navigation';
 import { applySidebarPreferences, emptySidebarPreferences, parseSidebarPreferences, sidebarStorageKey, type SidebarPreferences } from '../utils/sidebarPreferences';
 
-import { pageIdForPath, migratePersonal } from '../utils/navigationPreferences';
+import { pageIdForPath, migratePersonal, resolveNavigationPage } from '../utils/navigationPreferences';
 export { pageIdForPath, migratePersonal } from '../utils/navigationPreferences';
 
 export const NAVIGATION_UPDATED = 'zea:navigation-updated';
@@ -74,7 +74,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     if (!current?.canManagePersonal || !storageKey || identityRef.current !== identity) throw Error('Personal layout management is not permitted.');
     localStorage.setItem(storageKey, JSON.stringify(value)); setSavedPersonal({ key: storageKey, value });
   };
-  const page = (id: string) => current?.pages.find(entry => entry.id === id);
+  const page = (id: string) => resolveNavigationPage(current, id);
   const visible = (id: string) => page(id)?.access === 'allowed' && (id !== 'management'
     || current?.pages.some(entry => entry.parentId === 'management' && entry.access === 'allowed') === true);
   function decorate<T extends { to: unknown; label: string }>(links: T[]): T[] {

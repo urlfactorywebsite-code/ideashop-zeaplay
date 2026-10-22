@@ -1,0 +1,21 @@
+{
+  "passed": [
+    "old lookup reproduction: owner, 1440px, legacy document, forbidden",
+    "fixed: owner, 1440px, legacy document, allowed",
+    "fixed: owner, 390px, legacy document, allowed",
+    "fixed: admin, 1440px, legacy document, allowed",
+    "fixed: admin, 390px, legacy document, allowed",
+    "fixed: manager, 1440px, legacy document, allowed",
+    "fixed: manager, 390px, legacy document, allowed",
+    "fixed: user, 1440px, legacy document, allowed",
+    "fixed: user, 390px, legacy document, allowed",
+    "fixed: owner, 1440px, legacy document, disabled",
+    "fixed: owner, 1440px, legacy document, forbidden",
+    "fixed: owner, 1440px, legacy document, hidden",
+    "fixed: owner, 1440px, current document, allowed",
+    "fixed: owner, 1440px, current document, forbidden",
+    "fixed: owner, 1440px, current document, disabled"
+  ],
+  "errors": [],
+  "environment": "Loopback Chrome; actual App and navigation provider; synthetic API/session data"
+}

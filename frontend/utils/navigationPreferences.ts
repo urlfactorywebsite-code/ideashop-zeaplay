@@ -1,4 +1,14 @@
 import type { SidebarPreferences } from './sidebarPreferences';
+import type { NavigationDocument, NavigationPage } from '../types/navigation';
+
+export function resolveNavigationPage(document: NavigationDocument | null, id: string): NavigationPage | undefined {
+  const page = document?.pages.find(entry => entry.id === id);
+  if (page || id !== 'tasks.list') return page;
+  // Before task tabs existed, the server authorized the same list through tasks.
+  // Inherit that decision only when the new entry is absent; never override a denial.
+  const parent = document?.pages.find(entry => entry.id === 'tasks');
+  return parent ? { ...parent, id, parentId: 'tasks', navigationLocation: 'task-tab' } : undefined;
+}
 
 export function pageIdForPath(path: string, search = ''): string | undefined {
   try { path = decodeURIComponent(path).replace(/\/+$/, '').toLowerCase() || '/'; } catch { return undefined; }
