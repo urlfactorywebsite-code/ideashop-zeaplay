@@ -5,19 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="referrer" content="no-referrer" />
   <title>Zea.play</title>
-  <link rel="icon" href="https://url-factory.com/wp-content/uploads/2025/11/ZEA-1.png">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <script src="/runtime-config.js"></script>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preload" as="image" href="/header-poster.webp" fetchpriority="high" />
+  <link rel="preconnect" href="https://res.cloudinary.com" />
   
-  <!-- FullCalendar CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/main.min.css" rel="stylesheet" />
-
-  <!-- Frappe Gantt CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
-  
-
   <!-- Theme Loader Script to prevent FOUC (Flash of Unstyled Content) -->
   <script>
     (function () {
@@ -382,67 +375,12 @@
 }
 </script>
 
-  <!-- Tailwind Config -->
-  <script>
-    tailwind.config = {
-      darkMode: 'class', // Enable dark mode based on class
-      content: [
-        "./index.html",
-        "./src/**/*.{js,jsx,ts,tsx}",
-        "./components/**/*.{js,jsx,ts,tsx}",
-      ],
-      theme: {
-        extend: {
-          colors: {
-            'primary': 'var(--color-primary)',
-            'primary-dark': 'var(--color-primary-dark)',
-            'background': 'var(--color-background)',
-            'surface': 'var(--color-surface)',
-            'border-color': 'var(--color-border-color)',
-            'text-primary': 'var(--color-text-primary)',
-            'text-secondary': 'var(--color-text-secondary)',
-            'text-muted': 'var(--color-text-muted)',
-            'text-accent': 'var(--color-text-accent)',
-            'text-inverted': 'var(--color-text-inverted)',
-            'text-warning': 'var(--color-text-warning)',
-            'text-success': 'var(--color-text-success)',
-            'danger': 'var(--color-danger)',
-            dark: {
-              bg1: "#1e1b4b", // indigo-950
-              bg2: "#4c1d95", // purple-900
-              bg3: "#831843", // pink-900
-              accent: "#ec4899", // pink-500
-            },
-            light: {
-              bg1: "#fef3c7", // amber-100
-              bg2: "#fed7aa", // orange-200
-              text: "#78350f", // amber-900
-            },
-            colorful: {
-              bg1: "#d946ef", // fuchsia-500
-              bg2: "#38bdf8", // sky-400
-              bg3: "#8b5cf6", // violet-500
-              text: "#000000",
-            },
-            accent: {
-              teal: "#14b8a6",
-              orange: "#fb923c",
-              violet: "#8b5cf6",
-            },
-          }
-        }
-      },
-      plugins: [],
-    }
-  </script>
 <link rel="stylesheet" href="/index.css">
+<link rel="stylesheet" href="/tailwind.css">
 
 </head>
 <body>
   <div id="root"></div>
-  
-  <!-- Frappe Gantt JS -->
-  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
   
   <script type="module" src="/index.tsx"></script>
 </body>

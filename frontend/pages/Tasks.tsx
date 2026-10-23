@@ -490,6 +490,21 @@ const Tasks: React.FC = () => {
     const dateRangePanelRef = useRef<HTMLDivElement | null>(null);
     const [dateRangePanelStyle, setDateRangePanelStyle] = useState<React.CSSProperties | undefined>(undefined);
     const [quickFilter, setQuickFilter] = useTaskFilter('quickFilter');
+    const hasActiveFilters = Boolean(searchQuery || debouncedSearchQuery || statusFilter || priorityFilter
+        || assigneeFilter || projectFilter || teamFilter || dueDateFilter || creationDateFilter || quickFilter);
+    const clearFilters = () => {
+        setSearchQuery('');
+        setStatusFilter('');
+        setPriorityFilter('');
+        setAssigneeFilter('');
+        setProjectFilter('');
+        setTeamFilter('');
+        setDueDateFilter('');
+        setCreationDateFilter('');
+        setQuickFilter('');
+        setActiveDatePreset('');
+        setDateRangeOpen(false);
+    };
     const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('taskViewMode');
@@ -1590,6 +1605,7 @@ const Tasks: React.FC = () => {
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                     <button
                         onClick={() => setQuickFilter(quickFilter === 'myTasks' ? '' : 'myTasks')}
+                        aria-pressed={quickFilter === 'myTasks'}
                         className={myTasksTone.className}
                     >
                         <span className={`pointer-events-none absolute inset-0 rounded-[10px] ${quickFilterButtonTheme.overlay} opacity-80`} />
@@ -1611,6 +1627,7 @@ const Tasks: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setQuickFilter(quickFilter === 'overdue' ? '' : 'overdue')}
+                        aria-pressed={quickFilter === 'overdue'}
                         className={overdueTone.className}
                     >
                         <span className={`pointer-events-none absolute inset-0 rounded-[10px] ${quickFilterButtonTheme.overlay} opacity-80`} />
@@ -1620,6 +1637,7 @@ const Tasks: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setQuickFilter(quickFilter === 'completed' ? '' : 'completed')}
+                        aria-pressed={quickFilter === 'completed'}
                         className={completedTone.className}
                     >
                         <span className={`pointer-events-none absolute inset-0 rounded-[10px] ${quickFilterButtonTheme.overlay} opacity-80`} />
@@ -1688,7 +1706,20 @@ const Tasks: React.FC = () => {
                 {!loading && !taskListError && pageResult && pagedTasks.length === 0 && (
                     <div role="status" className="rounded-xl border border-border-color bg-surface p-6 text-text-primary">
                         <h2 className="font-semibold">No tasks found</h2>
-                        <p className="mt-1 text-sm text-text-secondary">Try changing your filters or search.</p>
+                        <p className="mt-1 text-sm text-text-secondary">
+                            {quickFilter === 'createdByMe'
+                                ? 'No tasks you created match the current filters.'
+                                : quickFilter === 'myTasks'
+                                    ? 'No tasks assigned to you match the current filters.'
+                                    : hasActiveFilters
+                                        ? 'No tasks match the current filters or search.'
+                                        : 'There are no tasks to show.'}
+                        </p>
+                        {hasActiveFilters && (
+                            <button type="button" onClick={clearFilters} className="mt-3 rounded-lg border border-border-color px-3 py-2 text-sm font-semibold hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                                Clear filters
+                            </button>
+                        )}
                     </div>
                 )}
                 {loading && (

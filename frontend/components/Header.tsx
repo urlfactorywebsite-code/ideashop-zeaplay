@@ -1,6 +1,5 @@
 import Avatar from './Avatar';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import TaskDocumentation from './TaskDocumentation';
+import React, { Suspense, lazy, useState, useRef, useEffect, useCallback } from 'react';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, useSearch, useTheme } from '../hooks/useAuth';
@@ -34,6 +33,8 @@ import { notificationDestination } from '../utils/notificationNavigation';
 // ✅ NEW IMPORT
 import ClockButton from './ClockAssistant/ClockButton';
 import ActiveWork from './ActiveWork';
+
+const TaskDocumentation = lazy(() => import('./TaskDocumentation'));
 
 const notificationIconMap: Record<NotificationType, React.FC<React.SVGProps<SVGSVGElement>>> = {
   [NotificationType.PROJECT_CREATED]: BellIcon,
@@ -365,6 +366,11 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
 
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [docModalOpen, setDocModalOpen] = useState(false);
+  const [docsRequested, setDocsRequested] = useState(false);
+  const openDocs = () => {
+    setDocsRequested(true);
+    setDocModalOpen(true);
+  };
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const { notifications, setNotifications, refresh: fetchNotifications } = useNotifications();
   const [resolvedTheme, setResolvedTheme] = useState<HeaderTheme>('light');
@@ -559,6 +565,7 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
           loop
           playsInline
           preload="metadata"
+          poster="/header-poster.webp"
           aria-hidden="true"
         >
           <source src="https://res.cloudinary.com/dqhcbck76/video/upload/v1770339698/Untitled_design_2_opyhae.mp4" type="video/mp4" />
@@ -665,10 +672,14 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
                   <span>Refresh</span>
                 </button>
 
-                <button onClick={() => setDocModalOpen(true)} className="zea-header-icon-button p-2">
+                <button onClick={openDocs} aria-label="Open user manual" className="zea-header-icon-button p-2">
                   <QuestionMarkCircleIcon className="h-6 w-6" />
                 </button>
-                <TaskDocumentation isOpen={docModalOpen} onClose={() => setDocModalOpen(false)} />
+                {docsRequested && (
+                  <Suspense fallback={<span role="status" className="sr-only">Loading user manual...</span>}>
+                    <TaskDocumentation isOpen={docModalOpen} onClose={() => setDocModalOpen(false)} />
+                  </Suspense>
+                )}
 
                 <button
                   type="button"
@@ -876,12 +887,17 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
 
         {/* ❓ Docs */}
         <button
-          onClick={() => setDocModalOpen(true)}
+          onClick={openDocs}
+          aria-label="Open user manual"
           className="zea-header-icon-button p-2"
         >
           <QuestionMarkCircleIcon className="h-5 w-5" />
         </button>
-        <TaskDocumentation isOpen={docModalOpen} onClose={() => setDocModalOpen(false)} />
+        {docsRequested && (
+          <Suspense fallback={<span role="status" className="sr-only">Loading user manual...</span>}>
+            <TaskDocumentation isOpen={docModalOpen} onClose={() => setDocModalOpen(false)} />
+          </Suspense>
+        )}
 
         {/* 💬 Chat */}
 

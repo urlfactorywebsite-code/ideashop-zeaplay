@@ -1,0 +1,3066 @@
+{
+  "initialJavaScriptBytes": 1014530,
+  "initialJavaScriptGzipBytes": 306300,
+  "initialChunks": [
+    {
+      "file": "assets/index-DFKLmnZO.js",
+      "bytes": 1014530
+    }
+  ],
+  "initialModules": [
+    {
+      "id": "./node_modules/react-dom/cjs/react-dom-client.production.js",
+      "bytes": 552879
+    },
+    {
+      "id": "./node_modules/luxon/build/es6/luxon.mjs",
+      "bytes": 261901
+    },
+    {
+      "id": "./node_modules/react-router/dist/development/chunk-UVKPFVEO.mjs",
+      "bytes": 221500
+    },
+    {
+      "id": "./services/mockApi.ts",
+      "bytes": 173777
+    },
+    {
+      "id": "./components/TaskDetailModal.tsx",
+      "bytes": 101922
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/node/create-projection-node.mjs",
+      "bytes": 68186
+    },
+    {
+      "id": "./components/Header.tsx",
+      "bytes": 49022
+    },
+    {
+      "id": "./components/icons/index.tsx",
+      "bytes": 25046
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/format.js",
+      "bytes": 24283
+    },
+    {
+      "id": "./node_modules/axios/lib/utils.js",
+      "bytes": 24142
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/_lib/format/formatters.js",
+      "bytes": 22720
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/DayPicker.js",
+      "bytes": 20511
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/gestures/drag/VisualElementDragControls.mjs",
+      "bytes": 20444
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/classes/DateLib.js",
+      "bytes": 19988
+    },
+    {
+      "id": "./components/ActiveWork.tsx",
+      "bytes": 18996
+    },
+    {
+      "id": "./node_modules/react/cjs/react.production.js",
+      "bytes": 18321
+    },
+    {
+      "id": "./components/Layout.tsx",
+      "bytes": 16507
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/animation-state.mjs",
+      "bytes": 15793
+    },
+    {
+      "id": "./node_modules/axios/lib/adapters/fetch.js",
+      "bytes": 13490
+    },
+    {
+      "id": "./pages/Login.tsx",
+      "bytes": 12925
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/VisualElement.mjs",
+      "bytes": 12267
+    },
+    {
+      "id": "./types.ts",
+      "bytes": 11761
+    },
+    {
+      "id": "./utils/pointsConfigStorage.ts",
+      "bytes": 11573
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/query.js",
+      "bytes": 11502
+    },
+    {
+      "id": "./node_modules/scheduler/cjs/scheduler.production.js",
+      "bytes": 11182
+    },
+    {
+      "id": "./components/ReleaseNotesEditorModal.tsx",
+      "bytes": 10794
+    },
+    {
+      "id": "./components/Sidebar.tsx",
+      "bytes": 10545
+    },
+    {
+      "id": "./utils/taskPoints.ts",
+      "bytes": 10131
+    },
+    {
+      "id": "./App.tsx",
+      "bytes": 9662
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/queryClient.js",
+      "bytes": 9655
+    },
+    {
+      "id": "./utils/geminiKeyStore.ts",
+      "bytes": 8934
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/useAnimation.js",
+      "bytes": 8582
+    },
+    {
+      "id": "./node_modules/@date-fns/tz/date/mini.js",
+      "bytes": 8462
+    },
+    {
+      "id": "./node_modules/axios/lib/core/AxiosHeaders.js",
+      "bytes": 8379
+    },
+    {
+      "id": "./components/SameTaskLogModal.tsx",
+      "bytes": 7924
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/JSAnimation.mjs",
+      "bytes": 7906
+    },
+    {
+      "id": "./node_modules/axios/lib/core/Axios.js",
+      "bytes": 7738
+    },
+    {
+      "id": "./hooks/useAuth.tsx",
+      "bytes": 7424
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/index.mjs",
+      "bytes": 7424
+    },
+    {
+      "id": "./node_modules/react-dom/cjs/react-dom.production.js",
+      "bytes": 7216
+    },
+    {
+      "id": "./node_modules/axios/lib/adapters/xhr.js",
+      "bytes": 7009
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/generators/spring/index.mjs",
+      "bytes": 6944
+    },
+    {
+      "id": "./utils/aiClient.ts",
+      "bytes": 6734
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/toFormData.js",
+      "bytes": 6500
+    },
+    {
+      "id": "./components/ReleaseNotesModal.tsx",
+      "bytes": 6352
+    },
+    {
+      "id": "./components/loading/LoadingProvider.tsx",
+      "bytes": 6295
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/utils.js",
+      "bytes": 6119
+    },
+    {
+      "id": "./services/pushBrowser.ts",
+      "bytes": 5882
+    },
+    {
+      "id": "./hooks/useActiveWork.tsx",
+      "bytes": 5839
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/AsyncMotionValueAnimation.mjs",
+      "bytes": 5712
+    },
+    {
+      "id": "./features/chat/utils/normalizeMessage.ts",
+      "bytes": 5642
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/mutation.js",
+      "bytes": 5623
+    },
+    {
+      "id": "./components/Chatbot.tsx",
+      "bytes": 5613
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/utils/use-visual-element.mjs",
+      "bytes": 5559
+    },
+    {
+      "id": "./node_modules/axios/lib/core/AxiosError.js",
+      "bytes": 5506
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/gestures/pan/PanSession.mjs",
+      "bytes": 5493
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/components/transition/transition.js",
+      "bytes": 5483
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/keyframes/DOMKeyframesResolver.mjs",
+      "bytes": 5294
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/components/dialog/dialog.js",
+      "bytes": 5265
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/layout/MeasureLayout.mjs",
+      "bytes": 5112
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/keyframes/KeyframesResolver.mjs",
+      "bytes": 5050
+    },
+    {
+      "id": "./pages/PasswordReset.tsx",
+      "bytes": 4944
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/UI.js",
+      "bytes": 4926
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/NativeAnimation.mjs",
+      "bytes": 4868
+    },
+    {
+      "id": "./node_modules/axios/lib/defaults/index.js",
+      "bytes": 4625
+    },
+    {
+      "id": "./hooks/useNavigation.tsx",
+      "bytes": 4531
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/gestures/drag/utils/constraints.mjs",
+      "bytes": 4356
+    },
+    {
+      "id": "./node_modules/axios/lib/core/mergeConfig.js",
+      "bytes": 4255
+    },
+    {
+      "id": "./components/ui/MultiSelect.tsx",
+      "bytes": 4233
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/geometry/delta-apply.mjs",
+      "bytes": 4201
+    },
+    {
+      "id": "./hooks/useTaskWebSocket.ts",
+      "bytes": 4122
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/render.js",
+      "bytes": 4058
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/locale/en-US/_lib/localize.js",
+      "bytes": 3859
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/createGetModifiers.js",
+      "bytes": 3776
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/shared/stack.mjs",
+      "bytes": 3584
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/components/focus-trap/focus-trap.js",
+      "bytes": 3548
+    },
+    {
+      "id": "./components/ClaimedRewardModal.tsx",
+      "bytes": 3530
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/interfaces/motion-value.mjs",
+      "bytes": 3514
+    },
+    {
+      "id": "./components/ForgotPasswordModal.tsx",
+      "bytes": 3429
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/animation/mix-values.mjs",
+      "bytes": 3412
+    },
+    {
+      "id": "./node_modules/axios/lib/adapters/adapters.js",
+      "bytes": 3314
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/utils/addToRange.js",
+      "bytes": 3263
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/focus-management.js",
+      "bytes": 3232
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/generators/inertia.mjs",
+      "bytes": 3210
+    },
+    {
+      "id": "./components/login/loginAudio.ts",
+      "bytes": 3160
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/resolveConfig.js",
+      "bytes": 3112
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/retryer.js",
+      "bytes": 3102
+    },
+    {
+      "id": "./node_modules/use-sync-external-store/cjs/use-sync-external-store-with-selector.production.js",
+      "bytes": 3088
+    },
+    {
+      "id": "./components/loading/loadingController.ts",
+      "bytes": 3055
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-transition.js",
+      "bytes": 3037
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/interfaces/visual-element-target.mjs",
+      "bytes": 3018
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/generators/spring/find.mjs",
+      "bytes": 3010
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs",
+      "bytes": 3009
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/locale/en-US/_lib/match.js",
+      "bytes": 3005
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/components/AnimatePresence/PopChild.mjs",
+      "bytes": 3001
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/validator.js",
+      "bytes": 2999
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/_lib/format/lightFormatters.js",
+      "bytes": 2942
+    },
+    {
+      "id": "./hooks/useNotifications.ts",
+      "bytes": 2941
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/addMonths.js",
+      "bytes": 2939
+    },
+    {
+      "id": "./services/notificationRealtime.ts",
+      "bytes": 2931
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/calculateFocusTarget.js",
+      "bytes": 2931
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/utils/use-visual-state.mjs",
+      "bytes": 2916
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/infiniteQueryBehavior.js",
+      "bytes": 2915
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/useCalendar.js",
+      "bytes": 2887
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/mutationCache.js",
+      "bytes": 2886
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/estimateDataURLDecodedBytes.js",
+      "bytes": 2874
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/gestures/press/index.mjs",
+      "bytes": 2860
+    },
+    {
+      "id": "./components/login/AnimatedLoginBackground.tsx",
+      "bytes": 2858
+    },
+    {
+      "id": "./utils/index.ts",
+      "bytes": 2818
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/complex/index.mjs",
+      "bytes": 2808
+    },
+    {
+      "id": "./components/ui/TaskStatusBadge.tsx",
+      "bytes": 2767
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/frameloop/render-step.mjs",
+      "bytes": 2750
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getMonths.js",
+      "bytes": 2743
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/utils/rangeContainsModifiers.js",
+      "bytes": 2741
+    },
+    {
+      "id": "./node_modules/axios/lib/cancel/CancelToken.js",
+      "bytes": 2725
+    },
+    {
+      "id": "./components/Avatar.tsx",
+      "bytes": 2683
+    },
+    {
+      "id": "./services/realtimeBackoff.ts",
+      "bytes": 2649
+    },
+    {
+      "id": "./utils/navigationPreferences.ts",
+      "bytes": 2637
+    },
+    {
+      "id": "./services/avatarResources.ts",
+      "bytes": 2611
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/mix/complex.mjs",
+      "bytes": 2582
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/interfaces/visual-element-variant.mjs",
+      "bytes": 2495
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/viewport/index.mjs",
+      "bytes": 2473
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs",
+      "bytes": 2455
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/render/dom/parse-transform.mjs",
+      "bytes": 2414
+    },
+    {
+      "id": "./hooks/useChatUnreadIndicator.ts",
+      "bytes": 2354
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/getWeekYear.js",
+      "bytes": 2336
+    },
+    {
+      "id": "./node_modules/axios/lib/core/dispatchRequest.js",
+      "bytes": 2335
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/index.mjs",
+      "bytes": 2332
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/interpolate.mjs",
+      "bytes": 2304
+    },
+    {
+      "id": "./node_modules/@date-fns/tz/date/index.js",
+      "bytes": 2287
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/geometry/delta-remove.mjs",
+      "bytes": 2263
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/frameloop/batcher.mjs",
+      "bytes": 2252
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/machine.js",
+      "bytes": 2248
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getDates.js",
+      "bytes": 2223
+    },
+    {
+      "id": "\u0000vite/preload-helper.js",
+      "bytes": 2206
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/formDataToJSON.js",
+      "bytes": 2181
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/NativeAnimationExtended.mjs",
+      "bytes": 2156
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/html/utils/build-styles.mjs",
+      "bytes": 2145
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/utils/dateMatchModifiers.js",
+      "bytes": 2143
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/components/AnimatePresence/PresenceChild.mjs",
+      "bytes": 2113
+    },
+    {
+      "id": "./components/RouteErrorPage.tsx",
+      "bytes": 2111
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/startOfWeekYear.js",
+      "bytes": 2086
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/styles/transform.mjs",
+      "bytes": 2085
+    },
+    {
+      "id": "./hooks/useToast.tsx",
+      "bytes": 2067
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/components/portal/portal.js",
+      "bytes": 2052
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/html/utils/build-transform.mjs",
+      "bytes": 2044
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/utils/typeguards.js",
+      "bytes": 1997
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/cookies.js",
+      "bytes": 1976
+    },
+    {
+      "id": "./services/realtimeAuth.ts",
+      "bytes": 1970
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/queryCache.js",
+      "bytes": 1966
+    },
+    {
+      "id": "./components/NavigationGuard.tsx",
+      "bytes": 1957
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/selection/useMulti.js",
+      "bytes": 1908
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/easing/cubic-bezier.mjs",
+      "bytes": 1900
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/geometry/delta-calc.mjs",
+      "bytes": 1889
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/useFocus.js",
+      "bytes": 1878
+    },
+    {
+      "id": "./constants/avatarFrames.ts",
+      "bytes": 1876
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getFocusableDate.js",
+      "bytes": 1863
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/use-composed-ref.mjs",
+      "bytes": 1857
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/utils/build-attrs.mjs",
+      "bytes": 1829
+    },
+    {
+      "id": "./components/ClockAssistant/ClockButton.jsx",
+      "bytes": 1794
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/motion-values.mjs",
+      "bytes": 1787
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/viewport/observers.mjs",
+      "bytes": 1769
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/locale/en-US/_lib/formatDistance.js",
+      "bytes": 1768
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/differenceInCalendarDays.js",
+      "bytes": 1766
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/eachYearOfInterval.js",
+      "bytes": 1765
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/locale/_lib/buildLocalizeFn.js",
+      "bytes": 1763
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getNextFocus.js",
+      "bytes": 1763
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/constructFrom.js",
+      "bytes": 1754
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/html/use-props.mjs",
+      "bytes": 1744
+    },
+    {
+      "id": "./components/NotificationDetailModal.tsx",
+      "bytes": 1737
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/HttpStatusCode.js",
+      "bytes": 1733
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/trackStream.js",
+      "bytes": 1728
+    },
+    {
+      "id": "./components/login/LoginConsoleEffects.tsx",
+      "bytes": 1712
+    },
+    {
+      "id": "./node_modules/axios/lib/axios.js",
+      "bytes": 1708
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/_lib/format/longFormatters.js",
+      "bytes": 1661
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getNavMonth.js",
+      "bytes": 1659
+    },
+    {
+      "id": "./node_modules/@date-fns/tz/tzOffset/index.js",
+      "bytes": 1658
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Nav.js",
+      "bytes": 1642
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/toDate.js",
+      "bytes": 1641
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/notifyManager.js",
+      "bytes": 1630
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/startOfWeek.js",
+      "bytes": 1626
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/endOfWeek.js",
+      "bytes": 1626
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/selection/useRange.js",
+      "bytes": 1604
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/eachMonthOfInterval.js",
+      "bytes": 1603
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/getWeek.js",
+      "bytes": 1554
+    },
+    {
+      "id": "./utils/notificationNavigation.ts",
+      "bytes": 1550
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/generators/keyframes.mjs",
+      "bytes": 1529
+    },
+    {
+      "id": "./node_modules/axios/lib/core/InterceptorManager.js",
+      "bytes": 1510
+    },
+    {
+      "id": "./node_modules/axios/lib/platform/common/utils.js",
+      "bytes": 1476
+    },
+    {
+      "id": "./node_modules/@date-fns/tz/tzName/index.js",
+      "bytes": 1466
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/buildURL.js",
+      "bytes": 1458
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/styles/scale-border-radius.mjs",
+      "bytes": 1458
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/selection/useSingle.js",
+      "bytes": 1443
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/locale/_lib/buildMatchFn.js",
+      "bytes": 1442
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/waapi/supports/waapi.mjs",
+      "bytes": 1441
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/keyframes/utils/unit-conversion.mjs",
+      "bytes": 1438
+    },
+    {
+      "id": "./services/tokenStorage.ts",
+      "bytes": 1421
+    },
+    {
+      "id": "./utils/activeWork.ts",
+      "bytes": 1420
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/components/AnimatePresence/use-presence.mjs",
+      "bytes": 1417
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/getISOWeekYear.js",
+      "bytes": 1407
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/parseHeaders.js",
+      "bytes": 1403
+    },
+    {
+      "id": "./services/profileEvents.ts",
+      "bytes": 1393
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getPreviousMonth.js",
+      "bytes": 1391
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/document-overflow/handle-ios-locking.js",
+      "bytes": 1390
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/gestures/pan/index.mjs",
+      "bytes": 1385
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/startOfISOWeekYear.js",
+      "bytes": 1381
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getNextMonth.js",
+      "bytes": 1379
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/AxiosURLSearchParams.js",
+      "bytes": 1359
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getMonthOptions.js",
+      "bytes": 1338
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/utils/can-animate.mjs",
+      "bytes": 1324
+    },
+    {
+      "id": "./utils/sidebarPreferences.ts",
+      "bytes": 1321
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getYearOptions.js",
+      "bytes": 1311
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/resolve-variants.mjs",
+      "bytes": 1308
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/composeSignals.js",
+      "bytes": 1299
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/styles/scale-box-shadow.mjs",
+      "bytes": 1299
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/setMonth.js",
+      "bytes": 1296
+    },
+    {
+      "id": "./node_modules/react/cjs/react-jsx-runtime.production.js",
+      "bytes": 1294
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/mix/color.mjs",
+      "bytes": 1290
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/gestures/hover.mjs",
+      "bytes": 1290
+    },
+    {
+      "id": "./components/loading/PageLoader.tsx",
+      "bytes": 1288
+    },
+    {
+      "id": "\u0000vite/modulepreload-polyfill.js",
+      "bytes": 1280
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/min.js",
+      "bytes": 1279
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/max.js",
+      "bytes": 1269
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/focusManager.js",
+      "bytes": 1252
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/gestures/focus.mjs",
+      "bytes": 1240
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/utils/valid-prop.mjs",
+      "bytes": 1239
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/gestures/press/utils/keyboard.mjs",
+      "bytes": 1233
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/html/HTMLVisualElement.mjs",
+      "bytes": 1233
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/progressEventReducer.js",
+      "bytes": 1214
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/addDays.js",
+      "bytes": 1202
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/components/description/description.js",
+      "bytes": 1201
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/isSameDay.js",
+      "bytes": 1189
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/useControlledValue.js",
+      "bytes": 1184
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/onlineManager.js",
+      "bytes": 1181
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-outside-click.js",
+      "bytes": 1180
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/SVGVisualElement.mjs",
+      "bytes": 1177
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/dom/DOMVisualElement.mjs",
+      "bytes": 1176
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/animation/index.mjs",
+      "bytes": 1169
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/utils/css-variables-conversion.mjs",
+      "bytes": 1168
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getBroadcastWeeksInMonth.js",
+      "bytes": 1145
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/constants.js",
+      "bytes": 1143
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-root-containers.js",
+      "bytes": 1139
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/setYear.js",
+      "bytes": 1138
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/geometry/conversion.mjs",
+      "bytes": 1135
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getClassNamesForModifiers.js",
+      "bytes": 1126
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/endOfMonth.js",
+      "bytes": 1120
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/utils/rangeIncludesDate.js",
+      "bytes": 1116
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/startOfISOWeek.js",
+      "bytes": 1110
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/subscription-manager.mjs",
+      "bytes": 1102
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/endOfISOWeek.js",
+      "bytes": 1096
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/endOfYear.js",
+      "bytes": 1083
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/isSameMonth.js",
+      "bytes": 1083
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getInitialMonth.js",
+      "bytes": 1082
+    },
+    {
+      "id": "./utils/settingsNavigation.ts",
+      "bytes": 1069
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/startOfYear.js",
+      "bytes": 1066
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/keyframes/utils/make-none-animatable.mjs",
+      "bytes": 1060
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/startOfMonth.js",
+      "bytes": 1060
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/speedometer.js",
+      "bytes": 1049
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Dropdown.js",
+      "bytes": 1046
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/utils/path.mjs",
+      "bytes": 1044
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/differenceInCalendarMonths.js",
+      "bytes": 1036
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/color/hsla-to-rgba.mjs",
+      "bytes": 1034
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Chevron.js",
+      "bytes": 1027
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/utils/rangeContainsDayOfWeek.js",
+      "bytes": 1016
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/components/create-proxy.mjs",
+      "bytes": 1015
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/startOfDay.js",
+      "bytes": 1008
+    },
+    {
+      "id": "./node_modules/@heroicons/react/24/outline/esm/BuildingOffice2Icon.js",
+      "bytes": 992
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/addWeeks.js",
+      "bytes": 992
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/animation/exit.mjs",
+      "bytes": 988
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/gestures/press.mjs",
+      "bytes": 988
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelDayButton.js",
+      "bytes": 984
+    },
+    {
+      "id": "./services/browserSession.ts",
+      "bytes": 968
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/utils/use-motion-ref.mjs",
+      "bytes": 965
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/dom/use-render.mjs",
+      "bytes": 964
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getDataAttributes.js",
+      "bytes": 961
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-inert-others.js",
+      "bytes": 945
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/_lib/getTimezoneOffsetInMilliseconds.js",
+      "bytes": 944
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/classes/CalendarDay.js",
+      "bytes": 943
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/waapi/start-waapi-animation.mjs",
+      "bytes": 940
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/getISOWeek.js",
+      "bytes": 932
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/utils/is-animatable.mjs",
+      "bytes": 923
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/Icon.js",
+      "bytes": 920
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/document-overflow/overflow-store.js",
+      "bytes": 919
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/shared/src/utils.js",
+      "bytes": 918
+    },
+    {
+      "id": "./services/endpoints.ts",
+      "bytes": 916
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/machines/stack-machine.js",
+      "bytes": 911
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/maps/number.mjs",
+      "bytes": 908
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/timeoutManager.js",
+      "bytes": 901
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/gamepad-2.js",
+      "bytes": 895
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/addYears.js",
+      "bytes": 885
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/setters.mjs",
+      "bytes": 881
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/getDaysInMonth.js",
+      "bytes": 875
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/isValid.js",
+      "bytes": 873
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/utils/default-transitions.mjs",
+      "bytes": 872
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getWeekdays.js",
+      "bytes": 867
+    },
+    {
+      "id": "./node_modules/@heroicons/react/24/outline/esm/ArrowPathIcon.js",
+      "bytes": 851
+    },
+    {
+      "id": "./components/loading/GlobalProgressBar.tsx",
+      "bytes": 851
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/startOfBroadcastWeek.js",
+      "bytes": 849
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/interfaces/visual-element.mjs",
+      "bytes": 847
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/disposables.js",
+      "bytes": 845
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/isDate.js",
+      "bytes": 838
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/geometry/utils.mjs",
+      "bytes": 830
+    },
+    {
+      "id": "./pages/NotFound.tsx",
+      "bytes": 830
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/throttle.js",
+      "bytes": 827
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getDisplayMonths.js",
+      "bytes": 818
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/_lib/protectedTokens.js",
+      "bytes": 814
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getDefaultClassNames.js",
+      "bytes": 814
+    },
+    {
+      "id": "./index.tsx",
+      "bytes": 814
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/complex/filter.mjs",
+      "bytes": 810
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/color/hex.mjs",
+      "bytes": 806
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/isSameYear.js",
+      "bytes": 802
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/env.js",
+      "bytes": 800
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/useDayPicker.js",
+      "bytes": 798
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/node/HTMLProjectionNode.mjs",
+      "bytes": 792
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/frameloop/sync-time.mjs",
+      "bytes": 783
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/useSelection.js",
+      "bytes": 781
+    },
+    {
+      "id": "./node_modules/axios/lib/core/settle.js",
+      "bytes": 778
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getStyleForModifiers.js",
+      "bytes": 778
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/gestures/hover.mjs",
+      "bytes": 777
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/definitions.mjs",
+      "bytes": 768
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/get-variant-context.mjs",
+      "bytes": 749
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/formatters/formatCaption.js",
+      "bytes": 746
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/color/utils.mjs",
+      "bytes": 740
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/sparkles.js",
+      "bytes": 739
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelGrid.js",
+      "bytes": 732
+    },
+    {
+      "id": "./node_modules/@heroicons/react/24/outline/esm/Bars3Icon.js",
+      "bytes": 720
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/gestures/drag/index.mjs",
+      "bytes": 720
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/settings.js",
+      "bytes": 716
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/dom/utils/is-svg-component.mjs",
+      "bytes": 712
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/geometry/copy.mjs",
+      "bytes": 708
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/trophy.js",
+      "bytes": 705
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/eye-off.js",
+      "bytes": 697
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/dom.js",
+      "bytes": 695
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelGridcell.js",
+      "bytes": 691
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/locale/en-US/_lib/formatLong.js",
+      "bytes": 690
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getFormatters.js",
+      "bytes": 685
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/star.js",
+      "bytes": 682
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/utils/is-css-variable.mjs",
+      "bytes": 681
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/easing/utils/map.mjs",
+      "bytes": 665
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/utils/rangeOverlaps.js",
+      "bytes": 661
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/utils/has-transform.mjs",
+      "bytes": 654
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/color/index.mjs",
+      "bytes": 653
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/getDayOfYear.js",
+      "bytes": 653
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/formatters/formatWeekNumber.js",
+      "bytes": 648
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/mix/number.mjs",
+      "bytes": 643
+    },
+    {
+      "id": "./node_modules/axios/lib/core/buildFullPath.js",
+      "bytes": 642
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/endOfBroadcastWeek.js",
+      "bytes": 640
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/volume-x.js",
+      "bytes": 633
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/numbers/units.mjs",
+      "bytes": 624
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/formatters/formatWeekdayName.js",
+      "bytes": 624
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/volume-2.js",
+      "bytes": 621
+    },
+    {
+      "id": "./node_modules/axios/lib/core/transformData.js",
+      "bytes": 618
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/createLucideIcon.js",
+      "bytes": 615
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelWeekday.js",
+      "bytes": 615
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/html/utils/render.mjs",
+      "bytes": 614
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/locale/_lib/buildMatchPatternFn.js",
+      "bytes": 613
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/waapi/easing/map-easing.mjs",
+      "bytes": 612
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getDays.js",
+      "bytes": 607
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/array.mjs",
+      "bytes": 606
+    },
+    {
+      "id": "./utils/taskPermissions.ts",
+      "bytes": 599
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/isBefore.js",
+      "bytes": 597
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/use-props.mjs",
+      "bytes": 594
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/utils/calc-child-stagger.mjs",
+      "bytes": 589
+    },
+    {
+      "id": "./node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js",
+      "bytes": 588
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/isAfter.js",
+      "bytes": 588
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/isAbsoluteURL.js",
+      "bytes": 586
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/gestures/utils/is-primary-pointer.mjs",
+      "bytes": 585
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/progress.mjs",
+      "bytes": 579
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/value/use-will-change/add-will-change.mjs",
+      "bytes": 579
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/utils/camel-case-attrs.mjs",
+      "bytes": 577
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/formatters/formatYearDropdown.js",
+      "bytes": 560
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/node/state.mjs",
+      "bytes": 558
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/active-element-history.js",
+      "bytes": 556
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/maps/defaults.mjs",
+      "bytes": 554
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/gestures/drag/state/set-active.mjs",
+      "bytes": 553
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/internal/hidden.js",
+      "bytes": 550
+    },
+    {
+      "id": "./node_modules/axios/lib/cancel/CanceledError.js",
+      "bytes": 549
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/generators/spring/defaults.mjs",
+      "bytes": 548
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/removable.js",
+      "bytes": 542
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/color/rgba.mjs",
+      "bytes": 540
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/spread.js",
+      "bytes": 537
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/refresh-cw.js",
+      "bytes": 535
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/formatters/formatDay.js",
+      "bytes": 535
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/reduced-motion/index.mjs",
+      "bytes": 528
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/utils/scrape-motion-values.mjs",
+      "bytes": 527
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/generators/utils/create-generator-easing.mjs",
+      "bytes": 522
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/utils/WithPromise.mjs",
+      "bytes": 521
+    },
+    {
+      "id": "./node_modules/react-dom/index.js",
+      "bytes": 520
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/getMonth.js",
+      "bytes": 517
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/utils/measure.mjs",
+      "bytes": 514
+    },
+    {
+      "id": "./node_modules/react-dom/client.js",
+      "bytes": 512
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/maps/transform.mjs",
+      "bytes": 511
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-on-disappear.js",
+      "bytes": 511
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/color/hsla.mjs",
+      "bytes": 508
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/formatters/formatMonthDropdown.js",
+      "bytes": 496
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/lowercase-elements.mjs",
+      "bytes": 495
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/getYear.js",
+      "bytes": 495
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/locale/en-US.js",
+      "bytes": 492
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/keyframes/get-final.mjs",
+      "bytes": 486
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/use-constant.mjs",
+      "bytes": 485
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/html/utils/scrape-motion-values.mjs",
+      "bytes": 485
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/eye.js",
+      "bytes": 478
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/generators/utils/calc-duration.mjs",
+      "bytes": 475
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/lock-keyhole.js",
+      "bytes": 474
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/zap.js",
+      "bytes": 467
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/drivers/frame.mjs",
+      "bytes": 467
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/resolve-elements.mjs",
+      "bytes": 464
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelWeekNumber.js",
+      "bytes": 464
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/users-round.js",
+      "bytes": 463
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/render/utils/keys-transform.mjs",
+      "bytes": 461
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/external-link.js",
+      "bytes": 459
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/flat-tree.mjs",
+      "bytes": 457
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/DayButton.js",
+      "bytes": 455
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getComponents.js",
+      "bytes": 455
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/panel-left-close.js",
+      "bytes": 454
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/mix/visibility.mjs",
+      "bytes": 445
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/history.js",
+      "bytes": 440
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/gestures/utils/is-node-or-child.mjs",
+      "bytes": 439
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelPrevious.js",
+      "bytes": 438
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Day.js",
+      "bytes": 436
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/waapi/easing/supported.mjs",
+      "bytes": 434
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/subscribable.js",
+      "bytes": 427
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/isURLSameOrigin.js",
+      "bytes": 426
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/pause.js",
+      "bytes": 419
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/bind.js",
+      "bytes": 413
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/internal/open-closed.js",
+      "bytes": 413
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/mail.js",
+      "bytes": 412
+    },
+    {
+      "id": "./node_modules/axios/index.js",
+      "bytes": 411
+    },
+    {
+      "id": "./components/ProtectedRoute.tsx",
+      "bytes": 411
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/info.js",
+      "bytes": 410
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelNext.js",
+      "bytes": 410
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/context/MotionContext/utils.mjs",
+      "bytes": 409
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/defaultAttributes.js",
+      "bytes": 404
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/utils/animatable-none.mjs",
+      "bytes": 403
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/delay.mjs",
+      "bytes": 401
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/play.js",
+      "bytes": 400
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-server-handoff-complete.js",
+      "bytes": 398
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/waapi/utils/linear.mjs",
+      "bytes": 396
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/toURLEncodedForm.js",
+      "bytes": 394
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/gestures/utils/setup.mjs",
+      "bytes": 394
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/menu.js",
+      "bytes": 389
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelWeekNumberHeader.js",
+      "bytes": 385
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/context/MotionContext/create.mjs",
+      "bytes": 384
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/waapi/utils/unsupported-easing.mjs",
+      "bytes": 382
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/owner.js",
+      "bytes": 381
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelMonthDropdown.js",
+      "bytes": 378
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-is-touch-device.js",
+      "bytes": 377
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/utils/is-transition-defined.mjs",
+      "bytes": 375
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelYearDropdown.js",
+      "bytes": 373
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/components/AnimatePresence/utils.mjs",
+      "bytes": 371
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/clock-3.js",
+      "bytes": 366
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/clock.js",
+      "bytes": 365
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/arrow-right.js",
+      "bytes": 362
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/animators/waapi/utils/get-final-keyframe.mjs",
+      "bytes": 360
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/node/DocumentProjectionNode.mjs",
+      "bytes": 357
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/helpers/getWeeks.js",
+      "bytes": 353
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/combineURLs.js",
+      "bytes": 351
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/x.js",
+      "bytes": 344
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-flags.js",
+      "bytes": 342
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/square.js",
+      "bytes": 339
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Month.js",
+      "bytes": 334
+    },
+    {
+      "id": "./utils/passwordReset.ts",
+      "bytes": 331
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/loader-circle.js",
+      "bytes": 330
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/time-conversion.mjs",
+      "bytes": 319
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-sync-refs.js",
+      "bytes": 319
+    },
+    {
+      "id": "./node_modules/lucide-react/dist/esm/icons/chevron-down.js",
+      "bytes": 313
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/shallow-compare.mjs",
+      "bytes": 310
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/isAxiosError.js",
+      "bytes": 308
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/geometry/models.mjs",
+      "bytes": 308
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/PreviousMonthButton.js",
+      "bytes": 306
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/waapi/utils/apply-generator.mjs",
+      "bytes": 305
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/NextMonthButton.js",
+      "bytes": 298
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/match.js",
+      "bytes": 296
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/MonthsDropdown.js",
+      "bytes": 296
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/formatters/formatWeekNumberHeader.js",
+      "bytes": 296
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/dimensions.mjs",
+      "bytes": 295
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/document-overflow/adjust-scrollbar-padding.js",
+      "bytes": 294
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/YearsDropdown.js",
+      "bytes": 294
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/locale/en-US/_lib/formatRelative.js",
+      "bytes": 291
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/MonthCaption.js",
+      "bytes": 290
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/utils/render.mjs",
+      "bytes": 288
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/components/keyboard.js",
+      "bytes": 286
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Weekdays.js",
+      "bytes": 286
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/utils/replace-transition-type.mjs",
+      "bytes": 285
+    },
+    {
+      "id": "./components/SettingsRedirect.tsx",
+      "bytes": 283
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/supports/linear-easing.mjs",
+      "bytes": 277
+    },
+    {
+      "id": "./utils/userAvatar.ts",
+      "bytes": 273
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/pipe.mjs",
+      "bytes": 273
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/events/event-info.mjs",
+      "bytes": 271
+    },
+    {
+      "id": "./node_modules/use-sync-external-store/with-selector.js",
+      "bytes": 270
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/locale/_lib/buildFormatLongFn.js",
+      "bytes": 270
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/WeekNumber.js",
+      "bytes": 269
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Week.js",
+      "bytes": 264
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/styles/scale-correction.mjs",
+      "bytes": 263
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Root.js",
+      "bytes": 261
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/is-controlling-variants.mjs",
+      "bytes": 260
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/labelNav.js",
+      "bytes": 258
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/dom/create-visual-element.mjs",
+      "bytes": 257
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/classes/CalendarMonth.js",
+      "bytes": 256
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/classes/CalendarWeek.js",
+      "bytes": 256
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/animate/single-value.mjs",
+      "bytes": 255
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/easing/modifiers/mirror.mjs",
+      "bytes": 252
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/keyframes/offsets/fill.mjs",
+      "bytes": 250
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/keyframes/utils/is-none.mjs",
+      "bytes": 250
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-is-top-layer.js",
+      "bytes": 250
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/frameloop/order.mjs",
+      "bytes": 249
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/velocity-per-second.mjs",
+      "bytes": 246
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/value/utils/resolve-motion-value.mjs",
+      "bytes": 246
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/gestures/press/utils/is-keyboard-accessible.mjs",
+      "bytes": 243
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/platform.js",
+      "bytes": 243
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Weekday.js",
+      "bytes": 243
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/utils/is-forced-motion-value.mjs",
+      "bytes": 242
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/mix/index.mjs",
+      "bytes": 241
+    },
+    {
+      "id": "./node_modules/react/jsx-runtime.js",
+      "bytes": 239
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/gestures.mjs",
+      "bytes": 234
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/generators/utils/velocity.mjs",
+      "bytes": 231
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/document-ready.js",
+      "bytes": 231
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/WeekNumberHeader.js",
+      "bytes": 230
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/numbers/index.mjs",
+      "bytes": 229
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Button.js",
+      "bytes": 229
+    },
+    {
+      "id": "./node_modules/scheduler/index.js",
+      "bytes": 226
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/is-svg-svg-element.mjs",
+      "bytes": 226
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/distance.mjs",
+      "bytes": 225
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/DropdownNav.js",
+      "bytes": 224
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Weeks.js",
+      "bytes": 224
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/resolve-dynamic-variants.mjs",
+      "bytes": 222
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/utils/get-as-type.mjs",
+      "bytes": 221
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/MonthGrid.js",
+      "bytes": 220
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/utils/find.mjs",
+      "bytes": 216
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/CaptionLabel.js",
+      "bytes": 215
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Months.js",
+      "bytes": 214
+    },
+    {
+      "id": "./node_modules/axios/lib/platform/browser/index.js",
+      "bytes": 207
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/variant-props.mjs",
+      "bytes": 207
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/frameloop/frame.mjs",
+      "bytes": 206
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/events/add-dom-event.mjs",
+      "bytes": 204
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Footer.js",
+      "bytes": 204
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-tab-direction.js",
+      "bytes": 202
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-watch.js",
+      "bytes": 201
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/document-overflow/use-document-overflow.js",
+      "bytes": 200
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Option.js",
+      "bytes": 200
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/Select.js",
+      "bytes": 199
+    },
+    {
+      "id": "./node_modules/@tanstack/query-core/build/modern/environmentManager.js",
+      "bytes": 195
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-document-event.js",
+      "bytes": 195
+    },
+    {
+      "id": "./node_modules/react/index.js",
+      "bytes": 194
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/load-features.mjs",
+      "bytes": 192
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-window-event.js",
+      "bytes": 191
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/store.js",
+      "bytes": 187
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/_lib/addLeadingZeros.js",
+      "bytes": 186
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-event-listener.js",
+      "bytes": 185
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/memo.mjs",
+      "bytes": 184
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/is-svg-element.mjs",
+      "bytes": 184
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/_lib/normalizeDates.js",
+      "bytes": 184
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/is-html-element.mjs",
+      "bytes": 183
+    },
+    {
+      "id": "./services/queryClient.ts",
+      "bytes": 182
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/drag.mjs",
+      "bytes": 180
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/react-glue.js",
+      "bytes": 180
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/is-numerical-string.mjs",
+      "bytes": 178
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/easing/ease.mjs",
+      "bytes": 177
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/html/use-html-visual-state.mjs",
+      "bytes": 175
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/easing/back.mjs",
+      "bytes": 173
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/easing/modifiers/reverse.mjs",
+      "bytes": 171
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/use-svg-visual-state.mjs",
+      "bytes": 171
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/reduced-motion/state.mjs",
+      "bytes": 171
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/get-context-window.mjs",
+      "bytes": 171
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/internal/portal-force-root.js",
+      "bytes": 171
+    },
+    {
+      "id": "./services/taskRealtimeEvents.ts",
+      "bytes": 171
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-escape.js",
+      "bytes": 169
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/context/MotionConfigContext.mjs",
+      "bytes": 162
+    },
+    {
+      "id": "./node_modules/axios/lib/defaults/transitional.js",
+      "bytes": 158
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-on-unmount.js",
+      "bytes": 158
+    },
+    {
+      "id": "./node_modules/react-router/dist/development/dom-export.mjs",
+      "bytes": 156
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/render/dom/style-set.mjs",
+      "bytes": 152
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/default-map.js",
+      "bytes": 152
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/_lib/normalizeInterval.js",
+      "bytes": 152
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/keyframes/utils/fill-wildcards.mjs",
+      "bytes": 151
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/supports/memo.mjs",
+      "bytes": 146
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/is-ref-object.mjs",
+      "bytes": 146
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/is-variant-label.mjs",
+      "bytes": 145
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/utils/sanitize.mjs",
+      "bytes": 143
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/utils/single-color-regex.mjs",
+      "bytes": 143
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-scroll-lock.js",
+      "bytes": 143
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/events/add-pointer-event.mjs",
+      "bytes": 142
+    },
+    {
+      "id": "\u0000commonjsHelpers.js",
+      "bytes": 140
+    },
+    {
+      "id": "./utils/appEvents.ts",
+      "bytes": 140
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/render/utils/keys-position.mjs",
+      "bytes": 140
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/animations.mjs",
+      "bytes": 140
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/dom/utils/camel-to-dash.mjs",
+      "bytes": 138
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/utils/get-value-transition.mjs",
+      "bytes": 137
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/utils/color-regex.mjs",
+      "bytes": 136
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/supports/flags.mjs",
+      "bytes": 135
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/utils/is-animation-controls.mjs",
+      "bytes": 134
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/micro-task.js",
+      "bytes": 131
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/internal/close-provider.js",
+      "bytes": 131
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/optimized-appear/data-id.mjs",
+      "bytes": 130
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/easing/circ.mjs",
+      "bytes": 128
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/is-zero-value-string.mjs",
+      "bytes": 127
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/clamp.mjs",
+      "bytes": 123
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/parseProtocol.js",
+      "bytes": 122
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/Feature.mjs",
+      "bytes": 122
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/utils/class-names.js",
+      "bytes": 122
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/gestures/drag/state/is-active.mjs",
+      "bytes": 120
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/context/SwitchLayoutGroupContext.mjs",
+      "bytes": 119
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/html/utils/create-render-state.mjs",
+      "bytes": 115
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/keyframes/offsets/default.mjs",
+      "bytes": 114
+    },
+    {
+      "id": "\u0000./node_modules/react-dom/index.js?commonjs-es-import",
+      "bytes": 112
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/optimized-appear/get-appear-id.mjs",
+      "bytes": 110
+    },
+    {
+      "id": "\u0000./node_modules/react-dom/client.js?commonjs-es-import",
+      "bytes": 108
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/features/layout.mjs",
+      "bytes": 107
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-is-mounted.js",
+      "bytes": 107
+    },
+    {
+      "id": "./node_modules/axios/lib/platform/browser/classes/URLSearchParams.js",
+      "bytes": 106
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/test.mjs",
+      "bytes": 106
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-disposables.js",
+      "bytes": 106
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/auto.mjs",
+      "bytes": 101
+    },
+    {
+      "id": "\u0000./node_modules/react/index.js?commonjs-es-import",
+      "bytes": 100
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/use-isomorphic-effect.mjs",
+      "bytes": 100
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/utils/make-animation-instant.mjs",
+      "bytes": 100
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/easing/utils/is-easing-array.mjs",
+      "bytes": 99
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/components/motion/feature-bundle.mjs",
+      "bytes": 99
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/easing/anticipate.mjs",
+      "bytes": 98
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/value/use-will-change/is.mjs",
+      "bytes": 98
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/generators/utils/is-generator.mjs",
+      "bytes": 97
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-store.js",
+      "bytes": 96
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/keyframes/offsets/time.mjs",
+      "bytes": 95
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/supports/scroll-timeline.mjs",
+      "bytes": 95
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/easing/utils/is-bezier-definition.mjs",
+      "bytes": 94
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/internal/disabled.js",
+      "bytes": 94
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/context/PresenceContext.mjs",
+      "bytes": 93
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-iso-morphic-effect.js",
+      "bytes": 93
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/document-overflow/prevent-scroll.js",
+      "bytes": 93
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/frameloop/microtask.mjs",
+      "bytes": 91
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/utils/create-render-state.mjs",
+      "bytes": 88
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-event.js",
+      "bytes": 88
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs",
+      "bytes": 86
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/animation/waapi/easing/cubic-bezier.mjs",
+      "bytes": 85
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/is-object.mjs",
+      "bytes": 84
+    },
+    {
+      "id": "./node_modules/react-day-picker/node_modules/date-fns/_lib/defaultOptions.js",
+      "bytes": 83
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-latest-value.js",
+      "bytes": 82
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/svg/utils/is-svg-tag.mjs",
+      "bytes": 81
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/projection/utils/each-axis.mjs",
+      "bytes": 74
+    },
+    {
+      "id": "./node_modules/axios/lib/cancel/isCancel.js",
+      "bytes": 70
+    },
+    {
+      "id": "./node_modules/axios/lib/platform/browser/classes/FormData.js",
+      "bytes": 69
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/utils/is-motion-value.mjs",
+      "bytes": 69
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/context/MotionContext/index.mjs",
+      "bytes": 69
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-owner.js",
+      "bytes": 69
+    },
+    {
+      "id": "./node_modules/@headlessui/react/dist/hooks/use-slot.js",
+      "bytes": 68
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/utils/mix/immediate.mjs",
+      "bytes": 66
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/context/LazyContext.mjs",
+      "bytes": 66
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/motion/utils/symbol.mjs",
+      "bytes": 66
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/animation/utils/is-keyframes-target.mjs",
+      "bytes": 66
+    },
+    {
+      "id": "./node_modules/axios/lib/helpers/null.js",
+      "bytes": 60
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/int.mjs",
+      "bytes": 60
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/context/LayoutGroupContext.mjs",
+      "bytes": 58
+    },
+    {
+      "id": "./node_modules/axios/lib/platform/browser/classes/Blob.js",
+      "bytes": 57
+    },
+    {
+      "id": "\u0000./node_modules/use-sync-external-store/cjs/use-sync-external-store-with-selector.production.js?commonjs-exports",
+      "bytes": 53
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/noop.mjs",
+      "bytes": 51
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/utils/compare-by-depth.mjs",
+      "bytes": 51
+    },
+    {
+      "id": "./node_modules/axios/lib/platform/index.js",
+      "bytes": 50
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/utils/float-regex.mjs",
+      "bytes": 49
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/render/dom/is-css-var.mjs",
+      "bytes": 49
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/utils/is-browser.mjs",
+      "bytes": 48
+    },
+    {
+      "id": "\u0000./node_modules/use-sync-external-store/with-selector.js?commonjs-es-import",
+      "bytes": 48
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/value/types/utils/is-nullish.mjs",
+      "bytes": 47
+    },
+    {
+      "id": "\u0000./node_modules/react/jsx-runtime.js?commonjs-es-import",
+      "bytes": 44
+    },
+    {
+      "id": "./images/login1.png",
+      "bytes": 42
+    },
+    {
+      "id": "./images/login2.png",
+      "bytes": 42
+    },
+    {
+      "id": "./images/login3.png",
+      "bytes": 42
+    },
+    {
+      "id": "./node_modules/framer-motion/dist/es/render/store.mjs",
+      "bytes": 41
+    },
+    {
+      "id": "\u0000./node_modules/react/cjs/react-jsx-runtime.production.js?commonjs-exports",
+      "bytes": 36
+    },
+    {
+      "id": "\u0000./node_modules/react-dom/cjs/react-dom-client.production.js?commonjs-exports",
+      "bytes": 35
+    },
+    {
+      "id": "./node_modules/motion-dom/dist/es/gestures/press/utils/state.mjs",
+      "bytes": 33
+    },
+    {
+      "id": "\u0000./node_modules/use-sync-external-store/with-selector.js?commonjs-module",
+      "bytes": 33
+    },
+    {
+      "id": "\u0000./node_modules/react/jsx-runtime.js?commonjs-module",
+      "bytes": 31
+    },
+    {
+      "id": "\u0000./node_modules/scheduler/index.js?commonjs-module",
+      "bytes": 30
+    },
+    {
+      "id": "\u0000./node_modules/scheduler/cjs/scheduler.production.js?commonjs-exports",
+      "bytes": 30
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/global-config.mjs",
+      "bytes": 30
+    },
+    {
+      "id": "\u0000./node_modules/react-dom/index.js?commonjs-module",
+      "bytes": 29
+    },
+    {
+      "id": "\u0000./node_modules/react-dom/cjs/react-dom.production.js?commonjs-exports",
+      "bytes": 29
+    },
+    {
+      "id": "\u0000./node_modules/react-dom/client.js?commonjs-module",
+      "bytes": 27
+    },
+    {
+      "id": "./node_modules/axios/lib/env/data.js",
+      "bytes": 27
+    },
+    {
+      "id": "\u0000./node_modules/react/index.js?commonjs-module",
+      "bytes": 26
+    },
+    {
+      "id": "\u0000./node_modules/react/cjs/react.production.js?commonjs-exports",
+      "bytes": 26
+    },
+    {
+      "id": "./node_modules/motion-utils/dist/es/errors.mjs",
+      "bytes": 26
+    },
+    {
+      "id": "./index.html?html-proxy&inline-css&index=0.css",
+      "bytes": 0
+    },
+    {
+      "id": "./index.css",
+      "bytes": 0
+    },
+    {
+      "id": "./tailwind.css",
+      "bytes": 0
+    },
+    {
+      "id": "./components/ActiveWork.css",
+      "bytes": 0
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/components/custom-components.js",
+      "bytes": 0
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/formatters/index.js",
+      "bytes": 0
+    },
+    {
+      "id": "./node_modules/react-day-picker/dist/esm/labels/index.js",
+      "bytes": 0
+    },
+    {
+      "id": "./node_modules/react-day-picker/src/style.css",
+      "bytes": 0
+    },
+    {
+      "id": "./components/PasswordRecovery.css",
+      "bytes": 0
+    },
+    {
+      "id": "./pages/Login.css",
+      "bytes": 0
+    },
+    {
+      "id": "./index.html",
+      "bytes": 0
+    }
+  ],
+  "chunks": [
+    {
+      "file": "assets/index-DFKLmnZO.js",
+      "bytes": 1014530
+    },
+    {
+      "file": "assets/Dashboard-7QvdzIz6.js",
+      "bytes": 21958
+    },
+    {
+      "file": "assets/AllTasks-ClWnPvU1.js",
+      "bytes": 6942
+    },
+    {
+      "file": "assets/Management-J98xscSh.js",
+      "bytes": 2408
+    },
+    {
+      "file": "assets/Projects-kZYgm1sn.js",
+      "bytes": 34785
+    },
+    {
+      "file": "assets/Reports-BrKEEC9o.js",
+      "bytes": 376658
+    },
+    {
+      "file": "assets/Settings-DNwyf0Sh.js",
+      "bytes": 5675
+    },
+    {
+      "file": "assets/PageTabs-BT5SUYtc.js",
+      "bytes": 1655
+    },
+    {
+      "file": "assets/Achievements-CJ4EhXTr.js",
+      "bytes": 76934
+    },
+    {
+      "file": "assets/levelsConfigStorage-ChgEJdj-.js",
+      "bytes": 4734
+    },
+    {
+      "file": "assets/OAuthAuthorization-Ehcgjh4n.js",
+      "bytes": 3179
+    },
+    {
+      "file": "assets/TicketPage-CI1Obb8d.js",
+      "bytes": 92348
+    },
+    {
+      "file": "assets/Chat-DlQJgTgk.js",
+      "bytes": 111727
+    },
+    {
+      "file": "assets/bell-jCHcHVBG.js",
+      "bytes": 463
+    },
+    {
+      "file": "assets/realtimeRecovery-COYdE9C7.js",
+      "bytes": 941
+    },
+    {
+      "file": "assets/ToolLibrary-CxM68ZUG.js",
+      "bytes": 24748
+    },
+    {
+      "file": "assets/TaskDocumentation-DwX_Iau_.js",
+      "bytes": 1111841
+    },
+    {
+      "file": "assets/TaskJourneyModal-CEOadkrK.js",
+      "bytes": 33681
+    },
+    {
+      "file": "assets/ClockDropdown-31khqumy.js",
+      "bytes": 462716
+    },
+    {
+      "file": "assets/use-resolve-button-type-DY1J_FAX.js",
+      "bytes": 10676
+    },
+    {
+      "file": "assets/Tasks-Dh2XQfuS.js",
+      "bytes": 77740
+    },
+    {
+      "file": "assets/KanbanBoard-Dd0gXP0J.js",
+      "bytes": 39095
+    },
+    {
+      "file": "assets/themeTokens-iGQJy6UG.js",
+      "bytes": 1233
+    },
+    {
+      "file": "assets/GanttView-B7OtigYk.js",
+      "bytes": 17903
+    },
+    {
+      "file": "assets/CalendarView-C7cGHQDr.js",
+      "bytes": 36786
+    },
+    {
+      "file": "assets/TaskPriorityBadge-BYp_VY_1.js",
+      "bytes": 664
+    },
+    {
+      "file": "assets/CreateTaskModal-B7uGpkPF.js",
+      "bytes": 242730
+    },
+    {
+      "file": "assets/useQuery-zQxhPM34.js",
+      "bytes": 9566
+    },
+    {
+      "file": "assets/taskDates-Vc80xupu.js",
+      "bytes": 748
+    },
+    {
+      "file": "assets/Users-BqU-zIje.js",
+      "bytes": 136896
+    },
+    {
+      "file": "assets/sharedSocketIo-4jwU4efQ.js",
+      "bytes": 44400
+    },
+    {
+      "file": "assets/Badge-DcEIL6Lp.js",
+      "bytes": 1428
+    },
+    {
+      "file": "assets/SingleSelect-YVgdvRx3.js",
+      "bytes": 1935
+    },
+    {
+      "file": "assets/Clients-CZ3L5iUf.js",
+      "bytes": 31434
+    },
+    {
+      "file": "assets/RestoreConfirmation-uQ-o7TVs.js",
+      "bytes": 3584
+    },
+    {
+      "file": "assets/XMarkIcon-B1IIH39E.js",
+      "bytes": 476
+    },
+    {
+      "file": "assets/PlusIcon-CFEW9BrL.js",
+      "bytes": 962
+    },
+    {
+      "file": "assets/SearchableMultiSelect-D71rapDm.js",
+      "bytes": 6551
+    },
+    {
+      "file": "assets/ProfileSettings-DPg89lem.js",
+      "bytes": 36681
+    },
+    {
+      "file": "assets/SkillsEditor-ClWBTO0X.js",
+      "bytes": 31927
+    },
+    {
+      "file": "assets/SupportFormModal-D8Zveodf.js",
+      "bytes": 7658
+    },
+    {
+      "file": "assets/SettingsOAuth-C7Lod0vI.js",
+      "bytes": 1640
+    },
+    {
+      "file": "assets/SettingsApi-D2ZhRxVV.js",
+      "bytes": 1589
+    },
+    {
+      "file": "assets/Logs-D4o3fiBA.js",
+      "bytes": 37215
+    },
+    {
+      "file": "assets/search-Drsi0GKB.js",
+      "bytes": 347
+    },
+    {
+      "file": "assets/triangle-alert-_mZT-8JE.js",
+      "bytes": 438
+    },
+    {
+      "file": "assets/check-C9TJpJYU.js",
+      "bytes": 297
+    },
+    {
+      "file": "assets/database-BJ5PdLbc.js",
+      "bytes": 416
+    },
+    {
+      "file": "assets/MediaLibrary-BVvgyOej.js",
+      "bytes": 80983
+    },
+    {
+      "file": "assets/clsx-B-dksMZM.js",
+      "bytes": 374
+    },
+    {
+      "file": "assets/video-SsVhXlfC.js",
+      "bytes": 1266
+    },
+    {
+      "file": "assets/archive-B-fa9kkO.js",
+      "bytes": 426
+    },
+    {
+      "file": "assets/copy-nzxvwHBh.js",
+      "bytes": 409
+    },
+    {
+      "file": "assets/SettingsNotificationsPanel-CdLTqUfL.js",
+      "bytes": 19283
+    },
+    {
+      "file": "assets/SidebarManagement-BTgyZ1Cp.js",
+      "bytes": 16701
+    },
+    {
+      "file": "assets/arrow-down-Hts9U_GP.js",
+      "bytes": 333
+    },
+    {
+      "file": "assets/shield-check-DYM_WRKv.js",
+      "bytes": 493
+    },
+    {
+      "file": "assets/RewardManagement-P5CMMysQ.js",
+      "bytes": 26427
+    },
+    {
+      "file": "assets/ClockIcon-C1AP1jyx.js",
+      "bytes": 504
+    },
+    {
+      "file": "assets/LevelsManager-DwgHnT26.js",
+      "bytes": 40602
+    },
+    {
+      "file": "assets/file-text-UJqNY3vz.js",
+      "bytes": 506
+    },
+    {
+      "file": "assets/OAuthManagement-BIXFuKid.js",
+      "bytes": 1346
+    },
+    {
+      "file": "assets/download-DJK0p4Sr.js",
+      "bytes": 400
+    },
+    {
+      "file": "assets/PointsTableSettings-BXm5VoaX.js",
+      "bytes": 23432
+    },
+    {
+      "file": "assets/TemplateEditor-CFfk5hNz.js",
+      "bytes": 30860
+    },
+    {
+      "file": "assets/TaskExecutionReport-CIVDjsmd.js",
+      "bytes": 16418
+    },
+    {
+      "file": "assets/OAuthManagement-DAUQeQVJ.js",
+      "bytes": 23418
+    },
+    {
+      "file": "assets/OAuthApplications-BoejE3y7.js",
+      "bytes": 1724
+    },
+    {
+      "file": "assets/ApiOverview-llqaaSVc.js",
+      "bytes": 77410
+    },
+    {
+      "file": "assets/SmtpManagement-DLUt8TBs.js",
+      "bytes": 21230
+    }
+  ]
+}

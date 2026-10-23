@@ -1,0 +1,78 @@
+{
+  "results": [
+    {
+      "theme": "dark",
+      "width": 1440,
+      "geometry": {
+        "width": 115.671875,
+        "height": 42,
+        "padding": "10px 16px",
+        "borderRadius": "12px",
+        "fontSize": "14px",
+        "display": "flex"
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "geometry": {
+        "width": 115.671875,
+        "height": 42,
+        "padding": "10px 16px",
+        "borderRadius": "12px",
+        "fontSize": "14px",
+        "display": "flex"
+      }
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "geometry": {
+        "width": 115.671875,
+        "height": 42,
+        "padding": "10px 16px",
+        "borderRadius": "12px",
+        "fontSize": "14px",
+        "display": "flex"
+      }
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "geometry": {
+        "width": 115.671875,
+        "height": 42,
+        "padding": "10px 16px",
+        "borderRadius": "12px",
+        "fontSize": "14px",
+        "display": "flex"
+      }
+    },
+    {
+      "theme": "colorful",
+      "width": 1440,
+      "geometry": {
+        "width": 115.671875,
+        "height": 42,
+        "padding": "10px 16px",
+        "borderRadius": "12px",
+        "fontSize": "14px",
+        "display": "flex"
+      }
+    },
+    {
+      "theme": "colorful",
+      "width": 390,
+      "geometry": {
+        "width": 115.671875,
+        "height": 42,
+        "padding": "10px 16px",
+        "borderRadius": "12px",
+        "fontSize": "14px",
+        "display": "flex"
+      }
+    }
+  ],
+  "errors": [],
+  "environment": "Loopback Chrome; actual App and task UI, synthetic API/session data, external media blocked"
+}

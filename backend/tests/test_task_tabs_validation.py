@@ -26,6 +26,36 @@ def isolated_cache(monkeypatch, data):
         db.commit()
 
 
+def test_created_by_filter_uses_creator_and_preserves_tenant_visibility(api, data):
+    with data.factory() as db:
+        colleague = models.User(id=str(uuid4()), tenant_id=data.owner.tenant_id, name='Colleague',
+            email=f'{uuid4()}@example.com', hashed_password='not-a-login-password',
+            role=models.RoleEnum.USER, status=models.UserStatusEnum.ACTIVE)
+        db.add(colleague)
+        db.flush()
+        created = models.Task(title='Created by owner', created_by_id=data.owner.id,
+            assigned_to_id=colleague.id)
+        assigned = models.Task(title='Assigned to owner', created_by_id=colleague.id,
+            assigned_to_id=data.owner.id)
+        foreign = models.Task(title='Other tenant', created_by_id=data.outsider.id,
+            assigned_to_id=data.outsider.id)
+        db.add_all([created, assigned, foreign])
+        db.commit()
+        created_id, assigned_id, foreign_id = created.id, assigned.id, foreign.id
+
+    def ids(actor, **params):
+        response = api.get('/api/tasks/page', params=params, headers=auth(actor))
+        assert response.status_code == 200, response.text
+        return {row['id'] for row in response.json()['items']}
+
+    assert ids(data.owner, quick_filter='createdByMe') == {data.task.id, created_id}
+    assert ids(data.owner, quick_filter='myTasks') == {data.task.id, assigned_id}
+    assert ids(data.owner) == {data.task.id, created_id, assigned_id}
+    assert ids(data.outsider, quick_filter='createdByMe') == {foreign_id}
+    # A valid empty filter stays empty, rather than broadening to all visible tasks.
+    assert ids(data.owner, quick_filter='createdByMe', search='Assigned to owner') == set()
+
+
 def seed(data, times):
     with data.factory() as db:
         ids = []
