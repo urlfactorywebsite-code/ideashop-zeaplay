@@ -27,6 +27,7 @@ let tasks = Array.from({ length: rowCount }, (_, index) => ({
 }));
 const calls: { method: string; args: unknown[] }[] = [];
 const rawTasks = api.getTasks.bind(api);
+const rawTaskPage = api.getTasksPage.bind(api);
 let rejectUpdate = false;
 const changed = () => publishTaskRealtime({ userId: user.id, tenantId: user.tenantId, payload: { type: 'task.updated' } });
 Object.assign(window, { taskNavigationAudit: { calls, changed, rawTasks,
@@ -64,7 +65,7 @@ const overrides: Record<string, (...args: any[]) => unknown> = {
   getFeatureFlags: () => [{ key: 'tasks.create', label: 'Task Creation', group: 'Tasks', description: 'Create tasks', enabled: true }],
   getProjects: () => ({ ...emptyPage, items: [{ id: 'project-0', name: 'Verification project', status: 'ACTIVE',
     createdBy: user.id, assignedTo: [user.id], memberIds: [user.id], createdAt: now.toISOString() }], total: 1 }), getClients: () => emptyPage,
-  getTasksPage: page, getTasks: () => tasks, getTask: id => tasks.find(task => task.id === id) || tasks[0],
+  getTasksPage: options => params.has('networkTaskPage') ? rawTaskPage(options) : page(options), getTasks: () => tasks, getTask: id => tasks.find(task => task.id === id) || tasks[0],
   getTaskGroup: id => tasks.filter(task => task.id === id),
   getTaskCalendarSummary: summary, getTaskCalendarTasks: calendarTasks,
   getTasksKanban: options => ({ columns: Object.values(TaskStatus).map((status, order) => ({ status,

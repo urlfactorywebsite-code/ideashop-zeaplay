@@ -625,7 +625,7 @@ const Tasks: React.FC = () => {
         ],
     );
 
-    const { data: pageResult, loading: listLoading, refresh: refreshTasks } = useTaskList({
+    const { data: pageResult, loading: listLoading, error: taskListError, refresh: refreshTasks } = useTaskList({
         params: listParams,
         enabled: Boolean(user) && active,
     });
@@ -1674,7 +1674,23 @@ const Tasks: React.FC = () => {
                 </div>
             </div>
 
+            {taskListError && !loading && (
+                <div role="alert" className="rounded-xl border border-red-500/40 bg-surface p-4 text-text-primary">
+                    <h2 className="font-semibold">Unable to load tasks</h2>
+                    <p className="mt-1 text-sm text-text-secondary">{taskListError}</p>
+                    <button type="button" onClick={refreshTasks} className="mt-3 rounded-lg border border-border-color px-3 py-2 text-sm font-semibold hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                        Retry loading tasks
+                    </button>
+                </div>
+            )}
+
             <div className="relative z-0 grid gap-4 transition-opacity duration-300 ease-out">
+                {!loading && !taskListError && pageResult && pagedTasks.length === 0 && (
+                    <div role="status" className="rounded-xl border border-border-color bg-surface p-6 text-text-primary">
+                        <h2 className="font-semibold">No tasks found</h2>
+                        <p className="mt-1 text-sm text-text-secondary">Try changing your filters or search.</p>
+                    </div>
+                )}
                 {loading && (
                     <div className="pointer-events-none absolute inset-0 z-20 flex items-start justify-center pt-6">
                         <span className={loadingBadgeClass}>

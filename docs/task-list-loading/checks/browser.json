@@ -1,0 +1,10 @@
+{
+  "passed": [
+    "500: visible error, retry pending/success, mapped API task and genuine empty state (1440px)",
+    "403: visible error, retry pending/success, mapped API task and genuine empty state (390px)",
+    "422: visible error, retry pending/success, mapped API task and genuine empty state (1440px)",
+    "Network failure: visible error, retry pending/success, mapped API task and genuine empty state (390px)"
+  ],
+  "errors": [],
+  "environment": "Loopback Chrome; actual application, task-list hook, Axios adapter and synthetic HTTP responses"
+}
