@@ -1,0 +1,8 @@
+{
+  "passed": [
+    "Inactive DM/contact/member rows hidden, active contact retained, inactive deep link ignored (1440px)",
+    "Inactive DM/contact/member rows hidden, active contact retained, inactive deep link ignored (390px)"
+  ],
+  "errors": [],
+  "environment": "Local production build, synthetic old-server responses, no real messages"
+}

@@ -16,6 +16,17 @@ def can_use_global_chat_directory(user: models.User) -> bool:
     return user.role in GLOBAL_CHAT_ROLES
 
 
+def visible_conversation_predicate(user_id: str):
+    """Hide inactive direct contacts without deleting their conversation/history."""
+    return or_(
+        models.ChatConversation.type != models.ChatConversationTypeEnum.DIRECT,
+        ~models.ChatConversation.participants.any(and_(
+            models.ChatParticipant.user_id != user_id,
+            ~models.ChatParticipant.user.has(models.User.status == models.UserStatusEnum.ACTIVE),
+        )),
+    )
+
+
 class ConversationRepository:
     def __init__(self, db: Session):
         self.db = db
@@ -33,6 +44,7 @@ class ConversationRepository:
             .where(
                 models.ChatConversation.is_archived.is_(False),
                 models.ChatParticipant.user_id == user.id,
+                visible_conversation_predicate(user.id),
             )
             .order_by(desc(models.ChatConversation.last_message_at), desc(models.ChatConversation.updated_at))
         ).scalars().unique().all()
@@ -372,6 +384,7 @@ class MessageRepository:
                 models.ChatConversation.is_archived.is_(False),
                 models.ChatParticipant.user_id == user.id,
                 models.ChatMessage.deleted_at.is_(None),
+                visible_conversation_predicate(user.id),
             )
             .order_by(desc(models.ChatMessage.created_at), desc(models.ChatMessage.id))
             .limit(limit + 1)

@@ -239,10 +239,14 @@ try {
     await page.waitForURL('**/#/reset-password');
     await expect.poll(() => page.evaluate(() => window.__loginAudio.oscillators)).toBe(5);
     await expect.poll(() => page.evaluate(() => window.__loginAudio.closes)).toBe(1);
-    assert.deepEqual(await page.evaluate(() => [localStorage.getItem('vee_access_token'), localStorage.getItem('vee_refresh_token')]), ['synthetic-access-ui-only', 'synthetic-refresh-ui-only']);
+    assert.deepEqual(await page.evaluate(async () => {
+        const tokens = await import('/services/tokenStorage.ts');
+        return [tokens.getAccessToken(), tokens.getRefreshToken()];
+    }), ['synthetic-access-ui-only', 'synthetic-refresh-ui-only']);
+    assert.deepEqual(await page.evaluate(() => [localStorage.getItem('vee_access_token'), localStorage.getItem('vee_refresh_token')]), [null, null]);
     results.push('PASS: existing successful-login session/redirect; success cue followed by audio resource cleanup');
 
-    await page.evaluate(() => { localStorage.removeItem('vee_access_token'); localStorage.removeItem('vee_refresh_token'); });
+    await page.evaluate(async () => { (await import('/services/tokenStorage.ts')).clearTokens(); });
     await page.goto(base + '/#/login');
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await expect(page.getByRole('button', { name: 'Animation disabled by system preference' })).toBeDisabled();

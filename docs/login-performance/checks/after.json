@@ -1,0 +1,404 @@
+{
+  "environment": "Loopback gzip static server; production Vite build; synthetic anonymous auth; extension-free Chrome; 3 cold/warm pairs per viewport; no network throttling; reduced motion",
+  "initialJsBytes": 531219,
+  "initialJsGzipBytes": 162696,
+  "sizes": [
+    {
+      "file": "assets/index-DrvT_0dU.js",
+      "bytes": 531219,
+      "gzipBytes": 162696
+    }
+  ],
+  "summary": {
+    "desktop-cold": {
+      "medianLcpMs": 204,
+      "medianLongTaskMs": 0,
+      "medianJsTransferBytes": 163352
+    },
+    "desktop-warm": {
+      "medianLcpMs": 108,
+      "medianLongTaskMs": 0,
+      "medianJsTransferBytes": 356
+    },
+    "mobile4x-cold": {
+      "medianLcpMs": 580,
+      "medianLongTaskMs": 132,
+      "medianJsTransferBytes": 163352
+    },
+    "mobile4x-warm": {
+      "medianLcpMs": 244,
+      "medianLongTaskMs": 0,
+      "medianJsTransferBytes": 356
+    }
+  },
+  "checks": [
+    "Cold and warm production login renders on desktop and 4x CPU mobile; runtime API URL respected",
+    "Lazy recovery opens, submits, closes and restores focus; invalid login and direct reset route work; delayed runtime config wins"
+  ],
+  "samples": [
+    {
+      "device": "desktop",
+      "rate": 1,
+      "run": 0,
+      "cache": "cold",
+      "lcp": {
+        "ms": 772,
+        "element": "H1"
+      },
+      "longTasks": [],
+      "domContentLoadedMs": 96.09999999962747,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 162996,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 53210,
+          "decodedBytes": 373439
+        }
+      ]
+    },
+    {
+      "device": "desktop",
+      "rate": 1,
+      "run": 0,
+      "cache": "warm",
+      "lcp": {
+        "ms": 192,
+        "element": "H1"
+      },
+      "longTasks": [],
+      "domContentLoadedMs": 26.200000000186265,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 0,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 0,
+          "decodedBytes": 373439
+        }
+      ]
+    },
+    {
+      "device": "desktop",
+      "rate": 1,
+      "run": 1,
+      "cache": "cold",
+      "lcp": {
+        "ms": 176,
+        "element": "H1"
+      },
+      "longTasks": [],
+      "domContentLoadedMs": 82.1000000005588,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 162996,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 53210,
+          "decodedBytes": 373439
+        }
+      ]
+    },
+    {
+      "device": "desktop",
+      "rate": 1,
+      "run": 1,
+      "cache": "warm",
+      "lcp": {
+        "ms": 108,
+        "element": "H1"
+      },
+      "longTasks": [],
+      "domContentLoadedMs": 30.299999999813735,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 0,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 0,
+          "decodedBytes": 373439
+        }
+      ]
+    },
+    {
+      "device": "desktop",
+      "rate": 1,
+      "run": 2,
+      "cache": "cold",
+      "lcp": {
+        "ms": 204,
+        "element": "H1"
+      },
+      "longTasks": [],
+      "domContentLoadedMs": 82.70000000018626,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 53210,
+          "decodedBytes": 373439
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 162996,
+          "decodedBytes": 531219
+        }
+      ]
+    },
+    {
+      "device": "desktop",
+      "rate": 1,
+      "run": 2,
+      "cache": "warm",
+      "lcp": {
+        "ms": 100,
+        "element": "H1"
+      },
+      "longTasks": [],
+      "domContentLoadedMs": 29,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 0,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 0,
+          "decodedBytes": 373439
+        }
+      ]
+    },
+    {
+      "device": "mobile4x",
+      "rate": 4,
+      "run": 0,
+      "cache": "cold",
+      "lcp": {
+        "ms": 580,
+        "element": "H1"
+      },
+      "longTasks": [
+        {
+          "start": 106.09999999962747,
+          "duration": 124
+        }
+      ],
+      "domContentLoadedMs": 228.3999999994412,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 162996,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 53210,
+          "decodedBytes": 373439
+        }
+      ]
+    },
+    {
+      "device": "mobile4x",
+      "rate": 4,
+      "run": 0,
+      "cache": "warm",
+      "lcp": {
+        "ms": 224,
+        "element": "H1"
+      },
+      "longTasks": [],
+      "domContentLoadedMs": 62.89999999944121,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 0,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 0,
+          "decodedBytes": 373439
+        }
+      ]
+    },
+    {
+      "device": "mobile4x",
+      "rate": 4,
+      "run": 1,
+      "cache": "cold",
+      "lcp": {
+        "ms": 552,
+        "element": "H1"
+      },
+      "longTasks": [
+        {
+          "start": 100.90000000037253,
+          "duration": 133
+        }
+      ],
+      "domContentLoadedMs": 233.5,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 162996,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 53210,
+          "decodedBytes": 373439
+        }
+      ]
+    },
+    {
+      "device": "mobile4x",
+      "rate": 4,
+      "run": 1,
+      "cache": "warm",
+      "lcp": {
+        "ms": 292,
+        "element": "H1"
+      },
+      "longTasks": [],
+      "domContentLoadedMs": 102.79999999981374,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 0,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 0,
+          "decodedBytes": 373439
+        }
+      ]
+    },
+    {
+      "device": "mobile4x",
+      "rate": 4,
+      "run": 2,
+      "cache": "cold",
+      "lcp": {
+        "ms": 628,
+        "element": "H1"
+      },
+      "longTasks": [
+        {
+          "start": 96.3999999994412,
+          "duration": 132
+        }
+      ],
+      "domContentLoadedMs": 225.79999999981374,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 162996,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 53210,
+          "decodedBytes": 373439
+        }
+      ]
+    },
+    {
+      "device": "mobile4x",
+      "rate": 4,
+      "run": 2,
+      "cache": "warm",
+      "lcp": {
+        "ms": 244,
+        "element": "H1"
+      },
+      "longTasks": [],
+      "domContentLoadedMs": 62,
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 356,
+          "decodedBytes": 56
+        },
+        {
+          "file": "/assets/index-DrvT_0dU.js",
+          "transferSize": 0,
+          "decodedBytes": 531219
+        },
+        {
+          "file": "/assets/index-Axi-QzZh.css",
+          "transferSize": 0,
+          "decodedBytes": 373439
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

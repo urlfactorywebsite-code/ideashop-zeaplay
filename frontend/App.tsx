@@ -7,9 +7,7 @@ import PageLoader from './components/loading/PageLoader';
 import ProtectedRoute from './components/ProtectedRoute';
 import SettingsRedirect from './components/SettingsRedirect';
 import { LEGACY_SETTINGS_ROUTES } from './utils/settingsNavigation';
-import Layout from './components/Layout';
 import Login from './pages/Login';
-import PasswordReset from './pages/PasswordReset';
 import NotFound from './pages/NotFound';
 import { Role } from './types';
 import { NavigationProvider } from './hooks/useNavigation';
@@ -27,15 +25,19 @@ const OAuthAuthorization = React.lazy(() => import('./pages/OAuthAuthorization')
 const Tickets = React.lazy(() => import('./pages/TicketPage'));
 const Chat = React.lazy(() => import('./pages/Chat'));
 const ToolLibrary = React.lazy(() => import('./pages/ToolLibrary'));
+const Layout = React.lazy(() => import('./components/Layout'));
+const PasswordReset = React.lazy(() => import('./pages/PasswordReset'));
 
 const ProtectedLayout: React.FC = () => {
     return (
         <ProtectedRoute roles={[Role.USER, Role.MANAGER, Role.ADMIN, Role.OWNER]}>
-            <Layout>
+            <Suspense fallback={<PageLoader />}>
+              <Layout>
                 <Suspense fallback={<PageLoader />}>
                     <NavigationGuard><Outlet /></NavigationGuard>
                 </Suspense>
-            </Layout>
+              </Layout>
+            </Suspense>
         </ProtectedRoute>
     );
 };
@@ -46,7 +48,7 @@ const AppRoutes: React.FC = () => {
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/reset-password" element={<PasswordReset />} />
+            <Route path="/reset-password" element={<Suspense fallback={<PageLoader />}><PasswordReset /></Suspense>} />
             <Route path="/oauth/authorize" element={<Suspense fallback={<PageLoader />}><OAuthAuthorization /></Suspense>} />
             
             <Route path="/" element={<ProtectedLayout />}>

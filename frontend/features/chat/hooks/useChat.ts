@@ -7,6 +7,7 @@ import { CHAT_UNREAD_REFRESH_EVENT } from '../../../utils/appEvents';
 import { Role } from '../../../types';
 import { normalizeMessage } from '../utils/normalizeMessage';
 import { mergeRecoveredMessages } from '../../../services/realtimeRecovery';
+import { inactiveChatUserIds, visibleChatConversations } from '../utils/userVisibility';
 
 const emitChatUnreadRefresh = () => {
   if (typeof window !== 'undefined') {
@@ -86,11 +87,13 @@ export const useChat = (initialConversationId?: string | null) => {
     setLoadingConversations(true);
     setError(null);
     try {
-      const data = await chatService.listConversations();
+      const rawData = await chatService.listConversations();
+      const inactiveIds = inactiveChatUserIds(rawData);
+      const data = visibleChatConversations(rawData, user?.id);
       if (userIdRef.current !== requestedUserId || requestSeq !== conversationRequestSeqRef.current) return;
       setConversations(data);
       setDirectoryUsers((current) => {
-        const byUserId = new Map(current.map((item) => [item.id, item]));
+        const byUserId = new Map(current.filter(item => !inactiveIds.has(item.id)).map((item) => [item.id, item]));
         data.forEach((conversation) => {
           if (conversation.type !== 'DIRECT') return;
           const other = conversation.members.find((member) => member.userId !== user?.id);
@@ -332,14 +335,14 @@ export const useChat = (initialConversationId?: string | null) => {
   }, [loadConversations, loadDirectoryUsers]);
 
   useEffect(() => {
-    if (!selectedConversationId) {
+    if (!selectedConversationId || !selectedConversation) {
       setMessages([]);
       return;
     }
     joinRealtime(selectedConversationId);
     void loadMessages(selectedConversationId);
     return () => leaveRealtime(selectedConversationId);
-  }, [joinRealtime, leaveRealtime, loadMessages, selectedConversationId]);
+  }, [joinRealtime, leaveRealtime, loadMessages, selectedConversationId, selectedConversation?.id]);
 
   const sendMessage = useCallback(async (content: string, options?: { replyToMessageId?: string | null; attachments?: ChatAttachment[] }) => {
     const requestedUserId = userIdRef.current;

@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Gamepad2, LoaderCircle, LockKeyhole, Mail, Pause, Play, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import AnimatedLoginBackground from '../components/login/AnimatedLoginBackground';
 import LoginConsoleEffects from '../components/login/LoginConsoleEffects';
 import { LoginAudio } from '../components/login/loginAudio';
-import ForgotPasswordModal from '../components/ForgotPasswordModal';
 import './Login.css';
+
+const ForgotPasswordModal = React.lazy(() => import('../components/ForgotPasswordModal'));
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -15,6 +16,8 @@ const Login: React.FC = () => {
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isForgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+    const [recoveryRequested, setRecoveryRequested] = useState(false);
+    const recoveryButton = useRef<HTMLButtonElement>(null);
     const [motionPaused, setMotionPaused] = useState(false);
     const [reducedMotion, setReducedMotion] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     const [soundEnabled, setSoundEnabled] = useState(false);
@@ -24,6 +27,11 @@ const Login: React.FC = () => {
     const soundIntent = useRef(false);
     const mounted = useRef(false);
     const submitting = useRef(false);
+
+    useEffect(() => {
+        // The dialog's focus tracker loads on demand, after the opening click.
+        if (recoveryRequested && !isForgotPasswordOpen) recoveryButton.current?.focus();
+    }, [recoveryRequested, isForgotPasswordOpen]);
 
     useEffect(() => {
         mounted.current = true;
@@ -130,7 +138,7 @@ const Login: React.FC = () => {
                         <div className="login-field">
                             <div className="login-password-label">
                                 <label htmlFor="password">Password</label>
-                                <button type="button" onClick={() => setForgotPasswordOpen(true)} className="login-forgot">Forgot your password?</button>
+                                <button ref={recoveryButton} type="button" onClick={() => { setRecoveryRequested(true); setForgotPasswordOpen(true); }} className="login-forgot">Forgot your password?</button>
                             </div>
                             <div className="login-input-wrap login-password-wrap">
                                 <LockKeyhole size={18} className="login-input-icon" aria-hidden="true" />
@@ -163,7 +171,9 @@ const Login: React.FC = () => {
                 <div className="login-scene-caption" aria-hidden="true"><span>THE EVERYDAY ADVENTURE</span><p>Good work.<br />Great rewards.</p></div>
             </main>
             <footer className="login-footer"><span>Work meets play.</span><span>Zea.Play V6.0.1</span></footer>
-            <ForgotPasswordModal isOpen={isForgotPasswordOpen} onClose={() => setForgotPasswordOpen(false)} />
+            {recoveryRequested && <Suspense fallback={<span role="status" className="login-sr-only">Loading password recovery...</span>}>
+                <ForgotPasswordModal isOpen={isForgotPasswordOpen} onClose={() => setForgotPasswordOpen(false)} />
+            </Suspense>}
         </div>
     );
 };

@@ -1433,17 +1433,26 @@ html:not(.dark):not(.theme-colorful) {
   box-shadow: 0 14px 34px rgba(76, 29, 149, 0.30), 0 1px 0 rgba(125, 211, 252, 0.55);
 }
 
-.zea-header-video {
+.zea-header-media {
   opacity: 0.16;
   mix-blend-mode: multiply;
 }
 
-.dark .zea-header-video {
+@keyframes zea-clock-popup-enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.zea-clock-popup { animation: zea-clock-popup-enter 200ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .zea-clock-popup { animation: none; }
+}
+
+.dark .zea-header-media {
   opacity: 0.30;
   mix-blend-mode: normal;
 }
 
-.theme-colorful .zea-header-video {
+.theme-colorful .zea-header-media {
   opacity: 0.20;
   mix-blend-mode: screen;
 }

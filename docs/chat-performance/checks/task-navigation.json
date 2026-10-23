@@ -1,0 +1,21 @@
+{
+  "passed": [
+    "one task sidebar entry, four route tabs, existing list and lazy loading",
+    "view reuse, active sidebar, full-page Calendar, refresh, history and keyboard navigation",
+    "legacy redirects and shared filter URL/query preservation",
+    "shared task update invalidation and one persistent task socket/Active Work provider",
+    "Kanban drag-and-drop, rejected-transition rollback and active timer continuity",
+    "Calendar date/task selection opens existing Task Details and task editing works",
+    "existing task creation controls and service payload remain functional",
+    "Sidebar Management exposes four task tabs in their own group",
+    "role ceilings, direct-route denial, disabled versus hidden-only policies",
+    "desktop/tablet/mobile tab and view layouts contain horizontal scrolling"
+  ],
+  "errors": [],
+  "widths": [
+    360,
+    768,
+    1440
+  ],
+  "environment": "Loopback Chrome; synthetic API data and socket ticket/transport"
+}

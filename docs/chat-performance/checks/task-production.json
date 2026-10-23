@@ -1,0 +1,60 @@
+{
+  "results": [
+    {
+      "theme": "dark",
+      "width": 1440,
+      "timing": {
+        "posterStart": 70.1000000005588,
+        "posterInitiator": "link",
+        "entryEnd": 154.80000000074506
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "timing": {
+        "posterStart": 32.200000000186265,
+        "posterInitiator": "link",
+        "entryEnd": 72.5
+      }
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "timing": {
+        "posterStart": 36.90000000037253,
+        "posterInitiator": "link",
+        "entryEnd": 81.5
+      }
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "timing": {
+        "posterStart": 17.5,
+        "posterInitiator": "link",
+        "entryEnd": 52.59999999962747
+      }
+    },
+    {
+      "theme": "colorful",
+      "width": 1440,
+      "timing": {
+        "posterStart": 20.59999999962747,
+        "posterInitiator": "link",
+        "entryEnd": 61.5
+      }
+    },
+    {
+      "theme": "colorful",
+      "width": 390,
+      "timing": {
+        "posterStart": 49,
+        "posterInitiator": "link",
+        "entryEnd": 115.09999999962747
+      }
+    }
+  ],
+  "errors": [],
+  "environment": "Local production build; actual entry, auth restore, task hook and Axios adapter; synthetic HTTP responses; external media blocked"
+}

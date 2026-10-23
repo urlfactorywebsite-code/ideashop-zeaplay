@@ -1,0 +1,3738 @@
+{
+  "environment": "Loopback gzip production build; synthetic authenticated API; extension-free Chrome; 3 cold/warm pairs per viewport; no network throttle; reduced motion; external DNS blocked; no live chat or video playback certification",
+  "routeJsBytes": 924001,
+  "routeJsGzipBytes": 283594,
+  "sizes": [
+    {
+      "file": "assets/index-BNb4U1Re.js",
+      "bytes": 19993,
+      "gzipBytes": 4293
+    },
+    {
+      "file": "assets/index-H6CVLYqk.js",
+      "bytes": 531200,
+      "gzipBytes": 162689
+    },
+    {
+      "file": "assets/index-Byt-o0p1.js",
+      "bytes": 1437,
+      "gzipBytes": 695
+    },
+    {
+      "file": "assets/Layout-CP0AxDca.js",
+      "bytes": 55347,
+      "gzipBytes": 16097
+    },
+    {
+      "file": "assets/menu-D1meA5cx.js",
+      "bytes": 690,
+      "gzipBytes": 340
+    },
+    {
+      "file": "assets/settings-CQITppGA.js",
+      "bytes": 660,
+      "gzipBytes": 362
+    },
+    {
+      "file": "assets/BuildingOffice2Icon-DtcCA6tH.js",
+      "bytes": 754,
+      "gzipBytes": 465
+    },
+    {
+      "file": "assets/users-round-CC6kBHuz.js",
+      "bytes": 426,
+      "gzipBytes": 323
+    },
+    {
+      "file": "assets/Avatar-5lp3Wwz8.js",
+      "bytes": 3452,
+      "gzipBytes": 1690
+    },
+    {
+      "file": "assets/notificationRealtime-DyWskxvj.js",
+      "bytes": 1556,
+      "gzipBytes": 887
+    },
+    {
+      "file": "assets/realtimeBackoff-YNz0WAa8.js",
+      "bytes": 1485,
+      "gzipBytes": 591
+    },
+    {
+      "file": "assets/ActiveWork-Y1_Hrwid.js",
+      "bytes": 16516,
+      "gzipBytes": 5596
+    },
+    {
+      "file": "assets/taskRealtimeEvents-B5Ivo_b3.js",
+      "bytes": 117,
+      "gzipBytes": 125
+    },
+    {
+      "file": "assets/realtimeAuth-9zOMeOWX.js",
+      "bytes": 1051,
+      "gzipBytes": 587
+    },
+    {
+      "file": "assets/activeWork-B7ZkaMNl.js",
+      "bytes": 935,
+      "gzipBytes": 536
+    },
+    {
+      "file": "assets/luxon-n6HvnmwO.js",
+      "bytes": 71380,
+      "gzipBytes": 22219
+    },
+    {
+      "file": "assets/clock-3-Cw47MyAJ.js",
+      "bytes": 594,
+      "gzipBytes": 316
+    },
+    {
+      "file": "assets/x-Cfh3GKFl.js",
+      "bytes": 327,
+      "gzipBytes": 258
+    },
+    {
+      "file": "assets/refresh-cw-CDjgrL5V.js",
+      "bytes": 494,
+      "gzipBytes": 329
+    },
+    {
+      "file": "assets/external-link-5kkIZiwP.js",
+      "bytes": 424,
+      "gzipBytes": 303
+    },
+    {
+      "file": "assets/dialog-BFXIgfQT.js",
+      "bytes": 44944,
+      "gzipBytes": 15890
+    },
+    {
+      "file": "assets/with-selector-D0RozV4W.js",
+      "bytes": 1214,
+      "gzipBytes": 692
+    },
+    {
+      "file": "assets/ArrowPathIcon-BWdOOtK-.js",
+      "bytes": 623,
+      "gzipBytes": 428
+    },
+    {
+      "file": "assets/geminiKeyStore-B9C_E2VY.js",
+      "bytes": 5673,
+      "gzipBytes": 1795
+    },
+    {
+      "file": "assets/useToast-C9XOixRc.js",
+      "bytes": 1296,
+      "gzipBytes": 721
+    },
+    {
+      "file": "assets/Chat-DohMZC_1.js",
+      "bytes": 112004,
+      "gzipBytes": 28187
+    },
+    {
+      "file": "assets/realtimeRecovery-COYdE9C7.js",
+      "bytes": 941,
+      "gzipBytes": 507
+    },
+    {
+      "file": "assets/sharedSocketIo-BlK1o3uI.js",
+      "bytes": 44437,
+      "gzipBytes": 14070
+    },
+    {
+      "file": "assets/video-Dh1l865H.js",
+      "bytes": 1266,
+      "gzipBytes": 537
+    },
+    {
+      "file": "assets/search-DNebO_gK.js",
+      "bytes": 347,
+      "gzipBytes": 276
+    },
+    {
+      "file": "assets/bell-JJx0oOXl.js",
+      "bytes": 463,
+      "gzipBytes": 344
+    },
+    {
+      "file": "assets/arrow-down-D8326h30.js",
+      "bytes": 338,
+      "gzipBytes": 267
+    },
+    {
+      "file": "assets/file-text-Dxq7-Vz-.js",
+      "bytes": 506,
+      "gzipBytes": 318
+    },
+    {
+      "file": "assets/download-BCKQ0tt5.js",
+      "bytes": 405,
+      "gzipBytes": 299
+    },
+    {
+      "file": "assets/copy-D_8w1S14.js",
+      "bytes": 409,
+      "gzipBytes": 315
+    },
+    {
+      "file": "assets/check-BEigPvDB.js",
+      "bytes": 297,
+      "gzipBytes": 247
+    }
+  ],
+  "summary": {
+    "desktop-cold": {
+      "medianLcpMs": 544,
+      "medianLongTaskMs": 0,
+      "maxCls": 0.0003622486255787037,
+      "medianJsTransferBytes": 294811
+    },
+    "desktop-warm": {
+      "medianLcpMs": 436,
+      "medianLongTaskMs": 0,
+      "maxCls": 0.0003622486255787037,
+      "medianJsTransferBytes": 417
+    },
+    "mobile4x-cold": {
+      "medianLcpMs": 972,
+      "medianLongTaskMs": 423,
+      "maxCls": 0.000057102212352684044,
+      "medianJsTransferBytes": 294811
+    },
+    "mobile4x-warm": {
+      "medianLcpMs": 648,
+      "medianLongTaskMs": 69,
+      "maxCls": 0.000057102212352684044,
+      "medianJsTransferBytes": 417
+    }
+  },
+  "samples": [
+    {
+      "device": "desktop",
+      "run": 0,
+      "rate": 1,
+      "cache": "cold",
+      "lcp": {
+        "ms": 820,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.0003622486255787037,
+      "longTasks": [
+        {
+          "start": 436.80000000074506,
+          "duration": 52
+        }
+      ],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 18.300000000745058,
+          "end": 28.300000000745058
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 3760,
+          "decodedBytes": 3460,
+          "start": 18.5,
+          "end": 52.60000000055879
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 162989,
+          "decodedBytes": 531200,
+          "start": 18.700000000186265,
+          "end": 53.40000000037253
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 16397,
+          "decodedBytes": 55347,
+          "start": 129,
+          "end": 133.90000000037253
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 4593,
+          "decodedBytes": 19993,
+          "start": 129.20000000018626,
+          "end": 134.20000000018626
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 640,
+          "decodedBytes": 690,
+          "start": 129.40000000037253,
+          "end": 131.80000000074506
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 662,
+          "decodedBytes": 660,
+          "start": 129.5,
+          "end": 138.6000000005588
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 765,
+          "decodedBytes": 754,
+          "start": 129.6000000005588,
+          "end": 139.30000000074506
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 623,
+          "decodedBytes": 426,
+          "start": 129.70000000018626,
+          "end": 139
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 1990,
+          "decodedBytes": 3452,
+          "start": 129.70000000018626,
+          "end": 140
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 995,
+          "decodedBytes": 1437,
+          "start": 129.90000000037253,
+          "end": 140.5
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 1187,
+          "decodedBytes": 1556,
+          "start": 130,
+          "end": 140.1000000005588
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 891,
+          "decodedBytes": 1485,
+          "start": 130,
+          "end": 145.1000000005588
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 5896,
+          "decodedBytes": 16516,
+          "start": 130.1000000005588,
+          "end": 147.1000000005588
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 425,
+          "decodedBytes": 117,
+          "start": 130.20000000018626,
+          "end": 146.40000000037253
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 887,
+          "decodedBytes": 1051,
+          "start": 130.30000000074506,
+          "end": 146.90000000037253
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 836,
+          "decodedBytes": 935,
+          "start": 130.30000000074506,
+          "end": 147.6000000005588
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 22519,
+          "decodedBytes": 71380,
+          "start": 130.40000000037253,
+          "end": 162.40000000037253
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 558,
+          "decodedBytes": 327,
+          "start": 130.5,
+          "end": 159.70000000018626
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 616,
+          "decodedBytes": 594,
+          "start": 130.5,
+          "end": 162.30000000074506
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 629,
+          "decodedBytes": 494,
+          "start": 130.6000000005588,
+          "end": 159.70000000018626
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 603,
+          "decodedBytes": 424,
+          "start": 130.70000000018626,
+          "end": 159.80000000074506
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 16190,
+          "decodedBytes": 44944,
+          "start": 130.80000000074506,
+          "end": 160.6000000005588
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 992,
+          "decodedBytes": 1214,
+          "start": 130.80000000074506,
+          "end": 165.20000000018626
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 728,
+          "decodedBytes": 623,
+          "start": 131.20000000018626,
+          "end": 165.80000000074506
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 1021,
+          "decodedBytes": 1296,
+          "start": 131.30000000074506,
+          "end": 165.70000000018626
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 2095,
+          "decodedBytes": 5673,
+          "start": 131.30000000074506,
+          "end": 165.40000000037253
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 28487,
+          "decodedBytes": 112004,
+          "start": 193.1000000005588,
+          "end": 196.90000000037253
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 807,
+          "decodedBytes": 941,
+          "start": 193.20000000018626,
+          "end": 197.90000000037253
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 14370,
+          "decodedBytes": 44437,
+          "start": 193.20000000018626,
+          "end": 199.6000000005588
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 837,
+          "decodedBytes": 1266,
+          "start": 193.30000000074506,
+          "end": 198.20000000018626
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 576,
+          "decodedBytes": 347,
+          "start": 193.40000000037253,
+          "end": 199.5
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 644,
+          "decodedBytes": 463,
+          "start": 193.40000000037253,
+          "end": 199.70000000018626
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 567,
+          "decodedBytes": 338,
+          "start": 193.40000000037253,
+          "end": 200.70000000018626
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 618,
+          "decodedBytes": 506,
+          "start": 193.5,
+          "end": 201.5
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 599,
+          "decodedBytes": 405,
+          "start": 193.6000000005588,
+          "end": 201.6000000005588
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 615,
+          "decodedBytes": 409,
+          "start": 193.6000000005588,
+          "end": 202.20000000018626
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 547,
+          "decodedBytes": 297,
+          "start": 193.70000000018626,
+          "end": 202.30000000074506
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 208.90000000037253,
+          "end": 209.80000000074506
+        }
+      ],
+      "header": {
+        "height": 71,
+        "width": 1440
+      }
+    },
+    {
+      "device": "desktop",
+      "run": 0,
+      "rate": 1,
+      "cache": "warm",
+      "lcp": {
+        "ms": 440,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.0003622486255787037,
+      "longTasks": [],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 20.800000000745058,
+          "end": 22.700000000186265
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 21.100000000558794,
+          "end": 21.100000000558794
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 0,
+          "decodedBytes": 531200,
+          "start": 21.200000000186265,
+          "end": 24.90000000037253
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 0,
+          "decodedBytes": 55347,
+          "start": 72,
+          "end": 73.20000000018626
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 0,
+          "decodedBytes": 19993,
+          "start": 72.1000000005588,
+          "end": 73.80000000074506
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 0,
+          "decodedBytes": 690,
+          "start": 72.30000000074506,
+          "end": 74
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 0,
+          "decodedBytes": 660,
+          "start": 72.30000000074506,
+          "end": 74
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 0,
+          "decodedBytes": 426,
+          "start": 72.5,
+          "end": 74.6000000005588
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 0,
+          "decodedBytes": 754,
+          "start": 72.5,
+          "end": 74.30000000074506
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 0,
+          "decodedBytes": 3452,
+          "start": 72.6000000005588,
+          "end": 74.70000000018626
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 0,
+          "decodedBytes": 1437,
+          "start": 72.6000000005588,
+          "end": 74.90000000037253
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 0,
+          "decodedBytes": 1556,
+          "start": 72.80000000074506,
+          "end": 75.20000000018626
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 0,
+          "decodedBytes": 1485,
+          "start": 72.90000000037253,
+          "end": 75.30000000074506
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 0,
+          "decodedBytes": 16516,
+          "start": 73,
+          "end": 75.6000000005588
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 0,
+          "decodedBytes": 117,
+          "start": 73.20000000018626,
+          "end": 75.90000000037253
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 0,
+          "decodedBytes": 1051,
+          "start": 73.20000000018626,
+          "end": 76
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 0,
+          "decodedBytes": 935,
+          "start": 73.20000000018626,
+          "end": 76.20000000018626
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 0,
+          "decodedBytes": 71380,
+          "start": 73.40000000037253,
+          "end": 76.90000000037253
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 0,
+          "decodedBytes": 594,
+          "start": 73.5,
+          "end": 76.90000000037253
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 0,
+          "decodedBytes": 327,
+          "start": 73.5,
+          "end": 76.90000000037253
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 0,
+          "decodedBytes": 494,
+          "start": 73.6000000005588,
+          "end": 77.1000000005588
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 0,
+          "decodedBytes": 424,
+          "start": 73.70000000018626,
+          "end": 77.5
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 0,
+          "decodedBytes": 44944,
+          "start": 73.70000000018626,
+          "end": 77.6000000005588
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 0,
+          "decodedBytes": 1214,
+          "start": 73.80000000074506,
+          "end": 78.1000000005588
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 0,
+          "decodedBytes": 623,
+          "start": 74,
+          "end": 78.5
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 0,
+          "decodedBytes": 5673,
+          "start": 74,
+          "end": 78.70000000018626
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 0,
+          "decodedBytes": 1296,
+          "start": 74.1000000005588,
+          "end": 79
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 0,
+          "decodedBytes": 112004,
+          "start": 107.80000000074506,
+          "end": 107.80000000074506
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 0,
+          "decodedBytes": 941,
+          "start": 108,
+          "end": 108
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 0,
+          "decodedBytes": 44437,
+          "start": 108.1000000005588,
+          "end": 108.1000000005588
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 0,
+          "decodedBytes": 1266,
+          "start": 108.20000000018626,
+          "end": 108.20000000018626
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 0,
+          "decodedBytes": 347,
+          "start": 108.20000000018626,
+          "end": 108.20000000018626
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 0,
+          "decodedBytes": 463,
+          "start": 108.40000000037253,
+          "end": 108.40000000037253
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 0,
+          "decodedBytes": 338,
+          "start": 108.40000000037253,
+          "end": 108.40000000037253
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 0,
+          "decodedBytes": 506,
+          "start": 108.6000000005588,
+          "end": 108.6000000005588
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 0,
+          "decodedBytes": 405,
+          "start": 108.6000000005588,
+          "end": 108.6000000005588
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 0,
+          "decodedBytes": 409,
+          "start": 108.70000000018626,
+          "end": 108.70000000018626
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 0,
+          "decodedBytes": 297,
+          "start": 108.80000000074506,
+          "end": 108.80000000074506
+        }
+      ],
+      "header": {
+        "height": 71,
+        "width": 1440
+      }
+    },
+    {
+      "device": "desktop",
+      "run": 1,
+      "rate": 1,
+      "cache": "cold",
+      "lcp": {
+        "ms": 544,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.0003622486255787037,
+      "longTasks": [],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 8.5,
+          "end": 14.199999999254942
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 3760,
+          "decodedBytes": 3460,
+          "start": 8.799999999813735,
+          "end": 31.899999999441206
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 162989,
+          "decodedBytes": 531200,
+          "start": 8.899999999441206,
+          "end": 33.299999999813735
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 16397,
+          "decodedBytes": 55347,
+          "start": 153.09999999962747,
+          "end": 156
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 4593,
+          "decodedBytes": 19993,
+          "start": 153.29999999981374,
+          "end": 155.5
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 640,
+          "decodedBytes": 690,
+          "start": 153.3999999994412,
+          "end": 157.59999999962747
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 662,
+          "decodedBytes": 660,
+          "start": 153.5,
+          "end": 157.79999999981374
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 765,
+          "decodedBytes": 754,
+          "start": 153.69999999925494,
+          "end": 157.69999999925494
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 623,
+          "decodedBytes": 426,
+          "start": 153.79999999981374,
+          "end": 158
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 1990,
+          "decodedBytes": 3452,
+          "start": 153.79999999981374,
+          "end": 158.29999999981374
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 995,
+          "decodedBytes": 1437,
+          "start": 153.8999999994412,
+          "end": 159.5
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 1187,
+          "decodedBytes": 1556,
+          "start": 154,
+          "end": 159.5
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 891,
+          "decodedBytes": 1485,
+          "start": 154.09999999962747,
+          "end": 159.79999999981374
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 5896,
+          "decodedBytes": 16516,
+          "start": 154.29999999981374,
+          "end": 160.69999999925494
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 425,
+          "decodedBytes": 117,
+          "start": 154.3999999994412,
+          "end": 161.59999999962747
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 836,
+          "decodedBytes": 935,
+          "start": 154.5,
+          "end": 162.09999999962747
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 887,
+          "decodedBytes": 1051,
+          "start": 154.5,
+          "end": 162
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 22519,
+          "decodedBytes": 71380,
+          "start": 154.59999999962747,
+          "end": 165.5
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 616,
+          "decodedBytes": 594,
+          "start": 154.69999999925494,
+          "end": 165.09999999962747
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 558,
+          "decodedBytes": 327,
+          "start": 154.8999999994412,
+          "end": 166.69999999925494
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 629,
+          "decodedBytes": 494,
+          "start": 154.8999999994412,
+          "end": 166.8999999994412
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 603,
+          "decodedBytes": 424,
+          "start": 155,
+          "end": 166.8999999994412
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 16190,
+          "decodedBytes": 44944,
+          "start": 155.09999999962747,
+          "end": 167.69999999925494
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 992,
+          "decodedBytes": 1214,
+          "start": 155.19999999925494,
+          "end": 168.79999999981374
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 728,
+          "decodedBytes": 623,
+          "start": 155.59999999962747,
+          "end": 169
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 2095,
+          "decodedBytes": 5673,
+          "start": 155.69999999925494,
+          "end": 169.29999999981374
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 1021,
+          "decodedBytes": 1296,
+          "start": 155.69999999925494,
+          "end": 169.5
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 28487,
+          "decodedBytes": 112004,
+          "start": 224.79999999981374,
+          "end": 229
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 807,
+          "decodedBytes": 941,
+          "start": 224.8999999994412,
+          "end": 234.8999999994412
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 14370,
+          "decodedBytes": 44437,
+          "start": 225,
+          "end": 236.29999999981374
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 837,
+          "decodedBytes": 1266,
+          "start": 225.09999999962747,
+          "end": 236.5
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 576,
+          "decodedBytes": 347,
+          "start": 225.09999999962747,
+          "end": 237.3999999994412
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 644,
+          "decodedBytes": 463,
+          "start": 225.09999999962747,
+          "end": 237.59999999962747
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 567,
+          "decodedBytes": 338,
+          "start": 225.19999999925494,
+          "end": 238.19999999925494
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 618,
+          "decodedBytes": 506,
+          "start": 225.3999999994412,
+          "end": 239.09999999962747
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 599,
+          "decodedBytes": 405,
+          "start": 225.3999999994412,
+          "end": 239.3999999994412
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 615,
+          "decodedBytes": 409,
+          "start": 225.5,
+          "end": 239.79999999981374
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 547,
+          "decodedBytes": 297,
+          "start": 225.59999999962747,
+          "end": 240
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 240.09999999962747,
+          "end": 241.69999999925494
+        }
+      ],
+      "header": {
+        "height": 71,
+        "width": 1440
+      }
+    },
+    {
+      "device": "desktop",
+      "run": 1,
+      "rate": 1,
+      "cache": "warm",
+      "lcp": {
+        "ms": 404,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.0003622486255787037,
+      "longTasks": [],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 10.600000000558794,
+          "end": 15.400000000372529
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 10.800000000745058,
+          "end": 10.800000000745058
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 0,
+          "decodedBytes": 531200,
+          "start": 10.900000000372529,
+          "end": 16.600000000558794
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 0,
+          "decodedBytes": 55347,
+          "start": 51.80000000074506,
+          "end": 52.40000000037253
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 0,
+          "decodedBytes": 19993,
+          "start": 51.90000000037253,
+          "end": 53.10000000055879
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 0,
+          "decodedBytes": 660,
+          "start": 52,
+          "end": 53.60000000055879
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 0,
+          "decodedBytes": 690,
+          "start": 52,
+          "end": 53.200000000186265
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 0,
+          "decodedBytes": 754,
+          "start": 52.10000000055879,
+          "end": 53.60000000055879
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 0,
+          "decodedBytes": 3452,
+          "start": 52.30000000074506,
+          "end": 54.10000000055879
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 0,
+          "decodedBytes": 426,
+          "start": 52.30000000074506,
+          "end": 53.80000000074506
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 0,
+          "decodedBytes": 1437,
+          "start": 52.40000000037253,
+          "end": 54.200000000186265
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 0,
+          "decodedBytes": 1556,
+          "start": 52.5,
+          "end": 54.30000000074506
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 0,
+          "decodedBytes": 1485,
+          "start": 52.60000000055879,
+          "end": 54.80000000074506
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 0,
+          "decodedBytes": 117,
+          "start": 52.700000000186265,
+          "end": 54.80000000074506
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 0,
+          "decodedBytes": 16516,
+          "start": 52.700000000186265,
+          "end": 54.80000000074506
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 0,
+          "decodedBytes": 1051,
+          "start": 52.80000000074506,
+          "end": 55.10000000055879
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 0,
+          "decodedBytes": 935,
+          "start": 52.90000000037253,
+          "end": 55.5
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 0,
+          "decodedBytes": 71380,
+          "start": 52.90000000037253,
+          "end": 55.60000000055879
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 0,
+          "decodedBytes": 594,
+          "start": 53,
+          "end": 55.80000000074506
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 0,
+          "decodedBytes": 327,
+          "start": 53.10000000055879,
+          "end": 56.10000000055879
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 0,
+          "decodedBytes": 494,
+          "start": 53.10000000055879,
+          "end": 56.10000000055879
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 0,
+          "decodedBytes": 424,
+          "start": 53.200000000186265,
+          "end": 56.30000000074506
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 0,
+          "decodedBytes": 1214,
+          "start": 53.200000000186265,
+          "end": 56.80000000074506
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 0,
+          "decodedBytes": 44944,
+          "start": 53.200000000186265,
+          "end": 56.700000000186265
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 0,
+          "decodedBytes": 623,
+          "start": 53.5,
+          "end": 57.60000000055879
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 0,
+          "decodedBytes": 5673,
+          "start": 53.5,
+          "end": 57.700000000186265
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 0,
+          "decodedBytes": 1296,
+          "start": 53.60000000055879,
+          "end": 57.90000000037253
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 0,
+          "decodedBytes": 112004,
+          "start": 79.70000000018626,
+          "end": 79.70000000018626
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 0,
+          "decodedBytes": 941,
+          "start": 79.80000000074506,
+          "end": 79.80000000074506
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 0,
+          "decodedBytes": 44437,
+          "start": 79.90000000037253,
+          "end": 79.90000000037253
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 0,
+          "decodedBytes": 1266,
+          "start": 79.90000000037253,
+          "end": 79.90000000037253
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 0,
+          "decodedBytes": 347,
+          "start": 80,
+          "end": 80
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 0,
+          "decodedBytes": 463,
+          "start": 80.1000000005588,
+          "end": 80.1000000005588
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 0,
+          "decodedBytes": 338,
+          "start": 80.20000000018626,
+          "end": 80.20000000018626
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 0,
+          "decodedBytes": 506,
+          "start": 80.20000000018626,
+          "end": 80.20000000018626
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 0,
+          "decodedBytes": 405,
+          "start": 80.30000000074506,
+          "end": 80.30000000074506
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 0,
+          "decodedBytes": 409,
+          "start": 80.40000000037253,
+          "end": 80.40000000037253
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 0,
+          "decodedBytes": 297,
+          "start": 80.40000000037253,
+          "end": 80.40000000037253
+        }
+      ],
+      "header": {
+        "height": 71,
+        "width": 1440
+      }
+    },
+    {
+      "device": "desktop",
+      "run": 2,
+      "rate": 1,
+      "cache": "cold",
+      "lcp": {
+        "ms": 488,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.0003622486255787037,
+      "longTasks": [],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 8.299999999813735,
+          "end": 13.5
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 3760,
+          "decodedBytes": 3460,
+          "start": 8.399999999441206,
+          "end": 31.200000000186265
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 162989,
+          "decodedBytes": 531200,
+          "start": 8.599999999627471,
+          "end": 32.299999999813735
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 16397,
+          "decodedBytes": 55347,
+          "start": 106,
+          "end": 108.8999999994412
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 4593,
+          "decodedBytes": 19993,
+          "start": 106.09999999962747,
+          "end": 110.20000000018626
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 640,
+          "decodedBytes": 690,
+          "start": 106.20000000018626,
+          "end": 110.29999999981374
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 662,
+          "decodedBytes": 660,
+          "start": 106.29999999981374,
+          "end": 110.59999999962747
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 765,
+          "decodedBytes": 754,
+          "start": 106.29999999981374,
+          "end": 111.79999999981374
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 623,
+          "decodedBytes": 426,
+          "start": 106.29999999981374,
+          "end": 112
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 1990,
+          "decodedBytes": 3452,
+          "start": 106.3999999994412,
+          "end": 112.59999999962747
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 995,
+          "decodedBytes": 1437,
+          "start": 106.3999999994412,
+          "end": 113.29999999981374
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 1187,
+          "decodedBytes": 1556,
+          "start": 106.5,
+          "end": 113.59999999962747
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 891,
+          "decodedBytes": 1485,
+          "start": 106.59999999962747,
+          "end": 114
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 5896,
+          "decodedBytes": 16516,
+          "start": 106.59999999962747,
+          "end": 115.20000000018626
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 425,
+          "decodedBytes": 117,
+          "start": 106.70000000018626,
+          "end": 115.29999999981374
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 887,
+          "decodedBytes": 1051,
+          "start": 106.70000000018626,
+          "end": 118.09999999962747
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 836,
+          "decodedBytes": 935,
+          "start": 106.70000000018626,
+          "end": 118.3999999994412
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 22519,
+          "decodedBytes": 71380,
+          "start": 106.79999999981374,
+          "end": 120.70000000018626
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 616,
+          "decodedBytes": 594,
+          "start": 107.20000000018626,
+          "end": 120.79999999981374
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 558,
+          "decodedBytes": 327,
+          "start": 107.29999999981374,
+          "end": 121.3999999994412
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 629,
+          "decodedBytes": 494,
+          "start": 107.3999999994412,
+          "end": 121.5
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 603,
+          "decodedBytes": 424,
+          "start": 107.5,
+          "end": 127
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 992,
+          "decodedBytes": 1214,
+          "start": 107.59999999962747,
+          "end": 127.3999999994412
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 16190,
+          "decodedBytes": 44944,
+          "start": 107.59999999962747,
+          "end": 128.59999999962747
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 728,
+          "decodedBytes": 623,
+          "start": 107.79999999981374,
+          "end": 128.20000000018626
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 2095,
+          "decodedBytes": 5673,
+          "start": 107.8999999994412,
+          "end": 127.8999999994412
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 1021,
+          "decodedBytes": 1296,
+          "start": 108,
+          "end": 127.8999999994412
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 28487,
+          "decodedBytes": 112004,
+          "start": 156.79999999981374,
+          "end": 160.59999999962747
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 807,
+          "decodedBytes": 941,
+          "start": 157,
+          "end": 158.59999999962747
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 14370,
+          "decodedBytes": 44437,
+          "start": 157,
+          "end": 162.09999999962747
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 837,
+          "decodedBytes": 1266,
+          "start": 157,
+          "end": 163
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 576,
+          "decodedBytes": 347,
+          "start": 157.09999999962747,
+          "end": 163.29999999981374
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 644,
+          "decodedBytes": 463,
+          "start": 157.20000000018626,
+          "end": 163.59999999962747
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 618,
+          "decodedBytes": 506,
+          "start": 157.29999999981374,
+          "end": 163.8999999994412
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 567,
+          "decodedBytes": 338,
+          "start": 157.29999999981374,
+          "end": 164
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 599,
+          "decodedBytes": 405,
+          "start": 157.3999999994412,
+          "end": 164.20000000018626
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 615,
+          "decodedBytes": 409,
+          "start": 157.3999999994412,
+          "end": 164.29999999981374
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 547,
+          "decodedBytes": 297,
+          "start": 157.59999999962747,
+          "end": 164.3999999994412
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 171.29999999981374,
+          "end": 172.79999999981374
+        }
+      ],
+      "header": {
+        "height": 71,
+        "width": 1440
+      }
+    },
+    {
+      "device": "desktop",
+      "run": 2,
+      "rate": 1,
+      "cache": "warm",
+      "lcp": {
+        "ms": 436,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.0003622486255787037,
+      "longTasks": [],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 16.700000000186265,
+          "end": 22.399999999441206
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 17.299999999813735,
+          "end": 17.299999999813735
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 0,
+          "decodedBytes": 531200,
+          "start": 17.5,
+          "end": 23.799999999813735
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 0,
+          "decodedBytes": 55347,
+          "start": 77.20000000018626,
+          "end": 78.5
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 0,
+          "decodedBytes": 19993,
+          "start": 77.29999999981374,
+          "end": 79.29999999981374
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 0,
+          "decodedBytes": 690,
+          "start": 77.3999999994412,
+          "end": 79.29999999981374
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 0,
+          "decodedBytes": 660,
+          "start": 77.59999999962747,
+          "end": 79.29999999981374
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 0,
+          "decodedBytes": 754,
+          "start": 77.70000000018626,
+          "end": 79.70000000018626
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 0,
+          "decodedBytes": 426,
+          "start": 77.79999999981374,
+          "end": 80.09999999962747
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 0,
+          "decodedBytes": 3452,
+          "start": 77.79999999981374,
+          "end": 80.09999999962747
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 0,
+          "decodedBytes": 1437,
+          "start": 77.8999999994412,
+          "end": 80.29999999981374
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 0,
+          "decodedBytes": 1556,
+          "start": 78,
+          "end": 80.70000000018626
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 0,
+          "decodedBytes": 1485,
+          "start": 78.09999999962747,
+          "end": 80.79999999981374
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 0,
+          "decodedBytes": 16516,
+          "start": 78.20000000018626,
+          "end": 81
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 0,
+          "decodedBytes": 117,
+          "start": 78.29999999981374,
+          "end": 81.3999999994412
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 0,
+          "decodedBytes": 1051,
+          "start": 78.29999999981374,
+          "end": 81.5
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 0,
+          "decodedBytes": 935,
+          "start": 78.3999999994412,
+          "end": 81.70000000018626
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 0,
+          "decodedBytes": 594,
+          "start": 78.5,
+          "end": 82.20000000018626
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 0,
+          "decodedBytes": 71380,
+          "start": 78.5,
+          "end": 82.20000000018626
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 0,
+          "decodedBytes": 327,
+          "start": 78.59999999962747,
+          "end": 82.5
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 0,
+          "decodedBytes": 494,
+          "start": 78.70000000018626,
+          "end": 83.20000000018626
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 0,
+          "decodedBytes": 424,
+          "start": 78.70000000018626,
+          "end": 83.20000000018626
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 0,
+          "decodedBytes": 44944,
+          "start": 78.79999999981374,
+          "end": 83.20000000018626
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 0,
+          "decodedBytes": 1214,
+          "start": 78.8999999994412,
+          "end": 83.5
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 0,
+          "decodedBytes": 623,
+          "start": 79.09999999962747,
+          "end": 83.8999999994412
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 0,
+          "decodedBytes": 5673,
+          "start": 79.09999999962747,
+          "end": 84.09999999962747
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 0,
+          "decodedBytes": 1296,
+          "start": 79.20000000018626,
+          "end": 84.29999999981374
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 0,
+          "decodedBytes": 112004,
+          "start": 105.09999999962747,
+          "end": 105.09999999962747
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 0,
+          "decodedBytes": 941,
+          "start": 105.20000000018626,
+          "end": 105.20000000018626
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 0,
+          "decodedBytes": 44437,
+          "start": 105.29999999981374,
+          "end": 105.29999999981374
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 0,
+          "decodedBytes": 1266,
+          "start": 105.3999999994412,
+          "end": 105.3999999994412
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 0,
+          "decodedBytes": 347,
+          "start": 105.3999999994412,
+          "end": 105.3999999994412
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 0,
+          "decodedBytes": 463,
+          "start": 105.5,
+          "end": 105.5
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 0,
+          "decodedBytes": 338,
+          "start": 105.59999999962747,
+          "end": 105.59999999962747
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 0,
+          "decodedBytes": 506,
+          "start": 105.59999999962747,
+          "end": 105.59999999962747
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 0,
+          "decodedBytes": 405,
+          "start": 105.70000000018626,
+          "end": 105.70000000018626
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 0,
+          "decodedBytes": 409,
+          "start": 105.70000000018626,
+          "end": 105.70000000018626
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 0,
+          "decodedBytes": 297,
+          "start": 105.79999999981374,
+          "end": 105.79999999981374
+        }
+      ],
+      "header": {
+        "height": 71,
+        "width": 1440
+      }
+    },
+    {
+      "device": "mobile4x",
+      "run": 0,
+      "rate": 4,
+      "cache": "cold",
+      "lcp": {
+        "ms": 1000,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.000057102212352684044,
+      "longTasks": [
+        {
+          "start": 106.79999999981374,
+          "duration": 128
+        },
+        {
+          "start": 539.2999999998137,
+          "duration": 50
+        },
+        {
+          "start": 752.7999999998137,
+          "duration": 176
+        },
+        {
+          "start": 963.5999999996275,
+          "duration": 69
+        }
+      ],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 27.799999999813735,
+          "end": 33.799999999813735
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 3760,
+          "decodedBytes": 3460,
+          "start": 28.90000000037253,
+          "end": 52.799999999813735
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 162989,
+          "decodedBytes": 531200,
+          "start": 29.5,
+          "end": 53.40000000037253
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 16397,
+          "decodedBytes": 55347,
+          "start": 434.90000000037253,
+          "end": 437.90000000037253
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 4593,
+          "decodedBytes": 19993,
+          "start": 436.79999999981374,
+          "end": 438.5
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 640,
+          "decodedBytes": 690,
+          "start": 437.40000000037253,
+          "end": 439.09999999962747
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 662,
+          "decodedBytes": 660,
+          "start": 438,
+          "end": 439.70000000018626
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 765,
+          "decodedBytes": 754,
+          "start": 438.59999999962747,
+          "end": 440.20000000018626
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 623,
+          "decodedBytes": 426,
+          "start": 439.40000000037253,
+          "end": 440.79999999981374
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 1990,
+          "decodedBytes": 3452,
+          "start": 440.09999999962747,
+          "end": 441.79999999981374
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 995,
+          "decodedBytes": 1437,
+          "start": 441.09999999962747,
+          "end": 442.5
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 1187,
+          "decodedBytes": 1556,
+          "start": 441.59999999962747,
+          "end": 442.79999999981374
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 891,
+          "decodedBytes": 1485,
+          "start": 442.29999999981374,
+          "end": 443.40000000037253
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 5896,
+          "decodedBytes": 16516,
+          "start": 442.79999999981374,
+          "end": 444
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 425,
+          "decodedBytes": 117,
+          "start": 443.40000000037253,
+          "end": 444.79999999981374
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 887,
+          "decodedBytes": 1051,
+          "start": 443.90000000037253,
+          "end": 444.90000000037253
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 836,
+          "decodedBytes": 935,
+          "start": 444.20000000018626,
+          "end": 445.90000000037253
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 22519,
+          "decodedBytes": 71380,
+          "start": 444.59999999962747,
+          "end": 447.59999999962747
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 616,
+          "decodedBytes": 594,
+          "start": 445,
+          "end": 448
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 558,
+          "decodedBytes": 327,
+          "start": 445.59999999962747,
+          "end": 448.20000000018626
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 629,
+          "decodedBytes": 494,
+          "start": 446.09999999962747,
+          "end": 448.20000000018626
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 603,
+          "decodedBytes": 424,
+          "start": 446.59999999962747,
+          "end": 448.40000000037253
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 16190,
+          "decodedBytes": 44944,
+          "start": 447,
+          "end": 451.79999999981374
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 992,
+          "decodedBytes": 1214,
+          "start": 447.40000000037253,
+          "end": 452
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 728,
+          "decodedBytes": 623,
+          "start": 448.5,
+          "end": 452.29999999981374
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 2095,
+          "decodedBytes": 5673,
+          "start": 449.29999999981374,
+          "end": 452.29999999981374
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 1021,
+          "decodedBytes": 1296,
+          "start": 449.79999999981374,
+          "end": 452.5
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 28487,
+          "decodedBytes": 112004,
+          "start": 650.5999999996275,
+          "end": 654.2999999998137
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 807,
+          "decodedBytes": 941,
+          "start": 651.5999999996275,
+          "end": 654.7999999998137
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 14370,
+          "decodedBytes": 44437,
+          "start": 652.2999999998137,
+          "end": 656.4000000003725
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 837,
+          "decodedBytes": 1266,
+          "start": 652.7999999998137,
+          "end": 656.2999999998137
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 576,
+          "decodedBytes": 347,
+          "start": 653.4000000003725,
+          "end": 656.5
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 644,
+          "decodedBytes": 463,
+          "start": 653.7999999998137,
+          "end": 657.4000000003725
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 567,
+          "decodedBytes": 338,
+          "start": 654.4000000003725,
+          "end": 657.5999999996275
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 618,
+          "decodedBytes": 506,
+          "start": 654.9000000003725,
+          "end": 657.7000000001863
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 599,
+          "decodedBytes": 405,
+          "start": 655.5,
+          "end": 657.7999999998137
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 615,
+          "decodedBytes": 409,
+          "start": 656.2999999998137,
+          "end": 658
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 547,
+          "decodedBytes": 297,
+          "start": 656.7000000001863,
+          "end": 658.2999999998137
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 691.7999999998137,
+          "end": 692.2000000001863
+        }
+      ],
+      "header": {
+        "height": 73,
+        "width": 390
+      }
+    },
+    {
+      "device": "mobile4x",
+      "run": 0,
+      "rate": 4,
+      "cache": "warm",
+      "lcp": {
+        "ms": 640,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.000057102212352684044,
+      "longTasks": [
+        {
+          "start": 520.7999999998137,
+          "duration": 64
+        }
+      ],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 26.100000000558794,
+          "end": 28
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 27.100000000558794,
+          "end": 27.100000000558794
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 0,
+          "decodedBytes": 531200,
+          "start": 27.700000000186265,
+          "end": 29.40000000037253
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 0,
+          "decodedBytes": 55347,
+          "start": 206.29999999981374,
+          "end": 206.90000000037253
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 0,
+          "decodedBytes": 19993,
+          "start": 206.90000000037253,
+          "end": 207.40000000037253
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 0,
+          "decodedBytes": 690,
+          "start": 207.5,
+          "end": 207.90000000037253
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 0,
+          "decodedBytes": 660,
+          "start": 207.90000000037253,
+          "end": 208.29999999981374
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 0,
+          "decodedBytes": 754,
+          "start": 208.6000000005588,
+          "end": 208.90000000037253
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 0,
+          "decodedBytes": 426,
+          "start": 209,
+          "end": 209.29999999981374
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 0,
+          "decodedBytes": 3452,
+          "start": 209.40000000037253,
+          "end": 209.70000000018626
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 0,
+          "decodedBytes": 1437,
+          "start": 209.79999999981374,
+          "end": 210.20000000018626
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 0,
+          "decodedBytes": 1556,
+          "start": 210.40000000037253,
+          "end": 210.70000000018626
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 0,
+          "decodedBytes": 1485,
+          "start": 210.79999999981374,
+          "end": 211.1000000005588
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 0,
+          "decodedBytes": 16516,
+          "start": 211.20000000018626,
+          "end": 211.5
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 0,
+          "decodedBytes": 117,
+          "start": 211.6000000005588,
+          "end": 212.1000000005588
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 0,
+          "decodedBytes": 1051,
+          "start": 212.1000000005588,
+          "end": 212.6000000005588
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 0,
+          "decodedBytes": 935,
+          "start": 212.6000000005588,
+          "end": 212.79999999981374
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 0,
+          "decodedBytes": 71380,
+          "start": 213.1000000005588,
+          "end": 213.40000000037253
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 0,
+          "decodedBytes": 594,
+          "start": 213.6000000005588,
+          "end": 213.90000000037253
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 0,
+          "decodedBytes": 327,
+          "start": 214.20000000018626,
+          "end": 214.40000000037253
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 0,
+          "decodedBytes": 494,
+          "start": 214.70000000018626,
+          "end": 214.79999999981374
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 0,
+          "decodedBytes": 424,
+          "start": 215.1000000005588,
+          "end": 215.29999999981374
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 0,
+          "decodedBytes": 44944,
+          "start": 215.40000000037253,
+          "end": 215.90000000037253
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 0,
+          "decodedBytes": 1214,
+          "start": 216.1000000005588,
+          "end": 216.29999999981374
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 0,
+          "decodedBytes": 623,
+          "start": 217,
+          "end": 217.5
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 0,
+          "decodedBytes": 5673,
+          "start": 217.6000000005588,
+          "end": 217.90000000037253
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 0,
+          "decodedBytes": 1296,
+          "start": 218,
+          "end": 218.29999999981374
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 0,
+          "decodedBytes": 112004,
+          "start": 345.90000000037253,
+          "end": 345.90000000037253
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 0,
+          "decodedBytes": 941,
+          "start": 346.40000000037253,
+          "end": 346.40000000037253
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 0,
+          "decodedBytes": 44437,
+          "start": 346.90000000037253,
+          "end": 346.90000000037253
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 0,
+          "decodedBytes": 1266,
+          "start": 347.5,
+          "end": 347.5
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 0,
+          "decodedBytes": 347,
+          "start": 347.79999999981374,
+          "end": 347.79999999981374
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 0,
+          "decodedBytes": 463,
+          "start": 348.20000000018626,
+          "end": 348.20000000018626
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 0,
+          "decodedBytes": 338,
+          "start": 348.70000000018626,
+          "end": 348.70000000018626
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 0,
+          "decodedBytes": 506,
+          "start": 349.1000000005588,
+          "end": 349.1000000005588
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 0,
+          "decodedBytes": 405,
+          "start": 349.5,
+          "end": 349.5
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 0,
+          "decodedBytes": 409,
+          "start": 349.90000000037253,
+          "end": 349.90000000037253
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 0,
+          "decodedBytes": 297,
+          "start": 350.29999999981374,
+          "end": 350.29999999981374
+        }
+      ],
+      "header": {
+        "height": 73,
+        "width": 390
+      }
+    },
+    {
+      "device": "mobile4x",
+      "run": 1,
+      "rate": 4,
+      "cache": "cold",
+      "lcp": {
+        "ms": 972,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.000057102212352684044,
+      "longTasks": [
+        {
+          "start": 109.79999999981374,
+          "duration": 135
+        },
+        {
+          "start": 530.7000000001863,
+          "duration": 50
+        },
+        {
+          "start": 754.7000000001863,
+          "duration": 168
+        },
+        {
+          "start": 961.5999999996275,
+          "duration": 70
+        }
+      ],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 20.700000000186265,
+          "end": 27.799999999813735
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 3760,
+          "decodedBytes": 3460,
+          "start": 21.899999999441206,
+          "end": 38.299999999813735
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 162989,
+          "decodedBytes": 531200,
+          "start": 22.700000000186265,
+          "end": 49.299999999813735
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 16397,
+          "decodedBytes": 55347,
+          "start": 423,
+          "end": 426.20000000018626
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 4593,
+          "decodedBytes": 19993,
+          "start": 424,
+          "end": 427.8999999994412
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 640,
+          "decodedBytes": 690,
+          "start": 424.59999999962747,
+          "end": 427.70000000018626
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 662,
+          "decodedBytes": 660,
+          "start": 425.3999999994412,
+          "end": 427.8999999994412
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 765,
+          "decodedBytes": 754,
+          "start": 425.79999999981374,
+          "end": 428
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 623,
+          "decodedBytes": 426,
+          "start": 426.20000000018626,
+          "end": 429.20000000018626
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 1990,
+          "decodedBytes": 3452,
+          "start": 426.59999999962747,
+          "end": 429.5
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 995,
+          "decodedBytes": 1437,
+          "start": 427,
+          "end": 429.8999999994412
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 1187,
+          "decodedBytes": 1556,
+          "start": 427.70000000018626,
+          "end": 429.8999999994412
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 891,
+          "decodedBytes": 1485,
+          "start": 428.20000000018626,
+          "end": 430.09999999962747
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 5896,
+          "decodedBytes": 16516,
+          "start": 428.79999999981374,
+          "end": 430.5
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 425,
+          "decodedBytes": 117,
+          "start": 429.5,
+          "end": 431
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 887,
+          "decodedBytes": 1051,
+          "start": 430.09999999962747,
+          "end": 431.20000000018626
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 836,
+          "decodedBytes": 935,
+          "start": 430.5,
+          "end": 431.59999999962747
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 22519,
+          "decodedBytes": 71380,
+          "start": 431,
+          "end": 433.5
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 616,
+          "decodedBytes": 594,
+          "start": 431.70000000018626,
+          "end": 435.79999999981374
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 558,
+          "decodedBytes": 327,
+          "start": 432.29999999981374,
+          "end": 436
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 629,
+          "decodedBytes": 494,
+          "start": 432.79999999981374,
+          "end": 436.09999999962747
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 603,
+          "decodedBytes": 424,
+          "start": 433.29999999981374,
+          "end": 436.20000000018626
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 16190,
+          "decodedBytes": 44944,
+          "start": 433.70000000018626,
+          "end": 436.8999999994412
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 992,
+          "decodedBytes": 1214,
+          "start": 434.09999999962747,
+          "end": 437.20000000018626
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 728,
+          "decodedBytes": 623,
+          "start": 435.5,
+          "end": 438.20000000018626
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 2095,
+          "decodedBytes": 5673,
+          "start": 435.8999999994412,
+          "end": 439.09999999962747
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 1021,
+          "decodedBytes": 1296,
+          "start": 436.29999999981374,
+          "end": 439.20000000018626
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 28487,
+          "decodedBytes": 112004,
+          "start": 642.2000000001863,
+          "end": 645.5
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 807,
+          "decodedBytes": 941,
+          "start": 643,
+          "end": 645.8999999994412
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 14370,
+          "decodedBytes": 44437,
+          "start": 643.7999999998137,
+          "end": 647.2999999998137
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 837,
+          "decodedBytes": 1266,
+          "start": 644.5999999996275,
+          "end": 645.8999999994412
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 576,
+          "decodedBytes": 347,
+          "start": 645,
+          "end": 647.8999999994412
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 644,
+          "decodedBytes": 463,
+          "start": 645.5,
+          "end": 648.2999999998137
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 567,
+          "decodedBytes": 338,
+          "start": 645.8999999994412,
+          "end": 648
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 618,
+          "decodedBytes": 506,
+          "start": 646.2000000001863,
+          "end": 648.5
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 599,
+          "decodedBytes": 405,
+          "start": 646.8999999994412,
+          "end": 648.7000000001863
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 615,
+          "decodedBytes": 409,
+          "start": 647.2999999998137,
+          "end": 649.7999999998137
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 547,
+          "decodedBytes": 297,
+          "start": 647.7999999998137,
+          "end": 650.0999999996275
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 673.2000000001863,
+          "end": 673.5999999996275
+        }
+      ],
+      "header": {
+        "height": 73,
+        "width": 390
+      }
+    },
+    {
+      "device": "mobile4x",
+      "run": 1,
+      "rate": 4,
+      "cache": "warm",
+      "lcp": {
+        "ms": 660,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.000057102212352684044,
+      "longTasks": [
+        {
+          "start": 541.7999999998137,
+          "duration": 73
+        }
+      ],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 56.799999999813735,
+          "end": 58.799999999813735
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 58.200000000186265,
+          "end": 58.200000000186265
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 0,
+          "decodedBytes": 531200,
+          "start": 58.89999999944121,
+          "end": 60.299999999813735
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 0,
+          "decodedBytes": 55347,
+          "start": 219,
+          "end": 220
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 0,
+          "decodedBytes": 19993,
+          "start": 220.3999999994412,
+          "end": 221
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 0,
+          "decodedBytes": 690,
+          "start": 221.20000000018626,
+          "end": 221.59999999962747
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 0,
+          "decodedBytes": 660,
+          "start": 221.59999999962747,
+          "end": 221.8999999994412
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 0,
+          "decodedBytes": 754,
+          "start": 222,
+          "end": 222.59999999962747
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 0,
+          "decodedBytes": 426,
+          "start": 222.59999999962747,
+          "end": 222.8999999994412
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 0,
+          "decodedBytes": 3452,
+          "start": 222.8999999994412,
+          "end": 223.29999999981374
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 0,
+          "decodedBytes": 1437,
+          "start": 223.5,
+          "end": 223.70000000018626
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 0,
+          "decodedBytes": 1556,
+          "start": 223.79999999981374,
+          "end": 224.29999999981374
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 0,
+          "decodedBytes": 1485,
+          "start": 224.5,
+          "end": 225
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 0,
+          "decodedBytes": 16516,
+          "start": 225,
+          "end": 225.29999999981374
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 0,
+          "decodedBytes": 117,
+          "start": 225.59999999962747,
+          "end": 225.8999999994412
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 0,
+          "decodedBytes": 1051,
+          "start": 226.09999999962747,
+          "end": 226.5
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 0,
+          "decodedBytes": 935,
+          "start": 226.5,
+          "end": 226.8999999994412
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 0,
+          "decodedBytes": 71380,
+          "start": 227.09999999962747,
+          "end": 227.70000000018626
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 0,
+          "decodedBytes": 594,
+          "start": 227.79999999981374,
+          "end": 228.09999999962747
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 0,
+          "decodedBytes": 327,
+          "start": 228.29999999981374,
+          "end": 228.70000000018626
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 0,
+          "decodedBytes": 494,
+          "start": 228.8999999994412,
+          "end": 229.09999999962747
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 0,
+          "decodedBytes": 424,
+          "start": 229.29999999981374,
+          "end": 229.70000000018626
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 0,
+          "decodedBytes": 44944,
+          "start": 229.8999999994412,
+          "end": 230.29999999981374
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 0,
+          "decodedBytes": 1214,
+          "start": 230.29999999981374,
+          "end": 230.79999999981374
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 0,
+          "decodedBytes": 623,
+          "start": 231.5,
+          "end": 231.8999999994412
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 0,
+          "decodedBytes": 5673,
+          "start": 231.8999999994412,
+          "end": 232.09999999962747
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 0,
+          "decodedBytes": 1296,
+          "start": 232.29999999981374,
+          "end": 232.59999999962747
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 0,
+          "decodedBytes": 112004,
+          "start": 316.29999999981374,
+          "end": 316.29999999981374
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 0,
+          "decodedBytes": 941,
+          "start": 316.70000000018626,
+          "end": 316.70000000018626
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 0,
+          "decodedBytes": 44437,
+          "start": 317.09999999962747,
+          "end": 317.09999999962747
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 0,
+          "decodedBytes": 1266,
+          "start": 317.5,
+          "end": 317.5
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 0,
+          "decodedBytes": 347,
+          "start": 317.70000000018626,
+          "end": 317.70000000018626
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 0,
+          "decodedBytes": 463,
+          "start": 318.09999999962747,
+          "end": 318.09999999962747
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 0,
+          "decodedBytes": 338,
+          "start": 318.5,
+          "end": 318.5
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 0,
+          "decodedBytes": 506,
+          "start": 318.70000000018626,
+          "end": 318.70000000018626
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 0,
+          "decodedBytes": 405,
+          "start": 319.09999999962747,
+          "end": 319.09999999962747
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 0,
+          "decodedBytes": 409,
+          "start": 319.29999999981374,
+          "end": 319.29999999981374
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 0,
+          "decodedBytes": 297,
+          "start": 319.70000000018626,
+          "end": 319.70000000018626
+        }
+      ],
+      "header": {
+        "height": 73,
+        "width": 390
+      }
+    },
+    {
+      "device": "mobile4x",
+      "run": 2,
+      "rate": 4,
+      "cache": "cold",
+      "lcp": {
+        "ms": 936,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.000057102212352684044,
+      "longTasks": [
+        {
+          "start": 98.3999999994412,
+          "duration": 127
+        },
+        {
+          "start": 718.8999999994412,
+          "duration": 172
+        },
+        {
+          "start": 953.8999999994412,
+          "duration": 77
+        }
+      ],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 22.5,
+          "end": 28.09999999962747
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 3760,
+          "decodedBytes": 3460,
+          "start": 23.399999999441206,
+          "end": 44.39999999944121
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 162989,
+          "decodedBytes": 531200,
+          "start": 24.09999999962747,
+          "end": 45
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 16397,
+          "decodedBytes": 55347,
+          "start": 392.59999999962747,
+          "end": 395.19999999925494
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 4593,
+          "decodedBytes": 19993,
+          "start": 393.3999999994412,
+          "end": 395.8999999994412
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 640,
+          "decodedBytes": 690,
+          "start": 395.19999999925494,
+          "end": 396.29999999981374
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 662,
+          "decodedBytes": 660,
+          "start": 395.59999999962747,
+          "end": 396.79999999981374
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 765,
+          "decodedBytes": 754,
+          "start": 396.19999999925494,
+          "end": 397.3999999994412
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 623,
+          "decodedBytes": 426,
+          "start": 397,
+          "end": 398
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 1990,
+          "decodedBytes": 3452,
+          "start": 397.3999999994412,
+          "end": 398.5
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 995,
+          "decodedBytes": 1437,
+          "start": 398,
+          "end": 399.09999999962747
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 1187,
+          "decodedBytes": 1556,
+          "start": 398.59999999962747,
+          "end": 399.69999999925494
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 891,
+          "decodedBytes": 1485,
+          "start": 399.29999999981374,
+          "end": 400.09999999962747
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 5896,
+          "decodedBytes": 16516,
+          "start": 399.79999999981374,
+          "end": 401.19999999925494
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 425,
+          "decodedBytes": 117,
+          "start": 400.29999999981374,
+          "end": 401.69999999925494
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 887,
+          "decodedBytes": 1051,
+          "start": 400.8999999994412,
+          "end": 402.29999999981374
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 836,
+          "decodedBytes": 935,
+          "start": 401.29999999981374,
+          "end": 402.59999999962747
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 22519,
+          "decodedBytes": 71380,
+          "start": 402.29999999981374,
+          "end": 405.3999999994412
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 616,
+          "decodedBytes": 594,
+          "start": 403.09999999962747,
+          "end": 407.29999999981374
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 558,
+          "decodedBytes": 327,
+          "start": 403.8999999994412,
+          "end": 407.09999999962747
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 629,
+          "decodedBytes": 494,
+          "start": 404.29999999981374,
+          "end": 407.19999999925494
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 603,
+          "decodedBytes": 424,
+          "start": 404.69999999925494,
+          "end": 407.5
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 16190,
+          "decodedBytes": 44944,
+          "start": 405.5,
+          "end": 409.3999999994412
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 992,
+          "decodedBytes": 1214,
+          "start": 406.19999999925494,
+          "end": 409.59999999962747
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 728,
+          "decodedBytes": 623,
+          "start": 408.3999999994412,
+          "end": 410.09999999962747
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 2095,
+          "decodedBytes": 5673,
+          "start": 408.8999999994412,
+          "end": 410.5
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 1021,
+          "decodedBytes": 1296,
+          "start": 409.5,
+          "end": 411.09999999962747
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 28487,
+          "decodedBytes": 112004,
+          "start": 590.2999999998137,
+          "end": 594.0999999996275
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 807,
+          "decodedBytes": 941,
+          "start": 590.8999999994412,
+          "end": 594.5
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 14370,
+          "decodedBytes": 44437,
+          "start": 591.5,
+          "end": 595.8999999994412
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 837,
+          "decodedBytes": 1266,
+          "start": 592.0999999996275,
+          "end": 595.8999999994412
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 576,
+          "decodedBytes": 347,
+          "start": 592.3999999994412,
+          "end": 596
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 644,
+          "decodedBytes": 463,
+          "start": 592.6999999992549,
+          "end": 596.2999999998137
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 567,
+          "decodedBytes": 338,
+          "start": 593.0999999996275,
+          "end": 596.7999999998137
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 618,
+          "decodedBytes": 506,
+          "start": 593.5,
+          "end": 596.7999999998137
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 599,
+          "decodedBytes": 405,
+          "start": 593.8999999994412,
+          "end": 597
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 615,
+          "decodedBytes": 409,
+          "start": 594.2999999998137,
+          "end": 597.2999999998137
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 547,
+          "decodedBytes": 297,
+          "start": 594.6999999992549,
+          "end": 597.3999999994412
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 630.7999999998137,
+          "end": 631.1999999992549
+        }
+      ],
+      "header": {
+        "height": 73,
+        "width": 390
+      }
+    },
+    {
+      "device": "mobile4x",
+      "run": 2,
+      "rate": 4,
+      "cache": "warm",
+      "lcp": {
+        "ms": 648,
+        "element": "zea-header-poster absolute inset-0 h-full w-full object-cover"
+      },
+      "cls": 0.000057102212352684044,
+      "longTasks": [
+        {
+          "start": 531.6999999992549,
+          "duration": 69
+        }
+      ],
+      "resources": [
+        {
+          "file": "/runtime-config.js",
+          "transferSize": 417,
+          "decodedBytes": 117,
+          "start": 31.199999999254942,
+          "end": 32.799999999813735
+        },
+        {
+          "file": "/header-poster.webp",
+          "transferSize": 0,
+          "decodedBytes": 3460,
+          "start": 32.39999999944121,
+          "end": 32.39999999944121
+        },
+        {
+          "file": "/assets/index-H6CVLYqk.js",
+          "transferSize": 0,
+          "decodedBytes": 531200,
+          "start": 32.69999999925494,
+          "end": 34.39999999944121
+        },
+        {
+          "file": "/assets/Layout-CP0AxDca.js",
+          "transferSize": 0,
+          "decodedBytes": 55347,
+          "start": 203.3999999994412,
+          "end": 204.09999999962747
+        },
+        {
+          "file": "/assets/index-BNb4U1Re.js",
+          "transferSize": 0,
+          "decodedBytes": 19993,
+          "start": 204,
+          "end": 204.29999999981374
+        },
+        {
+          "file": "/assets/menu-D1meA5cx.js",
+          "transferSize": 0,
+          "decodedBytes": 690,
+          "start": 204.29999999981374,
+          "end": 204.59999999962747
+        },
+        {
+          "file": "/assets/settings-CQITppGA.js",
+          "transferSize": 0,
+          "decodedBytes": 660,
+          "start": 204.69999999925494,
+          "end": 205.19999999925494
+        },
+        {
+          "file": "/assets/BuildingOffice2Icon-DtcCA6tH.js",
+          "transferSize": 0,
+          "decodedBytes": 754,
+          "start": 205.3999999994412,
+          "end": 205.59999999962747
+        },
+        {
+          "file": "/assets/users-round-CC6kBHuz.js",
+          "transferSize": 0,
+          "decodedBytes": 426,
+          "start": 205.79999999981374,
+          "end": 206
+        },
+        {
+          "file": "/assets/Avatar-5lp3Wwz8.js",
+          "transferSize": 0,
+          "decodedBytes": 3452,
+          "start": 206.19999999925494,
+          "end": 206.5
+        },
+        {
+          "file": "/assets/index-Byt-o0p1.js",
+          "transferSize": 0,
+          "decodedBytes": 1437,
+          "start": 206.79999999981374,
+          "end": 207.09999999962747
+        },
+        {
+          "file": "/assets/notificationRealtime-DyWskxvj.js",
+          "transferSize": 0,
+          "decodedBytes": 1556,
+          "start": 207.09999999962747,
+          "end": 207.5
+        },
+        {
+          "file": "/assets/realtimeBackoff-YNz0WAa8.js",
+          "transferSize": 0,
+          "decodedBytes": 1485,
+          "start": 207.69999999925494,
+          "end": 208.09999999962747
+        },
+        {
+          "file": "/assets/ActiveWork-Y1_Hrwid.js",
+          "transferSize": 0,
+          "decodedBytes": 16516,
+          "start": 208.29999999981374,
+          "end": 208.69999999925494
+        },
+        {
+          "file": "/assets/taskRealtimeEvents-B5Ivo_b3.js",
+          "transferSize": 0,
+          "decodedBytes": 117,
+          "start": 208.79999999981374,
+          "end": 209.29999999981374
+        },
+        {
+          "file": "/assets/realtimeAuth-9zOMeOWX.js",
+          "transferSize": 0,
+          "decodedBytes": 1051,
+          "start": 209.5,
+          "end": 209.8999999994412
+        },
+        {
+          "file": "/assets/activeWork-B7ZkaMNl.js",
+          "transferSize": 0,
+          "decodedBytes": 935,
+          "start": 210.09999999962747,
+          "end": 210.59999999962747
+        },
+        {
+          "file": "/assets/luxon-n6HvnmwO.js",
+          "transferSize": 0,
+          "decodedBytes": 71380,
+          "start": 211.09999999962747,
+          "end": 211.59999999962747
+        },
+        {
+          "file": "/assets/clock-3-Cw47MyAJ.js",
+          "transferSize": 0,
+          "decodedBytes": 594,
+          "start": 211.69999999925494,
+          "end": 212.29999999981374
+        },
+        {
+          "file": "/assets/x-Cfh3GKFl.js",
+          "transferSize": 0,
+          "decodedBytes": 327,
+          "start": 212.69999999925494,
+          "end": 213
+        },
+        {
+          "file": "/assets/refresh-cw-CDjgrL5V.js",
+          "transferSize": 0,
+          "decodedBytes": 494,
+          "start": 213.29999999981374,
+          "end": 213.69999999925494
+        },
+        {
+          "file": "/assets/external-link-5kkIZiwP.js",
+          "transferSize": 0,
+          "decodedBytes": 424,
+          "start": 214.29999999981374,
+          "end": 214.8999999994412
+        },
+        {
+          "file": "/assets/dialog-BFXIgfQT.js",
+          "transferSize": 0,
+          "decodedBytes": 44944,
+          "start": 215.3999999994412,
+          "end": 217.5
+        },
+        {
+          "file": "/assets/with-selector-D0RozV4W.js",
+          "transferSize": 0,
+          "decodedBytes": 1214,
+          "start": 218,
+          "end": 218.59999999962747
+        },
+        {
+          "file": "/assets/ArrowPathIcon-BWdOOtK-.js",
+          "transferSize": 0,
+          "decodedBytes": 623,
+          "start": 221.29999999981374,
+          "end": 222.19999999925494
+        },
+        {
+          "file": "/assets/geminiKeyStore-B9C_E2VY.js",
+          "transferSize": 0,
+          "decodedBytes": 5673,
+          "start": 223.3999999994412,
+          "end": 224.29999999981374
+        },
+        {
+          "file": "/assets/useToast-C9XOixRc.js",
+          "transferSize": 0,
+          "decodedBytes": 1296,
+          "start": 224.79999999981374,
+          "end": 225.8999999994412
+        },
+        {
+          "file": "/assets/Chat-DohMZC_1.js",
+          "transferSize": 0,
+          "decodedBytes": 112004,
+          "start": 329.5,
+          "end": 329.5
+        },
+        {
+          "file": "/assets/realtimeRecovery-COYdE9C7.js",
+          "transferSize": 0,
+          "decodedBytes": 941,
+          "start": 330,
+          "end": 330
+        },
+        {
+          "file": "/assets/sharedSocketIo-BlK1o3uI.js",
+          "transferSize": 0,
+          "decodedBytes": 44437,
+          "start": 330.69999999925494,
+          "end": 330.69999999925494
+        },
+        {
+          "file": "/assets/video-Dh1l865H.js",
+          "transferSize": 0,
+          "decodedBytes": 1266,
+          "start": 331.29999999981374,
+          "end": 331.29999999981374
+        },
+        {
+          "file": "/assets/search-DNebO_gK.js",
+          "transferSize": 0,
+          "decodedBytes": 347,
+          "start": 331.8999999994412,
+          "end": 331.8999999994412
+        },
+        {
+          "file": "/assets/bell-JJx0oOXl.js",
+          "transferSize": 0,
+          "decodedBytes": 463,
+          "start": 332.29999999981374,
+          "end": 332.29999999981374
+        },
+        {
+          "file": "/assets/arrow-down-D8326h30.js",
+          "transferSize": 0,
+          "decodedBytes": 338,
+          "start": 332.59999999962747,
+          "end": 332.59999999962747
+        },
+        {
+          "file": "/assets/file-text-Dxq7-Vz-.js",
+          "transferSize": 0,
+          "decodedBytes": 506,
+          "start": 333.09999999962747,
+          "end": 333.09999999962747
+        },
+        {
+          "file": "/assets/download-BCKQ0tt5.js",
+          "transferSize": 0,
+          "decodedBytes": 405,
+          "start": 333.5,
+          "end": 333.5
+        },
+        {
+          "file": "/assets/copy-D_8w1S14.js",
+          "transferSize": 0,
+          "decodedBytes": 409,
+          "start": 333.79999999981374,
+          "end": 333.79999999981374
+        },
+        {
+          "file": "/assets/check-BEigPvDB.js",
+          "transferSize": 0,
+          "decodedBytes": 297,
+          "start": 334.19999999925494,
+          "end": 334.19999999925494
+        }
+      ],
+      "header": {
+        "height": 73,
+        "width": 390
+      }
+    }
+  ],
+  "checks": [
+    "12 cold/warm production chat loads, real App/auth/API mapping, existing messages and composer visible",
+    "Synthetic message send, lazy clock open/close, lazy manual, live reduced-motion toggle and poster fallback",
+    "Data saver keeps the static poster without loading decorative video"
+  ],
+  "errors": []
+}

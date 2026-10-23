@@ -1,24 +1,24 @@
 import { useQueryClient } from '@tanstack/react-query';
 ﻿
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useNavigation } from '../hooks/useNavigation';
 import { UsersRound, Menu as MenuIcon, Settings as SettingsIcon } from 'lucide-react';
 import Header from './Header';
 import { ActiveWorkProvider } from '../hooks/useActiveWork';
-import TaskDetailModal from './TaskDetailModal';
 import api from '../services/mockApi';
 import { User, Role, ReleaseNotes, ReleaseNotesUpdate } from '../types';
-import ClaimedRewardModal from './ClaimedRewardModal';
 import Chatbot from './Chatbot';
 import { APP_REFRESH_EVENT } from '../utils/appEvents';
 import { useAuth, useTheme } from '../hooks/useAuth';
 import { useChatUnreadIndicator } from '../hooks/useChatUnreadIndicator';
 import { ToastProvider } from '../hooks/useToast';
-import ReleaseNotesModal from './ReleaseNotesModal';
-import ReleaseNotesEditorModal from './ReleaseNotesEditorModal';
+const TaskDetailModal = lazy(() => import('./TaskDetailModal'));
+const ClaimedRewardModal = lazy(() => import('./ClaimedRewardModal'));
+const ReleaseNotesModal = lazy(() => import('./ReleaseNotesModal'));
+const ReleaseNotesEditorModal = lazy(() => import('./ReleaseNotesEditorModal'));
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -363,6 +363,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         )}
       </div>
+      <Suspense fallback={<span role="status" className="sr-only">Loading dialog...</span>}>
        {modalTaskId && (
         <TaskDetailModal
           key={`${user?.id}:${modalTaskId}`}
@@ -402,6 +403,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           releaseNotes={releaseNotes}
         />
       )}
+      </Suspense>
       <Chatbot />
     </div>
       </ActiveWorkProvider>

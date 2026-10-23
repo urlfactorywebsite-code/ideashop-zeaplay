@@ -33,6 +33,7 @@ import { notificationDestination } from '../utils/notificationNavigation';
 // ✅ NEW IMPORT
 import ClockButton from './ClockAssistant/ClockButton';
 import ActiveWork from './ActiveWork';
+import HeaderBackground from './HeaderBackground';
 
 const TaskDocumentation = lazy(() => import('./TaskDocumentation'));
 
@@ -557,20 +558,7 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
     <header
       className={`zea-header-saber zea-app-header zea-app-header-${resolvedTheme} relative z-[70] overflow-visible border-b`}
     >
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        <video
-          className="zea-header-video h-full w-full object-cover"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          poster="/header-poster.webp"
-          aria-hidden="true"
-        >
-          <source src="https://res.cloudinary.com/dqhcbck76/video/upload/v1770339698/Untitled_design_2_opyhae.mp4" type="video/mp4" />
-        </video>
-      </div>
+      <HeaderBackground />
       {isMobileView ? (
         <div className="relative z-10 p-4">
           <div className="flex items-center justify-between">

@@ -12,7 +12,7 @@ import Lottie from "lottie-react";
 import assistantAnimation from "./character.json";
 import { Listbox, Transition } from "@headlessui/react";
 
-const ClockDropdown = ({ selectedCountry, is12Hour, onClose }) => {
+const ClockDropdown = ({ selectedCountry, is12Hour, onClose, triggerRef }) => {
   const [form, setForm] = useState({
     state: "",
     areaCode: "",
@@ -26,13 +26,13 @@ const ClockDropdown = ({ selectedCountry, is12Hour, onClose }) => {
   // ✅ Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !triggerRef?.current?.contains(e.target)) {
         if (onClose) onClose();
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
+  }, [onClose, triggerRef]);
 
   // ✅ Auto-update when user inputs anything
   useEffect(() => {

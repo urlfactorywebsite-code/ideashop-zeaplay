@@ -46,7 +46,9 @@ try {
         return { width: rect.width, height: rect.height, padding: css.padding, borderRadius: css.borderRadius, fontSize: css.fontSize, display: css.display };
       });
       assert.deepEqual(geometry, baseline.results.find(result => result.theme === theme && result.width === width).geometry);
-      await expect(page.locator('.zea-header-video')).toHaveAttribute('poster', '/header-poster.webp');
+      await expect(page.locator('.zea-header-poster')).toHaveAttribute('src', '/header-poster.webp');
+      await expect(page.locator('.zea-header-poster')).toHaveAttribute('fetchpriority', 'high');
+      await expect(page.locator('.zea-header-video')).toHaveCount(0);
       assert.ok(!requests.some(url => /TaskDocumentation-|ClockDropdown-/.test(url)), 'Deferred chunks must stay unloaded initially');
       const timing = await page.evaluate(() => {
         const resources = performance.getEntriesByType('resource');

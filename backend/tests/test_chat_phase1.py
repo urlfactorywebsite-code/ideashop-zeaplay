@@ -343,6 +343,39 @@ def test_existing_direct_history_with_deactivated_user_is_preserved_but_sending_
     assert blocked.status_code == 409
 
 
+def test_deactivated_contacts_are_hidden_from_lists_and_search_without_losing_history(db, client):
+    hidden = client.post('/api/chat/direct', json={'user_id': 'user-b'}).json()
+    active = client.post('/api/chat/direct', json={'user_id': 'user-c'}).json()
+    group = client.post('/api/chat/conversations', json={
+        'type': 'GROUP', 'name': 'Retained team', 'member_ids': ['user-b', 'user-c'],
+    }).json()
+    for conversation in (hidden, group):
+        response = client.post(f"/api/chat/conversations/{conversation['id']}/messages",
+            json={'content': 'Historical visibility needle'})
+        assert response.status_code == 201, response.text
+    db.get(User, 'user-b').status = UserStatusEnum.DEACTIVATED
+    db.commit()
+
+    listing = client.get('/api/chat/conversations')
+    assert listing.status_code == 200, listing.text
+    assert {row['id'] for row in listing.json()} == {active['id'], group['id']}
+    directory = client.get('/api/chat/users').json()
+    assert 'user-b' not in {row['id'] for row in directory['items']}
+    search = client.get('/api/chat/messages/search', params={'q': 'Historical visibility needle'})
+    assert search.status_code == 200, search.text
+    assert {row['conversation']['id'] for row in search.json()['items']} == {group['id']}
+    history = client.get(f"/api/chat/conversations/{hidden['id']}/messages")
+    assert history.status_code == 200, history.text
+    assert [row['content'] for row in history.json()['items']] == ['Historical visibility needle']
+    assert db.query(ChatParticipant).filter_by(conversation_id=hidden['id']).count() == 2
+
+    db.get(User, 'user-b').status = UserStatusEnum.ACTIVE
+    db.commit()
+    listing = client.get('/api/chat/conversations').json()
+    assert {row['id'] for row in listing} == {hidden['id'], active['id'], group['id']}
+    assert db.query(ChatMessage).filter_by(conversation_id=hidden['id']).count() == 1
+
+
 def test_mentions_skip_deactivated_conversation_members(db, client):
     conversation = client.post(
         "/api/chat/conversations",
