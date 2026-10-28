@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from .. import models, schemas
 from ..auth import (
@@ -113,12 +114,22 @@ async def _extract_credentials(request: Request) -> tuple[str, str]:
 
 @router.post("/login", response_model=schemas.AuthResponse)
 async def login(request: Request, response: Response, db: Session = Depends(get_db)) -> schemas.AuthResponse:
+    await run_in_threadpool(_check_browser_login, request, db)
+    username, password = await _extract_credentials(request)
+    # Parse the request asynchronously, then keep DB waits and password hashing
+    # off the event loop that serves other requests and releases connections.
+    return await run_in_threadpool(_login, request, response, db, username, password)
+
+
+def _check_browser_login(request: Request, db: Session) -> None:
     if request.headers.get('x-zea-browser') == '1':
         from ..services.browser_session import check_origin
         from ..services.oauth import rate_limit
         check_origin(request)
         rate_limit(db, request)
-    username, password = await _extract_credentials(request)
+
+
+def _login(request: Request, response: Response, db: Session, username: str, password: str) -> schemas.AuthResponse:
     user = db.execute(select(models.User).where(models.User.email == username)).scalar_one_or_none()
     if not user or not verify_password(password, user.hashed_password):
         audit_logger.log_event(

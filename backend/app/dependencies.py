@@ -57,12 +57,12 @@ def _normalize_roles(raw_roles: Any) -> list[str]:
     return []
 
 
-async def get_current_user(
+def get_current_user(
     request: Request,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    """Return the authenticated user from the JWT bearer token."""
+    """Authenticate in FastAPI's worker pool so synchronous DB waits cannot stall HTTP."""
     if token.startswith('zoa_'):
         from .services.oauth import delegated_user
         user = delegated_user(db, token, request)

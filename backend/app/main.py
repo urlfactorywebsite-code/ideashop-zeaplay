@@ -954,7 +954,7 @@ def health_check() -> dict[str, str]:
 
 
 @app.get("/ready")
-async def readiness():
+def readiness():
     state = realtime_transport.health()
     redis_ok = len(state["subscribers"]) == 3 and all(item["connected"] and item["alive"] for item in state["subscribers"].values())
     try:
@@ -969,7 +969,7 @@ async def readiness():
 
 
 @app.get("/realtime/metrics")
-async def realtime_metrics(user=Depends(get_current_admin)):
+def realtime_metrics(user=Depends(get_current_admin)):
     from .realtime.outbox import backlog
     state = realtime_transport.health()
     state["connections"] = {"chat": chat_ws.manager.snapshot(), "tasks": tasks_ws.manager.snapshot(), "tickets": ticket_chat.manager.snapshot()}
