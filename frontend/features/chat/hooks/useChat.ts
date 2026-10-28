@@ -358,7 +358,7 @@ export const useChat = (initialConversationId?: string | null) => {
       senderName: user?.name ?? 'You',
       senderRole: user?.role ?? Role.USER,
       sender: { id: user?.id ?? 'me', name: user?.name ?? 'You', avatarUrl: user?.avatarUrl ?? null },
-      messageType: attachments.length ? 'FILE' : 'TEXT',
+      messageType: attachments.length ? (attachments.every(file => file.mimeType.startsWith('image/')) ? 'IMAGE' : 'FILE') : 'TEXT',
       content: content.trim(),
       replyToMessageId: options?.replyToMessageId ?? null,
       createdAt: new Date().toISOString(),
@@ -374,6 +374,7 @@ export const useChat = (initialConversationId?: string | null) => {
       const payloadAttachments = attachments.map(({ id, messageId, createdAt, ...attachment }) => attachment);
       const message = await chatService.sendMessage(selectedConversationId, {
         content: content.trim(),
+        messageType: optimistic.messageType,
         clientId,
         replyToMessageId: options?.replyToMessageId ?? null,
         attachments: payloadAttachments,
@@ -530,6 +531,7 @@ export const useChat = (initialConversationId?: string | null) => {
     presenceByUserId,
     realtimeConnected,
     reload: loadConversations,
+    reloadMessages: () => selectedConversationId ? loadMessages(selectedConversationId, null, true) : undefined,
     reloadDirectory: loadDirectoryUsers,
   };
 };

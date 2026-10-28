@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Query, Response, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -8,6 +9,8 @@ from ..database import get_db
 from ..dependencies import get_current_active_user
 from ..ws import chat as chat_ws
 from .services import AttachmentService, ConversationService, DirectoryService, MemberService, MessageService, PinService, ReactionService
+from .storage import ChatStorageService
+from .serializers import serialize_message
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -244,7 +247,7 @@ def create_message_attachment(
     return AttachmentService(db).create_attachment(message_id, payload, current_user)
 
 
-@router.post("/conversations/{conversation_id}/attachments", response_model=schemas.ChatAttachmentCreate)
+@router.post("/conversations/{conversation_id}/attachments", response_model=schemas.ChatAttachmentUploadRead)
 async def upload_attachment(
     conversation_id: str,
     file: UploadFile = File(...),
@@ -252,6 +255,52 @@ async def upload_attachment(
     current_user: models.User = Depends(get_current_active_user),
 ):
     return await AttachmentService(db).upload_attachment(conversation_id, file, current_user)
+
+
+@router.get("/storage", response_model=schemas.ChatStorageRead)
+def get_chat_storage(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    return ChatStorageService(db).get_storage(current_user, offset=offset, limit=limit)
+
+
+@router.delete("/storage/{upload_id}", status_code=status.HTTP_204_NO_CONTENT)
+def clean_chat_storage(
+    upload_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    messages = ChatStorageService(db).remove(upload_id, current_user)
+    for message in messages:
+        background_tasks.add_task(chat_ws.manager.broadcast_conversation, message.conversation_id,
+                                  "message:updated", chat_ws._message_payload(serialize_message(message)))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _chat_file_response(content):
+    path, mime_type, name = content
+    inline = mime_type in {"image/png", "image/jpeg", "image/gif", "image/webp"}
+    return FileResponse(path, media_type=mime_type, filename=name,
+                        content_disposition_type="inline" if inline else "attachment",
+                        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@router.get("/uploads/{upload_id}/content")
+def get_uploaded_chat_file(
+    upload_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user),
+):
+    return _chat_file_response(ChatStorageService(db).content_for_upload(upload_id, current_user))
+
+
+@router.get("/attachments/{attachment_id}/content")
+def get_chat_attachment_content(
+    attachment_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user),
+):
+    return _chat_file_response(ChatStorageService(db).content_for_attachment(attachment_id, current_user))
 
 
 @router.get("/conversations/{conversation_id}/pins", response_model=list[schemas.ChatPinnedMessageRead])

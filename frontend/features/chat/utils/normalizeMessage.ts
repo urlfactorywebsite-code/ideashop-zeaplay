@@ -1,4 +1,5 @@
 import { Role } from '../../../types';
+import { parseDateString } from '../../../utils';
 import type { ChatAttachment, ChatMessage, ChatMessageType, ChatReaction } from '../types';
 
 type Dict = Record<string, unknown>;
@@ -29,8 +30,10 @@ const numberValue = (value: unknown, fallback = 0): number => {
 const dateValue = (value: unknown, fallback?: string | null): string => {
   const raw = stringValue(value, fallback ?? '');
   if (!raw) return new Date().toISOString();
-  const time = new Date(raw).getTime();
-  return Number.isNaN(time) ? new Date().toISOString() : raw;
+  // Older chat APIs emit naive UTC datetimes. Make the timezone explicit before
+  // history and live messages reach Date parsing, sorting, or local formatting.
+  const date = parseDateString(raw);
+  return !date || Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 };
 
 const roleValue = (value: unknown, fallback = Role.USER): Role => {

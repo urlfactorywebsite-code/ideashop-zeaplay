@@ -16,6 +16,7 @@ import {
   ExternalLink,
   FileText,
   Hash,
+  HardDrive,
   Image as ImageIcon,
   Info,
   Italic,
@@ -55,9 +56,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { User } from '../../types';
+import { parseDateString } from '../../utils';
 import ChatErrorBoundary from './components/ChatErrorBoundary';
 import ChatModal from './components/ChatModal';
 import ChatSearchModal from './components/ChatSearchModal';
+import ChatAttachmentView from './components/ChatAttachmentView';
+import ChatStorageModal from './components/ChatStorageModal';
+import { ChatStorage, ChatStorageQuotaError, formatStorageMB } from './utils/storage';
 import { useChat } from './hooks/useChat';
 import { useNexusCalls, NexusCallPeer } from './hooks/useNexusCalls';
 import { chatService } from './services/chatService';
@@ -87,14 +92,14 @@ const initials = (value?: string | null) => {
 
 const formatTime = (value?: string | null) => {
   if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
+  const date = parseDateString(value);
+  if (!date || Number.isNaN(date.getTime())) return '';
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 const formatDateHeader = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Recent';
+  const date = parseDateString(value);
+  if (!date || Number.isNaN(date.getTime())) return 'Recent';
   const now = new Date();
   const yesterday = new Date();
   yesterday.setDate(now.getDate() - 1);
@@ -708,28 +713,7 @@ const MessageRow: React.FC<{
             )}
             {!isDeleted && message.attachments?.length > 0 && (
               <div className={`mt-2 flex flex-wrap gap-2 ${isSelf ? 'justify-end' : ''}`}>
-                {message.attachments.map((attachment) => {
-                  const fileName = attachment.originalFileName || attachment.fileName || 'Attachment';
-                  const key = attachment.id || attachment.storageKey || attachment.url || fileName;
-                  if (isImageAttachment(attachment) && attachment.url) {
-                    return (
-                      <a key={key} href={attachment.url} target="_blank" rel="noreferrer" className="group/attachment relative block max-w-xs overflow-hidden rounded-xl border border-white/20 bg-slate-900">
-                        <img src={attachment.url} alt={fileName} loading="lazy" className="max-h-56 object-cover transition group-hover/attachment:scale-[1.02]" />
-                        <span className="absolute inset-0 hidden items-center justify-center bg-black/40 text-white group-hover/attachment:flex"><ExternalLink className="h-5 w-5" /></span>
-                      </a>
-                    );
-                  }
-                  return (
-                    <a key={key} href={attachment.url || '#'} target="_blank" rel="noreferrer" className="flex max-w-sm items-center gap-3 rounded-xl border border-white/20 bg-black/20 p-3 text-xs hover:border-blue-300">
-                      <span className="rounded-lg bg-white/10 p-2 text-blue-100"><FileText className="h-5 w-5" /></span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold">{fileName}</span>
-                        <span className="text-[10px] opacity-70">{formatFileSize(attachment.fileSize)}</span>
-                      </span>
-                      <Download className="h-4 w-4 opacity-70" />
-                    </a>
-                  );
-                })}
+                {message.attachments.map(attachment => <ChatAttachmentView key={attachment.id || attachment.storageKey} attachment={attachment} />)}
               </div>
             )}
           </div>
@@ -822,7 +806,7 @@ const MessageTimeline: React.FC<{
       ) : (
         filteredMessages.map((message, index) => {
           const previous = index > 0 ? filteredMessages[index - 1] : null;
-          const showHeader = !previous || new Date(previous.createdAt).toDateString() !== new Date(message.createdAt).toDateString();
+          const showHeader = !previous || parseDateString(previous.createdAt)?.toDateString() !== parseDateString(message.createdAt)?.toDateString();
           return (
             <React.Fragment key={message.id}>
               {showHeader && (
@@ -876,14 +860,21 @@ const NexusComposer: React.FC<{
   onCancelEdit: () => void;
   onTyping: (typing: boolean) => void;
   onUploadAttachment: (file: File, onProgress?: (progress: number) => void) => Promise<ChatAttachment>;
-}> = ({ disabled, disabledReason, conversationName, replyTo, editingMessage, onSend, onEdit, onCancelReply, onCancelEdit, onTyping, onUploadAttachment }) => {
+  onManageStorage: () => void;
+  onDiscardUpload: (uploadId: string) => Promise<void>;
+  storage: ChatStorage | null;
+  removedUploadIds: string[];
+}> = ({ disabled, disabledReason, conversationName, replyTo, editingMessage, onSend, onEdit, onCancelReply, onCancelEdit, onTyping, onUploadAttachment, onManageStorage, onDiscardUpload, storage, removedUploadIds }) => {
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [formatMenuOpen, setFormatMenuOpen] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadingRef = useRef(false);
   const typingTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -923,19 +914,39 @@ const NexusComposer: React.FC<{
   };
 
   const uploadFiles = async (files: FileList | File[]) => {
-    if (disabled) return;
+    if (disabled || uploadingRef.current || editingMessage) return;
+    uploadingRef.current = true;
     setUploading(true);
     setUploadError(null);
     try {
       for (const file of Array.from(files)) {
-        const attachment = await onUploadAttachment(file);
+        setUploadProgress(0);
+        const attachment = await onUploadAttachment(file, setUploadProgress);
         setAttachments((current) => [...current, attachment]);
       }
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : 'Upload failed');
     } finally {
+      uploadingRef.current = false;
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (imageInputRef.current) imageInputRef.current.value = '';
     }
+  };
+
+  useEffect(() => {
+    setAttachments(current => current.filter(attachment => !removedUploadIds.includes(attachment.id)));
+  }, [removedUploadIds]);
+
+  const discard = async (attachment: ChatAttachment) => {
+    if (uploadingRef.current) return;
+    uploadingRef.current = true;
+    setUploading(true);
+    try {
+      await onDiscardUpload(attachment.id);
+      setAttachments(current => current.filter(item => item.id !== attachment.id));
+    } catch (error) { setUploadError(error instanceof Error ? error.message : 'Could not remove upload'); }
+    finally { uploadingRef.current = false; setUploading(false); }
   };
 
   const submit = async () => {
@@ -964,6 +975,12 @@ const NexusComposer: React.FC<{
       }}
       className="shrink-0 border-t border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
     >
+      <input ref={fileInputRef} type="file" multiple className="hidden" aria-label="Choose chat files" onChange={event => event.target.files && void uploadFiles(event.target.files)} />
+      <input ref={imageInputRef} type="file" multiple accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" aria-label="Choose chat images" onChange={event => event.target.files && void uploadFiles(event.target.files)} />
+      <div className="mb-2 flex items-center justify-between gap-2 text-[10px] text-slate-500 dark:text-slate-400">
+        <span>{storage ? `${formatStorageMB(storage.used_bytes)} / 200 MB used` : '200 MB chat storage per user'}</span>
+        <button type="button" onClick={onManageStorage} className="flex items-center gap-1 rounded p-1 text-blue-500 hover:underline" title="Manage chat storage"><HardDrive className="h-3 w-3" /> Manage storage</button>
+      </div>
       {replyTo && !editingMessage && (
         <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
           <span className="truncate"><strong>Replying:</strong> {replyTo.content}</span>
@@ -979,15 +996,15 @@ const NexusComposer: React.FC<{
       {attachments.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
           {attachments.map((attachment, index) => (
-            <span key={attachment.id || attachment.storageKey || index} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-2.5 py-1.5 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-              {isImageAttachment(attachment) ? <ImageIcon className="h-3.5 w-3.5 text-blue-500" /> : <FileText className="h-3.5 w-3.5 text-indigo-500" />}
-              <span className="max-w-[160px] truncate">{attachment.originalFileName || attachment.fileName}</span>
-              <button type="button" onClick={() => setAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="text-slate-400 hover:text-rose-500"><X className="h-3 w-3" /></button>
-            </span>
+            <div key={attachment.id || attachment.storageKey || index} className="relative rounded-xl bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              <ChatAttachmentView attachment={attachment} compact />
+              <button type="button" disabled={uploading} onClick={() => void discard(attachment)} title={`Remove ${attachment.originalFileName || attachment.fileName}`} className="absolute -right-1 -top-1 rounded-full bg-slate-700 p-1 text-white hover:bg-rose-600"><X className="h-3 w-3" /></button>
+            </div>
           ))}
         </div>
       )}
-      {uploadError && <div className="mb-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">{uploadError}</div>}
+      {uploadError && <div role="alert" className="mb-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">{uploadError}</div>}
+      {uploading && <p role="status" className="mb-2 text-xs text-blue-500">Uploading... {uploadProgress}%</p>}
       {disabledReason && <div className="mb-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">{disabledReason}</div>}
       <div className="rounded-2xl border border-slate-200 bg-slate-50/70 transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-800 dark:bg-slate-900/50">
         {formatMenuOpen && (
@@ -998,8 +1015,6 @@ const NexusComposer: React.FC<{
             <button type="button" onClick={() => applyFormatting('- ', '')} className="rounded-lg p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800" title="List"><List className="h-3.5 w-3.5" /></button>
             <button type="button" onClick={() => applyFormatting('> ', '')} className="rounded-lg p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800" title="Quote"><Quote className="h-3.5 w-3.5" /></button>
             <span className="mx-1 h-4 w-px bg-slate-200 dark:bg-slate-800" />
-            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(event) => event.target.files && void uploadFiles(event.target.files)} />
-            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading || disabled} className="rounded-lg p-1.5 hover:bg-slate-200 disabled:opacity-50 dark:hover:bg-slate-800" title="Attach file">{uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" /> : <Paperclip className="h-3.5 w-3.5" />}</button>
             <button type="button" onClick={() => setContent((value) => `${value}@`)} disabled={disabled} className="rounded-lg px-2 py-1 text-xs font-black hover:bg-slate-200 disabled:opacity-50 dark:hover:bg-slate-800" title="Mention">@</button>
             <button type="button" onClick={() => setContent((value) => `${value}+1`)} disabled={disabled} className="rounded-lg p-1.5 hover:bg-slate-200 disabled:opacity-50 dark:hover:bg-slate-800" title="Insert reaction text"><Smile className="h-3.5 w-3.5" /></button>
           </div>
@@ -1009,6 +1024,10 @@ const NexusComposer: React.FC<{
             ref={textareaRef}
             value={content}
             onChange={(event) => handleInput(event.target.value)}
+            onPaste={event => {
+              const images = Array.from(event.clipboardData.files).filter(file => file.type.startsWith('image/'));
+              if (images.length) { event.preventDefault(); void uploadFiles(images); }
+            }}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
@@ -1020,6 +1039,8 @@ const NexusComposer: React.FC<{
             placeholder={disabled ? 'Select a conversation' : `Message ${conversationName}...`}
             className="max-h-44 w-full resize-none border-0 bg-transparent text-xs leading-relaxed text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100"
           />
+          <button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploading || disabled || Boolean(editingMessage)} className="rounded-xl p-2 text-blue-500 hover:bg-slate-200 disabled:opacity-40 dark:hover:bg-slate-800" title="Send image"><ImageIcon className="h-4 w-4" /></button>
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading || disabled || Boolean(editingMessage)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-200 disabled:opacity-40 dark:hover:bg-slate-800" title="Attach file"><Paperclip className="h-4 w-4" /></button>
           <button type="button" onClick={() => setFormatMenuOpen((value) => !value)} className="rounded-xl p-2 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800" title="Formatting toolbar"><Bold className="h-4 w-4" /></button>
           <button type="button" onClick={() => void submit()} disabled={disabled || uploading || (!content.trim() && attachments.length === 0)} className="rounded-xl bg-blue-600 p-2 text-white shadow-sm hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40" title="Send message">
             <Send className="h-4 w-4" />
@@ -1185,16 +1206,10 @@ const RightDetails: React.FC<{
         {tab === 'files' && (
           <div className="space-y-2">
             {attachments.length === 0 ? <EmptyDetail icon={FileText} label="No shared files yet" /> : attachments.map(({ attachment, message }, index) => (
-              <a key={`${attachment.id || attachment.storageKey}-${index}`} href={attachment.url || '#'} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-2.5 hover:border-blue-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-700">
-                <span className="flex min-w-0 items-center gap-2.5">
-                  <span className="rounded-lg bg-blue-50 p-2 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300">{isImageAttachment(attachment) ? <ImageIcon className="h-4 w-4" /> : <FileText className="h-4 w-4" />}</span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-xs font-bold text-slate-800 dark:text-slate-200">{attachment.originalFileName || attachment.fileName}</span>
-                    <span className="text-[10px] text-slate-400">{formatFileSize(attachment.fileSize)} | {formatDateHeader(message.createdAt)}</span>
-                  </span>
-                </span>
-                <Download className="h-4 w-4 text-slate-400" />
-              </a>
+              <div key={`${attachment.id || attachment.storageKey}-${index}`}>
+                <ChatAttachmentView attachment={attachment} downloadOnly />
+                <span className="text-[10px] text-slate-400">{formatDateHeader(message.createdAt)}</span>
+              </div>
             ))}
           </div>
         )}
@@ -1205,7 +1220,7 @@ const RightDetails: React.FC<{
               <div className="space-y-1.5">
                 <div className="flex justify-between"><span>Type</span><strong>{conversation.type}</strong></div>
                 <div className="flex justify-between"><span>Privacy</span><strong>{conversation.isPrivate ? 'Private' : 'Public'}</strong></div>
-                <div className="flex justify-between"><span>Created</span><strong>{new Date(conversation.createdAt).toLocaleDateString()}</strong></div>
+                <div className="flex justify-between"><span>Created</span><strong>{parseDateString(conversation.createdAt)?.toLocaleDateString()}</strong></div>
                 <div className="truncate font-mono text-[10px] text-slate-400">{conversation.id}</div>
               </div>
             </InfoCard>
@@ -1371,9 +1386,66 @@ const ChatApp: React.FC = () => {
   const [creationMode, setCreationMode] = useState<'DIRECT' | 'GROUP' | 'SPACE' | null>(null);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(true);
+  const [storage, setStorage] = useState<ChatStorage | null>(null);
+  const storageRef = useRef<ChatStorage | null>(null);
+  const storageUserRef = useRef(user?.id);
+  storageUserRef.current = user?.id;
+  const [storageOpen, setStorageOpen] = useState(false);
+  const [removedUploadIds, setRemovedUploadIds] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [contactsOpen, setContactsOpen] = useState<ContactMode | null>(null);
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
+
+  const updateStorage = (data: ChatStorage) => {
+    if (storageUserRef.current !== user?.id) return;
+    storageRef.current = data;
+    setStorage(data);
+  };
+  const refreshStorage = async () => {
+    const requestedUser = storageUserRef.current;
+    try {
+      const data = await chatService.getStorage();
+      if (requestedUser === storageUserRef.current) updateStorage(data);
+    } catch { /* Uploads remain server-enforced if usage cannot load. */ }
+  };
+  useEffect(() => {
+    let active = true;
+    storageRef.current = null;
+    setStorage(null);
+    setStorageOpen(false);
+    setRemovedUploadIds([]);
+    if (user?.id) void chatService.getStorage().then(data => { if (active) updateStorage(data); }).catch(() => {});
+    return () => { active = false; };
+  }, [user?.id]);
+
+  const uploadAttachment = async (file: File, onProgress?: (progress: number) => void) => {
+    const requestedUser = storageUserRef.current;
+    try {
+      const usage = storageRef.current;
+      if (file.size > (usage?.max_file_bytes ?? 200 * 1024 * 1024)) throw new Error('This file is too large. Each chat file must fit within the 200 MB limit.');
+      if (usage && file.size > usage.remaining_bytes) throw new ChatStorageQuotaError();
+      const attachment = await chat.uploadAttachment(chat.selectedConversationId!, file, onProgress);
+      if (requestedUser !== storageUserRef.current) throw new Error('Your session changed. Please reopen chat before uploading.');
+      await refreshStorage();
+      return attachment;
+    } catch (error) {
+      if (error instanceof ChatStorageQuotaError && requestedUser === storageUserRef.current) { setStorageOpen(true); void refreshStorage(); }
+      throw error;
+    }
+  };
+
+  const removedUpload = (uploadId: string) => {
+    if (storageUserRef.current !== user?.id) return;
+    setRemovedUploadIds(current => [...current, uploadId]);
+    void chat.reloadMessages();
+    void chat.reload();
+    void refreshPins();
+  };
+  const discardUpload = async (uploadId: string) => {
+    await chatService.deleteStorageFile(uploadId);
+    removedUpload(uploadId);
+    await refreshStorage();
+  };
   const [conversationSearch, setConversationSearch] = useState('');
   const [searchInChatOpen, setSearchInChatOpen] = useState(false);
   const [searchInChatTerm, setSearchInChatTerm] = useState('');
@@ -1573,6 +1645,7 @@ const ChatApp: React.FC = () => {
                 backgroundColor={chatBackgroundColor}
               />
               <NexusComposer
+                key={chat.selectedConversationId}
                 disabled={!chat.selectedConversation || selectedDirectInactive}
                 disabledReason={selectedDirectInactive ? 'This user is no longer active. You can view previous messages but cannot send new messages.' : undefined}
                 conversationName={chat.selectedConversation.type === 'DIRECT' ? selectedTitle : `#${selectedTitle.toLowerCase().replace(/\s+/g, '-')}`}
@@ -1583,7 +1656,11 @@ const ChatApp: React.FC = () => {
                 onCancelReply={() => setReplyTo(null)}
                 onCancelEdit={() => setEditingMessage(null)}
                 onTyping={chat.setTyping}
-                onUploadAttachment={(file, onProgress) => chat.uploadAttachment(chat.selectedConversationId!, file, onProgress)}
+                onUploadAttachment={uploadAttachment}
+                storage={storage}
+                removedUploadIds={removedUploadIds}
+                onManageStorage={() => setStorageOpen(true)}
+                onDiscardUpload={discardUpload}
               />
             </ChatErrorBoundary>
           ) : (
@@ -1615,6 +1692,7 @@ const ChatApp: React.FC = () => {
         )}
       </div>
 
+      <ChatStorageModal key={user?.id} open={storageOpen} onClose={() => setStorageOpen(false)} onStorage={updateStorage} onRemoved={uploadId => { removedUpload(uploadId); void refreshStorage(); }} />
       <ChatModal
         open={Boolean(creationMode)}
         mode={creationMode ?? 'DIRECT'}

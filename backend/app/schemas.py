@@ -4,9 +4,10 @@ import uuid
 from datetime import date, datetime, timezone
 from enum import Enum
 from types import SimpleNamespace
-from typing import Any, Dict, List, Literal, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional
 
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     EmailStr,
@@ -2346,6 +2347,14 @@ class PipelineMembershipUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _normalize_chat_timestamp(value: datetime) -> datetime:
+    # Chat storage uses naive UTC; outbound timestamps must include the offset.
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+
+
+ChatUtcTimestamp = Annotated[datetime, AfterValidator(_normalize_chat_timestamp)]
+
+
 class ChatMemberRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -2360,9 +2369,9 @@ class ChatMemberRead(BaseModel):
     account_status: UserStatusEnum = UserStatusEnum.ACTIVE
     app_role: RoleEnum
     role: ChatMemberRoleEnum
-    joined_at: datetime
+    joined_at: ChatUtcTimestamp
     last_read_message_id: Optional[str] = None
-    last_read_at: Optional[datetime] = None
+    last_read_at: Optional[ChatUtcTimestamp] = None
     is_muted: bool = False
     is_pinned: bool = False
 
@@ -2409,7 +2418,7 @@ class ChatDirectoryUserRead(BaseModel):
     email: str
     avatar_url: Optional[str] = None
     presence: Literal["ONLINE", "AWAY", "OFFLINE"] = "OFFLINE"
-    last_seen_at: Optional[datetime] = None
+    last_seen_at: Optional[ChatUtcTimestamp] = None
     role_name: Optional[str] = None
     team_name: Optional[str] = None
     title: Optional[str] = None
@@ -2417,7 +2426,7 @@ class ChatDirectoryUserRead(BaseModel):
     is_favorite: bool = False
     unread_count: int = 0
     latest_message_preview: Optional[str] = None
-    last_message_at: Optional[datetime] = None
+    last_message_at: Optional[ChatUtcTimestamp] = None
 
 
 class ChatDirectoryPage(BaseModel):
@@ -2489,7 +2498,7 @@ class ChatReactionRead(BaseModel):
     message_id: str
     user_id: str
     emoji: str
-    created_at: datetime
+    created_at: ChatUtcTimestamp
 
 
 class ChatAttachmentCreate(BaseModel):
@@ -2509,6 +2518,29 @@ class ChatAttachmentCreate(BaseModel):
         return value
 
 
+class ChatAttachmentUploadRead(ChatAttachmentCreate):
+    upload_id: str
+
+
+class ChatStorageFileRead(BaseModel):
+    id: str
+    original_file_name: str
+    mime_type: str
+    file_size: int
+    created_at: ChatUtcTimestamp
+    attached: bool
+
+
+class ChatStorageRead(BaseModel):
+    used_bytes: int
+    limit_bytes: int
+    remaining_bytes: int
+    max_file_bytes: int
+    file_count: int
+    items: List[ChatStorageFileRead]
+    has_more: bool = False
+
+
 class ChatAttachmentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -2520,7 +2552,7 @@ class ChatAttachmentRead(BaseModel):
     file_size: int
     storage_key: str
     url: Optional[str] = None
-    created_at: datetime
+    created_at: ChatUtcTimestamp
 
 
 class ChatMessageRead(BaseModel):
@@ -2535,10 +2567,10 @@ class ChatMessageRead(BaseModel):
     client_id: Optional[str] = None
     content: str
     reply_to_message_id: Optional[str] = None
-    edited_at: Optional[datetime] = None
-    deleted_at: Optional[datetime] = None
-    created_at: datetime
-    updated_at: datetime
+    edited_at: Optional[ChatUtcTimestamp] = None
+    deleted_at: Optional[ChatUtcTimestamp] = None
+    created_at: ChatUtcTimestamp
+    updated_at: ChatUtcTimestamp
     reactions: List[ChatReactionRead] = Field(default_factory=list)
     attachments: List[ChatAttachmentRead] = Field(default_factory=list)
     mentions: List[str] = Field(default_factory=list)
@@ -2551,7 +2583,7 @@ class ChatPinnedMessageRead(BaseModel):
     conversation_id: str
     message_id: str
     pinned_by: str
-    created_at: datetime
+    created_at: ChatUtcTimestamp
     message: ChatMessageRead
 
 
@@ -2563,9 +2595,9 @@ class ChatConversationRead(ChatConversationBase):
     type: ChatConversationTypeEnum
     created_by_id: Optional[str]
     is_archived: bool = False
-    created_at: datetime
-    updated_at: datetime
-    last_message_at: Optional[datetime]
+    created_at: ChatUtcTimestamp
+    updated_at: ChatUtcTimestamp
+    last_message_at: Optional[ChatUtcTimestamp]
     members: List[ChatMemberRead] = Field(default_factory=list)
     unread_count: int = 0
 

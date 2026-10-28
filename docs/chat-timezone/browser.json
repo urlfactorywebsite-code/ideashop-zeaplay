@@ -1,0 +1,10 @@
+{
+  "environment": "Loopback production build; synthetic REST APIs; realtime disabled; Asia/Kolkata; en-IN; frozen browser date; no real messages",
+  "passed": [
+    "Naive UTC, explicit Z, and +05:30 history timestamps all display 10:25 in India",
+    "Local date separators change at India midnight and remain Today across UTC midnight",
+    "Conversation and directory sidebar last_message_at timestamps display 10:25 in India",
+    "Optimistic send and naive UTC server acknowledgment retain the same 10:25 display with one message"
+  ],
+  "errors": []
+}

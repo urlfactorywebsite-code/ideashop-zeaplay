@@ -1,5 +1,9 @@
 import uuid
 import sys
+import base64
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
@@ -26,6 +30,7 @@ from backend.app.models import (
     ChatConversation,
     ChatConversationTypeEnum,
     ChatMessage,
+    ChatUpload,
     ChatMemberRoleEnum,
     ChatParticipant,
     Department,
@@ -55,6 +60,7 @@ CHAT_TEST_TABLES = [
     ChatConversation.__table__,
     ChatParticipant.__table__,
     ChatMessage.__table__,
+    ChatUpload.__table__,
     MessageReaction.__table__,
     MessageAttachment.__table__,
     PinnedMessage.__table__,
@@ -519,20 +525,17 @@ def test_read_markers_reactions_and_attachment_metadata(client):
     assert duplicate_reaction.status_code == 200
     assert len(duplicate_reaction.json()["reactions"]) == 1
 
+    uploaded = client.post(
+        f"/api/chat/conversations/{conversation['id']}/attachments",
+        files={"file": ("Launch Plan.pdf", BytesIO(b"%PDF-1.4\nlaunch"), "application/pdf")},
+    ).json()
     attachment = client.post(
         f"/api/chat/messages/{message['id']}/attachments",
-        json={
-            "file_name": "launch.pdf",
-            "original_file_name": "Launch Plan.pdf",
-            "mime_type": "application/pdf",
-            "file_size": 128,
-            "storage_key": "chat/user-a/launch.pdf",
-            "url": "https://example.test/launch.pdf",
-        },
+        json=uploaded,
     )
     assert attachment.status_code == 201
     assert attachment.json()["message_id"] == message["id"]
-    assert attachment.json()["storage_key"] == "chat/user-a/launch.pdf"
+    assert attachment.json()["storage_key"] == uploaded["storage_key"]
 
     removed = client.delete(f"/api/chat/messages/{message['id']}/reactions/ship")
     assert removed.status_code == 200
@@ -799,3 +802,296 @@ def test_websocket_connection_cleanup_after_disconnect(client):
     with client.websocket_connect(f"/api/ws/chat?token={token}") as ws:
         receive_until(ws, "presence:changed")
     assert chat_ws.manager.snapshot()["sockets"] == 0
+
+
+# Storage tests use only the fixture database and a fresh private media directory.
+@pytest.fixture()
+def storage_client(client, monkeypatch, tmp_path):
+    from backend.app.chat import services
+    monkeypatch.setattr(get_settings(), "media_root", str(tmp_path))
+    monkeypatch.setattr(services, "check_rate_limit", lambda *args, **kwargs: None)
+    return client
+
+
+def _storage_conversation(client):
+    return client.post("/api/chat/direct", json={"user_id": "user-b"}).json()["id"]
+
+
+def _storage_upload(client, conversation_id, data=b"hello", name="notes.txt", mime="text/plain"):
+    return client.post(f"/api/chat/conversations/{conversation_id}/attachments",
+                       files={"file": (name, BytesIO(data), mime)})
+
+
+def _storage_user(db, user_id):
+    app.dependency_overrides[get_current_active_user] = lambda: db.get(User, user_id)
+
+
+def _seed_storage(db, conversation_id, size, key="chat/seed.bin"):
+    item = ChatUpload(tenant_id=TENANT_ID, user_id="user-a", conversation_id=conversation_id,
+                      file_name="seed.bin", original_file_name="seed.bin", mime_type="application/zip",
+                      file_size=size, storage_key=key)
+    db.add(item)
+    db.commit()
+    return item.id
+
+
+def test_storage_real_image_upload_send_reload_and_authorized_content(storage_client, db):
+    client = storage_client
+    conversation = _storage_conversation(client)
+    png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5ZkAAAAASUVORK5CYII=")
+    response = _storage_upload(client, conversation, png, "photo.png", "image/png")
+    assert response.status_code == 200
+    upload = response.json()
+    assert client.get("/api" + upload["url"]).content == png
+    assert client.get("/api/chat/storage").json()["used_bytes"] == len(png)
+    _storage_user(db, "user-b")
+    assert client.get("/api" + upload["url"]).status_code == 404  # Unsent drafts stay private.
+    _storage_user(db, "user-a")
+    sent = client.post(f"/api/chat/conversations/{conversation}/messages",
+                       json={"content": "", "message_type": "IMAGE", "attachments": [upload]})
+    assert sent.status_code == 201
+    attachment = sent.json()["attachments"][0]
+    assert attachment["url"].startswith("/chat/attachments/")
+    reloaded = client.get(f"/api/chat/conversations/{conversation}/messages").json()["items"]
+    assert reloaded[0]["attachments"][0]["file_size"] == len(png)
+    assert client.get("/api/chat/storage").json()["used_bytes"] == len(png)  # Count bytes once.
+    _storage_user(db, "user-b")
+    content = client.get("/api" + attachment["url"])
+    assert content.status_code == 200 and content.content == png
+    assert "no-store" in content.headers["cache-control"]
+    assert client.get("/api/chat/storage").json()["used_bytes"] == 0
+    _storage_user(db, "user-c")
+    assert client.get("/api" + attachment["url"]).status_code in (403, 404)
+    _storage_user(db, "user-x")
+    assert client.get("/api" + attachment["url"]).status_code == 404
+
+
+def test_storage_exact_limit_and_one_byte_over_are_server_enforced(storage_client, db):
+    from backend.app.chat.storage import CHAT_STORAGE_LIMIT_BYTES
+    conversation = _storage_conversation(storage_client)
+    _seed_storage(db, conversation, CHAT_STORAGE_LIMIT_BYTES - 2)
+    assert _storage_upload(storage_client, conversation, b"ok").status_code == 200
+    full = storage_client.get("/api/chat/storage").json()
+    assert full["used_bytes"] == full["limit_bytes"] == 200 * 1024 * 1024
+    rejected = _storage_upload(storage_client, conversation, b"x")
+    assert rejected.status_code == 413
+    assert rejected.json()["detail"]["code"] == "CHAT_STORAGE_QUOTA_EXCEEDED"
+    assert "Clean up storage" in rejected.json()["detail"]["message"]
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == full["used_bytes"]
+    assert db.query(ChatUpload).count() == 2
+
+
+def test_storage_quota_is_per_uploader_and_cleanup_cannot_target_other_users(storage_client, db):
+    from backend.app.chat.storage import CHAT_STORAGE_LIMIT_BYTES
+    conversation = _storage_conversation(storage_client)
+    owned_id = _seed_storage(db, conversation, CHAT_STORAGE_LIMIT_BYTES)
+    _storage_user(db, "user-b")
+    assert _storage_upload(storage_client, conversation).status_code == 200
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == 5
+    assert storage_client.delete(f"/api/chat/storage/{owned_id}").status_code == 404
+    _storage_user(db, "user-x")
+    assert storage_client.get("/api/chat/storage").json()["file_count"] == 0
+    assert storage_client.delete(f"/api/chat/storage/{owned_id}").status_code == 404
+    _storage_user(db, "user-a")
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == CHAT_STORAGE_LIMIT_BYTES
+
+
+def test_storage_cleanup_frees_pending_bytes_and_removes_physical_file(storage_client):
+    conversation = _storage_conversation(storage_client)
+    upload = _storage_upload(storage_client, conversation).json()
+    path = Path(get_settings().media_root) / upload["storage_key"]
+    assert path.read_bytes() == b"hello"
+    assert storage_client.delete(f"/api/chat/storage/{upload['upload_id']}").status_code == 204
+    assert not path.exists()
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == 0
+    assert storage_client.get("/api" + upload["url"]).status_code == 404
+    assert _storage_upload(storage_client, conversation).status_code == 200
+
+
+def test_storage_cleanup_preserves_text_and_updates_shared_messages(storage_client):
+    conversation = _storage_conversation(storage_client)
+    upload = _storage_upload(storage_client, conversation).json()
+    created = []
+    for content in ["Keep this caption", ""]:
+        response = storage_client.post(f"/api/chat/conversations/{conversation}/messages",
+                                       json={"content": content, "attachments": [upload]})
+        assert response.status_code == 201
+        created.append(response.json())
+    assert storage_client.delete(f"/api/chat/storage/{upload['upload_id']}").status_code == 204
+    rows = storage_client.get(f"/api/chat/conversations/{conversation}/messages").json()["items"]
+    by_id = {row["id"]: row for row in rows}
+    assert by_id[created[0]["id"]]["content"] == "Keep this caption"
+    assert by_id[created[1]["id"]]["content"] == "Attachment removed during storage cleanup"
+    assert all(not row["attachments"] for row in rows)
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == 0
+    assert storage_client.get("/api" + created[0]["attachments"][0]["url"]).status_code == 404
+
+
+def test_storage_existing_files_are_adopted_once_even_for_deleted_messages(storage_client, db):
+    conversation = _storage_conversation(storage_client)
+    message = ChatMessage(conversation_id=conversation, sender_id="user-a", content="Existing", deleted_at=datetime.utcnow())
+    db.add(message)
+    db.flush()
+    legacy = Path(get_settings().media_root) / "chat/legacy.txt"
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_bytes(b"legacy!")
+    for declared_size in (7, 7000):
+        db.add(MessageAttachment(message_id=message.id, file_name="old.txt", original_file_name="old.txt",
+                                 mime_type="text/plain", file_size=declared_size, storage_key="chat/legacy.txt"))
+    db.commit()
+    first = storage_client.get("/api/chat/storage").json()
+    second = storage_client.get("/api/chat/storage").json()
+    assert first["used_bytes"] == second["used_bytes"] == 7
+    assert first["file_count"] == second["file_count"] == 1
+    assert first["items"][0]["attached"] is True
+
+
+def test_storage_forged_metadata_and_cross_conversation_reuse_cannot_bypass_uploads(storage_client, db):
+    conversation = _storage_conversation(storage_client)
+    fake = {"file_name": "x.txt", "original_file_name": "x.txt", "file_size": 0,
+            "mime_type": "text/plain", "storage_key": "chat/forged.txt", "url": "https://invalid.test/x"}
+    result = storage_client.post(f"/api/chat/conversations/{conversation}/messages", json={"attachments": [fake]})
+    assert result.status_code == 422
+    upload = _storage_upload(storage_client, conversation).json()
+    _storage_user(db, "user-b")
+    assert storage_client.post(f"/api/chat/conversations/{conversation}/messages", json={"attachments": [upload]}).status_code == 422
+    _storage_user(db, "user-a")
+    other = storage_client.post("/api/chat/direct", json={"user_id": "user-c"}).json()["id"]
+    assert storage_client.post(f"/api/chat/conversations/{other}/messages", json={"attachments": [upload]}).status_code == 422
+    upload.update(file_size=0, url="https://invalid.test/fake", mime_type="image/png")
+    result = storage_client.post(f"/api/chat/conversations/{conversation}/messages", json={"attachments": [upload]})
+    assert result.status_code == 201
+    actual = result.json()["attachments"][0]
+    assert actual["file_size"] == 5 and actual["mime_type"] == "text/plain"
+    assert actual["url"].startswith("/chat/attachments/")
+
+
+def test_storage_failed_physical_cleanup_does_not_release_quota(storage_client, db, monkeypatch):
+    from backend.app.storage.local import LocalAdapter
+    conversation = _storage_conversation(storage_client)
+    upload = _storage_upload(storage_client, conversation).json()
+    def fail(*args):
+        raise PermissionError("Synthetic filesystem failure")
+    monkeypatch.setattr(LocalAdapter, "delete", fail)
+    response = storage_client.delete(f"/api/chat/storage/{upload['upload_id']}")
+    assert response.status_code == 503
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == 5
+    assert (Path(get_settings().media_root) / upload["storage_key"]).exists()
+
+
+def test_storage_concurrent_uploads_cannot_exceed_quota(storage_client, db, monkeypatch):
+    from starlette.datastructures import Headers, UploadFile
+    from fastapi import HTTPException
+    from backend.app.chat import storage
+    from backend.app.chat.services import AttachmentService
+    monkeypatch.setattr(storage, "CHAT_STORAGE_LIMIT_BYTES", 32)
+    conversation = _storage_conversation(storage_client)
+    _seed_storage(db, conversation, 16)
+    barrier = Barrier(2)
+    def upload_one(_):
+        session = TestingSessionLocal()
+        try:
+            user = session.get(User, "user-a")
+            file = UploadFile(BytesIO(b"abcdefghij"), filename="race.txt", headers=Headers({"content-type": "text/plain"}))
+            barrier.wait(timeout=10)
+            try:
+                asyncio.run(AttachmentService(session).upload_attachment(conversation, file, user))
+                return 200
+            except HTTPException as error:
+                session.rollback()
+                return error.status_code
+        finally:
+            session.close()
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(upload_one, range(2)))
+    assert sorted(results) == [200, 413]
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == 26
+
+
+def test_storage_failed_database_commit_removes_new_file(storage_client, db, monkeypatch):
+    from sqlalchemy.orm import Session
+    conversation = _storage_conversation(storage_client)
+    def fail_commit(*args):
+        raise RuntimeError("Synthetic commit failure")
+    with monkeypatch.context() as patch:
+        patch.setattr(Session, "commit", fail_commit)
+        with pytest.raises(RuntimeError, match="Synthetic commit failure"):
+            _storage_upload(storage_client, conversation)
+    assert db.query(ChatUpload).count() == 0
+    assert not [path for path in Path(get_settings().media_root).rglob("*") if path.is_file()]
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == 0
+
+
+def test_storage_oversized_file_is_bounded_and_never_persisted(storage_client, db, monkeypatch):
+    from backend.app.chat import services
+    monkeypatch.setattr(services, "CHAT_STORAGE_LIMIT_BYTES", 8)
+    conversation = _storage_conversation(storage_client)
+    response = _storage_upload(storage_client, conversation, b"0123456789")
+    assert response.status_code == 413
+    assert response.json()["detail"] == "Attachment is too large"
+    assert db.query(ChatUpload).count() == 0
+
+
+def test_storage_unavailability_does_not_break_text_messages(storage_client, monkeypatch):
+    from backend.app.storage.local import LocalAdapter
+    conversation = _storage_conversation(storage_client)
+    def unavailable(*args):
+        raise PermissionError("Synthetic storage unavailable")
+    monkeypatch.setattr(LocalAdapter, "__init__", unavailable)
+    response = storage_client.post(f"/api/chat/conversations/{conversation}/messages", json={"content": "Text still works"})
+    assert response.status_code == 201
+    assert response.json()["content"] == "Text still works"
+
+
+def test_storage_existing_cross_workspace_members_keep_file_access_and_own_quota(storage_client, db):
+    conversation = storage_client.post("/api/chat/direct", json={"user_id": "user-x"}).json()["id"]
+    _storage_user(db, "user-x")
+    upload = _storage_upload(storage_client, conversation).json()
+    response = storage_client.post(f"/api/chat/conversations/{conversation}/messages", json={"attachments": [upload]})
+    assert response.status_code == 201
+    attachment = response.json()["attachments"][0]
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == 5
+    _storage_user(db, "user-a")
+    assert storage_client.get("/api" + upload["url"]).content == b"hello"
+    assert storage_client.get("/api" + attachment["url"]).content == b"hello"
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == 0
+    assert storage_client.delete(f"/api/chat/storage/{upload['upload_id']}").status_code == 404
+    _storage_user(db, "user-x")
+    assert storage_client.delete(f"/api/chat/storage/{upload['upload_id']}").status_code == 204
+    assert db.query(MessageAttachment).filter_by(storage_key=upload["storage_key"]).count() == 0
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == 0
+
+
+def test_storage_legacy_cross_workspace_files_are_charged_to_the_sender(storage_client, db):
+    conversation = storage_client.post("/api/chat/direct", json={"user_id": "user-x"}).json()["id"]
+    message = ChatMessage(conversation_id=conversation, sender_id="user-x", content="Existing cross-workspace file")
+    db.add(message)
+    db.flush()
+    db.add(MessageAttachment(message_id=message.id, file_name="old.txt", original_file_name="old.txt", mime_type="text/plain", file_size=7, storage_key="chat/legacy-cross.txt"))
+    db.commit()
+    _storage_user(db, "user-x")
+    storage = storage_client.get("/api/chat/storage").json()
+    assert storage["used_bytes"] == 7
+    upload = db.get(ChatUpload, storage["items"][0]["id"])
+    assert upload.tenant_id == OTHER_TENANT_ID and upload.user_id == "user-x"
+    _storage_user(db, "user-a")
+    assert storage_client.get("/api/chat/storage").json()["used_bytes"] == 0
+
+
+def test_storage_missing_schema_is_actionable_and_recovers_without_restart(monkeypatch, tmp_path):
+    from fastapi import HTTPException
+    from backend.app.chat.storage import ChatStorageService
+    isolated_engine = create_engine("sqlite://")
+    session = sessionmaker(bind=isolated_engine)()
+    monkeypatch.setattr(get_settings(), "media_root", str(tmp_path))
+    try:
+        with pytest.raises(HTTPException) as failure:
+            ChatStorageService(session)
+        assert failure.value.status_code == 503
+        assert failure.value.detail["code"] == "CHAT_STORAGE_SCHEMA_MISSING"
+        assert "database needs the chat storage update" in failure.value.detail["message"]
+        ChatUpload.__table__.create(isolated_engine)
+        assert ChatStorageService(session).db is session
+    finally:
+        session.close()
+        isolated_engine.dispose()

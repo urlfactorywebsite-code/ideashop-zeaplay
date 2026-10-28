@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-28",
+  "scope": "Local source and production-build verification; no production data or real external messages",
+  "quota_bytes_per_user": 209715200,
+  "accounting": "Chat images and files, including pending uploads; physical files counted once against the uploader",
+  "legacy_accounting": "Existing message-linked attachments are adopted by sender, including cross-workspace chats and deleted messages. Older abandoned uploads without message or owner metadata cannot be attributed automatically.",
+  "checks": {
+    "frontend_tests": {
+      "status": "PASS",
+      "count": 160,
+      "command": "npm test (frontend)"
+    },
+    "backend_selected_tests": {
+      "status": "PASS",
+      "count": 59,
+      "environment": "Fresh temporary SQLite database, isolated media/assets, bootstrap disabled; includes storage, migration preservation, chat REST flows and timestamp serialization"
+    },
+    "production_build": {
+      "status": "PASS",
+      "command": "npm run build (frontend)"
+    },
+    "desktop_mobile_browser": {
+      "status": "PASS",
+      "widths": [
+        1440,
+        390
+      ],
+      "report": "browser.json",
+      "command": "node frontend/e2e/chat-storage.mjs with ZEAPLAY_PLAYWRIGHT_MODULE and loopback production preview"
+    },
+    "timezone_browser_regression": {
+      "status": "PASS",
+      "report": "../chat-timezone/browser.json"
+    },
+    "new_backend_files_lint": {
+      "status": "PASS",
+      "command": "python -m ruff check backend/app/chat/storage.py backend/alembic/versions/fff5c6d7e8f9_chat_upload_storage.py backend/tests/test_chat_storage_migration.py"
+    },
+    "git_diff_whitespace": {
+      "status": "PASS",
+      "command": "git diff --check"
+    },
+    "full_typescript_check": {
+      "status": "FAIL",
+      "note": "Unrelated existing errors in Ballpit, user/level/ticket types, seedData and mentionUtils; no reported errors in the new chat components, helpers or chat hook"
+    },
+    "nginx_runtime_syntax": {
+      "status": "NOT RUN",
+      "note": "Source gateway body limits updated to 201m for a 200 MB file plus multipart framing"
+    },
+    "shared_database_migration": {
+      "status": "PASS",
+      "environment": "Running local Docker PostgreSQL",
+      "revision": "fff5c6d7e8f9 table applied without changing existing Alembic history",
+      "note": "Validated database backup; existing records unchanged; repeat returned already_compatible",
+      "report": "running-repair.json"
+    },
+    "server_deployment": {
+      "status": "PASS",
+      "environment": "Local backend rebuilt and recreated; PostgreSQL, frontend and presence services preserved",
+      "external_production": "NOT RUN",
+      "report": "running-repair.json"
+    },
+    "missing_schema_regression": {
+      "status": "PASS",
+      "tests": 4,
+      "note": "Actionable 503 when setup is missing; recovery without restart; image, concurrency and cross-workspace regressions"
+    }
+  }
+}

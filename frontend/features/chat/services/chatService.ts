@@ -43,6 +43,9 @@ const listUsersFromDirectoryFallback = async (
 };
 
 export const chatService = {
+  getStorage: (offset = 0) => api.getChatStorage(offset),
+  deleteStorageFile: (uploadId: string) => api.deleteChatStorageFile(uploadId),
+  getFile: (url: string, signal?: AbortSignal) => api.getChatFile(url, signal),
   listConversations: () => api.getChatConversations(),
   listUsers: async (options?: { search?: string; cursor?: string | null; limit?: number; teamId?: string | null }): Promise<ChatDirectoryPage> => {
     try {

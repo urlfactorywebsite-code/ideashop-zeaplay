@@ -16,11 +16,11 @@ from ..realtime import capture as realtime_capture
 from .. import models, schemas
 from ..rate_limit import check_rate_limit
 from ..services import notifications as notification_service
-from ..storage.local import LocalAdapter
 from ..webhooks import service as webhook_service
 from .permissions import ChatPermissionService
 from .repositories import ConversationRepository, MemberRepository, MessageRepository, can_use_global_chat_directory
 from .serializers import serialize_conversation, serialize_member, serialize_message
+from .storage import CHAT_STORAGE_LIMIT_BYTES, ChatStorageService, upload_url
 
 logger = logging.getLogger("zeaplay.chat")
 MENTION_PATTERN = re.compile(r"@([A-Za-z0-9_.-]{2,80})")
@@ -549,6 +549,7 @@ class MessageService:
             parent = self.messages.get_in_conversation(payload.reply_to_message_id, conversation.id)
             if not parent:
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid reply target")
+        uploads = ChatStorageService(self.db).resolve_uploads(user, conversation.id, payload.attachments) if payload.attachments else []
         now = datetime.utcnow()
         message = models.ChatMessage(
             conversation_id=conversation.id,
@@ -563,16 +564,16 @@ class MessageService:
         conversation.last_message_at = now
         self.db.add(message)
         self.db.flush()
-        for attachment_payload in payload.attachments:
+        for upload in uploads:
             self.db.add(
                 models.MessageAttachment(
                     message_id=message.id,
-                    file_name=attachment_payload.file_name,
-                    original_file_name=attachment_payload.original_file_name,
-                    mime_type=attachment_payload.mime_type,
-                    file_size=attachment_payload.file_size,
-                    storage_key=attachment_payload.storage_key,
-                    url=attachment_payload.url,
+                    file_name=upload.file_name,
+                    original_file_name=upload.original_file_name,
+                    mime_type=upload.mime_type,
+                    file_size=upload.file_size,
+                    storage_key=upload.storage_key,
+                    url=upload_url(upload.id),
                 )
             )
         mentioned_ids = self._process_mentions(conversation, message, user)
@@ -739,14 +740,17 @@ class AttachmentService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
         conversation = self.permissions.get_conversation(message.conversation_id, user)
         self.permissions.require_member(conversation, user)
+        if message.sender_id != user.id:
+            raise HTTPException(status_code=403, detail="Only the sender can attach files to this message")
+        upload = ChatStorageService(self.db).resolve_uploads(user, conversation.id, [payload])[0]
         attachment = models.MessageAttachment(
             message_id=message.id,
-            file_name=payload.file_name,
-            original_file_name=payload.original_file_name,
-            mime_type=payload.mime_type,
-            file_size=payload.file_size,
-            storage_key=payload.storage_key,
-            url=payload.url,
+            file_name=upload.file_name,
+            original_file_name=upload.original_file_name,
+            mime_type=upload.mime_type,
+            file_size=upload.file_size,
+            storage_key=upload.storage_key,
+            url=upload_url(upload.id),
         )
         self.db.add(attachment)
         self.db.commit()
@@ -758,7 +762,7 @@ class AttachmentService:
         conversation_id: str,
         file: UploadFile,
         user: models.User,
-    ) -> schemas.ChatAttachmentCreate:
+    ) -> schemas.ChatAttachmentUploadRead:
         conversation = self.permissions.get_conversation(conversation_id, user)
         self.permissions.require_member(conversation, user)
         check_rate_limit(f"chat:upload:{user.id}", limit=20, window_seconds=60)
@@ -767,9 +771,9 @@ class AttachmentService:
         if extension not in ALLOWED_ATTACHMENT_EXTENSIONS:
             logger.warning("chat.attachment.rejected reason=extension user_id=%s conversation_id=%s extension=%s", user.id, conversation.id, extension)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported attachment type")
-        data = await file.read()
         settings = get_settings()
-        max_bytes = max(1, settings.media_max_file_size_mb) * 1024 * 1024
+        max_bytes = min(CHAT_STORAGE_LIMIT_BYTES, max(1, settings.media_max_file_size_mb) * 1024 * 1024)
+        data = await file.read(max_bytes + 1)
         if len(data) > max_bytes:
             logger.warning("chat.attachment.rejected reason=size user_id=%s conversation_id=%s bytes=%s", user.id, conversation.id, len(data))
             raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Attachment is too large")
@@ -790,15 +794,32 @@ class AttachmentService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Attachment content does not match file type")
         stored_name = f"{uuid4().hex}.{extension}"
         storage_key = f"chat/{conversation.tenant_id}/{conversation.id}/{stored_name}"
-        adapter = LocalAdapter(str(Path(settings.media_root)), settings.media_public_base)
-        stored = adapter.save(data, storage_key, content_type=detected_mime)
-        return schemas.ChatAttachmentCreate(
+        storage = ChatStorageService(self.db)
+        storage.lock_owner(user)
+        storage.adopt_legacy(user)
+        storage.require_capacity(user, len(data))
+        try:
+            stored = storage.adapter.save(data, storage_key, content_type=detected_mime)
+            upload = models.ChatUpload(
+                tenant_id=user.tenant_id, user_id=user.id, conversation_id=conversation.id,
+                file_name=stored_name, original_file_name=original_name, mime_type=stored.mime_type,
+                file_size=stored.size, storage_key=stored.path,
+            )
+            self.db.add(upload)
+            self.db.commit()
+            self.db.refresh(upload)
+        except Exception:
+            self.db.rollback()
+            storage.adapter.delete(storage_key)
+            raise
+        return schemas.ChatAttachmentUploadRead(
+            upload_id=upload.id,
             file_name=stored_name,
             original_file_name=original_name,
             mime_type=stored.mime_type,
             file_size=stored.size,
             storage_key=stored.path,
-            url=stored.public_url,
+            url=upload_url(upload.id),
         )
 
 

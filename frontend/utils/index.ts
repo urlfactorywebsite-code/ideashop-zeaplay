@@ -8,7 +8,8 @@ import { RecurrenceRule } from '../types';
  */
 const hasTimezoneInfo = (value: string) => /[zZ]|[+-]\d{2}:?\d{2}$/.test(value);
 
-const parseDateString = (dateString?: string | null) => {
+// The API stores timezone-less timestamps in UTC; keep explicit offsets intact.
+export const parseDateString = (dateString?: string | null) => {
   if (!dateString) {
     return null;
   }

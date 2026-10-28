@@ -9,6 +9,7 @@ import type { TaskJourney, TaskAnalytics, TaskExecutionSessions } from '../types
 import type { EvidenceSource, ExecutionReport, ReportCompletion, ReportEvidence, ReportPage } from '../types/taskReport';
 import type { PointsConfig } from '../utils/pointsConfigStorage';
 import { normalizeMessage } from '../features/chat/utils/normalizeMessage';
+import { ChatStorageQuotaError, isProtectedChatFile, type ChatStorage } from '../features/chat/utils/storage';
 import {
   User,
   Client,
@@ -3853,7 +3854,7 @@ const api = {
       try {
         const form = new FormData();
         form.append('file', file);
-        const { data } = await http.post<Partial<ApiChatAttachment> & Pick<ApiChatAttachment, 'file_name' | 'original_file_name' | 'mime_type' | 'file_size' | 'storage_key'>>(`/chat/conversations/${conversationId}/attachments`, form, {
+        const { data } = await http.post<Partial<ApiChatAttachment> & { upload_id?: string } & Pick<ApiChatAttachment, 'file_name' | 'original_file_name' | 'mime_type' | 'file_size' | 'storage_key'>>(`/chat/conversations/${conversationId}/attachments`, form, {
           headers: { 'Content-Type': 'multipart/form-data' },
           showGlobalProgress: false,
           onUploadProgress: (event) => {
@@ -3866,7 +3867,7 @@ const api = {
         });
         setGlobalProgress(100, progressTaskId);
         return {
-          id: '',
+          id: data.upload_id ?? '',
           messageId: '',
           fileName: data.file_name,
           originalFileName: data.original_file_name,
@@ -3877,10 +3878,36 @@ const api = {
           createdAt: data.created_at ?? new Date().toISOString(),
         };
       } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.data?.detail?.code === 'CHAT_STORAGE_QUOTA_EXCEEDED') {
+          throw new ChatStorageQuotaError(error.response.data.detail.message);
+        }
         mapAxiosError(error);
       } finally {
         stopGlobalLoadingTask(progressTaskId);
       }
+    },
+
+    async getChatStorage(offset = 0): Promise<ChatStorage> {
+      try {
+        const { data } = await http.get<ChatStorage>('/chat/storage', { params: { offset }, showGlobalProgress: false });
+        if (!Number.isFinite(data.used_bytes) || !Array.isArray(data.items)) throw new Error('Storage information is unavailable');
+        return data;
+      } catch (error) { mapAxiosError(error); }
+    },
+
+    async deleteChatStorageFile(uploadId: string): Promise<void> {
+      try {
+        await http.delete(`/chat/storage/${encodeURIComponent(uploadId)}`, { showGlobalProgress: false });
+        invalidateCache('chat');
+      } catch (error) { mapAxiosError(error); }
+    },
+
+    async getChatFile(url: string, signal?: AbortSignal): Promise<Blob> {
+      if (!isProtectedChatFile(url)) throw new Error('Invalid chat file URL');
+      try {
+        const { data } = await http.get<Blob>(url, { responseType: 'blob', signal, showGlobalProgress: false });
+        return data;
+      } catch (error) { mapAxiosError(error); }
     },
 
     async getChatPinnedMessages(conversationId: string): Promise<ChatPinnedMessage[]> {

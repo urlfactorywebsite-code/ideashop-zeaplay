@@ -40,7 +40,9 @@ def serialize_message(message: models.ChatMessage) -> schemas.ChatMessageRead:
         created_at=message.created_at,
         updated_at=message.updated_at,
         reactions=list(message.reactions or []),
-        attachments=list(message.attachments or []),
+        attachments=[schemas.ChatAttachmentRead.model_validate(attachment).model_copy(
+            update={"url": f"/chat/attachments/{attachment.id}/content"},
+        ) for attachment in message.attachments or []],
         mentions=[mention.mentioned_user_id for mention in message.mentions or []],
     )
 

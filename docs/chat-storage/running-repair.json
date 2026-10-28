@@ -1,0 +1,50 @@
+{
+  "status": "already_compatible",
+  "existing_records_unchanged": true,
+  "existing_tables": {
+    "users": {
+      "rows": 6,
+      "sha256": "05ad5f8a92c29e4116274706bf03432d8859781a82067075091a70d1ab634784"
+    },
+    "chat_conversations": {
+      "rows": 5,
+      "sha256": "064022441bddf51ad80cc82612321ce4e1dd0783bd9f9dc68f282bdf0f4138e2"
+    },
+    "chat_messages": {
+      "rows": 18,
+      "sha256": "09b11ac2a1130ec37d6375b4366aa10d9ff0ce74626dc9f23eab2decece9d9a9"
+    },
+    "message_attachments": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "migration_history_changed": false,
+  "environment": "Running local Docker installation at localhost:6300 / localhost:6311; not external production",
+  "verified_at_utc": "2026-10-28T11:10:19.409198+00:00",
+  "backup": {
+    "path": "C:\\Users\\Lenovo\\AppData\\Local\\Temp\\zeaplay-chat-storage-repair-20261028T110435Z\\before-chat-storage.dump",
+    "restore_list_validation": "PASS",
+    "sha256": "e45b6c38c8661337b7777ea13aca4a7a9c9a447a78d7d8cbe874d9ff74898a70"
+  },
+  "actual_http_check": {
+    "storage_status": 200,
+    "upload_status": 200,
+    "download_status": 200,
+    "download_bytes_match": true,
+    "quota_counts_uploaded_bytes": true,
+    "test_upload_cleanup_status": 204,
+    "test_file_removed": true,
+    "health_status": 200,
+    "ready_status": 200,
+    "message_sent": false
+  },
+  "chat_storage_mount": "ideashop-zeaplay-v5_chat_media_data:/app/media/chat",
+  "regression_checks": {
+    "missing_schema_recovery_and_image_flow": {
+      "status": "PASS",
+      "tests": 4
+    },
+    "focused_ruff": "PASS"
+  }
+}

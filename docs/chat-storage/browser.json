@@ -1,0 +1,12 @@
+{
+  "environment": "Local production build, synthetic REST APIs, real 1x1 PNG bytes, no real messages or production storage",
+  "passed": [
+    "Image picker, multipart bytes, authenticated preview, image-only send and history reload (1440px)",
+    "Clipboard image, pending-file removal, stale-server quota rejection, local quota prompt, explicit cleanup and retry (1440px)",
+    "Shared-image cleanup removes chosen bytes while preserving text and other images (1440px)",
+    "Image picker, multipart bytes, authenticated preview, image-only send and history reload (390px)",
+    "Clipboard image, pending-file removal, stale-server quota rejection, local quota prompt, explicit cleanup and retry (390px)",
+    "Shared-image cleanup removes chosen bytes while preserving text and other images (390px)"
+  ],
+  "errors": []
+}

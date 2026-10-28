@@ -48,6 +48,45 @@ test('normalizes websocket camelCase nested sender messages before rendering', (
   assert.doesNotThrow(() => renderToString(React.createElement(MessageItem, { message, currentUser })));
 });
 
+test('history and live timestamps display the same India time for UTC and explicit offsets', () => {
+  for (const timestamp of [
+    '2026-10-28T04:55:00.123456',
+    '2026-10-28 04:55:00.123456',
+    '2026-10-28T04:55:00.123Z',
+    '2026-10-28T10:25:00.123+05:30',
+  ]) {
+    for (const field of ['created_at', 'createdAt']) {
+      const message = normalizeMessage({ id: 'timezone-message', [field]: timestamp });
+      assert.equal(message.createdAt, '2026-10-28T04:55:00.123Z');
+      assert.equal(new Date(message.createdAt).toLocaleTimeString('en-GB', {
+        timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false,
+      }), '10:25');
+    }
+  }
+});
+
+test('legacy UTC timestamps use the local calendar day across midnight', () => {
+  const message = normalizeMessage({ created_at: '2026-10-28T20:00:00' });
+  assert.equal(new Date(message.createdAt).toLocaleDateString('en-GB', {
+    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+  }), '29/10/2026');
+  assert.equal(new Date(message.createdAt).toLocaleDateString('en-GB', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  }), '28/10/2026');
+});
+
+test('nested timestamps and optimistic fallbacks retain the correct instant', () => {
+  const message = normalizeMessage({
+    updated_at: '2026-10-28T04:56:00',
+    attachments: [{ created_at: '2026-10-28T04:55:00' }],
+    reactions: [{ created_at: '2026-10-28T10:25:00+05:30' }],
+  }, { createdAt: '2026-10-28T04:55:00.000Z' });
+  assert.equal(message.createdAt, '2026-10-28T04:55:00.000Z');
+  assert.equal(message.updatedAt, '2026-10-28T04:56:00.000Z');
+  assert.equal(message.attachments[0].createdAt, message.createdAt);
+  assert.equal(message.reactions[0].createdAt, message.createdAt);
+});
+
 test('renders missing sender, null content, deleted, and attachment-only messages', () => {
   const deleted = normalizeMessage({
     id: 'm3',

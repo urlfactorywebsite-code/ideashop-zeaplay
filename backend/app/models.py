@@ -2135,6 +2135,28 @@ class MessageReaction(Base):
     user: Mapped["User"] = relationship("User")
 
 
+class ChatUpload(Base):
+    """One physical chat file, including uploads not yet sent in a message."""
+
+    __tablename__ = "chat_uploads"
+    __table_args__ = (
+        Index("ix_chat_uploads_owner", "tenant_id", "user_id"),
+        UniqueConstraint("storage_key", name="uq_chat_uploads_storage_key"),
+        CheckConstraint("file_size >= 0", name="ck_chat_uploads_file_size"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    conversation_id: Mapped[str] = mapped_column(String(36), ForeignKey("chat_conversations.id", ondelete="CASCADE"), nullable=False)
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    original_file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(1024), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 class MessageAttachment(Base):
     __tablename__ = "message_attachments"
     __table_args__ = (Index("ix_message_attachments_message_id", "message_id"),)
