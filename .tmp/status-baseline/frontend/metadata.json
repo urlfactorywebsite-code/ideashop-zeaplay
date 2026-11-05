@@ -1,0 +1,5 @@
+{
+  "name": "Vee Task Manager",
+  "description": "A comprehensive role-based task management system designed for teams. It features distinct roles for Users, Admins, and Owners, enabling granular control over tasks, users, and system settings. The application includes dashboards, various task views (list, kanban, calendar), and reporting capabilities.",
+  "requestFramePermissions": []
+}

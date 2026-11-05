@@ -18,7 +18,7 @@ const audit = { calls: [] as { method: string; args: unknown[] }[] };
 Object.assign(window, { settingsNavigationAudit: audit });
 const emptyPage = { items: [], total: 0, page: 1, pageSize: 20, totalPages: 1 };
 const overrides: Record<string, (...args: any[]) => unknown> = {
-  restoreBrowserSession: () => { storeTokens('synthetic-navigation-token', 'synthetic-navigation-refresh'); return true; },
+  restoreBrowserSession: () => { storeTokens(sessionStorage.getItem('zea.e2e.access_token') || 'synthetic-navigation-token', 'synthetic-navigation-refresh'); return true; },
   getCurrentUser: () => user,
   getUsers: () => [user], getDepartments: () => [{ id: 'engineering', name: 'Engineering' }],
   getReleaseNotes: () => ({ versionLabel: 'Zea.Play V6.0.1', updates: [], content: '' }),
@@ -42,6 +42,8 @@ const overrides: Record<string, (...args: any[]) => unknown> = {
 };
 for (const [name, value] of Object.entries(api)) {
   if (typeof value !== 'function') continue;
+  if (params.get('kanban') === 'live' && ['getTasksKanban', 'moveTaskToKanbanStatus'].includes(name)) continue;
+  if (params.get('business') === 'live' && ['getTask', 'getKanbanColumns', 'updateTask'].includes(name)) continue;
   if (['clearBrowserMemory', 'invalidateNotificationCaches'].includes(name)) continue;
   (api as any)[name] = async (...args: unknown[]) => {
     audit.calls.push({ method: name, args });

@@ -54,6 +54,21 @@ function TransitionList({ events, current, now, complete, users }: {
   </ol>;
 }
 
+function CustomStatusHistory({ events, users }: { events: LifecycleEvent[]; users: Map<string, User> }) {
+  const moves = events.filter(event => event.event_type === 'task.custom_status_changed');
+  if (!moves.length) return null;
+  const display = (event: LifecycleEvent, side: 'previous' | 'new') => {
+    const custom = event.details[`${side}_custom_label`];
+    return typeof custom === 'string' ? custom : label(event[`${side}_status`] || 'Created');
+  };
+  return <details className="journey-session-history"><summary>Custom status moves ({moves.length})</summary>
+    <ol className="journey-transitions">{moves.map(event => <li key={event.id}>
+      <div className="journey-transition-heading"><span>{display(event, 'previous')} <ArrowRight size={13} aria-hidden="true" /> <strong>{display(event, 'new')}</strong></span></div>
+      <div className="journey-event-meta"><Stamp value={event.occurred_at} /><span>{person(event.actor_id, users)}</span></div>
+    </li>)}</ol>
+  </details>;
+}
+
 function SessionHistory({ entries, events, now, asOf, users }: {
   entries: TimeEntry[]; events: LifecycleEvent[]; now: number; asOf: number; users: Map<string, User>;
 }) {
@@ -231,6 +246,7 @@ export function TaskJourneyContent({ data, users, now, clockStale, busy, loadMor
     <section className="journey-section" aria-labelledby="journey-history-title">
       <div className="journey-section-title"><h3 id="journey-history-title">Task transitions</h3><span className="journey-muted">Recorded order</span></div>
       <TransitionList events={transitions} current={journey.status} now={now} complete={allEvents} users={users} />
+      <CustomStatusHistory events={data.journey.items} users={users} />
       <SessionHistory entries={parentEntries} events={parentTimerEvents} now={now} asOf={asOf} users={users} />
     </section>
 
@@ -272,6 +288,7 @@ function JourneyLoader({ taskId, userId, tenantId, users }: { taskId: string; us
     const state = id ? data.journey.subtasks.find(child => child.id === id)?.status || '' : data.journey.status;
     return <><TransitionList events={history?.changes ?? []} current={state} now={asOf + clock.advanceMs}
       complete={data.journey.next_after_id === null} users={users} />
+      {!id && <CustomStatusHistory events={data.journey.items} users={users} />}
       <SessionHistory entries={history?.entries ?? []} events={history?.timers ?? []} now={asOf + clock.advanceMs} asOf={asOf} users={users} /></>;
   };
   return <>

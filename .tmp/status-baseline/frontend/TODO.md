@@ -1,0 +1,2 @@
+- [x] Add .gradient-border and .inner-border classes to index.css
+- [x] Edit ClockDropdown.jsx: add inner-border class to dropdown container, add dark:border-white dark:text-white to all inputs, replace colorful classes with colorful:gradient-border for all inputs

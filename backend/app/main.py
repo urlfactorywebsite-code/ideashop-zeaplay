@@ -11,6 +11,7 @@ from .database import Base, SessionLocal, engine
 from . import models
 from .dependencies import _decode_access_token, get_current_admin
 from .services import audit_logger
+from .services.status_integrity import schema_issues as status_schema_issues
 from .seed import seed_database, seed_badges_from_achievements
 from .avatar_utils import ensure_avatar_dirs
 from .routers import (
@@ -30,6 +31,7 @@ from .routers import (
     n8n,
     notifications,
     navigation,
+    task_statuses,
     support,
     notification_preferences,
     oauth2_server,
@@ -889,6 +891,8 @@ app.include_router(chat_ws.router)
 app.include_router(webhooks.router)
 app.include_router(webhooks.internal_router)
 
+app.include_router(task_statuses.router)
+app.include_router(task_statuses.router, prefix="/api")
 app.include_router(navigation.router)
 app.include_router(navigation.router, prefix="/api")
 app.include_router(support.router)
@@ -961,6 +965,14 @@ def readiness():
         with SessionLocal() as db:
             db.execute(text("SELECT 1"))
             db.execute(select(models.NavigationPolicy.revision).limit(1))
+            db.execute(select(models.TaskStatusScope.revision).limit(1))
+            db.execute(select(models.TaskStatusScope.hold_reason_required).limit(1))
+            db.execute(select(models.TaskStatus.workflow_behavior).limit(1))
+            db.execute(select(models.Task.hold_paused_seconds).limit(1))
+            db.execute(select(models.TaskHoldInterval.id).limit(1))
+            db.execute(select(models.Task.custom_status_id).limit(1))
+            if status_schema_issues(db.connection()):
+                raise RuntimeError('Status migrations, indexes or database guards are incomplete')
         database_ok = True
     except Exception:
         database_ok = False

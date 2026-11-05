@@ -6,10 +6,10 @@ import time as perf_time
 from threading import Lock
 from typing import Any, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status, UploadFile, File, Form, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status, UploadFile, File, Form, Query
 from fastapi.responses import FileResponse
 from ..realtime import capture as realtime_capture
-from sqlalchemy import and_, case, func, inspect, or_, select, update
+from sqlalchemy import String, and_, case, cast, func, inspect, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.orm.attributes import set_committed_value
@@ -25,6 +25,8 @@ from ..database import get_db
 from ..dependencies import get_current_active_user
 from ..integrations import trigger_n8n_event
 from ..services import notifications as notification_service
+from ..services import task_statuses as status_service
+from ..services import task_deadlines, task_transitions
 from ..services import audit_logger, task_events, task_notifications
 from ..tickets import task_link_service
 from ..tickets.models import Ticket
@@ -40,6 +42,7 @@ from ..services.points_table import get_task_creation_points
 from ..services.task_access import (
     task_belongs_to_user_tenant as _task_belongs_to_user_tenant,
     task_tenant_predicate as _task_tenant_predicate,
+    ensure_task_update_access as _ensure_task_update_access,
 )
 from .task_lifecycle import router as task_lifecycle_router
 
@@ -89,7 +92,10 @@ def _task_query() -> select:
     )
 
 
-def _status_title_map(db: Session) -> dict[str, str]:
+def _status_title_map(db: Session, user=None) -> dict[str, str]:
+    if user is not None:
+        status_service.scope(db, user)
+        return {status_service.key(row): row.display_label for row in status_service.rows(db, user)}
     try:
         inspector = inspect(db.bind)
         if "kanban_columns" not in inspector.get_table_names():
@@ -215,7 +221,8 @@ def _serialize_task(task: models.Task, status_title_map: dict[str, str], viewer:
                 capabilities[capability] = True
     return payload.model_copy(update={
         **capabilities,
-        "status_title": _resolve_status_title(task.status, status_title_map),
+        "status_title": status_title_map.get(task.custom_status_id) or _resolve_status_title(task.status, status_title_map),
+        "effective_due_at": task_deadlines.effective_deadline(task),
         "follower_ids": [follower.id for follower in task.followers],
         "project": _serialize_task_project(task.project),
         "subtasks": _serialize_subtasks(task, viewer),
@@ -241,6 +248,7 @@ def _serialize_task_list_item(task: models.Task) -> schemas.TaskListItem:
         for entry in subtask.time_entries
     )
     return payload.model_copy(update={
+        "effective_due_at": task_deadlines.effective_deadline(task),
         "follower_ids": [follower.id for follower in task.followers],
         "project": _serialize_task_project(task.project),
         "subtasks": _serialize_subtasks(task),
@@ -258,6 +266,9 @@ def _serialize_task_card_item(task: models.Task) -> schemas.TaskListItem:
         title=task.title,
         description=task.description or "",
         status=task.status,
+        custom_status_id=task.custom_status_id,
+        hold_started_at=task.hold_started_at, hold_paused_seconds=task.hold_paused_seconds,
+        effective_due_at=task_deadlines.effective_deadline(task),
         priority=task.priority,
         team=task.team,
         assigned_to_id=task.assigned_to_id,
@@ -286,7 +297,7 @@ def _serialize_task_card_items(tasks: List[models.Task]) -> List[schemas.TaskLis
 
 def _serialize_task_leaderboard(task: models.Task, status_title_map: dict[str, str]) -> schemas.TaskLeaderboardRead:
     payload = schemas.TaskLeaderboardRead.model_validate(task)
-    return payload.model_copy(update={"status_title": _resolve_status_title(task.status, status_title_map)})
+    return payload.model_copy(update={"status_title": status_title_map.get(task.custom_status_id) or _resolve_status_title(task.status, status_title_map)})
 
 
 def _serialize_leaderboard_tasks(tasks: List[models.Task], status_title_map: dict[str, str]) -> List[schemas.TaskLeaderboardRead]:
@@ -511,27 +522,6 @@ def _ensure_task_access(task: models.Task, user: models.User) -> None:
     ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions for this task")
 
-
-def _ensure_task_update_access(task: models.Task, user: models.User) -> None:
-    if not _task_belongs_to_user_tenant(task, user):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
-    if task.ticket_id:
-        if task.created_by_id != user.id and task.assigned_to_id != user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only the task creator or assignee can update this ticket task",
-            )
-        return
-    if user.role in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
-        return
-    if user.id in {task.created_by_id, task.assigned_to_id}:
-        return
-    if user.role == models.RoleEnum.MANAGER:
-        if task.project and user.id in _project_manager_ids(task.project):
-            return
-        if not task.project and user.department_id and task.assignee and task.assignee.department_id == user.department_id:
-            return
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Task updates require ownership, assignment, or manager access")
 
 
 def _ensure_priority_allowed(priority: models.TaskPriorityEnum, user: models.User) -> None:
@@ -781,9 +771,7 @@ def _apply_task_filters(
     elif quick_filter == "overdue":
         now = datetime.utcnow()
         stmt = stmt.where(
-            models.Task.due_at.is_not(None),
-            models.Task.due_at < now,
-            ~models.Task.status.in_(COMPLETED_STATUSES),
+            task_deadlines.overdue_sql(models.Task, now, COMPLETED_STATUSES),
         )
     elif quick_filter == "completed":
         stmt = stmt.where(models.Task.status.in_(COMPLETED_STATUSES))
@@ -880,8 +868,8 @@ def list_tasks(
             for task in tasks
             if task.assigned_to_id == current_user.id
             and task.due_at
-            and task.due_at < now
-            and task.status not in COMPLETED_STATUSES
+            and task.status != models.TaskStatusEnum.ON_HOLD
+            and task_deadlines.is_overdue(task, now)
         ]
         if overdue_tasks:
             overdue_ids = [task.id for task in overdue_tasks]
@@ -952,7 +940,7 @@ def list_tasks(
             db.commit()
     if manager_notifications_created:
         get_notifier().send_webex_message("Task overdue escalation detected.")
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     serialized = _serialize_tasks(tasks, status_title_map, viewer=current_user)
     if cache_key:
         set_cached_json(
@@ -1409,13 +1397,33 @@ def list_tasks_kanban(
         "created_date": created_date,
         "quick_filter": quick_filter,
     }
-    cache_key = _kanban_cache_key(tenant_id=tenant_id, user_id=str(current_user.id), params=cache_params)
-    cached_payload = get_cached_json(cache_key)
+    workflow_scope = status_service.scope(db, current_user)
+    viewer_id = str(current_user.id)
+    cache_params["configuration_schema"] = 5
+    db.commit()  # Persist first-use tenant provisioning before cache reads.
+    # Counts, registry and every paginated column must describe one database
+    # snapshot. Otherwise a concurrent move can appear twice or disappear
+    # between the count query and the individual column queries.
+    if db.get_bind().dialect.name == "postgresql":
+        db.connection(execution_options={"isolation_level": "REPEATABLE READ"})
+    else:
+        db.execute(text("BEGIN"))
+    db.refresh(workflow_scope)
+    db.refresh(current_user)
+    cache_params["viewer_role"] = current_user.role.value
+    cache_params["viewer_department"] = current_user.department_id
+    cache_params["status_revision"] = workflow_scope.revision
+    cache_key = _kanban_cache_key(tenant_id=tenant_id, user_id=viewer_id, params=cache_params)
+    # Project membership and assignee-department changes can revoke visibility
+    # without a task mutation. Restricted viewers must evaluate current grants.
+    cache_allowed = current_user.role in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}
+    cached_payload = get_cached_json(cache_key) if cache_allowed else None
     if cached_payload is not None:
         return schemas.TaskKanbanResponse.model_validate(cached_payload)
 
     base_stmt = _apply_task_filters(
-        _lean_task_stmt(),
+        _lean_task_stmt().options(selectinload(models.Task.creator), selectinload(models.Task.assignee),
+            selectinload(models.Task.project).selectinload(models.Project.members)),
         db,
         current_user,
         search=search,
@@ -1432,43 +1440,63 @@ def list_tasks_kanban(
     if zone:
         base_stmt = _calendar_date_filters(base_stmt, due_date, created_date, zone)
 
-    columns = db.execute(
-        select(models.KanbanColumn).order_by(models.KanbanColumn.order)
-    ).scalars().all()
-
-    counts_subquery = base_stmt.order_by(None).subquery()
-    counts_rows = db.execute(
-        select(counts_subquery.c.status, func.count())
-        .select_from(counts_subquery)
-        .group_by(counts_subquery.c.status)
-    ).all()
-    counts = {row[0].value if hasattr(row[0], "value") else str(row[0]): row[1] for row in counts_rows}
-
+    registered = status_service.rows(db, current_user)
+    count_source = base_stmt.order_by(None).subquery()
+    raw_status = cast(count_source.c.status, String)
+    count_rows = db.execute(select(raw_status, count_source.c.custom_status_id, func.count())
+        .group_by(raw_status, count_source.c.custom_status_id)).all()
+    counts = {(value, custom_id): count for value, custom_id, count in count_rows}
     column_payloads: list[schemas.TaskKanbanColumn] = []
-    for column in columns:
-        status_value = column.id
+    outside: list[schemas.TaskKanbanColumn] = []
+    known_pairs = set()
+    known_predicates = []
+    for column in registered:
+        pair = (column.legacy_status, None) if column.legacy_status else (status_service.native_status(column), column.id)
+        known_pairs.add(pair)
+        known_predicates.append(and_(raw_status == pair[0],
+            count_source.c.custom_status_id.is_(None) if pair[1] is None else count_source.c.custom_status_id == pair[1]))
+        count = counts.get(pair, 0)
+        visible = column.is_system or (column.is_active and column.kanban_visible)
+        if not visible and not count:
+            continue
         tasks = db.execute(
-            base_stmt.where(models.Task.status == status_value)
+            base_stmt.where(status_service.task_column_predicate(column))
             .order_by(models.Task.updated_at.desc(), models.Task.id.asc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        ).scalars().all()
-        column_payloads.append(
-            schemas.TaskKanbanColumn(
-                status=status_value,
-                title=column.title,
-                order=column.order,
-                count=counts.get(status_value, 0),
-                items=_serialize_task_card_items(tasks),
-            )
+            .offset((page - 1) * page_size).limit(page_size)
+        ).scalars().all() if count > (page - 1) * page_size else []
+        cards = []
+        for task in tasks:
+            can_edit = True
+            try:
+                _ensure_task_update_access(task, current_user)
+            except HTTPException:
+                can_edit = False
+            cards.append(schemas.TaskKanbanItem(**_serialize_task_card_item(task).model_dump(), can_edit=can_edit))
+        item = schemas.TaskKanbanColumn(
+            status_id=column.id, status=status_service.key(column), is_system=column.is_system,
+            workflow_behavior=column.workflow_behavior, hold_reason_required=workflow_scope.hold_reason_required and column.workflow_behavior == "HOLD",
+            title=column.display_label, order=column.sort_order, color=column.color, icon=column.icon,
+            count=count, items=cards,
+            outside_reason=None if visible else "hidden" if column.is_active else "archived",
         )
+        (column_payloads if visible else outside).append(item)
 
-    response_payload = schemas.TaskKanbanResponse(columns=column_payloads)
-    set_cached_json(
-        cache_key,
-        response_payload.model_dump(mode="json"),
-        ttl_seconds=settings.task_list_cache_ttl_seconds,
+    # Read raw identifiers through a SQL projection: unknown historical enum
+    # values cannot be deserialized by TaskStatusEnum, and must not disappear.
+    unmapped_count = sum(count for pair, count in counts.items() if pair not in known_pairs)
+    unmapped = []
+    if unmapped_count:
+        unmapped = [dict(row) for row in db.execute(select(count_source.c.id, count_source.c.title,
+            raw_status.label("raw_status"), count_source.c.custom_status_id)
+            .where(~or_(*known_predicates)).order_by(count_source.c.updated_at.desc(), count_source.c.id)
+            .offset((page - 1) * page_size).limit(page_size)).mappings()]
+    response_payload = schemas.TaskKanbanResponse(
+        configuration_revision=cache_params["status_revision"], columns=column_payloads,
+        outside_columns=outside, unmapped_count=unmapped_count, unmapped_items=unmapped,
     )
+    if cache_allowed:
+        set_cached_json(cache_key, response_payload.model_dump(mode="json"),
+                        ttl_seconds=settings.task_list_cache_ttl_seconds)
     _log_slow_endpoint("tasks.kanban", started_at)
     return response_payload
 
@@ -1594,12 +1622,12 @@ def get_calendar_summary(
             day_expr.label("day"),
             func.count(filtered.c.id).label("total"),
             func.sum(case((filtered.c.status.in_(COMPLETED_STATUSES), 1), else_=0)).label("completed"),
-            func.sum(case(((filtered.c.due_at < now) & (~filtered.c.status.in_(COMPLETED_STATUSES)), 1), else_=0)).label("overdue"),
+            func.sum(case((task_deadlines.overdue_sql(filtered.c, now, COMPLETED_STATUSES), 1), else_=0)).label("overdue"),
             func.sum(case((filtered.c.priority == models.TaskPriorityEnum.URGENT, 1), else_=0)).label("urgent"),
             func.sum(case((filtered.c.priority == models.TaskPriorityEnum.HIGH, 1), else_=0)).label("high"),
             func.sum(case((filtered.c.priority == models.TaskPriorityEnum.MEDIUM, 1), else_=0)).label("medium"),
             func.sum(case((filtered.c.priority == models.TaskPriorityEnum.LOW, 1), else_=0)).label("low"),
-            func.sum(case(((filtered.c.due_at >= now) & (filtered.c.due_at <= now + timedelta(days=3)) & (~filtered.c.status.in_(COMPLETED_STATUSES)), 1), else_=0)).label("due_soon"),
+            func.sum(case(((task_deadlines.effective_deadline_sql(filtered.c, now) >= now) & (task_deadlines.effective_deadline_sql(filtered.c, now) <= now + timedelta(days=3)) & (~filtered.c.status.in_(COMPLETED_STATUSES)), 1), else_=0)).label("due_soon"),
         )
         .select_from(filtered)
         .group_by(day_expr)
@@ -1674,7 +1702,7 @@ def get_calendar_tasks(
     )
     stmt = _calendar_date_filters(stmt, due_date, created_date, zone).where(models.Task.due_at >= range_start, models.Task.due_at < range_end).order_by(models.Task.due_at.asc(), models.Task.created_at.desc())
     tasks = db.execute(stmt).unique().scalars().all()
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     _log_slow_endpoint("tasks.calendar.tasks", started_at)
     return _serialize_tasks(tasks, status_title_map, viewer=current_user)
 
@@ -1699,7 +1727,7 @@ def list_tasks_for_leaderboard(
     stmt = _apply_task_visibility(select(models.Task), current_user)
     stmt = stmt.order_by(models.Task.created_at.desc()).limit(limit)
     tasks = db.execute(stmt).scalars().all()
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     return _serialize_leaderboard_tasks(tasks, status_title_map)
 
 
@@ -1753,7 +1781,15 @@ def create_task(
         dependencies = []
 
     _ensure_priority_allowed(payload.priority, current_user)
+    status_service.scope(db, current_user, lock=True)
     payload_status = payload.status
+    if payload.custom_status_id:
+        custom_status = status_service.custom_for_assignment(db, current_user, payload.custom_status_id)
+        payload.custom_status_id = custom_status.id
+        native = models.TaskStatusEnum(status_service.native_status(custom_status))
+        if "status" in payload.model_fields_set and payload_status != native:
+            raise HTTPException(422, "Custom workflow behavior does not match task status")
+        payload_status = native
     creation_points = get_task_creation_points(db)
 
     task_group_id = payload.task_group_id or str(uuid4())
@@ -1792,7 +1828,8 @@ def create_task(
             id=models.generate_uuid(),
             title=payload.title,
             description=payload.description,
-            status=payload_status,
+            status=models.TaskStatusEnum.WAITING_FOR_REQUIREMENT,
+            custom_status_id=None,
             priority=payload.priority,
             team=payload.team,
             project_id=project.id,
@@ -1810,8 +1847,6 @@ def create_task(
             tags=list(payload.tags or []),
         )
 
-        if payload_status in COMPLETED_STATUSES and not task.completed_at:
-            task.completed_at = datetime.utcnow()
 
         for subtask_index, subtask_input in enumerate(payload.subtasks):
             subtask_status, subtask_completed = _normalize_subtask_status(
@@ -1839,6 +1874,8 @@ def create_task(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Complete all subtasks before completing the task")
         task.followers = list(follower_users)
 
+        task_transitions.apply(db, task, payload_status, actor=current_user, custom_status_id=payload.custom_status_id,
+            hold_reason=payload.hold_reason, source="creation", workflow_authorized=True)
         db.add(task)
         created_tasks.append(task)
 
@@ -1848,7 +1885,10 @@ def create_task(
     db.flush()
     now = datetime.utcnow()
     for task in created_tasks:
-        if task.subtasks and all(subtask.status == models.SubtaskStatusEnum.DONE for subtask in task.subtasks):
+        task_transitions.refresh_hold_summary(db, task)
+        if task.status in COMPLETED_STATUSES:
+            task_transitions.finalize_completion(db, task, actor=current_user, notify_creator=False)
+        if task.status != models.TaskStatusEnum.ON_HOLD and task.subtasks and all(subtask.status == models.SubtaskStatusEnum.DONE for subtask in task.subtasks):
             subtask_workflow.synchronize_parent_completion(db, task, actor=current_user)
         audit_logger.log_event(
             audit_logger.AuditLogInput(
@@ -2077,7 +2117,7 @@ def create_task(
     created_map = {task.id: task for task in created_records}
     ordered_records = [created_map[task_id] for task_id in created_ids if task_id in created_map]
 
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     serialized_records = _serialize_tasks(ordered_records, status_title_map, viewer=current_user)
     for created_task in serialized_records:
         background_tasks.add_task(
@@ -2488,7 +2528,7 @@ def assign_task_template(
     # Fetch full task details for response
     tasks = db.execute(_task_query().where(models.Task.id.in_(task_ids))).unique().scalars().all()
 
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     serialized_tasks = _serialize_tasks(tasks, status_title_map, viewer=current_user)
     for task in serialized_tasks:
         background_tasks.add_task(
@@ -2508,7 +2548,7 @@ def get_task(
 ) -> schemas.TaskRead:
     task = _fetch_task_or_404(db, task_id)
     _ensure_task_access(task, current_user)
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     return _serialize_task(task, status_title_map, viewer=current_user)
 
 
@@ -2530,8 +2570,33 @@ def get_task_group(
         except HTTPException:
             continue
         visible_group_tasks.append(group_task)
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     return _serialize_tasks(visible_group_tasks, status_title_map, viewer=current_user)
+
+
+@router.patch("/{task_id}/kanban-status", response_model=schemas.TaskRead)
+def move_task_on_kanban(
+    task_id: str, payload: schemas.TaskKanbanMove, background_tasks: BackgroundTasks, request: Request,
+    db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user),
+):
+    task = _fetch_task_or_404(db, task_id)
+    _ensure_task_update_access(task, current_user)
+    workflow_scope = status_service.scope(db, current_user, lock=True)
+    if payload.configuration_revision is not None and payload.configuration_revision != workflow_scope.revision:
+        raise HTTPException(409, "Status configuration changed. Close any move confirmation, refresh and choose the destination again.")
+    # Configuration changes and task moves share the scope lock. Reload after
+    # acquiring it so a concurrent reassignment cannot leave a stale task state.
+    db.refresh(task, with_for_update=True)
+    destination = db.scalar(select(models.TaskStatus).where(models.TaskStatus.id == payload.status_id,
+        models.TaskStatus.tenant_id == current_user.tenant_id, models.TaskStatus.is_active.is_(True)))
+    if destination is None or (not destination.is_system and not destination.kanban_visible):
+        raise HTTPException(409, "This status is not available on the Kanban board. Refresh the board and try again.")
+    # All permissions, completion/subtask policies, rewards, audit and automation
+    # remain owned by the existing task transition path.
+    changes = schemas.TaskUpdate(status=models.TaskStatusEnum(status_service.native_status(destination)),
+        custom_status_id=None if destination.is_system else destination.id, hold_reason=payload.hold_reason)
+    return update_task(task_id=task_id, payload=changes, background_tasks=background_tasks,
+        request=request, db=db, current_user=current_user)
 
 
 @router.patch("/{task_id}", response_model=schemas.TaskRead)
@@ -2547,7 +2612,25 @@ def update_task(
     _ensure_task_update_access(task, current_user)
 
     update_data = payload.model_dump(exclude_unset=True)
+    if "status" in update_data and update_data["status"] is None:
+        raise HTTPException(422, "Task status cannot be null")
+    if "custom_status_id" in update_data and update_data["custom_status_id"]:
+        custom_status = status_service.custom_for_assignment(db, current_user, update_data["custom_status_id"])
+        update_data["custom_status_id"] = custom_status.id
+        native = models.TaskStatusEnum(status_service.native_status(custom_status))
+        if "status" in update_data and update_data["status"] != native:
+            raise HTTPException(422, "Custom workflow behavior does not match task status")
+        update_data["status"] = native
+    elif "status" in update_data:
+        update_data["custom_status_id"] = None
+    if "status" in update_data or "custom_status_id" in update_data:
+        task_transitions.lock_task(db, task, current_user)
+    if "custom_status_id" in update_data and "status" not in update_data:
+        update_data['status'] = task.status
     update_fields = sorted(update_data.keys())
+    hold_reason = update_data.pop("hold_reason", None)
+    if "completed_at" in update_data:
+        raise HTTPException(422, "Completion timestamps are managed by the task transition service")
     previous_status = task.status
     previous_priority = task.priority
     previous_assignee_id = task.assigned_to_id
@@ -2622,8 +2705,6 @@ def update_task(
     if "description" in update_data:
         task.description = update_data["description"]
         shared_updates["description"] = task.description
-    if "status" in update_data:
-        task.status = update_data["status"]
     if "priority" in update_data:
         _ensure_priority_allowed(update_data["priority"], current_user)
         task.priority = update_data["priority"]
@@ -2756,9 +2837,14 @@ def update_task(
             task.subtasks.remove(stale_subtask)
             db.delete(stale_subtask)
         db.flush()
-        parent_changed = subtask_workflow.synchronize_parent_completion(db, task, actor=current_user)
-        parent_changed_by_subtasks = parent_changed
+        if "status" not in update_data:
+            parent_changed = subtask_workflow.synchronize_parent_completion(db, task, actor=current_user)
+            parent_changed_by_subtasks = parent_changed
 
+    if "status" in update_data:
+        task_transitions.apply(db, task, update_data["status"], actor=current_user,
+            custom_status_id=update_data.get("custom_status_id"), hold_reason=hold_reason)
+        task_transitions.refresh_hold_summary(db, task)
     if update_data.get("status") in COMPLETED_STATUSES and any(
         subtask.status != models.SubtaskStatusEnum.DONE for subtask in task.subtasks
     ):
@@ -2768,7 +2854,7 @@ def update_task(
     if should_award_points:
         if task.completed_at is None:
             task.completed_at = datetime.utcnow()
-        completion_points_awarded = award_task_completion_points(db, task, notify_creator=False)
+        completion_points_awarded = task_transitions.finalize_completion(db, task, actor=current_user, notify_creator=False)
 
     if (
         "clarity_rating" in update_data
@@ -2919,20 +3005,7 @@ def update_task(
                 occurred_at=now,
             ),
         )
-    if completion_points_awarded:
-        process_badge_event(
-            db,
-            event=BadgeEvent(
-                entity="task",
-                event="completed",
-                actor_id=current_user.id,
-                assigned_to_id=task.assigned_to_id,
-                created_by_id=task.created_by_id,
-                priority=task.priority.value,
-                occurred_at=task.completed_at or now,
-            ),
-        )
-    if task.due_at and task.due_at <= now and task.status not in COMPLETED_STATUSES:
+    if task.status != models.TaskStatusEnum.ON_HOLD and task_deadlines.is_overdue(task, now):
         if not previous_due_at or previous_due_at > now or previous_status in COMPLETED_STATUSES:
             process_badge_event(
                 db,
@@ -2982,7 +3055,7 @@ def update_task(
     _schedule_notification_outbox_delivery(background_tasks)
 
     updated_task = _fetch_task_or_404(db, task_id)
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     serialized_task = _serialize_task(updated_task, status_title_map, viewer=current_user)
 
     background_tasks.add_task(
@@ -3002,6 +3075,18 @@ def update_task(
     return serialized_task
 
 
+@router.get('/{task_id}/holds')
+def task_hold_history(task_id: str, response: Response, db: Session = Depends(get_db), current_user=Depends(get_current_active_user)):
+    response.headers['Cache-Control'] = 'private, no-store'
+    task = _fetch_task_or_404(db, task_id)
+    _ensure_task_access(task, current_user)
+    return [dict(id=row.id,task_id=row.task_id,started_at=row.started_at,ended_at=row.ended_at,
+        started_by_id=row.started_by_id,ended_by_id=row.ended_by_id,previous_status=row.previous_status,
+        previous_custom_status_id=row.previous_custom_status_id,original_due_at=row.original_due_at,reason=row.reason,source=row.source)
+        for row in db.scalars(select(models.TaskHoldInterval).where(models.TaskHoldInterval.task_id==task_id,
+            models.TaskHoldInterval.tenant_id==current_user.tenant_id).order_by(models.TaskHoldInterval.started_at,models.TaskHoldInterval.id))]
+
+
 @router.post("/{task_id}/complete", response_model=schemas.TaskRead)
 def complete_task(
     task_id: str,
@@ -3015,21 +3100,20 @@ def complete_task(
     if any(subtask.status != models.SubtaskStatusEnum.DONE for subtask in task.subtasks):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Complete all subtasks before completing the task")
 
+    task_transitions.lock_task(db, task, current_user)
     previous_status = task.status
+    if previous_status in COMPLETED_STATUSES:
+        result = _serialize_task(task, _status_title_map(db, current_user), viewer=current_user)
+        db.commit()
+        return result
     now = datetime.utcnow()
-    task.status = models.TaskStatusEnum.DONE
-    if task.completed_at is None:
-        task.completed_at = now
-
-    if task.approval_required:
-        task.approval_status = models.TaskApprovalStatusEnum.PENDING
-    else:
-        task.approval_status = models.TaskApprovalStatusEnum.APPROVED
+    task_transitions.apply(db, task, models.TaskStatusEnum.DONE, actor=current_user, source="complete_action")
+    task_transitions.refresh_hold_summary(db, task)
 
     should_award_points = previous_status not in COMPLETED_STATUSES and task.status in COMPLETED_STATUSES
     completion_points_awarded = False
     if should_award_points:
-        completion_points_awarded = award_task_completion_points(db, task, notify_creator=False)
+        completion_points_awarded = task_transitions.finalize_completion(db, task, actor=current_user, notify_creator=False)
     task_notifications.notify_status_change(db, task=task, actor=current_user, previous_status=previous_status)
 
     db.add(
@@ -3062,39 +3146,11 @@ def complete_task(
         )
     )
 
-    if task.approval_required and task.approver_id and task.approver_id != current_user.id:
-        notification_service.create_notification(
-            db,
-            user_id=task.approver_id,
-            actor_id=str(current_user.id),
-            notification_type=models.NotificationTypeEnum.APPROVAL_REQUESTED,
-            message=f"Task '{task.title}' is ready for approval.",
-            title="Task approval needed",
-            body=f"Task '{task.title}' was completed and requires your approval.",
-            entity_type=models.NotificationEntityTypeEnum.TASK,
-            entity_id=task.id,
-            related_task_id=task.id,
-        )
-
-    if completion_points_awarded:
-        process_badge_event(
-            db,
-            event=BadgeEvent(
-                entity="task",
-                event="completed",
-                actor_id=current_user.id,
-                assigned_to_id=task.assigned_to_id,
-                created_by_id=task.created_by_id,
-                priority=task.priority.value,
-                occurred_at=task.completed_at or now,
-            ),
-        )
-
     db.commit()
     _invalidate_task_cache(current_user, action="completed", task_id=task_id)
 
     updated_task = _fetch_task_or_404(db, task_id)
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     serialized_task = _serialize_task(updated_task, status_title_map, viewer=current_user)
 
     if completion_points_awarded:
@@ -3181,7 +3237,7 @@ def approve_task(
     _invalidate_task_cache(current_user, action="approval", task_id=task_id)
 
     updated_task = _fetch_task_or_404(db, task_id)
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     return _serialize_task(updated_task, status_title_map, viewer=current_user)
 
 
@@ -3195,7 +3251,7 @@ def delete_task(
 ) -> None:
     task = _fetch_task_or_404(db, task_id)
     _ensure_task_update_access(task, current_user)
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     serialized_task = _serialize_task(task, status_title_map, viewer=current_user)
 
     process_badge_event(
@@ -3616,7 +3672,7 @@ def update_subtask(
     _finish_subtask_parent_completion(db, task_id, workflow_result, background_tasks)
 
     updated_task = _fetch_task_or_404(db, task_id)
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     serialized_task = _serialize_task(updated_task, status_title_map, viewer=current_user)
     background_tasks.add_task(
         trigger_n8n_event,
@@ -3825,7 +3881,7 @@ def submit_subtask_completion(
     _finish_subtask_parent_completion(db, task.id, workflow_result, background_tasks)
 
     updated_task = _fetch_task_or_404(db, task.id)
-    status_title_map = _status_title_map(db)
+    status_title_map = _status_title_map(db, current_user)
     serialized_task = _serialize_task(updated_task, status_title_map, viewer=current_user)
     background_tasks.add_task(
         trigger_n8n_event,
@@ -3904,7 +3960,7 @@ def approve_subtask_completion(
     _finish_subtask_parent_completion(db, task.id, workflow_result, background_tasks)
 
     updated_task = _fetch_task_or_404(db, task.id)
-    serialized_task = _serialize_task(updated_task, _status_title_map(db), viewer=current_user)
+    serialized_task = _serialize_task(updated_task, _status_title_map(db, current_user), viewer=current_user)
     background_tasks.add_task(
         trigger_n8n_event,
         "task.subtask_completion_approved",
@@ -3977,7 +4033,7 @@ def reject_subtask_completion(
     _schedule_notification_outbox_delivery(background_tasks)
 
     updated_task = _fetch_task_or_404(db, task.id)
-    serialized_task = _serialize_task(updated_task, _status_title_map(db), viewer=current_user)
+    serialized_task = _serialize_task(updated_task, _status_title_map(db, current_user), viewer=current_user)
     background_tasks.add_task(
         trigger_n8n_event,
         "task.subtask_completion_rejected",

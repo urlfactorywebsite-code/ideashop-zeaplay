@@ -3,15 +3,15 @@
 from contextlib import contextmanager
 from datetime import datetime
 from statistics import mean
-from threading import Lock
 from typing import Optional
 
-from sqlalchemy import func, select, inspect
+from sqlalchemy import func, select, inspect, text
 from sqlalchemy.orm import Session
 
 from .. import models
 from .notifications import create_notification
 from .badge_engine import BadgeEvent, process_badge_event
+from .scoring_users import lock_scoring_users
 from .points_table import (
     get_clarity_points_per_star,
     get_manager_overdue_penalty,
@@ -19,26 +19,13 @@ from .points_table import (
 )
 
 COMPLETED_STATUSES = {models.TaskStatusEnum.DONE, models.TaskStatusEnum.DEPLOYED}
-_completion_award_registry_lock = Lock()
-_completion_award_locks: dict[str, Lock] = {}
-_clarity_award_registry_lock = Lock()
-_clarity_award_locks: dict[str, Lock] = {}
-
-
 @contextmanager
-def _completion_award_lock(task_id: str):
-    with _completion_award_registry_lock:
-        lock = _completion_award_locks.setdefault(task_id, Lock())
-    with lock:
-        yield
-
-
-@contextmanager
-def _clarity_award_lock(task_id: str):
-    with _clarity_award_registry_lock:
-        lock = _clarity_award_locks.setdefault(task_id, Lock())
-    with lock:
-        yield
+def _task_award_lock(db, task_id):
+    # Locks live until the caller commits, across processes as well as threads.
+    # SQLite ignores FOR UPDATE, so acquire its writer lock before reading markers.
+    if db.get_bind().dialect.name == "sqlite":
+        db.execute(text("UPDATE tasks SET id=id WHERE id=:id"), {"id": task_id})
+    yield
 
 
 def _department_matches_team(db: Session, user: models.User, team: str) -> bool:
@@ -119,7 +106,7 @@ def check_and_unlock_achievements(db: Session, user: models.User) -> None:
 
 def award_task_completion_points(db: Session, task: models.Task, *, notify_creator: bool = True) -> bool:
     db.flush()
-    with _completion_award_lock(task.id):
+    with _task_award_lock(db, task.id):
         locked_task = db.execute(
             select(models.Task)
             .where(models.Task.id == task.id)
@@ -133,8 +120,9 @@ def award_task_completion_points(db: Session, task: models.Task, *, notify_creat
         if locked_task.completion_xp_awarded_at is not None:
             return False
 
-        assignee = db.get(models.User, locked_task.assigned_to_id) if locked_task.assigned_to_id else None
-        creator = db.get(models.User, locked_task.created_by_id)
+        accounts = lock_scoring_users(db, [locked_task.assigned_to_id, locked_task.created_by_id])
+        assignee = accounts.get(locked_task.assigned_to_id)
+        creator = accounts.get(locked_task.created_by_id)
         awarded_points = 0
 
         if assignee:
@@ -144,7 +132,8 @@ def award_task_completion_points(db: Session, task: models.Task, *, notify_creat
             penalty_points = points.get("overduePenalty", 0)
 
             completed_at = locked_task.completed_at
-            due_at = locked_task.due_at
+            from .task_deadlines import effective_deadline
+            due_at = effective_deadline(locked_task, completed_at)
             is_late = False
             if completed_at and due_at:
                 if completed_at <= due_at:
@@ -189,7 +178,7 @@ def award_task_completion_points(db: Session, task: models.Task, *, notify_creat
 def record_clarity_rating(db: Session, task: models.Task, rating: int) -> bool:
     safe_rating = max(0, min(int(rating), 5))
     db.flush()
-    with _clarity_award_lock(task.id):
+    with _task_award_lock(db, task.id):
         locked_task = db.execute(
             select(models.Task)
             .where(models.Task.id == task.id)
@@ -201,7 +190,7 @@ def record_clarity_rating(db: Session, task: models.Task, rating: int) -> bool:
         if locked_task.clarity_xp_awarded_at is not None:
             return False
 
-        creator = db.get(models.User, locked_task.created_by_id)
+        creator = lock_scoring_users(db, [locked_task.created_by_id]).get(locked_task.created_by_id)
         if not creator:
             return False
 

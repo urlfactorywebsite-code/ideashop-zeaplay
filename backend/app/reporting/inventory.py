@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy import and_, case, func, or_, select, union
 
 from .. import models as m
+from ..services.task_deadlines import overdue_sql
 from .scope import (
     admin, authorized_projects, authorized_users, filtered_tasks,
     validate_filters, visible_subtasks,
@@ -40,13 +41,12 @@ def task_population(user, filters):
     return filtered_tasks(user, filters).with_only_columns(
         m.Task.id, m.Task.title, m.Task.status, m.Task.task_group_id, m.Task.project_id,
         m.Task.assigned_to_id, m.Task.created_at, m.Task.assigned_at, m.Task.due_at,
-        m.Task.completed_at,
+        m.Task.completed_at, m.Task.hold_started_at, m.Task.hold_paused_seconds,
     ).subquery("report_tasks")
 
 
 def overdue(columns, as_of):
-    return and_(columns.due_at.is_not(None), columns.due_at < as_of.replace(tzinfo=None),
-                ~columns.status.in_(TERMINAL))
+    return overdue_sql(columns, as_of, TERMINAL)
 
 
 def count_if(predicate):

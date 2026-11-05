@@ -1,0 +1,38 @@
+[
+  {
+    "key": "overview",
+    "label": "Overview",
+    "roles": [
+      "owner"
+    ]
+  },
+  {
+    "key": "documentation",
+    "label": "Documentation",
+    "roles": [
+      "owner"
+    ]
+  },
+  {
+    "key": "token",
+    "label": "Bearer Key Builder",
+    "roles": [
+      "owner"
+    ]
+  },
+  {
+    "key": "webhooks",
+    "label": "Webhooks",
+    "roles": [
+      "owner"
+    ]
+  },
+  {
+    "key": "smtp",
+    "label": "SMTP",
+    "roles": [
+      "admin",
+      "owner"
+    ]
+  }
+]

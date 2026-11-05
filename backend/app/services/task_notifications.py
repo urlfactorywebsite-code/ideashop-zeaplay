@@ -21,9 +21,11 @@ def notify_status_change(
             if member.role == models.ProjectMemberRoleEnum.MANAGER)
     recipients.discard(None)
 
-    titles = dict(db.execute(select(models.KanbanColumn.id, models.KanbanColumn.title)).all())
+    tenant = task.project.tenant_id if task.project else task.creator.tenant_id
+    configured = db.scalars(select(models.TaskStatus).where(models.TaskStatus.tenant_id == tenant)).all()
+    titles = {row.legacy_status or row.id:row.display_label for row in configured}
     previous = titles.get(previous_status.value, previous_status.value.replace("_", " ").title())
-    current = titles.get(task.status.value, task.status.value.replace("_", " ").title())
+    current = titles.get(task.custom_status_id or task.status.value, task.status.value.replace("_", " ").title())
     completed = task.status in {models.TaskStatusEnum.DONE, models.TaskStatusEnum.DEPLOYED}
     title = "Task completed" if completed else "Task status updated"
     message = f"{actor.name} changed task '{task.title}' from {previous} to {current}."

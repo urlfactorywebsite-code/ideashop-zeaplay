@@ -1,38 +1,22 @@
 import { workTimezone } from '../utils/activeWork';
 import { calendarToday, taskInstant } from '../utils/taskDates';
 import { useTaskFilter, useTaskViewActive } from '../hooks/useTaskView';
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useId } from 'react';
 import ReactDOM from 'react-dom';
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle, DialogDescription } from '@headlessui/react';
+import { getKanbanStatusVisual, questCardSurface } from '../utils/kanbanAppearance';
+import KanbanColumnFrame, { EmptyQuestColumn } from '../components/KanbanColumnFrame';
+import { STATUS_CONFIGURATION_EVENT, configurationStorageKey, groupKanbanTasks } from '../utils/kanbanConfiguration';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Task, User, KanbanColumn } from '../types';
-import { Role, TaskStatus, TaskPriority, CUSTOM_STATUS_NAMES } from '../types';
+import { TaskPriority } from '../types';
 import { useAuth, useSearch, useTheme } from '../hooks/useAuth';
 import api from '../services/mockApi';
 import TaskDetailModal from '../components/TaskDetailModal';
 import PageLoader from '../components/loading/PageLoader';
-import Tooltip from '../components/ui/Tooltip';
-import { formatTaskStatus } from '../utils';
 import { loadPointsConfig, POINTS_CONFIG_UPDATED_EVENT } from '../utils/pointsConfigStorage';
 import { augmentTasksWithPoints, summarizeTaskPoints, formatPointsValue } from '../utils/taskPoints';
 import { priorityPillStyle } from '../utils/themeTokens';
-import {
-  PlusIcon,
-  RocketLaunchIcon,
-  ClipboardDocumentListIcon,
-  PuzzlePieceIcon,
-  FireIcon,
-  AcademicCapIcon,
-  TrophyIcon,
-  XMarkIcon,
-  NoSymbolIcon,
-  QuestionMarkCircleIcon,
-} from '../components/icons';
-
-type DragState = {
-  taskId: string | null;
-  sourceColumn: string | null;
-};
-
 type ThemeMode = 'light' | 'dark' | 'colorful' | 'system';
 type ResolvedTheme = 'light' | 'dark' | 'colorful';
 
@@ -59,216 +43,6 @@ const useResolvedTheme = (theme: ThemeMode): ResolvedTheme => {
     setResolved(resolveTheme(theme));
   }, [theme]);
   return resolved;
-};
-
-type StatusDetail = {
-  label: string;
-  legend: string;
-  stageToken: string;
-  icon: React.FC<React.SVGProps<SVGSVGElement>>;
-};
-
-// 11 stages aligned with backend task statuses
-const statusDetails: { [K in TaskStatus]: StatusDetail } = {
-  [TaskStatus.WAITING_FOR_REQUIREMENT]: {
-    label: 'Battle Plan',
-    legend: 'New / Ready',
-    stageToken: '--color-stage-battle',
-    icon: RocketLaunchIcon,
-  },
-  [TaskStatus.TODO]: {
-    label: 'Case Filed',
-    legend: 'Assigned / To Do',
-    stageToken: '--color-stage-case',
-    icon: ClipboardDocumentListIcon,
-  },
-  [TaskStatus.IN_PROGRESS]: {
-    label: 'In Progress',
-    legend: 'In Progress',
-    stageToken: '--color-stage-progress',
-    icon: PuzzlePieceIcon,
-  },
-  [TaskStatus.BUG_FIXING]: {
-    label: 'Bug Fixing',
-    legend: 'Fixing defects before review',
-    stageToken: '--color-stage-boss',
-    icon: FireIcon,
-  },
-  [TaskStatus.BLOCKED]: {
-    label: 'Boss Encounter',
-    legend: 'Blocked / Critical',
-    stageToken: '--color-stage-boss',
-    icon: FireIcon,
-  },
-  [TaskStatus.IN_REVIEW]: {
-    label: 'Tactical Shift',
-    legend: 'Review / Adjust before completion',
-    stageToken: '--color-stage-tactical',
-    icon: AcademicCapIcon,
-  },
-  [TaskStatus.ON_HOLD]: {
-    label: 'On Hold',
-    legend: 'Paused / Waiting',
-    stageToken: '--color-stage-hold',
-    icon: QuestionMarkCircleIcon,
-  },
-  [TaskStatus.DONE]: {
-    label: 'Conquered',
-    legend: 'Completed – Level Rewards',
-    stageToken: '--color-stage-conquered',
-    icon: TrophyIcon,
-  },
-  [TaskStatus.DEPLOYED]: {
-    label: 'Deployed',
-    legend: 'Released / Live',
-    stageToken: '--color-stage-conquered',
-    icon: TrophyIcon,
-  },
-  [TaskStatus.FAILED]: {
-    label: 'Fallen',
-    legend: 'Mission Failed – Could not complete',
-    stageToken: '--color-stage-fallen',
-    icon: XMarkIcon,
-  },
-  [TaskStatus.GRAVEYARD]: {
-    label: 'Graveyard',
-    legend: 'For inactive / archived tasks',
-    stageToken: '--color-stage-graveyard',
-    icon: NoSymbolIcon,
-  },
-};
-
-type KanbanStatusVisual = {
-  accent: string;
-  lightColumn: string;
-  darkColumn: string;
-  lightBorder: string;
-  darkBorder: string;
-  lightGlow: string;
-  darkGlow: string;
-};
-
-const kanbanStatusVisuals: Record<TaskStatus, KanbanStatusVisual> = {
-  [TaskStatus.WAITING_FOR_REQUIREMENT]: {
-    accent: '#7DD3FC',
-    lightColumn: 'linear-gradient(180deg, rgba(240, 249, 255, 0.96), rgba(224, 242, 254, 0.9))',
-    darkColumn: 'linear-gradient(180deg, rgba(15, 35, 56, 0.86), rgba(11, 18, 32, 0.92))',
-    lightBorder: 'rgba(125, 211, 252, 0.45)',
-    darkBorder: 'rgba(125, 211, 252, 0.24)',
-    lightGlow: '0 18px 42px rgba(125, 211, 252, 0.2)',
-    darkGlow: '0 18px 42px rgba(14, 165, 233, 0.15)',
-  },
-  [TaskStatus.TODO]: {
-    accent: '#93C5FD',
-    lightColumn: 'linear-gradient(180deg, rgba(239, 246, 255, 0.96), rgba(224, 231, 255, 0.88))',
-    darkColumn: 'linear-gradient(180deg, rgba(30, 41, 74, 0.86), rgba(15, 23, 42, 0.92))',
-    lightBorder: 'rgba(147, 197, 253, 0.45)',
-    darkBorder: 'rgba(147, 197, 253, 0.22)',
-    lightGlow: '0 18px 42px rgba(147, 197, 253, 0.18)',
-    darkGlow: '0 18px 42px rgba(59, 130, 246, 0.13)',
-  },
-  [TaskStatus.IN_PROGRESS]: {
-    accent: '#818CF8',
-    lightColumn: 'linear-gradient(180deg, rgba(238, 242, 255, 0.96), rgba(221, 214, 254, 0.86))',
-    darkColumn: 'linear-gradient(180deg, rgba(49, 46, 129, 0.7), rgba(17, 24, 39, 0.94))',
-    lightBorder: 'rgba(129, 140, 248, 0.45)',
-    darkBorder: 'rgba(129, 140, 248, 0.26)',
-    lightGlow: '0 18px 42px rgba(129, 140, 248, 0.2)',
-    darkGlow: '0 18px 42px rgba(99, 102, 241, 0.17)',
-  },
-  [TaskStatus.BUG_FIXING]: {
-    accent: '#E11D48',
-    lightColumn: 'linear-gradient(180deg, rgba(255, 241, 242, 0.96), rgba(254, 226, 226, 0.86))',
-    darkColumn: 'linear-gradient(180deg, rgba(88, 28, 43, 0.72), rgba(30, 18, 30, 0.94))',
-    lightBorder: 'rgba(225, 29, 72, 0.43)',
-    darkBorder: 'rgba(225, 29, 72, 0.24)',
-    lightGlow: '0 18px 42px rgba(225, 29, 72, 0.16)',
-    darkGlow: '0 18px 42px rgba(225, 29, 72, 0.13)',
-  },
-  [TaskStatus.BLOCKED]: {
-    accent: '#F472B6',
-    lightColumn: 'linear-gradient(180deg, rgba(253, 242, 248, 0.96), rgba(252, 231, 243, 0.86))',
-    darkColumn: 'linear-gradient(180deg, rgba(80, 28, 62, 0.76), rgba(24, 16, 32, 0.94))',
-    lightBorder: 'rgba(244, 114, 182, 0.45)',
-    darkBorder: 'rgba(244, 114, 182, 0.25)',
-    lightGlow: '0 18px 42px rgba(244, 114, 182, 0.18)',
-    darkGlow: '0 18px 42px rgba(219, 39, 119, 0.14)',
-  },
-  [TaskStatus.IN_REVIEW]: {
-    accent: '#2DD4BF',
-    lightColumn: 'linear-gradient(180deg, rgba(240, 253, 250, 0.96), rgba(204, 251, 241, 0.86))',
-    darkColumn: 'linear-gradient(180deg, rgba(20, 83, 75, 0.62), rgba(12, 28, 38, 0.94))',
-    lightBorder: 'rgba(45, 212, 191, 0.45)',
-    darkBorder: 'rgba(45, 212, 191, 0.24)',
-    lightGlow: '0 18px 42px rgba(45, 212, 191, 0.18)',
-    darkGlow: '0 18px 42px rgba(20, 184, 166, 0.14)',
-  },
-  [TaskStatus.ON_HOLD]: {
-    accent: '#F59E0B',
-    lightColumn: 'linear-gradient(180deg, rgba(255, 251, 235, 0.96), rgba(254, 243, 199, 0.86))',
-    darkColumn: 'linear-gradient(180deg, rgba(92, 58, 19, 0.62), rgba(28, 24, 18, 0.94))',
-    lightBorder: 'rgba(245, 158, 11, 0.43)',
-    darkBorder: 'rgba(245, 158, 11, 0.24)',
-    lightGlow: '0 18px 42px rgba(245, 158, 11, 0.16)',
-    darkGlow: '0 18px 42px rgba(217, 119, 6, 0.13)',
-  },
-  [TaskStatus.DONE]: {
-    accent: '#22C55E',
-    lightColumn: 'linear-gradient(180deg, rgba(236, 253, 245, 0.96), rgba(204, 251, 241, 0.86))',
-    darkColumn: 'linear-gradient(180deg, rgba(20, 83, 45, 0.58), rgba(11, 30, 35, 0.94))',
-    lightBorder: 'rgba(34, 197, 94, 0.43)',
-    darkBorder: 'rgba(34, 197, 94, 0.24)',
-    lightGlow: '0 18px 42px rgba(34, 197, 94, 0.16)',
-    darkGlow: '0 18px 42px rgba(20, 184, 166, 0.13)',
-  },
-  [TaskStatus.DEPLOYED]: {
-    accent: '#14B8A6',
-    lightColumn: 'linear-gradient(180deg, rgba(240, 253, 250, 0.96), rgba(204, 251, 241, 0.86))',
-    darkColumn: 'linear-gradient(180deg, rgba(20, 83, 75, 0.58), rgba(11, 30, 35, 0.94))',
-    lightBorder: 'rgba(20, 184, 166, 0.43)',
-    darkBorder: 'rgba(20, 184, 166, 0.24)',
-    lightGlow: '0 18px 42px rgba(20, 184, 166, 0.16)',
-    darkGlow: '0 18px 42px rgba(20, 184, 166, 0.13)',
-  },
-  [TaskStatus.FAILED]: {
-    accent: '#F43F5E',
-    lightColumn: 'linear-gradient(180deg, rgba(255, 241, 242, 0.96), rgba(255, 228, 230, 0.86))',
-    darkColumn: 'linear-gradient(180deg, rgba(88, 28, 43, 0.72), rgba(30, 18, 30, 0.94))',
-    lightBorder: 'rgba(244, 63, 94, 0.43)',
-    darkBorder: 'rgba(244, 63, 94, 0.24)',
-    lightGlow: '0 18px 42px rgba(244, 63, 94, 0.16)',
-    darkGlow: '0 18px 42px rgba(225, 29, 72, 0.13)',
-  },
-  [TaskStatus.GRAVEYARD]: {
-    accent: '#64748B',
-    lightColumn: 'linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(226, 232, 240, 0.9))',
-    darkColumn: 'linear-gradient(180deg, rgba(51, 65, 85, 0.6), rgba(15, 23, 42, 0.94))',
-    lightBorder: 'rgba(100, 116, 139, 0.35)',
-    darkBorder: 'rgba(148, 163, 184, 0.18)',
-    lightGlow: '0 18px 42px rgba(100, 116, 139, 0.12)',
-    darkGlow: '0 18px 42px rgba(15, 23, 42, 0.34)',
-  },
-};
-
-const getKanbanStatusVisual = (status: TaskStatus) =>
-  kanbanStatusVisuals[status] ?? kanbanStatusVisuals[TaskStatus.TODO];
-
-const getKanbanColumnStyle = (status: TaskStatus, mode: ResolvedTheme): React.CSSProperties => {
-  const visual = getKanbanStatusVisual(status);
-  const isLight = mode === 'light';
-  const isColorful = mode === 'colorful';
-  if (isColorful) {
-    return {
-      background: `linear-gradient(180deg, color-mix(in srgb, ${visual.accent} 16%, rgba(255,255,255,0.94) 84%), rgba(255,255,255,0.76))`,
-      borderColor: visual.lightBorder,
-      boxShadow: `0 18px 42px color-mix(in srgb, ${visual.accent} 18%, transparent)`,
-    };
-  }
-  return {
-    background: isLight ? visual.lightColumn : visual.darkColumn,
-    borderColor: isLight ? visual.lightBorder : visual.darkBorder,
-    boxShadow: isLight ? visual.lightGlow : visual.darkGlow,
-  };
 };
 
 const priorityVisuals: Record<TaskPriority, { border: string; background: string; color: string }> = {
@@ -357,14 +131,12 @@ const toIsoDate = (value: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, onClick, onEdit, theme, user, timezone }) => {
+const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, onClick, onEdit, theme, timezone, columnColor, destinations, onMove, moving }) => {
   const formatDate = (value: string | null, includeTime = false) => value ? taskInstant(value).setZone(timezone).toLocaleString({ year: 'numeric', month: 'short', day: 'numeric', ...(includeTime ? { hour: 'numeric', minute: '2-digit' } : {}) }) : 'N/A';
   const isLight = theme === 'light';
   const isBright = theme === 'light' || theme === 'colorful';
   const statusVisual = getKanbanStatusVisual(task.status);
-  const cardSurface = isBright
-    ? 'border-slate-200/80 bg-white/90 shadow-[0_8px_24px_rgba(15,23,42,0.08)]'
-    : 'border-white/10 bg-[rgba(20,28,45,0.78)] shadow-[0_10px_28px_rgba(0,0,0,0.28)]';
+  const cardSurface = questCardSurface(theme);
   const cardTextPrimaryClass = isBright ? 'text-slate-950' : 'text-white';
   const cardTextMutedClass = isBright ? 'text-slate-600' : 'text-slate-200/80';
   const buttonClass = isBright
@@ -378,7 +150,9 @@ const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, 
 
   return (
     <div
-      draggable={task.canEdit !== false}
+      data-task-id={task.id}
+      aria-busy={moving}
+      draggable={task.canEdit === true && !moving}
       onDragStart={(e) => onDragStart(e, task.id)}
       onClick={() => onClick(task.id)}
       className={`group relative overflow-hidden rounded-2xl border p-4 transition duration-200 hover:-translate-y-1 hover:shadow-xl ${cardSurface}`}
@@ -386,7 +160,7 @@ const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, 
     >
       <span
         className="pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full"
-        style={{ backgroundColor: statusVisual.accent }}
+        style={{ backgroundColor: columnColor || statusVisual.accent }}
       />
       <div className="flex justify-between items-start">
         <p className={`min-h-[4.5rem] font-semibold text-sm line-clamp-3 ${cardTextPrimaryClass}`}>{task.title}</p>
@@ -413,15 +187,15 @@ const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, 
 
       <div className="mt-3 flex gap-2">
         <button
-          onClick={() => onClick(task.id)}
+          onClick={event => { event.stopPropagation(); onClick(task.id); }}
           className={`flex-1 ${buttonClass}`}
           style={{ borderColor: isBright ? 'rgba(79, 124, 255, 0.28)' : 'rgba(125, 211, 252, 0.26)' }}
         >
           View
         </button>
-        {(user?.role === Role.MANAGER || user?.role === Role.ADMIN || user?.role === Role.OWNER) && (
+        {task.canEdit === true && (
           <button
-            onClick={() => onEdit(task.id)}
+            onClick={event => { event.stopPropagation(); onEdit(task.id); }}
             className={`flex-1 ${buttonClass}`}
             style={{ borderColor: isBright ? 'rgba(245, 158, 11, 0.34)' : 'rgba(245, 158, 11, 0.32)' }}
           >
@@ -429,6 +203,15 @@ const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, 
           </button>
         )}
       </div>
+      {task.canEdit === true && <label className={`mt-3 block text-xs ${cardTextMutedClass}`} onClick={event => event.stopPropagation()}>
+        Move quest
+        <select aria-label={`Move ${task.title} to status`} value="" disabled={moving}
+          onChange={event => { const destination = destinations.find((column: KanbanColumn) => column.statusId === event.target.value); if (destination) void onMove(task, destination); }}
+          className={`mt-1 w-full min-w-0 rounded-lg border px-2 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${isBright ? 'border-slate-300 bg-white text-slate-900' : 'border-white/20 bg-slate-950 text-slate-100'}`}>
+          <option value="">{moving ? 'Moving quest...' : 'Choose destination'}</option>
+          {destinations.filter((column: KanbanColumn) => column.id !== (task.customStatusId || task.status)).map((column: KanbanColumn) => <option key={column.statusId} value={column.statusId}>{column.title}</option>)}
+        </select>
+      </label>}
     </div>
   );
 };
@@ -461,6 +244,8 @@ const FilterDropdown: React.FC<{
 }> = ({ value, placeholder, options, onChange, buttonClassName, menuClassName, itemClassName, activeItemClassName }) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const listId = useId();
   const selectedLabel = options.find((option) => option.value === value)?.label ?? placeholder;
 
   useEffect(() => {
@@ -474,6 +259,7 @@ const FilterDropdown: React.FC<{
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
+        triggerRef.current?.focus();
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -484,21 +270,38 @@ const FilterDropdown: React.FC<{
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (isOpen) (wrapperRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')
+      || wrapperRef.current?.querySelector<HTMLButtonElement>('[role="option"]'))?.focus();
+  }, [isOpen]);
+
   return (
     <div ref={wrapperRef} className="relative min-w-[190px]">
       <button
+        ref={triggerRef}
         type="button"
         className={`${buttonClassName} flex w-full items-center justify-between gap-3 text-left`}
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="listbox"
+        aria-label={placeholder}
+        aria-controls={isOpen ? listId : undefined}
         aria-expanded={isOpen}
       >
-        <span className={value ? '' : 'opacity-80'}>{selectedLabel}</span>
+        <span className={`min-w-0 [overflow-wrap:anywhere] ${value ? '' : 'opacity-80'}`}>{selectedLabel}</span>
         <ChevronIcon open={isOpen} className="h-4 w-4 shrink-0 opacity-80 transition" />
       </button>
       {isOpen && (
         <div className={`absolute left-0 top-full z-50 mt-2 w-full overflow-hidden rounded-b-[12px] border ${menuClassName}`}>
-          <div className="max-h-64 overflow-y-auto py-1 custom-scrollbar">
+          <div id={listId} role="listbox" aria-label={placeholder} className="max-h-64 overflow-y-auto py-1 custom-scrollbar"
+            onKeyDown={event => {
+              const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="option"]'));
+              const index = items.indexOf(document.activeElement as HTMLButtonElement);
+              if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+                event.preventDefault();
+                const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+                items[next]?.focus();
+              } else if (event.key === 'Tab') setIsOpen(false);
+            }}>
             {options.map((option) => {
               const isActive = option.value === value;
               return (
@@ -511,6 +314,7 @@ const FilterDropdown: React.FC<{
                   onClick={() => {
                     onChange(option.value);
                     setIsOpen(false);
+                    triggerRef.current?.focus();
                   }}
                 >
                   {option.label}
@@ -526,14 +330,19 @@ const FilterDropdown: React.FC<{
 
 const KanbanBoard: React.FC = () => {
   const queryClient = useQueryClient();
-    const active = useTaskViewActive();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [columns, setColumns] = useState<KanbanColumn[]>([]);
+  const active = useTaskViewActive();
+  const [moveError, setMoveError] = useState('');
+  const [moveMessage, setMoveMessage] = useState('');
+  const [filterMessage, setFilterMessage] = useState('');
+  const [movingIds, setMovingIds] = useState<Set<string>>(new Set());
+  const [pendingHold, setPendingHold] = useState<{task:Task;column:KanbanColumn;configurationRevision?:number}|null>(null);
+  const [holdReason, setHoldReason] = useState('');
+  const pendingMoves = useRef(new Set<string>());
   const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-    const zone = workTimezone(user?.timezone);
+  const zone = workTimezone(user?.timezone);
   const { searchQuery, setSearchQuery, debouncedSearchQuery } = useSearch();
   const { theme } = useTheme();
   const resolvedTheme = useResolvedTheme(theme as ThemeMode);
@@ -624,7 +433,8 @@ const KanbanBoard: React.FC = () => {
     queryKey: ['tasks', 'kanban-board', user?.tenantId, user?.id, user?.role, kanbanQueryParams],
     queryFn: ({ signal }) => api.getTasksKanban({ ...kanbanQueryParams, signal }),
     enabled: Boolean(user) && active,
-    staleTime: 45_000,
+    staleTime: 30_000,
+    refetchInterval: active ? 30_000 : false,
     placeholderData: keepPreviousData,
   });
 
@@ -649,16 +459,39 @@ const KanbanBoard: React.FC = () => {
   }, [queryClient]);
 
   useEffect(() => {
-    if (!kanbanQuery.data) return;
-    const fetchedTasks = kanbanQuery.data.columns.flatMap((column) => column.items);
-    setTasks(augmentTasksWithPoints(fetchedTasks));
-    setColumns(kanbanQuery.data.columns.map((column) => ({
+    const changed = (event: Event) => {
+      if ((event as CustomEvent).detail?.tenantId === user?.tenantId) fetchData();
+    };
+    const stored = (event: StorageEvent) => {
+      if (user?.tenantId && event.key === configurationStorageKey(user.tenantId)) fetchData();
+    };
+    window.addEventListener(STATUS_CONFIGURATION_EVENT, changed);
+    window.addEventListener('storage', stored);
+    return () => { window.removeEventListener(STATUS_CONFIGURATION_EVENT, changed); window.removeEventListener('storage', stored); };
+  }, [fetchData, user?.tenantId]);
+
+  const tasks = useMemo(() => augmentTasksWithPoints(
+    [...(kanbanQuery.data?.columns || []), ...(kanbanQuery.data?.outsideColumns || [])].flatMap(column => column.items)), [kanbanQuery.data]);
+  const columns: KanbanColumn[] = useMemo(() => (kanbanQuery.data?.columns || []).map((column) => ({
       id: column.status,
-      title: column.title || statusDetails[column.status]?.label || formatTaskStatus(column.status),
+      title: column.title,
+      statusId: column.statusId,
+      workflowBehavior:column.workflowBehavior,
+      holdReasonRequired:column.holdReasonRequired,
+      count: column.count,
       order: column.order,
       pipelineId: 'default',
-    })));
-  }, [kanbanQuery.data]);
+      color: column.color,
+      icon: column.icon,
+    })), [kanbanQuery.data]);
+
+  useEffect(() => {
+    if (!statusFilter || !kanbanQuery.data || kanbanQuery.isPlaceholderData) return;
+    if (![...kanbanQuery.data.columns, ...(kanbanQuery.data.outsideColumns || [])].some(column => column.status === statusFilter)) {
+      setStatusFilter('');
+      setFilterMessage('The selected status is no longer available. Showing all statuses; reassigned quests may be on another page.');
+    }
+  }, [statusFilter, kanbanQuery.data, kanbanQuery.isPlaceholderData, setStatusFilter]);
 
   useEffect(() => {
     if (!usersQuery.data) return;
@@ -718,28 +551,38 @@ const KanbanBoard: React.FC = () => {
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, taskId: string) => {
     e.dataTransfer.setData('taskId', taskId);
+    e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, newStatus: TaskStatus) => {
+  const handleDrop = async (e: React.DragEvent<HTMLElement>, column: KanbanColumn) => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData('taskId');
     const task = tasks.find((t) => t.id === taskId);
-    if (!task || task.canEdit === false || task.status === newStatus || !user) return;
-
-    try {
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
-      await api.updateTask(taskId, { status: newStatus }, user.id);
-      void queryClient.invalidateQueries({ queryKey: ['tasks', 'kanban-board'] });
-    } catch (err) {
-      console.error('Failed to update task:', err);
-      // Refetch can return a structurally identical cached response, so restore
-      // the optimistic card explicitly before reconciling with the server.
-      setTasks(previous => previous.map(current => current.id === taskId ? task : current));
-      fetchData();
-    }
+    if (task) await moveTask(task, column);
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => e.preventDefault();
+  const moveTask = async (task: Task, column: KanbanColumn, reason?: string, configurationRevision=kanbanQuery.data?.configurationRevision) => {
+    const taskId = task.id;
+    if (pendingMoves.current.has(taskId) || task.canEdit !== true || (task.customStatusId || task.status) === column.id || !user) return;
+
+    if (!column.statusId) { setMoveError('Status configuration is unavailable. Refresh the board.'); return; }
+    if (column.workflowBehavior==='HOLD' && task.status!=='ON_HOLD' && reason===undefined) {
+      setHoldReason(''); setMoveError(''); setPendingHold({task,column,configurationRevision}); return;
+    }
+    pendingMoves.current.add(taskId); setMovingIds(new Set(pendingMoves.current)); setMoveError(''); setMoveMessage('');
+    try {
+      await api.moveTaskToKanbanStatus(taskId, column.statusId, reason, configurationRevision);
+      setMoveMessage(`Moved ${task.title} to ${column.title}. Current filters and pagination still apply.`);
+      await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      return true;
+    } catch (err) {
+      setMoveError(err instanceof Error ? err.message : 'Unable to move quest. Please try again.');
+      fetchData();
+      return false;
+    } finally { pendingMoves.current.delete(taskId); setMovingIds(new Set(pendingMoves.current)); }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLElement>) => e.preventDefault();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const handleTaskClick = (id: string) => setSelectedTaskId(id);
   const handleTaskEdit = (id: string) => setSelectedTaskId(id);
@@ -803,10 +646,11 @@ const KanbanBoard: React.FC = () => {
 
   // The server already applies shared filters before pagination. Reapplying
   // approximate client date/search filters would hide valid rows on each page.
-  const filteredTasks = useMemo(() => statusFilter ? tasks.filter(task => task.status === statusFilter) : tasks, [tasks, statusFilter]);
+  const filteredTasks = useMemo(() => statusFilter ? tasks.filter(task => (task.customStatusId || task.status) === statusFilter) : tasks, [tasks, statusFilter]);
+  const groupedTasks = useMemo(() => groupKanbanTasks(filteredTasks), [filteredTasks]);
 
-  const maxTasksInColumn = useMemo(() => Math.max(0, ...(kanbanQuery.data?.columns || [])
-    .filter(column => !statusFilter || column.status === statusFilter).map(column => column.count)), [kanbanQuery.data, statusFilter]);
+  const maxTasksInColumn = useMemo(() => Math.max(0, ...[...(kanbanQuery.data?.columns || []), ...(kanbanQuery.data?.outsideColumns || [])]
+    .filter(column => !statusFilter || column.status === statusFilter).map(column => column.count), kanbanQuery.data?.unmappedCount || 0), [kanbanQuery.data, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(maxTasksInColumn / pageSize));
   const canGoPrev = pageIndex > 0;
@@ -951,20 +795,10 @@ const KanbanBoard: React.FC = () => {
       : isBrightMode
         ? 'border-indigo-200/80 bg-white/86 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'
         : 'border-white/16 bg-white/5 text-white/80 hover:border-cyan-300/42 hover:bg-white/10';
-  const addStageClass = isLight
-    ? 'group flex h-full min-h-[260px] w-full flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-indigo-200/90 bg-white/58 p-8 text-sm font-semibold text-slate-600 shadow-[0_14px_32px_rgba(79,124,255,0.1)] transition-all duration-200 hover:border-indigo-300 hover:bg-white/78 hover:text-indigo-700'
-    : isColorful
-      ? 'group flex h-full min-h-[260px] w-full flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-fuchsia-200/90 bg-white/58 p-8 text-sm font-semibold text-slate-600 shadow-[0_14px_32px_rgba(217,70,239,0.1)] transition-all duration-200 hover:border-fuchsia-300 hover:bg-white/78 hover:text-fuchsia-700'
-    : 'group flex h-full min-h-[260px] w-full flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-cyan-300/24 bg-slate-950/44 p-8 text-sm font-semibold text-slate-200/70 shadow-[0_16px_38px_rgba(2,6,23,0.45)] transition-all duration-200 hover:border-cyan-300/60 hover:bg-slate-900/70 hover:text-cyan-100';
   const statusOptions = useMemo(
-    () => [
-      { value: '', label: 'All Statuses' },
-      ...Object.values(TaskStatus).map((status) => ({
-        value: String(status),
-        label: CUSTOM_STATUS_NAMES[status as TaskStatus]?.name || status.replace('_', ' '),
-      })),
-    ],
-    [],
+    () => [{ value: '', label: 'All Statuses' }, ...columns.map(column => ({ value: column.id, label: column.title })),
+      ...(kanbanQuery.data?.outsideColumns || []).map(column => ({ value: column.status, label: `${column.title} (${column.outsideReason})` }))],
+    [columns, kanbanQuery.data?.outsideColumns],
   );
   const priorityOptions = useMemo(
     () => [
@@ -992,6 +826,12 @@ const KanbanBoard: React.FC = () => {
 
   return (
     <div className={pageShellClass} style={{ color: boardTextColorHex }}>
+      {(kanbanQuery.isError || usersQuery.isError || departmentsQuery.isError) && <div role="alert" className="rounded-xl border border-red-400/50 p-4">Unable to load the latest Battle Board data. <button className="rounded underline focus-visible:ring-2" onClick={() => { void kanbanQuery.refetch(); void usersQuery.refetch(); void departmentsQuery.refetch(); }}>Retry</button></div>}
+      {moveError && <p role="alert" className="rounded-xl border border-red-400/50 p-4">{moveError}</p>}
+      {moveMessage && <p role="status" className="text-sm">{moveMessage}</p>}
+      {filterMessage && <p role="status" className="text-sm">{filterMessage}</p>}
+      {kanbanQuery.isFetching && !loading && <p role="status" className="text-xs">Refreshing Battle Board...</p>}
+      {kanbanQuery.data && !filteredTasks.length && !kanbanQuery.data.unmappedCount && <p role="status" className="text-sm">No quests on this page match the current filters.</p>}
       <div className="flex flex-col gap-2">
         <p className={`text-[11px] font-semibold uppercase tracking-[0.34em] ${isBrightMode ? 'text-fuchsia-600' : 'text-cyan-200/80'}`}>
           Mission Control
@@ -1001,7 +841,7 @@ const KanbanBoard: React.FC = () => {
         </h2>
       </div>
 
-      <div className={`${controlsPanelClass} space-y-3`}>
+      <div className={`${controlsPanelClass} relative !z-30 space-y-3`}>
       <div className="flex flex-wrap gap-2 items-center">
         <input
           type="text"
@@ -1014,7 +854,7 @@ const KanbanBoard: React.FC = () => {
           value={statusFilter}
           placeholder="All Statuses"
           options={statusOptions}
-          onChange={setStatusFilter}
+          onChange={value => { setFilterMessage(''); setStatusFilter(value); }}
           buttonClassName={dropdownButtonClass}
           menuClassName={dropdownMenuClass}
           itemClassName={dropdownItemClass}
@@ -1212,6 +1052,9 @@ const KanbanBoard: React.FC = () => {
 
       <div
         ref={boardRef}
+        role="region"
+        aria-label="Battle Board columns"
+        tabIndex={0}
         className="kanban-board-scroll flex gap-6 overflow-x-auto overflow-y-visible rounded-3xl border p-4 pb-6 cursor-grab active:cursor-grabbing"
         style={{
           borderColor: isBrightMode ? 'rgba(217, 70, 239, 0.24)' : 'rgba(34, 211, 238, 0.14)',
@@ -1223,92 +1066,38 @@ const KanbanBoard: React.FC = () => {
         onMouseLeave={handleBoardMouseLeave}
         onMouseUp={handleBoardMouseUp}
       >
-        {columns.map((column) => {
-          const tasksInColumn = filteredTasks.filter(
-            (t) => t.status === column.id
-          );
-          const visibleTasks = tasksInColumn;
-          const detail = statusDetails[column.id as TaskStatus];
-          if (!detail) return null;
-          const Icon = detail.icon;
-
-          return (
-            <div
-              key={column.id}
-              data-task-status={column.id}
-              className="relative w-72 flex-shrink-0 overflow-hidden rounded-3xl border p-5 backdrop-blur transition duration-200 hover:-translate-y-0.5"
-              onDrop={(e) => handleDrop(e, column.id as TaskStatus)}
-              onDragOver={handleDragOver}
-              style={getKanbanColumnStyle(column.id as TaskStatus, resolvedTheme)}
-            >
-              <div
-                className="pointer-events-none absolute inset-x-5 top-0 h-1 rounded-b-full"
-                style={{ backgroundColor: getKanbanStatusVisual(column.id as TaskStatus).accent }}
-              />
-              <div className="relative flex flex-col gap-4">
-                <div className="flex justify-between items-center">
-                  <h3 className={`flex items-center gap-2 font-semibold ${boardTextClass}`}>
-                    <span
-                      className="grid h-8 w-8 place-items-center rounded-xl border shadow-sm"
-                      style={{
-                        borderColor: getKanbanStatusVisual(column.id as TaskStatus).accent,
-                        color: getKanbanStatusVisual(column.id as TaskStatus).accent,
-                        background: isBrightMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.58)',
-                      }}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <Tooltip text={String(column.id)} triggerClassName="inline-flex items-center">
-                      <span>{column.title || detail.label}</span>
-                    </Tooltip>
-                  </h3>
-                  <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${boardMutedTextClass}`} style={{ borderColor: isBrightMode ? 'rgba(148, 163, 184, 0.22)' : 'rgba(255, 255, 255, 0.1)', background: isBrightMode ? 'rgba(255, 255, 255, 0.58)' : 'rgba(255, 255, 255, 0.06)' }}>
-                    {tasksInColumn.length}
-                  </span>
-                </div>
-
-                <div className="space-y-4">
-                  {visibleTasks.map((task) => {
-                    const assignees = (task.assignedTo || []).map((id) => usersMap.get(id)).filter(Boolean) as User[];
-                    const creator = usersMap.get(task.createdBy);
-                    return (
-                      <KanbanTaskCard
-                        key={task.id}
-                        task={task}
-                        assignees={assignees}
-                        creator={creator}
-                        onDragStart={handleDragStart}
-                        onClick={handleTaskClick}
-                        onEdit={handleTaskEdit}
-                        theme={resolvedTheme}
-                        timezone={zone}
-                        user={user || null}
-                      />
-                    );
-                  })}
-                  {tasksInColumn.length === 0 && (
-                    <div className={`text-xs text-center py-6 border border-dashed rounded-2xl ${isBrightMode ? 'border-indigo-200/90 bg-white/52 text-slate-500' : 'border-white/20 bg-white/5 text-white/60'}`}>
-                      Drop quests here
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
+        {columns.filter(column => !statusFilter || column.id === statusFilter).map(column => {
+          const visibleTasks = groupedTasks.get(column.id) || [];
+          return <KanbanColumnFrame key={column.id} data-task-status={column.id} data-status-id={column.statusId}
+            statusKey={column.id} label={column.title} color={column.color} icon={column.icon} theme={resolvedTheme}
+            count={column.count || 0} onDrop={event => void handleDrop(event, column)} onDragOver={handleDragOver}>
+            {visibleTasks.map(task => <KanbanTaskCard key={task.id} task={task}
+              assignees={(task.assignedTo || []).map(id => usersMap.get(id)).filter(Boolean) as User[]}
+              creator={usersMap.get(task.createdBy)} onDragStart={handleDragStart} onClick={handleTaskClick}
+              onEdit={handleTaskEdit} theme={resolvedTheme} timezone={zone} columnColor={column.color}
+              destinations={columns} onMove={moveTask} moving={movingIds.has(task.id)} />)}
+            {!visibleTasks.length && <EmptyQuestColumn theme={resolvedTheme} hasTasks={!!column.count} />}
+          </KanbanColumnFrame>;
         })}
-
-        <div className="w-72 flex-shrink-0">
-          <button
-            onClick={() => {}}
-            className={addStageClass}
-          >
-            <div className="grid h-12 w-12 place-items-center rounded-xl border-2 border-dashed border-current bg-white/5 group-hover:scale-110">
-              <PlusIcon className="h-6 w-6" />
-            </div>
-            <span>Add Stage</span>
-          </button>
-        </div>
       </div>
+      {!!kanbanQuery.data?.outsideColumns?.length && <details className="rounded-2xl border border-amber-400/30 p-4" open>
+        <summary className="cursor-pointer rounded font-semibold focus-visible:ring-2 focus-visible:ring-cyan-300">Quests in hidden or archived statuses</summary>
+        <p className="my-3 text-sm">These quests are retained. Drag an editable quest into a visible column to move it.</p>
+        {kanbanQuery.data.outsideColumns.filter(column => !statusFilter || column.status === statusFilter).map(column => <section key={column.status} aria-label={`${column.title} retained quests`} className="mt-4">
+          <h3 className="mb-3 font-semibold">{column.title} ({column.count}) / {column.outsideReason}</h3>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{(groupedTasks.get(column.status) || []).map(task => <KanbanTaskCard key={task.id} task={task}
+            assignees={(task.assignedTo || []).map(id => usersMap.get(id)).filter(Boolean) as User[]}
+            creator={usersMap.get(task.createdBy)} onDragStart={handleDragStart} onClick={handleTaskClick}
+            onEdit={handleTaskEdit} theme={resolvedTheme} timezone={zone} columnColor={column.color}
+            destinations={columns} onMove={moveTask} moving={movingIds.has(task.id)} />)}</div>
+          {!column.items.length && <p className="text-sm">No quests on this page. Use the page controls to see retained quests.</p>}
+        </section>)}
+      </details>}
+      {!!kanbanQuery.data?.unmappedCount && <section role="region" aria-label="Unmapped legacy quests" className="rounded-2xl border border-amber-400/40 p-4">
+        <h3 className="font-semibold">{kanbanQuery.data.unmappedCount} quests need status mapping</h3>
+        <p className="my-2 text-sm">Ask a workspace administrator to review these legacy status references. The records remain preserved.</p>
+        <ul className="space-y-2">{kanbanQuery.data.unmappedItems?.map(task => <li key={task.id} className="break-words text-sm">{task.title} / {task.id} / {task.raw_status}{task.custom_status_id ? ` / ${task.custom_status_id}` : ''}</li>)}</ul>
+      </section>}
 
       <div className={paginationPanelClass}>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1357,6 +1146,21 @@ const KanbanBoard: React.FC = () => {
         </div>
       </div>
 
+      <Dialog open={!!pendingHold} onClose={() => { if (!pendingHold || !movingIds.has(pendingHold.task.id)) setPendingHold(null); }} className="relative z-[110]">
+        <DialogBackdrop className="fixed inset-0 bg-black/70" />
+        <div className="fixed inset-0 flex items-center justify-center p-4"><DialogPanel className="w-full max-w-lg space-y-4 rounded-2xl border border-cyan-400/30 bg-slate-950 p-6 text-slate-100">
+          <DialogTitle className="text-lg font-bold">Place quest On Hold</DialogTitle>
+          <DialogDescription className="[overflow-wrap:anywhere]">{pendingHold?.task.title} will move to {pendingHold?.column.title}. Eligible overdue aging pauses; the original deadline and earlier penalties are preserved.</DialogDescription>
+          <label className="block text-sm">Hold reason {pendingHold?.column.holdReasonRequired ? '(required)' : '(optional)'}
+            <textarea aria-label="Hold reason" maxLength={500} required={pendingHold?.column.holdReasonRequired} value={holdReason} onChange={event => setHoldReason(event.target.value)}
+              className="mt-2 w-full rounded-lg border border-cyan-400/30 bg-slate-900 p-3 focus-visible:ring-2 focus-visible:ring-cyan-300" /></label>
+          {moveError && <p role="alert" className="text-sm text-red-300">{moveError}</p>}
+          <div className="flex justify-end gap-3"><button className="rounded-lg border border-white/20 px-4 py-2 focus-visible:ring-2" onClick={() => setPendingHold(null)} disabled={!!pendingHold && movingIds.has(pendingHold.task.id)}>Cancel</button>
+            <button className="rounded-lg border border-cyan-300/50 bg-cyan-500/20 px-4 py-2 focus-visible:ring-2 disabled:opacity-40"
+              disabled={!pendingHold || movingIds.has(pendingHold.task.id) || (!!pendingHold.column.holdReasonRequired && !holdReason.trim())}
+              onClick={async () => { if (pendingHold && await moveTask(pendingHold.task,pendingHold.column,holdReason,pendingHold.configurationRevision)) setPendingHold(null); }}>Confirm hold</button></div>
+        </DialogPanel></div>
+      </Dialog>
       {selectedTaskId &&
         typeof window !== 'undefined' &&
         ReactDOM.createPortal(

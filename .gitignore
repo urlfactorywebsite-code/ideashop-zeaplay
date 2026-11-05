@@ -43,6 +43,7 @@ media/uploads/
 backend/media/uploads/
 
 # Logs, process files, and local runtime output
+.tmp/
 *.log
 *.pid
 uvicorn-*.log
@@ -79,3 +80,5 @@ test_script.py
 benchmarks/realtime/*.local.json
 benchmarks/realtime/results/
 realtime-summary.json
+
+/.tmp/postgresql17-binaries.zip

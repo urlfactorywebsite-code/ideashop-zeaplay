@@ -4,9 +4,12 @@ import { useBlocker } from 'react-router-dom';
 import { useNavigation, NAVIGATION_UPDATED } from '../hooks/useNavigation';
 import { http } from '../services/mockApi';
 import SidebarEditor, { type EditorItem } from '../components/SidebarEditor';
+import StatusManagement from '../components/StatusManagement';
+import { useAuth } from '../hooks/useAuth';
 import type { NavigationDocument, NavigationUpdate } from '../types/navigation';
 
 export default function SidebarManagement() {
+  const { user } = useAuth();
   const navigation = useNavigation();
   const config = navigation.configuration!;
   const makeDraft = () => config.pages.map((page, index) => ({ ...page, defaultIndex: index, label: navigation.preferences.labels[page.id] || page.defaultLabel }))
@@ -17,7 +20,8 @@ export default function SidebarManagement() {
   const [draft, setDraft] = useState<EditorItem[]>(makeDraft);
   const [revision, setRevision] = useState(config.revision);
   const [dirty, setDirty] = useState(false);
-  const dirtyRef = useRef(false); dirtyRef.current = dirty;
+  const [statusDirty, setStatusDirty] = useState(false);
+  const dirtyRef = useRef(false); dirtyRef.current = dirty || statusDirty;
   const blocker = useBlocker(() => dirtyRef.current);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -79,10 +83,11 @@ export default function SidebarManagement() {
       <button type="button" disabled={!dirty || saving} onClick={() => { if (policyChanged) setConfirm('save'); else void save(); }} className="rounded-lg bg-primary px-4 py-2 font-semibold text-white disabled:opacity-40">{saving ? 'Saving…' : 'Save Changes'}</button>
     </div>
     <p className="text-xs text-text-secondary">Workspace revision {revision}{config.updatedAt ? ` · Updated ${new Date(config.updatedAt).toLocaleString()}` : ' · Default configuration'}{config.updatedBy ? ` · By ${config.updatedBy}` : ''}</p>
+    <StatusManagement key={`${user?.tenantId}:${user?.id}:${user?.role}`} onDirtyChange={setStatusDirty} />
     <Dialog open={confirm !== null} onClose={cancelConfirmation} className="relative z-[100]">
       <DialogBackdrop className="fixed inset-0 bg-black/60" /><div className="fixed inset-0 flex items-center justify-center p-4"><DialogPanel className="w-full max-w-md rounded-2xl border border-border-color bg-surface p-6 text-text-primary">
         <DialogTitle className="text-lg font-bold">{confirm === 'save' ? 'Apply workspace access changes?' : confirm === 'leave' ? 'Leave without saving?' : 'Discard unsaved changes?'}</DialogTitle>
-        <p className="mt-3 text-sm text-text-secondary">{confirm === 'save' ? 'Disabled modules and removed roles will lose direct access across this workspace. Hidden-only pages remain independently accessible. Existing data is preserved.' : confirm === 'leave' ? 'Your unsaved navigation changes will be discarded if you leave this page.' : 'Your draft will be replaced with the latest saved workspace rules and personal layout.'}</p>
+        <p className="mt-3 text-sm text-text-secondary">{confirm === 'save' ? 'Disabled modules and removed roles will lose direct access across this workspace. Hidden-only pages remain independently accessible. Existing data is preserved.' : confirm === 'leave' ? 'Your unsaved navigation and status changes will be discarded if you leave this page.' : 'Your draft will be replaced with the latest saved workspace rules and personal layout.'}</p>
         <div className="mt-5 flex justify-end gap-3"><button onClick={cancelConfirmation} className="rounded-lg border border-border-color px-4 py-2">Cancel</button><button onClick={() => confirm === 'save' ? void save() : confirm === 'leave' ? leaveWithoutSaving() : discard()} className="rounded-lg bg-primary px-4 py-2 text-white">{confirm === 'save' ? 'Apply changes' : confirm === 'leave' ? 'Leave without saving' : 'Discard changes'}</button></div>
       </DialogPanel></div>
     </Dialog>

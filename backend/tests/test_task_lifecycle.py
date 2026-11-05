@@ -91,7 +91,7 @@ def data(engine):
         db.add_all([owner, outsider])
         db.commit()
         bind_actor(db, owner)
-        task = models.Task(id=str(uuid4()), title="Lifecycle test", created_by_id=owner.id, assigned_to_id=owner.id)
+        task = models.Task(id=str(uuid4()), title="Lifecycle test", status=models.TaskStatusEnum.TODO, created_by_id=owner.id, assigned_to_id=owner.id)
         db.add(task)
         db.flush()
         child = models.Subtask(id=str(uuid4()), task_id=task.id, title="Child", assigned_to_id=owner.id)
@@ -432,7 +432,11 @@ def test_migration_preserves_legacy_values_and_refuses_destructive_downgrade(eng
     sys.path.insert(0, os.path.abspath("backend"))
     migration = import_module("backend.alembic.versions.fd5e6f7a8b9c_task_lifecycle_history")
     from backend.app.lifecycle.schema_v1 import uninstall
+    from backend.app.task_status_schema import uninstall_history
     with engine.begin() as connection:
+        # Current metadata includes newer status capture; this fixture deliberately
+        # emulates the database before either lifecycle capture revision existed.
+        uninstall_history(connection)
         uninstall(connection)
         models.TaskLifecycleEvent.__table__.drop(connection)
         models.TaskLifecycleCoverage.__table__.drop(connection)

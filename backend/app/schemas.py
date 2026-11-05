@@ -1160,9 +1160,11 @@ class TimeEntryActiveResponse(BaseModel):
 
 
 class TaskBase(BaseModel):
+    custom_status_id: Optional[str] = Field(default=None, min_length=1, max_length=36, pattern=r"^[^\x00-\x1f\x7f]+$")
     title: str
     description: str = ""
-    status: TaskStatusEnum = TaskStatusEnum.TODO
+    status: TaskStatusEnum = TaskStatusEnum.WAITING_FOR_REQUIREMENT
+    hold_reason: Optional[str] = Field(default=None, max_length=500, pattern=r'^[^\x00-\x08\x0b\x0c\x0e-\x1f\x7f]*$')
     priority: TaskPriorityEnum = TaskPriorityEnum.MEDIUM
     team: str = "General"
     project_id: Optional[str] = None
@@ -1186,6 +1188,8 @@ class TaskCreate(TaskBase):
 
 
 class TaskUpdate(BaseModel):
+    hold_reason: Optional[str] = Field(default=None, max_length=500, pattern=r'^[^\x00-\x08\x0b\x0c\x0e-\x1f\x7f]*$')
+    custom_status_id: Optional[str] = Field(default=None, min_length=1, max_length=36, pattern=r"^[^\x00-\x1f\x7f]+$")
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[TaskStatusEnum] = None
@@ -1270,6 +1274,10 @@ class TaskProjectSummary(BaseModel):
 
 
 class TaskRead(TaskBase):
+    hold_started_at: Optional[datetime] = None
+    hold_paused_seconds: float = 0
+    hold_previous_status: Optional[str] = None
+    effective_due_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -1299,6 +1307,10 @@ class TaskRead(TaskBase):
 
 
 class TaskListItem(BaseModel):
+    hold_started_at: Optional[datetime] = None
+    hold_paused_seconds: float = 0
+    effective_due_at: Optional[datetime] = None
+    custom_status_id: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -1354,16 +1366,45 @@ class TaskSummaryResponse(BaseModel):
     due_at: Optional[datetime] = None
 
 
+class TaskKanbanItem(TaskListItem):
+    can_edit: bool = False
+
+
 class TaskKanbanColumn(BaseModel):
+    workflow_behavior: str = 'ACTIVE'
+    hold_reason_required: bool = False
+    status_id: Optional[str] = None
+    is_system: bool = False
+    outside_reason: Optional[str] = None
+    color: str = "#6366f1"
+    icon: str = "circle"
     status: str
     title: str
     order: int
     count: int
-    items: List[TaskListItem]
+    items: List[TaskKanbanItem]
+
+
+class TaskKanbanUnmappedItem(BaseModel):
+    id: str
+    title: str
+    raw_status: str
+    custom_status_id: Optional[str] = None
+
+
+class TaskKanbanMove(BaseModel):
+    configuration_revision: Optional[int] = Field(default=None, ge=0, le=2147483646, strict=True)
+    hold_reason: Optional[str] = Field(default=None, max_length=500, pattern=r'^[^\x00-\x08\x0b\x0c\x0e-\x1f\x7f]*$')
+    model_config = ConfigDict(extra="forbid")
+    status_id: str = Field(min_length=1, max_length=36, pattern=r"^[^\x00-\x1f\x7f]+$")
 
 
 class TaskKanbanResponse(BaseModel):
+    configuration_revision: int = 0
     columns: List[TaskKanbanColumn]
+    outside_columns: List[TaskKanbanColumn] = Field(default_factory=list)
+    unmapped_count: int = 0
+    unmapped_items: List[TaskKanbanUnmappedItem] = Field(default_factory=list)
 
 
 class TaskCalendarDaySummary(BaseModel):
@@ -1431,7 +1472,7 @@ class CommentRead(CommentBase):
 
 
 class KanbanColumnBase(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=80)
     order: int
 
 
@@ -1440,14 +1481,17 @@ class KanbanColumnCreate(KanbanColumnBase):
 
 
 class KanbanColumnUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=80)
     order: Optional[int] = None
 
 
 class KanbanColumnRead(KanbanColumnBase):
+    workflow_behavior: str = 'ACTIVE'
+    hold_reason_required: bool = False
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    custom_status_id: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------

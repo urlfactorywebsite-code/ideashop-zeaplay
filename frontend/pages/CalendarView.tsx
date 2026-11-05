@@ -1,3 +1,4 @@
+import { effectiveTaskDeadline } from '../utils/taskDeadlines';
 import { workTimezone } from '../utils/activeWork';
 import { calendarDateKey as getDateKey, taskDateKey, calendarToday, calendarDateInstant, taskInstant } from '../utils/taskDates';
 import { useTaskFilter, useTaskViewActive } from '../hooks/useTaskView';
@@ -62,7 +63,7 @@ const isTaskCompleted = (task: Task) => task.status === TaskStatus.DONE || task.
 const getTaskTimeState = (task: Task, now = new Date()): TaskTimeState => {
     if (isTaskCompleted(task)) return 'completed';
     if (!task.dueAt) return 'none';
-    const dueTime = taskInstant(task.dueAt).toMillis();
+    const dueTime = effectiveTaskDeadline(task, now.getTime()) ?? NaN;
     if (Number.isNaN(dueTime)) return 'none';
     const hoursRemaining = (dueTime - now.getTime()) / 36e5;
     if (hoursRemaining < 0) return 'overdue';

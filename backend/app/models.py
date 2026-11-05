@@ -942,12 +942,16 @@ class AvatarAsset(Base):
 
 class Task(Base):
     __tablename__ = "tasks"
+    __table_args__ = (Index('ix_tasks_status_custom_updated_id', 'status', 'custom_status_id', text('updated_at DESC'), 'id'),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    custom_status_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("task_statuses.id", ondelete="RESTRICT"), nullable=True, index=True
+    )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, default="", nullable=False)
     status: Mapped[TaskStatusEnum] = mapped_column(
-        SAEnum(TaskStatusEnum), default=TaskStatusEnum.TODO, nullable=False
+        SAEnum(TaskStatusEnum), default=TaskStatusEnum.WAITING_FOR_REQUIREMENT, nullable=False
     )
     priority: Mapped[TaskPriorityEnum] = mapped_column(
         SAEnum(TaskPriorityEnum), default=TaskPriorityEnum.MEDIUM, nullable=False
@@ -987,6 +991,14 @@ class Task(Base):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
     due_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    # due_at remains the original deadline. These summaries are maintained
+    # transactionally with the append-only hold interval ledger.
+    hold_started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    hold_paused_seconds: Mapped[float] = mapped_column(Float, default=0, server_default="0", nullable=False)
+    hold_previous_status: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    hold_reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    status_transitioned_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    status_transition_version: Mapped[int] = mapped_column(Integer, default=0, server_default='0', nullable=False)
     assigned_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     completion_xp_awarded_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -1402,6 +1414,82 @@ class KanbanColumn(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     title: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     order: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
+
+
+class TaskStatusScope(Base):
+    __tablename__ = "task_status_scopes"
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    hold_reason_required: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
+
+
+class TaskStatus(Base):
+    __tablename__ = "task_statuses"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "code", name="uq_task_status_code"),
+        UniqueConstraint("tenant_id", "normalized_name", name="uq_task_status_name"),
+        UniqueConstraint("tenant_id", "normalized_label", name="uq_task_status_label"),
+        UniqueConstraint("tenant_id", "legacy_column_id", name="uq_task_status_legacy_column"),
+        UniqueConstraint("tenant_id", "legacy_status", name="uq_task_status_legacy_status"),
+        CheckConstraint("NOT is_system OR is_active", name="ck_task_status_system_active"),
+        CheckConstraint("is_system = (legacy_status IS NOT NULL)", name="ck_task_status_identity_kind"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("task_status_scopes.tenant_id"), nullable=False, index=True)
+    code: Mapped[str] = mapped_column(String(64), nullable=False)
+    workflow_behavior: Mapped[str] = mapped_column(String(16), default="ACTIVE", server_default="ACTIVE", nullable=False)
+    system_name: Mapped[str] = mapped_column(String(80), nullable=False)
+    normalized_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    display_label: Mapped[str] = mapped_column(String(80), nullable=False)
+    normalized_label: Mapped[str] = mapped_column(String(160), nullable=False)
+    legacy_status: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    legacy_column_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    description: Mapped[str] = mapped_column(String(500), default="", nullable=False)
+    color: Mapped[str] = mapped_column(String(7), default="#6366f1", nullable=False)
+    icon: Mapped[str] = mapped_column(String(32), default="circle", nullable=False)
+    is_system: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    kanban_visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class TaskHoldInterval(Base):
+    __tablename__ = "task_hold_intervals"
+    __table_args__ = (
+        CheckConstraint("ended_at IS NULL OR ended_at >= started_at", name="ck_hold_time_order"),
+        Index("uq_task_hold_open", "task_id", unique=True,
+              postgresql_where=text("ended_at IS NULL"), sqlite_where=text("ended_at IS NULL")),
+        Index('ix_task_hold_task_started_id', 'task_id', 'started_at', 'id'),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    # No cascading FK: historical holds survive task/user deletion.
+    task_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    started_by_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    ended_by_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    previous_status: Mapped[str] = mapped_column(String(40), nullable=False)
+    previous_custom_status_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    original_due_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    source: Mapped[str] = mapped_column(String(40), default="transition", server_default="transition", nullable=False)
+
+
+class StatusConfigurationAudit(Base):
+    __tablename__ = "status_configuration_audits"
+    __table_args__ = (Index('ix_status_audit_tenant_created_id', 'tenant_id', text('created_at DESC'), 'id'),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    # Deliberately no cascading FK: deletion must preserve the audit snapshot.
+    status_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    action: Mapped[str] = mapped_column(String(40), nullable=False)
+    previous_values: Mapped[dict] = mapped_column(JSON, nullable=False)
+    new_values: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class Achievement(Base):
@@ -2761,3 +2849,13 @@ from .lifecycle.schema_v1 import register_metadata as _register_lifecycle_metada
 _register_lifecycle_metadata(Base.metadata)
 
 
+
+from .task_status_schema import register as _register_status_metadata, register_task_identity_guard as _register_status_identity
+_register_status_metadata(Base.metadata)
+_register_status_identity(Task)
+
+from .kanban_schema_v2 import register as _register_kanban_v2
+_register_kanban_v2(Base.metadata)
+
+from .status_business_schema_v3 import register as _register_status_business_v3
+_register_status_business_v3(Base.metadata)

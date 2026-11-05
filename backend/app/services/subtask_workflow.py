@@ -121,7 +121,8 @@ def _lock_workflow_rows(db: Session, task_id: str) -> tuple[list[models.Subtask]
         # SQLite ignores FOR UPDATE. Acquire its write lock before reading the
         # current child states so concurrent HTTP retries also stay idempotent.
         db.execute(text("UPDATE tasks SET id = id WHERE id = :task_id"), {"task_id": task_id})
-    db.execute(select(models.Task.id).where(models.Task.id == task_id).with_for_update()).scalar_one()
+    db.execute(select(models.Task).where(models.Task.id == task_id).with_for_update()
+               .execution_options(populate_existing=True)).scalar_one()
     subtasks = (
         db.execute(
             select(models.Subtask)
@@ -385,9 +386,7 @@ def activate_ready_subtasks(
 
 def synchronize_parent_completion(db: Session, task: models.Task, *, actor: models.User) -> bool:
     """Keep parent completion and rewards consistent with its remaining children."""
-    from .gamification import COMPLETED_STATUSES, award_task_completion_points
-    from .badge_engine import BadgeEvent, process_badge_event
-    from .notifications import create_notification
+    from .gamification import COMPLETED_STATUSES
     from .task_notifications import notify_status_change
 
     db.flush()
@@ -397,29 +396,17 @@ def synchronize_parent_completion(db: Session, task: models.Task, *, actor: mode
     all_done = all(child.status == models.SubtaskStatusEnum.DONE for child in children)
     previous = task.status
     if all_done and previous not in COMPLETED_STATUSES:
-        task.status = models.TaskStatusEnum.DONE
-        task.completed_at = datetime.utcnow()
+        from . import task_transitions
+        task_transitions.apply(db, task, models.TaskStatusEnum.DONE, actor=actor, source='subtask_workflow', workflow_authorized=True)
+        task_transitions.refresh_hold_summary(db, task)
         task.approval_status = (
             models.TaskApprovalStatusEnum.PENDING if task.approval_required else models.TaskApprovalStatusEnum.APPROVED
         )
-        awarded = award_task_completion_points(db, task, notify_creator=False)
-        if task.approval_required and task.approver_id and task.approver_id != actor.id:
-            create_notification(
-                db, user_id=task.approver_id, actor_id=actor.id,
-                notification_type=models.NotificationTypeEnum.APPROVAL_REQUESTED,
-                message=f"All subtasks of '{task.title}' are complete. The task requires your approval.",
-                related_task_id=task.id,
-            )
+        task_transitions.finalize_completion(db, task, actor=actor, notify_creator=False)
         event_type = "task.completed"
-        if awarded:
-            process_badge_event(db, event=BadgeEvent(
-                entity="task", event="completed", actor_id=actor.id,
-                assigned_to_id=task.assigned_to_id, created_by_id=task.created_by_id,
-                priority=task.priority.value, occurred_at=task.completed_at,
-            ))
     elif not all_done and previous in COMPLETED_STATUSES:
-        task.status = models.TaskStatusEnum.IN_PROGRESS
-        task.completed_at = None
+        from . import task_transitions
+        task_transitions.apply(db, task, models.TaskStatusEnum.IN_PROGRESS, actor=actor, source='subtask_workflow', workflow_authorized=True)
         task.approval_status = models.TaskApprovalStatusEnum.NONE
         event_type = "task.reopened"
     else:

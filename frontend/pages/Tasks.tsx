@@ -1,3 +1,4 @@
+import { isTaskOverdue } from '../utils/taskDeadlines';
 import { workTimezone } from '../utils/activeWork';
 import { calendarToday, taskInstant } from '../utils/taskDates';
 import { useQueryClient } from '@tanstack/react-query';
@@ -929,7 +930,7 @@ const Tasks: React.FC = () => {
         return Array.from(activeStatuses).reduce((sum, status) => sum + (statusCounts[status] ?? 0), 0);
     }, [statusCounts, filteredTasks]);
     const blockedCount = filteredTasks.filter((task) => task.status === TaskStatus.BLOCKED).length;
-    const overdueCount = filteredTasks.filter((task) => (task.dueAt ? taskInstant(task.dueAt).toMillis() < Date.now() : false)).length;
+    const overdueCount = filteredTasks.filter((task) => isTaskOverdue(task)).length;
     const statusSummary = useMemo(
         () =>
             STATUS_ORDER.map((status) => ({

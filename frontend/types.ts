@@ -1517,6 +1517,11 @@ export interface TaskPointsBreakdown {
 }
 
 export interface Task {
+  holdReason?: string | null;
+  holdStartedAt?: string | null;
+  holdPausedSeconds?: number;
+  effectiveDueAt?: string | null;
+  customStatusId?: string | null;
   id: string;
   dependencies?: { id: string; title: string }[];
   canEdit?: boolean;
@@ -1744,7 +1749,14 @@ export interface TaskSummary {
 }
 
 export interface TaskKanbanColumn {
-  status: TaskStatus;
+  workflowBehavior?: string;
+  holdReasonRequired?: boolean;
+  statusId?: string;
+  isSystem?: boolean;
+  outsideReason?: string;
+  status: string;
+  color?: string;
+  icon?: string;
   title: string;
   order: number;
   count: number;
@@ -1753,6 +1765,10 @@ export interface TaskKanbanColumn {
 
 export interface TaskKanbanResponse {
   columns: TaskKanbanColumn[];
+  configurationRevision?: number;
+  outsideColumns?: TaskKanbanColumn[];
+  unmappedCount?: number;
+  unmappedItems?: { id: string; title: string; raw_status: string; custom_status_id?: string | null }[];
 }
 
 export interface Comment {
@@ -1789,6 +1805,12 @@ export interface Pipeline {
 }
 
 export interface KanbanColumn {
+  workflowBehavior?: string;
+  holdReasonRequired?: boolean;
+  statusId?: string;
+  count?: number;
+  color?: string;
+  icon?: string;
   id: string;
   title: string;
   order: number;

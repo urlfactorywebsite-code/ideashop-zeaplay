@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import api from '../services/mockApi';
+import { STATUS_CONFIGURATION_EVENT, configurationStorageKey } from '../utils/kanbanConfiguration';
 import { Task, User, TaskPriority, Comment, UserStatus, KanbanColumn, TaskStatus, SubtaskStatus, Role, CUSTOM_STATUS_NAMES, TaskTransferWorkflowRead, CompletionSubmissionStatus, Subtask } from '../types';
 import { formatDate, timeAgo, formatRecurrenceRule, formatTaskStatus } from '../utils';
 import { loadPointsConfig, POINTS_CONFIG_UPDATED_EVENT } from '../utils/pointsConfigStorage';
@@ -15,6 +16,7 @@ import TaskPriorityBadge from './ui/TaskPriorityBadge';
 import MultiSelect from './ui/MultiSelect';
 import { StarIcon, PaperClipIcon, TagIcon, TrashIcon } from './icons';
 import SameTaskLogModal from './SameTaskLogModal';
+import TaskHoldHistory from './TaskHoldHistory';
 import { History } from 'lucide-react';
 import { WorkTimerControls } from './ActiveWork';
 import { WORK_UPDATED_EVENT } from '../hooks/useActiveWork';
@@ -225,6 +227,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     const [task, setTask] = useState<Task | null>(initialTask);
     const [loading, setLoading] = useState(!initialTask);
     const [error, setError] = useState<string | null>(null);
+    const [columns, setColumns] = useState<KanbanColumn[]>([]);
+    const [statusConfigError, setStatusConfigError] = useState('');
+    const [statusRetry, setStatusRetry] = useState(0);
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [isCommenting, setIsCommenting] = useState(false);
@@ -267,6 +272,20 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     const { user } = useAuth();
     taskScope.current = `${user?.tenantId}:${user?.id}:${taskId}:${isOpen}`;
     const { notify } = useToast();
+    useEffect(() => {
+        if (!isOpen || !user) return;
+        let stopped=false, sequence=0;
+        setColumns([]); setStatusConfigError('');
+        const load=async()=>{ const current=++sequence; try {
+            const registered=await api.getKanbanColumns();
+            if (!stopped && current===sequence) { setColumns(registered); setStatusConfigError(''); }
+        } catch { if (!stopped && current===sequence) setStatusConfigError('Status configuration unavailable. Retry before changing status.'); } };
+        const changed=(event:Event)=>{if ((event as CustomEvent).detail?.tenantId===user.tenantId) void load();};
+        const stored=(event:StorageEvent)=>{if(event.key===configurationStorageKey(user.tenantId)) void load();};
+        void load(); window.addEventListener(STATUS_CONFIGURATION_EVENT,changed); window.addEventListener('storage',stored);
+        return()=>{stopped=true;window.removeEventListener(STATUS_CONFIGURATION_EVENT,changed);window.removeEventListener('storage',stored);};
+    }, [isOpen, taskId, user?.tenantId, user?.id, statusRetry]);
+
     useEffect(() => {
         if (!isOpen || !focusSubtaskId || loading || task?.id !== taskId) return;
         const frame = window.requestAnimationFrame(() => {
@@ -469,16 +488,25 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
             window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, notificationsChanged);
         };
     }, [isOpen, taskId, user?.id, user?.tenantId]);
+    const [isUpdatingTask, setIsUpdatingTask] = useState(false);
+    useEffect(() => { setIsUpdatingTask(false); }, [isOpen, taskId, user?.id, user?.tenantId]);
     const handleUpdateTask = async (updates: Partial<Task>) => {
         if (!task || !canEditTask) return;
+        const scope = taskScope.current;
+        setIsUpdatingTask(true);
         try {
         const updatedTask = await api.updateTask(task.id, updates, user?.id);
+            if (scope !== taskScope.current) return false;
             setTask(updatedTask);
             onTaskUpdated?.(updatedTask);
             await fetchGroupTasks(updatedTask);
             notify('Task updated successfully.');
+            return true;
         } catch (err) {
-            notify(err instanceof Error ? err.message : 'Unable to update task.', 'error');
+            if (scope === taskScope.current) notify(err instanceof Error ? err.message : 'Unable to update task.', 'error');
+            return false;
+        } finally {
+            if (scope === taskScope.current) setIsUpdatingTask(false);
         }
     };
 
@@ -676,6 +704,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                             description: task.description,
                             priority: task.priority,
                             status: task.status,
+                            customStatusId: task.customStatusId,
                             team: task.team,
                             dueAt: task.dueAt,
                             recurringTaskId: task.recurringTaskId,
@@ -703,6 +732,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                         description: task.description,
                         priority: task.priority,
                         status: task.status,
+                            customStatusId: task.customStatusId,
                         team: task.team,
                         dueAt: task.dueAt,
                         recurringTaskId: task.recurringTaskId,
@@ -803,6 +833,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
 
     const canManageTask = Boolean(user && [Role.MANAGER, Role.ADMIN, Role.OWNER].includes(user.role));
     const { canEdit: canEditTask, canManageSubtasks, canReviewSubtasks } = taskPermissions(task, user);
+    const pendingStatusColumn = columns.find(column => column.id === pendingUpdates.status);
+    const missingHoldReason = task?.status !== TaskStatus.ON_HOLD && pendingStatusColumn?.workflowBehavior === 'HOLD'
+        && pendingStatusColumn.holdReasonRequired && !pendingUpdates.holdReason?.trim();
     const canUpdateSubtask = (subtask: Subtask) => Boolean(user && task && (canReviewSubtasks
         || subtask.assignedToId === user.id || (!subtask.assignedToId && task.assignedTo?.includes(user.id))));
     const editUnlocked = canEditTask && editUnlockCount >= 5;
@@ -986,7 +1019,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     const attachmentsCount = task?.attachments?.length || 0;
     const commentCount = comments.length;
     const canRateTask = user && task && groupAssigneeIds.includes(user.id) && !task.clarityRating;
-    const columns = Object.values(TaskStatus).map(status => ({ id: status, title: status }));
+
     const pointsBreakdown = task?.pointsBreakdown ?? null;
     const pointsSummary = useMemo(() => (pointsBreakdown ? summarizeTaskPoints(pointsBreakdown) : null), [pointsBreakdown]);
     const pointsToneClasses = resolvePointsToneClasses(pointsSummary?.tone);
@@ -1677,17 +1710,27 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                     <label htmlFor={statusSelectId} className="text-xs uppercase tracking-[0.25em] text-white/50">Status</label>
                                     <select
                                         id={statusSelectId}
-                                        disabled={!canEditTask}
-                                        value={pendingUpdates.status !== undefined ? pendingUpdates.status : task.status}
+                                        disabled={!canEditTask || !columns.length}
+                                        value={pendingUpdates.status !== undefined ? pendingUpdates.status : (task.customStatusId || task.status)}
                                         onChange={(e) => setPendingUpdates(prev => ({ ...prev, status: e.target.value as TaskStatus }))}
                                         className={selectFieldClass}
                                     >
+                                        {!columns.some(column=>column.id===(task.customStatusId || task.status)) &&
+                                            <option disabled value={task.customStatusId || task.status}>Current status unavailable ({task.customStatusId || task.status}); choose a registered destination</option>}
                                         {columns.map((c) => (
                                             <option key={c.id} value={c.id}>
-                                                {CUSTOM_STATUS_NAMES[c.id as TaskStatus]?.name || formatTaskStatus(c.title)}
+                                                {c.title}
                                             </option>
                                         ))}
                                     </select>
+                                    {statusConfigError && <p role="alert" className="mt-2 text-xs text-red-300">{statusConfigError} <button className="underline" onClick={()=>setStatusRetry(value=>value+1)}>Retry statuses</button></p>}
+                                    {task.status!==TaskStatus.ON_HOLD && (pendingUpdates.status===TaskStatus.ON_HOLD || columns.find(column=>column.id===pendingUpdates.status)?.workflowBehavior==='HOLD') &&
+                                      <label className="mt-3 block text-xs text-white/70">Hold reason
+                                        <textarea aria-label="Task hold reason" maxLength={500} required={pendingStatusColumn?.holdReasonRequired} value={pendingUpdates.holdReason || ''}
+                                          onChange={event=>setPendingUpdates(previous=>({...previous,holdReason:event.target.value}))} className={selectFieldClass} />
+                                      </label>}
+                                    {!!task.holdStartedAt && <p className="mt-2 text-xs text-amber-200">On Hold since {formatDate(task.holdStartedAt)}. Original deadline retained; eligible aging is paused.</p>}
+                                    <div className="mt-3"><TaskHoldHistory key={`${user?.tenantId}:${user?.id}:${task.id}`} taskId={task.id} timezone={user?.timezone || 'UTC'} /></div>
                                 </div>
                                 <div>
                                     <label className="text-xs uppercase tracking-[0.25em] text-white/50">Priority</label>
@@ -1805,13 +1848,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                         </div>
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     if (Object.keys(pendingUpdates).length > 0) {
-                                                        handleUpdateTask(pendingUpdates);
-                                                        setPendingUpdates({});
+                                                        if (await handleUpdateTask(pendingUpdates)) setPendingUpdates({});
                                                     }
                                                 }}
-                                                disabled={Object.keys(pendingUpdates).length === 0}
+                                                disabled={Object.keys(pendingUpdates).length === 0 || missingHoldReason || isUpdatingTask}
                                                 className="flex-1 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 Update Task

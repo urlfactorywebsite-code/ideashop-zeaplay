@@ -79,6 +79,8 @@ def api_pages(path: str, method: str) -> tuple[str, ...]:
               'levels': 'levels', 'rewards': 'achievements', 'logs': 'settings.logs',
               'media': 'settings.media-library',
               'push': 'settings.push', 'webhooks': 'settings.api'}
+    if root == 'task-statuses' or (root == 'kanban-columns' and method not in {'GET', 'HEAD'}):
+        return ('settings.sidebar-management',)
     if root == 'support':
         return ('settings.support',)
     if path.startswith('/internal/webhooks'):

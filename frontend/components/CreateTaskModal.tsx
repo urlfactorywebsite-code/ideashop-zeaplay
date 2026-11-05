@@ -199,6 +199,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     const [followerIds, setFollowerIds] = useState<string[]>([]);
     const [priority, setPriority] = useState<TaskPriority>(TaskPriority.LOW);
     const [status, setStatus] = useState('');
+    const [holdReason, setHoldReason] = useState('');
     const [dueDate, setDueDate] = useState(() => resolveDefaultDueDateTime().date);
     const [dueTime, setDueTime] = useState(() => resolveDefaultDueDateTime().time);
     const [team, setTeam] = useState('');
@@ -376,7 +377,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             pipelineId: 'default',
         }));
         setColumns(resolvedColumns);
-        setStatus(TaskStatus.WAITING_FOR_REQUIREMENT);
+        api.getKanbanColumns().then(configured => {
+            if (!isCancelled && configured.length) setColumns(configured);
+        }).catch(() => { /* Keep the built-in workflow available during a configuration read failure. */ });
+        setStatus(TaskStatus.WAITING_FOR_REQUIREMENT); setHoldReason('');
         setProjectId('');
         setProjects([]);
         setProjectSearch('');
@@ -455,7 +459,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         setFollowerIds([]);
         setPriority(TaskPriority.LOW);
         // Use column id as status so it aligns with how TaskDetailModal and the API expect statuses
-        setStatus(TaskStatus.WAITING_FOR_REQUIREMENT);
+        setStatus(TaskStatus.WAITING_FOR_REQUIREMENT); setHoldReason('');
         // Initialize dueDate and dueTime from initialDueDate if provided
         if (initialDueDate) {
             const date = new Date(initialDueDate);
@@ -621,6 +625,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 projectId,
                 priority,
                 status: status as TaskStatus,
+                holdReason,
                 dueAt,
                 team,
                 recurringTaskId: null,
@@ -1079,11 +1084,15 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                                 id="status"
                                                 options={statusOptions}
                                                 value={status}
-                                                onChange={setStatus}
+                                                onChange={value=>{setStatus(value);setHoldReason('');}}
                                                 onOpenChange={handleAssignmentsSelectOpen}
                                                 placeholder="Select status..."
                                                 className="mt-2"
                                             />
+                                            {(status===TaskStatus.ON_HOLD || columns.find(column=>column.id===status)?.workflowBehavior==='HOLD') && <label className="mt-3 block text-sm">Hold reason
+                                              <textarea aria-label="New task hold reason" maxLength={500} required={columns.find(column=>column.id===status)?.holdReasonRequired} value={holdReason}
+                                                onChange={event=>setHoldReason(event.target.value)} className="mt-2 w-full rounded-lg border border-border-color bg-background p-2" />
+                                            </label>}
                                         </div>
                                         <div>
                                             <label htmlFor="priority" className={labelClass}>Priority</label>

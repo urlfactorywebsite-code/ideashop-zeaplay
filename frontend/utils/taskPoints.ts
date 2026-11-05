@@ -1,3 +1,5 @@
+import { effectiveTaskDeadline } from './taskDeadlines';
+import { taskInstant } from './taskDates';
 import { Role, Task, TaskPriority, TaskStatus, TaskPointsBreakdown, TaskPointsStatus, User } from '../types';
 import {
     PointsConfig,
@@ -122,12 +124,11 @@ export const calculateTaskPoints = (
     const beforeDueBonus = priorityPoints.beforeDueBonus ?? 0;
     const overduePenalty = normalizePenalty(priorityPoints.overduePenalty ?? 0);
 
-    const dueDate = task.dueAt ? new Date(task.dueAt) : null;
-    const dueTime = dueDate && !Number.isNaN(dueDate.getTime()) ? dueDate.getTime() : null;
+    const dueTime = effectiveTaskDeadline(task, now.getTime());
     const hasDueDate = dueTime !== null;
 
-    const completedDate = task.completedAt ? new Date(task.completedAt) : null;
-    const completedTime = completedDate && !Number.isNaN(completedDate.getTime()) ? completedDate.getTime() : null;
+    const completedInstant = task.completedAt ? taskInstant(task.completedAt).toMillis() : NaN;
+    const completedTime = Number.isFinite(completedInstant) ? completedInstant : null;
 
     const nowTime = now.getTime();
     const isCompleted = COMPLETED_STATUSES.has(task.status);
@@ -135,6 +136,9 @@ export const calculateTaskPoints = (
 
     let status: TaskPointsStatus = 'pending';
     const notes: string[] = [];
+    if (task.holdStartedAt || (task.holdPausedSeconds || 0) > 0) {
+        notes.push('Authorized hold time is excluded from deadline aging; earlier penalties are retained.');
+    }
     let awardedBase = 0;
     let awardedBonus = 0;
     let awardedPenalty = 0;

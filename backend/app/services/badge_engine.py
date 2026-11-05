@@ -179,7 +179,8 @@ def process_badge_event(db: Session, *, event: BadgeEvent) -> None:
     if not candidate_ids:
         return
 
-    users = db.execute(select(models.User).where(models.User.id.in_(candidate_ids))).scalars().all()
+    from .scoring_users import lock_scoring_users
+    users = list(lock_scoring_users(db, candidate_ids).values())
     user_map = {user.id: user for user in users}
     assigned_user = user_map.get(event.assigned_to_id) if event.assigned_to_id else None
     if event.assigned_to_id and not assigned_user:
@@ -199,7 +200,7 @@ def process_badge_event(db: Session, *, event: BadgeEvent) -> None:
     for user in user_map.values():
         existing_progress = (
             db.execute(
-                select(models.UserBadgeProgress).where(
+                select(models.UserBadgeProgress).execution_options(populate_existing=True).where(
                     models.UserBadgeProgress.user_id == user.id,
                     models.UserBadgeProgress.badge_id.in_(badge_ids),
                 )

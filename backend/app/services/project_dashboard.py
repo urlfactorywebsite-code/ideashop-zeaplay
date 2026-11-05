@@ -5,12 +5,15 @@ from collections import Counter
 from datetime import datetime
 from typing import Optional
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
+from ..integrations import trigger_n8n_event
+from ..tickets import task_link_service
 from . import audit_logger, projects as project_service, security_audit
+from . import task_events, task_notifications, task_statuses
 
 
 STATUS_POLICY = (
@@ -346,14 +349,23 @@ def override_project_task_status(
     task_id: str,
     payload: schemas.ProjectTaskStatusOverride,
     actor: models.User,
+    background_tasks: BackgroundTasks | None = None,
 ) -> schemas.ProjectDashboardTask:
     project = project_service.get_project(db, tenant_id=actor.tenant_id, project_id=project_id, actor=actor)
     _ensure_can_override(project, actor)
     task = db.execute(_task_query().where(models.Task.id == task_id).where(models.Task.project_id == project.id)).unique().scalars().first()
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    from . import task_transitions
+    from .gamification import COMPLETED_STATUSES
+    task_transitions.lock_task(db, task, actor)
     previous_status = task.status
-    task.status = payload.status
+    task_transitions.apply(db, task, payload.status, actor=actor, hold_reason=payload.reason, source='project_dashboard')
+    task_transitions.refresh_hold_summary(db, task)
+    awarded = False
+    if previous_status not in COMPLETED_STATUSES and task.status in COMPLETED_STATUSES:
+        awarded = task_transitions.finalize_completion(db, task, actor=actor, notify_creator=True)
+    task_notifications.notify_status_change(db, task=task, actor=actor, previous_status=previous_status)
     task.updated_at = datetime.utcnow()
     security_audit.append_event(
         db,
@@ -366,10 +378,20 @@ def override_project_task_status(
             "from_status": previous_status.value,
             "to_status": payload.status.value,
             "reason_provided": bool(payload.reason),
-            "xp_awarded": False,
+            "xp_awarded": awarded,
         },
     )
     db.commit()
+    try:
+        task_statuses.invalidate(actor.tenant_id)
+    except Exception:
+        pass  # A cache outage cannot undo the committed transition.
+    task_events.publish_task_event({'type':'task.changed','tenant_id':str(actor.tenant_id),
+        'action':'status_overridden','task_id':task.id})
+    if awarded:
+        task_link_service.handle_task_completion(db, task_id=task.id)
+        if background_tasks is not None:
+            background_tasks.add_task(trigger_n8n_event, 'task.completed', {'taskId':task.id})
     db.refresh(task)
     audit_logger.log_event(
         audit_logger.AuditLogInput(
@@ -383,7 +405,7 @@ def override_project_task_status(
             new_value=payload.status.value,
             source=models.AuditLogSourceEnum.MANUAL,
             reason=payload.reason,
-            metadata={"project_id": project.id, "xp_awarded": False},
+            metadata={"project_id": project.id, "xp_awarded": awarded},
         )
     )
     task = db.execute(_task_query().where(models.Task.id == task.id)).unique().scalars().first()

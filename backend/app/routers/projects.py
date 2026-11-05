@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -118,6 +118,7 @@ def override_project_task_status(
     project_id: str,
     task_id: str,
     payload: schemas.ProjectTaskStatusOverride,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ) -> schemas.ProjectDashboardTask:
@@ -127,6 +128,7 @@ def override_project_task_status(
         task_id=task_id,
         payload=payload,
         actor=current_user,
+        background_tasks=background_tasks,
     )
 
 

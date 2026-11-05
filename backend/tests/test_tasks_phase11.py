@@ -49,6 +49,9 @@ def disable_external_side_effects(monkeypatch):
     monkeypatch.setattr(tasks_module, "_schedule_notification_outbox_delivery", lambda *args, **kwargs: None)
     monkeypatch.setattr(tasks_module.audit_logger, "log_event", lambda *args, **kwargs: None)
     monkeypatch.setattr(project_dashboard.audit_logger, "log_event", lambda *args, **kwargs: None)
+    monkeypatch.setattr(project_dashboard, "trigger_n8n_event", lambda *args, **kwargs: None)
+    monkeypatch.setattr(project_dashboard.task_events, "publish_task_event", lambda *args, **kwargs: None)
+    monkeypatch.setattr(project_dashboard.task_statuses, "invalidate", lambda *args, **kwargs: None)
 
 
 def _create_project_task(owner_token: str, project_id: str, member_id: str, manager_id: str) -> dict:
@@ -379,7 +382,7 @@ def test_project_task_dashboard_mixed_dependencies_reopen_missing_assignee_and_a
     assert subtasks["D parallel active"]["dependency_state"] == "READY"
 
 
-def test_project_task_status_override_is_authorized_audited_and_does_not_award_xp(monkeypatch):
+def test_project_task_status_override_uses_completion_policy_and_audits_xp(monkeypatch):
     tenant = uuid.uuid4()
     _, owner_token = _create_user(models.RoleEnum.OWNER, tenant)
     manager, manager_token = _create_user(models.RoleEnum.MANAGER, tenant)
@@ -411,6 +414,17 @@ def test_project_task_status_override_is_authorized_audited_and_does_not_award_x
         json={"status": models.TaskStatusEnum.DEPLOYED.value, "reason": "Release verified"},
         headers={"Authorization": f"Bearer {manager_token}"},
     )
+    assert response.status_code == 409, response.text
+    with TestingSessionLocal() as db:
+        for child in db.query(models.Subtask).filter(models.Subtask.task_id == task['id']):
+            child.status = models.SubtaskStatusEnum.DONE
+            child.completed = True
+        db.commit()
+    response = client.patch(
+        f"/api/projects/{project.id}/tasks/{task['id']}/status",
+        json={"status": models.TaskStatusEnum.DEPLOYED.value, "reason": "Release verified"},
+        headers={"Authorization": f"Bearer {manager_token}"},
+    )
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["status"] == "DEPLOYED"
@@ -422,8 +436,8 @@ def test_project_task_status_override_is_authorized_audited_and_does_not_award_x
         refreshed_task = db.get(models.Task, task["id"])
         refreshed_member = db.get(models.User, member.id)
         assert refreshed_task.status == models.TaskStatusEnum.DEPLOYED
-        assert refreshed_task.completed_at is None
-        assert refreshed_member.points == points_before
+        assert refreshed_task.completed_at is not None
+        assert refreshed_member.points > points_before
     finally:
         db.close()
 
@@ -431,10 +445,10 @@ def test_project_task_status_override_is_authorized_audited_and_does_not_award_x
     assert captured[-1].action == "PROJECT_TASK_STATUS_OVERRIDE"
     assert captured[-1].old_value == models.TaskStatusEnum.TODO.value
     assert captured[-1].new_value == models.TaskStatusEnum.DEPLOYED.value
-    assert captured[-1].metadata["xp_awarded"] is False
+    assert captured[-1].metadata["xp_awarded"] is True
 
 
-def test_manual_done_override_does_not_create_premature_derived_done_or_xp(monkeypatch):
+def test_manual_done_override_rejects_unfinished_subtasks_without_xp(monkeypatch):
     tenant = uuid.uuid4()
     _, owner_token = _create_user(models.RoleEnum.OWNER, tenant)
     manager, manager_token = _create_user(models.RoleEnum.MANAGER, tenant)
@@ -458,17 +472,13 @@ def test_manual_done_override_does_not_create_premature_derived_done_or_xp(monke
         json={"status": models.TaskStatusEnum.DONE.value, "reason": "Manager parent status override"},
         headers={"Authorization": f"Bearer {manager_token}"},
     )
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert body["status"] == models.TaskStatusEnum.DONE.value
-    assert body["derived_status"] != models.TaskStatusEnum.DONE.value
-    assert body["progress_percent"] < 100
+    assert response.status_code == 409, response.text
 
     db = TestingSessionLocal()
     try:
         refreshed_task = db.get(models.Task, task["id"])
         refreshed_member = db.get(models.User, member.id)
-        assert refreshed_task.status == models.TaskStatusEnum.DONE
+        assert refreshed_task.status == models.TaskStatusEnum.TODO
         assert refreshed_task.completed_at is None
         assert refreshed_member.points == points_before
     finally:

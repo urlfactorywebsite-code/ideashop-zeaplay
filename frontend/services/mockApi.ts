@@ -696,6 +696,11 @@ type ApiCompletionSubmission = {
 };
 
 type ApiTask = {
+  hold_reason?: string | null;
+  hold_started_at?: string | null;
+  hold_paused_seconds?: number;
+  effective_due_at?: string | null;
+  custom_status_id?: string | null;
   id: string;
   dependencies?: { id: string; title: string }[];
   can_edit?: boolean;
@@ -823,7 +828,14 @@ type ApiTaskSummaryResponse = {
 };
 
 type ApiTaskKanbanColumn = {
-  status: TaskStatus;
+  workflow_behavior?: string;
+  hold_reason_required?: boolean;
+  status_id?: string;
+  is_system?: boolean;
+  outside_reason?: string;
+  status: string;
+  color?: string;
+  icon?: string;
   title: string;
   order: number;
   count: number;
@@ -832,6 +844,10 @@ type ApiTaskKanbanColumn = {
 
 type ApiTaskKanbanResponse = {
   columns: ApiTaskKanbanColumn[];
+  configuration_revision?: number;
+  outside_columns?: ApiTaskKanbanColumn[];
+  unmapped_count?: number;
+  unmapped_items?: TaskKanbanResponse['unmappedItems'];
 };
 
 type ApiTaskTransferPayload = {
@@ -1081,7 +1097,10 @@ type ApiDepartment = {
 };
 
 type ApiKanbanColumn = {
+  workflow_behavior?: string;
+  hold_reason_required?: boolean;
   id: string;
+  custom_status_id?: string | null;
   title: string;
   order: number;
   pipeline_id?: string;
@@ -2487,6 +2506,9 @@ function mapTask(task: ApiTask): Task {
     title: task.title,
     description: task.description ?? '',
     status: task.status,
+    customStatusId: task.custom_status_id ?? null,
+    holdReason:task.hold_reason ?? null, holdStartedAt:task.hold_started_at ?? null,
+    holdPausedSeconds:task.hold_paused_seconds ?? 0, effectiveDueAt:task.effective_due_at ?? null,
     priority: task.priority,
     category: TaskCategory.OTHER,
     team: task.team ?? '',
@@ -2775,7 +2797,8 @@ function mapDepartment(department: ApiDepartment): Department {
 
 function mapKanbanColumn(column: ApiKanbanColumn): KanbanColumn {
   return {
-    id: column.id,
+    id: column.custom_status_id || column.id,
+    workflowBehavior:column.workflow_behavior, holdReasonRequired:column.hold_reason_required,
     title: column.title,
     order: column.order,
     pipelineId: column.pipeline_id ?? '',
@@ -3552,6 +3575,8 @@ async function ensureDepartmentCache(): Promise<Department[]> {
 }
 
 type CreateTaskPayload = {
+  holdReason?: string | null;
+  customStatusId?: string | null;
   title: string;
   description: string;
   projectId?: string | null;
@@ -3573,6 +3598,7 @@ type CreateTaskPayload = {
 };
 
 type UpdateTaskPayload = Partial<CreateTaskPayload> & {
+  customStatusId?: string | null;
   completedAt?: string | null;
 };
 
@@ -4369,6 +4395,7 @@ const api = {
       if (updates.name !== undefined) body.name = updates.name;
       if (updates.role !== undefined) body.role = updates.role;
       if (updates.status !== undefined) body.status = updates.status;
+
       if (updates.employerId !== undefined) body.employer_id = updates.employerId === '' ? null : updates.employerId;
       if (updates.department !== undefined) {
         body.department_id = await resolveDepartmentId(updates.department);
@@ -4685,7 +4712,9 @@ const api = {
       const payload = {
         title: taskData.title,
         description: taskData.description,
-        status: taskData.status,
+        status: !taskData.customStatusId && Object.values(TaskStatus).includes(taskData.status) ? taskData.status : undefined,
+        hold_reason:taskData.holdReason,
+        custom_status_id: taskData.customStatusId ?? (Object.values(TaskStatus).includes(taskData.status) ? null : taskData.status),
         priority: taskData.priority,
         team: taskData.team,
         project_id: taskData.projectId ?? null,
@@ -4723,9 +4752,16 @@ const api = {
     async updateTask(taskId: string, updates: UpdateTaskPayload, _updaterId: string): Promise<Task> {
       try {
       const body: Record<string, unknown> = {};
+      if (updates.holdReason !== undefined) body.hold_reason = updates.holdReason;
       if (updates.title !== undefined) body.title = updates.title;
       if (updates.description !== undefined) body.description = updates.description;
-      if (updates.status !== undefined) body.status = updates.status;
+      if (updates.status !== undefined) {
+        const canonical = Object.values(TaskStatus).includes(updates.status);
+        if (canonical && !updates.customStatusId) body.status = updates.status;
+        body.custom_status_id = canonical ? null : updates.status;
+      }
+      if (updates.customStatusId !== undefined) body.custom_status_id = updates.customStatusId;
+
       if (updates.priority !== undefined) body.priority = updates.priority;
       if (updates.team !== undefined) body.team = updates.team;
       if (updates.projectId !== undefined) body.project_id = updates.projectId ?? null;
@@ -4830,6 +4866,7 @@ const api = {
       if (updates.completed !== undefined) body.completed = updates.completed;
       if (updates.assignedToId !== undefined) body.assigned_to_id = updates.assignedToId;
       if (updates.status !== undefined) body.status = updates.status;
+
       if (updates.sortOrder !== undefined) body.sort_order = updates.sortOrder;
       if (updates.forceStartReason !== undefined) body.force_start_reason = updates.forceStartReason;
       const { data } = await http.patch<ApiTask>(`/tasks/${taskId}/subtasks/${subtaskId}`, body);
@@ -5005,6 +5042,7 @@ const api = {
       if (updates.title !== undefined) body.title = updates.title;
       if (updates.description !== undefined) body.description = updates.description;
       if (updates.status !== undefined) body.status = updates.status;
+
       if (updates.priority !== undefined) body.priority = updates.priority;
       if (updates.ownerId !== undefined) body.owner_id = updates.ownerId ?? null;
       if (updates.assignedUserId !== undefined) body.assigned_user_id = updates.assignedUserId ?? null;
@@ -5484,18 +5522,9 @@ const api = {
 
   async getKanbanColumns(): Promise<KanbanColumn[]> {
     try {
-      const cacheKey = 'kanban-columns';
-      const cached = getCached<KanbanColumn[]>(cacheKey);
-      if (cached) {
-        return cached;
-      }
       const { data } = await http.get<ApiKanbanColumn[]>('/kanban-columns');
-      const mapped = data.map(mapKanbanColumn);
-      setCached(cacheKey, mapped);
-      return mapped;
-    } catch (error) {
-      mapAxiosError(error);
-    }
+      return data.map(mapKanbanColumn);
+    } catch (error) { mapAxiosError(error); }
   },
 
   async createKanbanColumn(title: string): Promise<KanbanColumn> {
@@ -6481,18 +6510,39 @@ const api = {
           signal: params.signal,
         });
 
-        return {
-          columns: (data.columns ?? []).map((column) => ({
+        const mapColumn = (column: ApiTaskKanbanColumn) => ({
+            statusId: column.status_id,
+            workflowBehavior:column.workflow_behavior, holdReasonRequired:column.hold_reason_required,
+            isSystem: column.is_system,
+            outsideReason: column.outside_reason,
             status: column.status,
+            color: column.color,
+            icon: column.icon,
             title: column.title,
             order: column.order,
             count: column.count,
             items: column.items.map(mapTask),
-          })),
+          });
+        return {
+          columns: (data.columns ?? []).map(mapColumn),
+          outsideColumns: (data.outside_columns ?? []).map(mapColumn),
+          configurationRevision: data.configuration_revision,
+          unmappedCount: data.unmapped_count ?? 0,
+          unmappedItems: data.unmapped_items ?? [],
         };
       } catch (error) {
         mapAxiosError(error);
       }
+    },
+
+    async moveTaskToKanbanStatus(taskId: string, statusId: string, holdReason?: string, configurationRevision?: number): Promise<Task> {
+      try {
+        const { data } = await http.patch<ApiTask>(`/tasks/${taskId}/kanban-status`, { status_id: statusId,
+          ...(holdReason !== undefined ? {hold_reason:holdReason} : {}),
+          ...(configurationRevision !== undefined ? {configuration_revision:configurationRevision} : {}) });
+        invalidateCache('tasks'); invalidateCache('task:'); invalidateCache('task-group:');
+        return mapTask(data);
+      } catch (error) { mapAxiosError(error); }
     },
 
     async getTaskSummary(taskId: string, options?: { signal?: AbortSignal }): Promise<TaskSummary> {

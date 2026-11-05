@@ -10,6 +10,8 @@ interface TooltipProps {
   className?: string;
   /** Optional CSS classes for the trigger */
   triggerClassName?: string;
+  /** Opt-in keyboard dismissal for persistent explanatory tooltips. */
+  dismissOnEscape?: boolean;
 }
 
 /**
@@ -20,7 +22,7 @@ interface TooltipProps {
  * - Accessible with proper ARIA attributes
  * - Styled with Tailwind CSS
  */
-const Tooltip: React.FC<TooltipProps> = ({ text, children, className, triggerClassName }) => {
+const Tooltip: React.FC<TooltipProps> = ({ text, children, className, triggerClassName, dismissOnEscape = false }) => {
   const tooltipId = useId();
   const triggerRef = useRef<HTMLSpanElement | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -50,6 +52,13 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children, className, triggerCla
 
   const showTooltip = () => setIsVisible(true);
   const hideTooltip = () => setIsVisible(false);
+
+  useEffect(() => {
+    if (!isVisible || !dismissOnEscape) return;
+    const dismiss = (event: KeyboardEvent) => { if (event.key === 'Escape') setIsVisible(false); };
+    window.addEventListener('keydown', dismiss);
+    return () => window.removeEventListener('keydown', dismiss);
+  }, [isVisible, dismissOnEscape]);
 
   const tooltipNode =
     isVisible && coords && typeof document !== 'undefined'
