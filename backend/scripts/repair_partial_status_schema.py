@@ -14,7 +14,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 os.environ["VEE_BOOTSTRAP_SCHEMA"] = "false"
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path.cwd()))  # Also supports a recovery file mounted at /repair.py.
 
 import sqlalchemy as sa

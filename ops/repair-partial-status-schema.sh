@@ -7,20 +7,29 @@ postgres_container=${STATUS_POSTGRES_CONTAINER:-zeaplay_postgres}
 presence_container=${STATUS_PRESENCE_CONTAINER:-zeaplay_presence}
 backup_root=${STATUS_BACKUP_ROOT:-/root}
 ready_url=${STATUS_READY_URL:-http://127.0.0.1:6311/ready}
+python_bin=${STATUS_PYTHON:-python3}
+for service_container in "$backend_container" "$presence_container"; do
+  test "$(docker inspect --format '{{.HostConfig.AutoRemove}}' "$service_container")" = false
+  test "$(docker inspect --format '{{.State.Running}}' "$service_container")" = true
+done
 helper="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/repair_partial_status_schema.py"
 if [[ ! -f "$helper" ]]; then
   helper="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../backend/scripts" && pwd)/repair_partial_status_schema.py"
 fi
 test -f "$helper"
+mount_helper=$helper
+if command -v cygpath >/dev/null 2>&1; then
+  mount_helper=$(cygpath -m "$helper")
+fi
 image=$(docker inspect --format '{{.Image}}' "$backend_container")
-network=$(docker inspect --format '{{json .NetworkSettings.Networks}}' "$backend_container" | python3 -c 'import json,sys; names=list(json.load(sys.stdin)); assert len(names)==1, "Expected one backend network"; print(names[0])')
+network=$(docker inspect --format '{{json .NetworkSettings.Networks}}' "$backend_container" | "$python_bin" -c 'import json,sys; names=list(json.load(sys.stdin)); assert len(names)==1, "Expected one backend network"; print(names[0])')
 # Keep credentials in a pipe/shell variable; do not print or persist them.
-environment_json=$(docker inspect --format '{{json .Config.Env}}' "$backend_container" | python3 -c 'import json,sys; print(json.dumps(dict(entry.split("=",1) for entry in json.load(sys.stdin))))')
+environment_json=$(docker inspect --format '{{json .Config.Env}}' "$backend_container" | "$python_bin" -c 'import json,sys; print(json.dumps(dict(entry.split("=",1) for entry in json.load(sys.stdin))))')
 database=$(docker exec "$postgres_container" sh -c 'printf "%s" "$POSTGRES_DB"')
 docker exec -e VEE_BOOTSTRAP_SCHEMA=false "$backend_container" python -c 'import sys; from app.config import get_settings; from sqlalchemy.engine import make_url; u=make_url(get_settings().database_url); assert u.host in {"postgres","zeaplay_postgres"} and u.database==sys.argv[1], "Backup target differs from backend"' "$database"
 run_repair() {
   docker run --rm -i --network "$network" \
-    --mount "type=bind,src=$helper,dst=/repair.py,readonly" \
+    --mount "type=bind,src=$mount_helper,dst=/repair.py,readonly" \
     --entrypoint python "$image" -c 'import json,os,runpy,sys; os.environ.update(json.load(sys.stdin)); os.environ["VEE_BOOTSTRAP_SCHEMA"]="false"; sys.argv=["/repair.py"]+sys.argv[1:]; runpy.run_path("/repair.py",run_name="__main__")' "$@" <<< "$environment_json"
 }
 run_repair
@@ -34,13 +43,13 @@ stopped=false
 finished=false
 on_exit() {
   if [[ "$stopped" == true && "$finished" != true ]]; then
-    printf '\nRecovery did not finish. Backend/presence remain stopped. Backup and logs: %s\n' "$backup" >&2
+    printf '\nRecovery did not finish. Inspect backend/presence state before resuming writers. Backup and logs: %s\n' "$backup" >&2
     printf 'Restored rehearsal database (if created): %s\n' "$rehearsal" >&2
   fi
 }
 trap on_exit EXIT
-docker stop --time 30 "$backend_container" "$presence_container" >/dev/null
 stopped=true
+docker stop --time 30 "$backend_container" "$presence_container" >/dev/null
 docker exec "$postgres_container" sh -c 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$backup/database.dump"
 test -s "$backup/database.dump"
 docker exec -i "$postgres_container" pg_restore --list < "$backup/database.dump" > "$backup/database.list"
