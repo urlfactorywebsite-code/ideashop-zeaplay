@@ -1,1 +1,0 @@
-F:/Projects/ideashop-zeaplay-v5/.tmp/postgres17/pgsql/bin/postgres.exe "-D" ".tmp/postgres17/rt3_data" "-h" "127.0.0.1" "-p" "57440" "-c" "shared_buffers=32MB" "-c" "max_connections=20" "-c" "timezone=UTC"
