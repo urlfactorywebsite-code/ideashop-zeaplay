@@ -1,3 +1,4 @@
 frontend/docker-entrypoint.d/*.sh text eol=lf
 ops/apply-http-login.sh text eol=lf
 ops/apply-live-domains.sh text eol=lf
+ops/repair-partial-status-schema.sh text eol=lf
