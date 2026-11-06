@@ -4,7 +4,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import KanbanPreview from '../components/KanbanPreview';
 import KanbanColumnFrame from '../components/KanbanColumnFrame';
-import { defaultArrangement, groupKanbanTasks, moveStatus, onBoard, sampleQuests, type StatusConfiguration } from '../utils/kanbanConfiguration';
+import { defaultArrangement, groupKanbanTasks, moveStatus, onBoard, isCoreStatus, sampleQuests, type StatusConfiguration } from '../utils/kanbanConfiguration';
 
 const status = (id: string, overrides: Partial<StatusConfiguration> = {}): StatusConfiguration => ({
   id, code: id, system_name: id, display_label: id, description: 'Retained description',
@@ -12,8 +12,11 @@ const status = (id: string, overrides: Partial<StatusConfiguration> = {}): Statu
   sort_order: 0, legacy_status: null, task_count: 999, ...overrides,
 });
 
-test('visibility retains protected systems and excludes inactive or hidden custom statuses', () => {
-  assert.equal(onBoard(status('system', { is_system: true, kanban_visible: false })), true);
+test('visibility excludes hidden and inactive legacy and custom statuses', () => {
+  assert.equal(onBoard(status('system', { is_system: true, kanban_visible: false })), false);
+  assert.equal(onBoard(status('BUG_FIXING', { is_system: true, is_active: false })), false);
+  assert.equal(isCoreStatus(status('BATTLE_PLAN', { is_system: true })), true);
+  assert.equal(isCoreStatus(status('BUG_FIXING', { is_system: true })), false);
   assert.equal(onBoard(status('hidden', { kanban_visible: false })), false);
   assert.equal(onBoard(status('archived', { is_active: false })), false);
   assert.equal(onBoard(status('custom')), true);

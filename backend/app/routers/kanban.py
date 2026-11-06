@@ -41,7 +41,7 @@ def list_columns(db: Session = Depends(get_db), user=Depends(get_current_active_
 
 @router.post("", response_model=schemas.KanbanColumnRead, status_code=201)
 def create_column(payload: schemas.KanbanColumnCreate, db: Session = Depends(get_db), user=Depends(get_current_active_user)):
-    service.require_manager(user)
+    service.require_owner(user)
     def operation():
         current = service.scope(db, user, lock=True)
         draft = drafts(db, user)
@@ -56,7 +56,7 @@ def create_column(payload: schemas.KanbanColumnCreate, db: Session = Depends(get
 
 @router.patch("/{column_id}", response_model=schemas.KanbanColumnRead)
 def update_column(column_id: str, payload: schemas.KanbanColumnUpdate, db: Session = Depends(get_db), user=Depends(get_current_active_user)):
-    service.require_manager(user)
+    service.require_owner(user)
     def operation():
         row = resolve(db, user, column_id)
         current = service.scope(db, user, lock=True)
@@ -77,7 +77,7 @@ def update_column(column_id: str, payload: schemas.KanbanColumnUpdate, db: Sessi
 
 @router.delete("/{column_id}", status_code=204)
 def delete_column(column_id: str, db: Session = Depends(get_db), user=Depends(get_current_active_user)):
-    service.require_manager(user)
+    service.require_owner(user)
     def operation():
         row = resolve(db, user, column_id)
         current = service.scope(db, user, lock=True)

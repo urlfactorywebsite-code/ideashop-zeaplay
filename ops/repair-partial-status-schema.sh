@@ -5,6 +5,7 @@ umask 077
 backend_container=${STATUS_BACKEND_CONTAINER:-zeaplay_backend}
 postgres_container=${STATUS_POSTGRES_CONTAINER:-zeaplay_postgres}
 presence_container=${STATUS_PRESENCE_CONTAINER:-zeaplay_presence}
+frontend_container=${STATUS_FRONTEND_CONTAINER:-zeaplay_frontend}
 backup_root=${STATUS_BACKUP_ROOT:-/root}
 ready_url=${STATUS_READY_URL:-http://127.0.0.1:6311/ready}
 python_bin=${STATUS_PYTHON:-python3}
@@ -76,6 +77,11 @@ if [[ "$ready" != true ]]; then
   printf 'Repair committed, but readiness has not passed. Inspect docker logs --tail 100 %s. Evidence: %s\n' "$backend_container" "$backup" >&2
   exit 1
 fi
+# The gateway's static upstream names are resolved when Nginx loads. A stopped
+# backend/presence container can receive a new IP when started again, leaving
+# the running gateway with stale addresses even while direct readiness is good.
+docker exec "$frontend_container" nginx -t
+docker exec "$frontend_container" nginx -s reload
 cat "$backup/ready.json"
 printf '\nRepair finished. Evidence: %s\nRetained rehearsal database: %s\n' "$backup" "$rehearsal"
 printf 'Refresh Tasks and Status Management. Alembic history remains unversioned; no stamp was performed.\n'

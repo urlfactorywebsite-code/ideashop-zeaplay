@@ -25,6 +25,7 @@ BLUEPRINT = (
     ("GRAVEYARD", "GRAVEYARD", "Graveyard"),
 )
 COLORS = {'WAITING_FOR_REQUIREMENT': '#7DD3FC', 'TODO': '#93C5FD', 'IN_PROGRESS': '#818CF8', 'BUG_FIXING': '#E11D48', 'BLOCKED': '#F472B6', 'IN_REVIEW': '#2DD4BF', 'ON_HOLD': '#F59E0B', 'DONE': '#22C55E', 'DEPLOYED': '#14B8A6', 'FAILED': '#F43F5E', 'GRAVEYARD': '#64748B'}
+CORE_CODES = frozenset({'BATTLE_PLAN', 'IN_PROGRESS', 'ON_HOLD', 'CONQUERED'})
 ICONS = {"default", "circle", "flag", "play", "pause", "check", "star", "bolt", "clock"}
 FIELDS = ("id", "code", "system_name", "display_label", "legacy_status", "legacy_column_id", "description", "color", "icon",
           "is_system", "is_active", "kanban_visible", "sort_order", "workflow_behavior")
@@ -51,7 +52,12 @@ def clean_legacy_label(value):
 
 def require_manager(user):
     if user.role not in {m.RoleEnum.OWNER, m.RoleEnum.ADMIN}:
-        raise HTTPException(403, "Only owners and administrators can manage task statuses")
+        raise HTTPException(403, "Only owners and administrators can view task status configuration")
+
+
+def require_owner(user):
+    if user.role != m.RoleEnum.OWNER:
+        raise HTTPException(403, "Only owners can change task status configuration")
 
 
 def scope(db, user, *, lock=False):
@@ -96,9 +102,10 @@ def scope(db, user, *, lock=False):
 
 
 def assert_systems(db, user):
-    expected = {(code, name, value, True, system_behavior(value)) for value, code, name in BLUEPRINT}
-    actual = {(row.code, row.system_name, row.legacy_status, row.is_active, row.workflow_behavior) for row in rows(db, user) if row.is_system}
-    if actual != expected:
+    configured = rows(db, user)
+    expected = {(code, name, value, system_behavior(value)) for value, code, name in BLUEPRINT}
+    actual = {(row.code, row.system_name, row.legacy_status, row.workflow_behavior) for row in configured if row.is_system}
+    if actual != expected or any(row.code in CORE_CODES and (not row.is_active or not row.kanban_visible) for row in configured):
         raise HTTPException(409, "The workspace system statuses require a reviewed integrity repair")
 
 
@@ -138,10 +145,11 @@ def document(db, user, current_scope=None):
     custom_order = {row.id: len(BLUEPRINT) + index for index, row in enumerate(
         sorted((row for row in configured if not row.is_system), key=lambda row: (row.created_at, row.id)))}
     return {"revision": current_scope.revision, "hold_reason_required": current_scope.hold_reason_required,
-        "can_manage": user.role in {m.RoleEnum.OWNER, m.RoleEnum.ADMIN},
+        "can_manage": user.role == m.RoleEnum.OWNER,
         "statuses": [{**snapshot(row), "task_count": legacy_counts.get(row.legacy_status, 0)
                       if row.legacy_status else counts.get(row.id, 0),
-                      "can_hide": not row.is_system,
+                      "is_core": row.is_system and row.code in CORE_CODES,
+                      "can_hide": row.code not in CORE_CODES,
                       "default_sort_order": defaults[row.code][0] if row.is_system else custom_order[row.id],
                       "default_display_label": defaults[row.code][1] if row.is_system else row.system_name,
                       "default_color": defaults[row.code][2] if row.is_system else "#6366f1",
@@ -169,7 +177,7 @@ def save(db, user, payload):
 
 
 def _save(db, user, payload):
-    require_manager(user)
+    require_owner(user)
     current_scope = scope(db, user, lock=True)
     check_revision(current_scope, payload.revision)
     existing = {row.id: row for row in rows(db, user)}
@@ -185,10 +193,12 @@ def _save(db, user, payload):
                               is_system=False, legacy_status=None)
             db.add(row)
         elif row.is_system:
-            if item.system_name != row.system_name or not item.is_active:
-                raise HTTPException(422, "System status identities and activation are protected")
-            if not item.kanban_visible:
-                raise HTTPException(422, "System statuses must remain visible on the Kanban board")
+            if item.system_name != row.system_name:
+                raise HTTPException(422, "System status identities are protected")
+            if row.code in CORE_CODES and (not item.is_active or not item.kanban_visible):
+                raise HTTPException(422, "Core system statuses must remain active and visible on the Kanban board")
+            if row.is_active and not item.is_active:
+                raise HTTPException(409, "Use the confirmed deactivation workflow for legacy statuses")
         desired_behavior = item.workflow_behavior or (row.workflow_behavior if before else 'ACTIVE')
         if row.is_system and desired_behavior != row.workflow_behavior:
             raise HTTPException(422, 'System workflow behavior is protected')
@@ -244,17 +254,42 @@ def custom_for_assignment(db, user, status_id):
     return row
 
 
+def validate_native_assignment(db, user, native):
+    """Caller holds the workflow scope lock; existing inactive tasks remain readable."""
+    configured = db.scalar(select(m.TaskStatus).where(m.TaskStatus.tenant_id == user.tenant_id,
+        m.TaskStatus.legacy_status == native))
+    if configured is not None and not configured.is_active:
+        raise HTTPException(409, 'Task status is inactive for this workspace')
+
+
 def remove(db, user, status_id, payload):
-    require_manager(user)
+    require_owner(user)
     current_scope = scope(db, user, lock=True)
     check_revision(current_scope, payload.revision)
     row = db.scalar(select(m.TaskStatus).where(m.TaskStatus.id == status_id, m.TaskStatus.tenant_id == user.tenant_id))
     if row is None:
         raise HTTPException(404, "Status not found")
     if row.is_system:
-        raise HTTPException(422, "System statuses cannot be archived or deleted")
+        # Native assignment guards take SHARE on this row. Lock before counting
+        # so even writers outside the scope API are included in confirmation.
+        db.refresh(row, with_for_update=True)
+    if row.is_system and (row.code in CORE_CODES or payload.action == 'delete'):
+        raise HTTPException(422, "Core statuses cannot be deactivated; legacy identities cannot be deleted")
     if payload.confirmation != row.display_label:
         raise HTTPException(422, "Type the current display label to confirm removal")
+    if row.is_system:
+        if payload.destination_id:
+            raise HTTPException(422, "Legacy deactivation retains task statuses; no reassignment destination is allowed")
+        count = db.scalar(select(func.count()).select_from(m.Task).where(task_tenant_predicate(user), task_column_predicate(row)))
+        if count != payload.expected_task_count:
+            raise HTTPException(409, "Task count changed. Reload and review the deactivation again")
+        before = snapshot(row)
+        row.is_active = False
+        row.kanban_visible = False
+        audit(db, user, row, 'deactivated', before, {**snapshot(row), 'retained_task_count': count})
+        current_scope.revision += 1
+        db.flush()
+        return document(db, user, current_scope)
     tasks = list(db.scalars(select(m.Task).where(m.Task.custom_status_id == row.id).with_for_update()))
     if len(tasks) != payload.expected_task_count:
         raise HTTPException(409, "Task count changed. Reload and review the reassignment again")

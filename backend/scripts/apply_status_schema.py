@@ -2,7 +2,7 @@
 
 Default mode is read-only. Stop writers before --apply. Versioned installations
 must use Alembic; production installations require their reviewed deployment plan.
-This runs the existing four status revisions atomically without stamping history.
+This runs the status revisions atomically without stamping history.
 """
 import argparse
 import hashlib
@@ -29,7 +29,7 @@ from app.tickets import (
 STATUS_TABLES = {"task_status_scopes", "task_statuses", "status_configuration_audits", "task_hold_intervals"}
 TASK_COLUMNS = {"custom_status_id", "hold_started_at", "hold_paused_seconds", "hold_previous_status",
                 "hold_reason", "status_transitioned_at", "status_transition_version"}
-REVISIONS = ("f006d7e8f9a0", "f117e8f9a0b1", "f228f9a0b1c2", "f339a0b1c2d3")
+REVISIONS = ("f006d7e8f9a0", "f117e8f9a0b1", "f228f9a0b1c2", "f339a0b1c2d3", "f44ab1c2d3e4")
 
 
 def plan(connection):

@@ -24,7 +24,7 @@ with engine.connect() as connection:
         issues=schema_issues(connection)
         revisions=(list(connection.scalars(sa.text('SELECT version_num FROM alembic_version')))
                    if sa.inspect(connection).has_table('alembic_version') else [])
-        if revisions!=['f339a0b1c2d3']:issues.append('migration_revision_not_f339a0b1c2d3')
+        if revisions!=['f44ab1c2d3e4']:issues.append('migration_revision_not_f44ab1c2d3e4')
         integrity=audit_data(connection) if not issues else None
         result={'ok':not issues and not integrity['errors'],'schema_issues':issues,'revisions':revisions,'integrity':integrity}
         print(json.dumps(result,indent=2))

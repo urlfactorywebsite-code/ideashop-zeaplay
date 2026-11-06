@@ -5,7 +5,7 @@ import math
 import sqlalchemy as sa
 
 from .. import models as m
-from .task_statuses import BLUEPRINT, system_behavior, normalize
+from .task_statuses import BLUEPRINT, CORE_CODES, system_behavior, normalize
 
 REQUIRED_INDEXES = {
     'tasks': {'ix_tasks_status_custom_updated_id'},
@@ -20,7 +20,7 @@ INDEX_COLUMNS = {
 }
 PG_GUARDS = {'zea_protect_task_status','zea_status_no_truncate','zea_status_audit_immutable',
     'zea_validate_task_custom_status','zea_behavior_guard','zea_kanban_system_visible',
-    'zea_hold_capture','zea_hold_ledger_guard','zea_hold_no_truncate','zea_custom_status_history'}
+    'zea_hold_capture','zea_hold_ledger_guard','zea_hold_no_truncate','zea_custom_status_history','zea_zz_native_status_available'}
 SQLITE_GUARDS = {'zea_status_identity','zea_status_system_delete','zea_status_system_update','zea_status_archive',
     'zea_status_referenced_delete','zea_status_audit_immutable_update','zea_status_audit_immutable_delete',
     'zea_behavior_guard_insert','zea_behavior_guard_update','zea_behavior_change',
@@ -28,7 +28,8 @@ SQLITE_GUARDS = {'zea_status_identity','zea_status_system_delete','zea_status_sy
     'zea_kanban_system_visible_insert','zea_kanban_system_visible_update',
     'zea_hold_enter_insert','zea_hold_enter_update','zea_hold_exit','zea_hold_deleted',
     'zea_hold_immutable_update','zea_hold_immutable_delete','zea_hold_overlap','zea_hold_tenant',
-    'zea_custom_status_history_insert','zea_custom_status_history_update'}
+    'zea_custom_status_history_insert','zea_custom_status_history_update',
+    'zea_native_status_available_insert','zea_native_status_available_update'}
 
 
 def schema_issues(connection):
@@ -93,7 +94,7 @@ def audit_data(connection):
         if actual!=expected:errors['system_identity_set']+=1
         tokens={}
         for row in rows:
-            if row['is_system'] and (not row['is_active'] or not row['kanban_visible']):errors['system_disabled_or_hidden']+=1
+            if row['is_system'] and row['code'] in CORE_CODES and (not row['is_active'] or not row['kanban_visible']):errors['system_disabled_or_hidden']+=1
             if not row['is_system'] and row['workflow_behavior'] not in ('ACTIVE','PENDING','HOLD'):errors['custom_behavior']+=1
             if row['normalized_name']!=normalize(row['system_name']) or row['normalized_label']!=normalize(row['display_label']):errors['normalization']+=1
             for name in ('system_name','display_label','code','legacy_status'):

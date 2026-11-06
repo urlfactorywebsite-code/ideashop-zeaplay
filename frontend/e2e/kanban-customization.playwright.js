@@ -57,7 +57,7 @@ async (page) => {
         const matching=tasks.filter(task=>(task.custom_status_id||task.status)===(row.legacy_status||row.id)&&task.title.toLowerCase().includes(search));
         const column={status_id:row.id,status:row.legacy_status||row.id,title:row.display_label,order:row.sort_order,color:row.color,icon:row.icon,
           is_system:row.is_system,count:matching.length,items:matching.slice(offset,offset+size)};
-        if(row.is_system||(row.is_active&&row.kanban_visible))columns.push(column);
+        if(row.is_active&&row.kanban_visible)columns.push(column);
         else if(matching.length)outside_columns.push({...column,outside_reason:row.is_active?'hidden':'archived'});
       }
       return route.fulfill({json:{configuration_revision:doc.revision,columns,outside_columns,unmapped_count:legacyCount,

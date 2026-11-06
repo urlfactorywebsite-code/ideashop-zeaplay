@@ -58,7 +58,8 @@ environment. It does not build, pull or change application configuration. It:
    then repeats the repair to confirm it makes no further changes.
 5. Repairs the original database only after the rehearsal succeeds; retains JSON
    results, fingerprints and the restored rehearsal database for review.
-6. Restarts the same containers and checks local `/ready`.
+6. Restarts the same containers, checks local `/ready`, and gracefully reloads
+   the frontend gateway so Nginx resolves the restarted upstream addresses.
 
 If preflight refuses, nothing has been stopped or changed. If backup, rehearsal
 or repair fails, inspect the reported phase, logs and container state before
@@ -71,6 +72,17 @@ and status reads. `/ready` should report database/realtime true. The strict
 `migration_revision_not_f339a0b1c2d3` because this recovery preserves the
 unversioned installation. Establishing its historical migration baseline remains
 separate work; stamping would not validate that history.
+
+If an earlier repair completed with local readiness true but the public API
+returns 502, first refresh the gateway's upstream addresses:
+
+```bash
+docker exec zeaplay_frontend nginx -t &&
+docker exec zeaplay_frontend nginx -s reload
+curl -fsS https://api.ideashop.zeacrm.com/ready
+```
+
+This is a graceful configuration reload. It does not repeat the database repair.
 
 ## Local verification
 

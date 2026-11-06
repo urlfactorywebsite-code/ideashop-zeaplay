@@ -36,6 +36,9 @@ def apply(db, task, target, *, actor, custom_status_id=None, hold_reason=None, s
         ensure_task_update_access(task, actor)
     bind_actor(db, actor)
     target = m.TaskStatusEnum(target)
+    if not custom_status_id and (task.status != target or task.custom_status_id):
+        task_statuses.scope(db, actor, lock=True)
+        task_statuses.validate_native_assignment(db, actor, target.value)
     if custom_status_id:
         configured = task_statuses.custom_for_assignment(db, actor, custom_status_id)
         if task_statuses.native_status(configured) != target.value:

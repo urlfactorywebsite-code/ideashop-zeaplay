@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { GripVertical, LockKeyhole, Monitor, Smartphone } from 'lucide-react';
 import KanbanColumnFrame, { EmptyQuestColumn } from './KanbanColumnFrame';
-import { onBoard, sampleQuests, type StatusConfiguration } from '../utils/kanbanConfiguration';
+import { onBoard, isCoreStatus, sampleQuests, type StatusConfiguration } from '../utils/kanbanConfiguration';
 import { questCardSurface } from '../utils/kanbanAppearance';
 
 export default function KanbanPreview({ statuses, disabled, onMove }: {
@@ -36,7 +36,7 @@ export default function KanbanPreview({ statuses, disabled, onMove }: {
                 className="cursor-grab rounded-lg p-1 transition hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-cyan-300 active:cursor-grabbing"
                 onDragStart={event => { dragId.current = status.id; setDragging(status.id); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', status.id); }}
                 onDragEnd={() => { dragId.current = null; setDragging(null); }}><GripVertical className="h-4 w-4" aria-hidden="true" /></button>
-              {status.is_system && <span className="inline-flex items-center gap-1"><LockKeyhole className="h-3 w-3" aria-hidden="true" />Protected</span>}
+              {isCoreStatus(status) && <span className="inline-flex items-center gap-1"><LockKeyhole className="h-3 w-3" aria-hidden="true" />Protected</span>}
               <span>Sample</span>
             </div>}>
             {examples.map(example => <article key={example.title} className={`relative overflow-hidden rounded-2xl border p-4 ${questCardSurface('dark')}`}>

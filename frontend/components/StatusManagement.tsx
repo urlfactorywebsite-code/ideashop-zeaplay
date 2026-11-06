@@ -6,7 +6,7 @@ import { http } from '../services/mockApi';
 import Tooltip from './ui/Tooltip';
 import KanbanPreview from './KanbanPreview';
 import { useAuth } from '../hooks/useAuth';
-import { announceConfiguration, configurationStorageKey, STATUS_CONFIGURATION_EVENT, defaultArrangement, moveStatus, type StatusConfiguration as Status } from '../utils/kanbanConfiguration';
+import { announceConfiguration, configurationStorageKey, STATUS_CONFIGURATION_EVENT, defaultArrangement, moveStatus, isCoreStatus, type StatusConfiguration as Status } from '../utils/kanbanConfiguration';
 
 export const SYSTEM_STATUS_TOOLTIP = 'This is a core ZeaPlay system status. Its internal identity and workflow behavior are protected because they control task creation, progress, overdue calculations, penalty points, and completion rewards. You can customize its Kanban display label and position separately.';
 type Document = { revision: number; can_manage: boolean; statuses: Status[]; hold_reason_required?: boolean };
@@ -35,7 +35,7 @@ export default function StatusManagement({ onDirtyChange }: { onDirtyChange: (di
   const accept = (document: Document) => {
     setStale(false);
     setHoldReasonRequired(!!document.hold_reason_required);
-    const statuses = document.statuses.map(row => row.is_system ? { ...row, kanban_visible: true } : row);
+    const statuses = document.statuses;
     setSaved({ ...document, statuses }); setDraft(statuses);
   };
   const load = async () => {
@@ -106,22 +106,24 @@ export default function StatusManagement({ onDirtyChange }: { onDirtyChange: (di
         revision: saved.revision, action, destination_id: destination || null,
         confirmation, expected_task_count: row.task_count,
       })).data);
-      setRemoval(null); refreshBoard(); setMessage(action === 'archive' ? 'Custom status archived.' : 'Custom status deleted. Audit history retained.');
+      setRemoval(null); refreshBoard(); setMessage(row.is_system ? 'Legacy status deactivated. Existing tasks and history retained.' : action === 'archive' ? 'Custom status archived.' : 'Custom status deleted. Audit history retained.');
     } catch (failure) { setError(errorText(failure)); }
     finally { setBusy(false); }
   };
-  const canEdit = !!saved?.can_manage && !busy;
+  const canManage = user?.role === 'owner' && !!saved?.can_manage;
+  const canEdit = canManage && !busy;
   const destinations = saved?.statuses.filter(row => row.is_active && row.id !== removal?.row.id
     && row.workflow_behavior !== 'HOLD' && (!row.is_system || row.legacy_status === 'IN_PROGRESS')) || [];
   return <section aria-busy={busy} aria-labelledby="status-management-heading" className="space-y-4 border-t border-border-color pt-6">
     <header className="flex flex-wrap items-center justify-between gap-3">
       <div><h3 id="status-management-heading" className="text-xl font-bold">Status Management</h3>
         <p className="mt-1 text-sm text-text-secondary">Workspace task statuses, Kanban labels and column order.</p></div>
-      {saved?.can_manage && <button className={button} disabled={!canEdit || draft.length >= 100} onClick={() => setDraft(previous => [...previous, {
+      {canManage && <button className={button} disabled={!canEdit || draft.length >= 100} onClick={() => setDraft(previous => [...previous, {
         id: crypto.randomUUID(), code: '', system_name: '', display_label: '', description: '', color: '#6366f1', icon: 'circle',
         is_system: false, is_active: true, kanban_visible: true, sort_order: previous.length, task_count: 0, legacy_status: null, isNew: true,
       }])}><Plus className="mr-1 inline h-4 w-4" />Add Custom Status</button>}
     </header>
+    <p className="text-sm text-text-secondary">Only the workspace owner can change status settings. Core status identities and business rules remain protected. Other legacy statuses can be hidden or deactivated without deleting existing tasks.</p>
     <p className="text-sm text-text-secondary">Custom statuses default to Active behavior. Pending and Hold use the protected core rules; completion rewards continue through Conquered. Reassign tasks before changing an assigned status's behavior.</p>
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={holdReasonRequired} disabled={!canEdit}
       onChange={event => setHoldReasonRequired(event.target.checked)} />Require a reason when placing a task On Hold</label>
@@ -134,8 +136,8 @@ export default function StatusManagement({ onDirtyChange }: { onDirtyChange: (di
       <section aria-labelledby="kanban-customization-heading" className="space-y-5 rounded-2xl border border-cyan-400/20 bg-slate-950/5 p-3 sm:p-5">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div><h4 id="kanban-customization-heading" className="text-lg font-bold">Kanban Board Customization</h4>
-            <p className="mt-1 text-sm text-text-secondary">Arrange your guild's columns, labels, colors and icons. Protected system columns always remain visible.</p></div>
-          {saved.can_manage && <button type="button" className={button} disabled={!canEdit} onClick={() => {
+            <p className="mt-1 text-sm text-text-secondary">Arrange your guild's columns, labels, colors and icons. The four core columns always remain active and visible.</p></div>
+          {canManage && <button type="button" className={button} disabled={!canEdit} onClick={() => {
             setDraft(defaultArrangement(draft)); setError(''); setMessage('Default Kanban arrangement staged. Save Status Changes to apply it.');
           }}>Reset to default arrangement</button>}
         </header>
@@ -148,7 +150,7 @@ export default function StatusManagement({ onDirtyChange }: { onDirtyChange: (di
             <td className="p-3"><button draggable={canEdit} disabled={!canEdit} aria-label={`Drag ${row.display_label || 'new status'}`} onDragStart={event => { dragId.current = row.id; event.dataTransfer.setData('text/plain', row.id); }} onDragEnd={() => { dragId.current = null; }} className={button}><GripVertical className="h-4 w-4" /></button>
               <div className="mt-1 flex gap-1"><button className={button} disabled={!canEdit || index === 0} aria-label={`Move ${row.display_label} left`} title="Move Left" onClick={() => move(row.id, index - 1)}>&larr;</button><button className={button} disabled={!canEdit || index === draft.length - 1} aria-label={`Move ${row.display_label} right`} title="Move Right" onClick={() => move(row.id, index + 1)}>&rarr;</button></div></td>
             <td className="min-w-[160px] p-3"><input aria-label={`Status name ${index + 1}`} className={input} maxLength={80} disabled={!canEdit || row.is_system} value={row.system_name} onChange={event => update(row.id, { system_name: event.target.value })} />
-              {row.is_system && <span onKeyDown={event => { if (event.key === "Escape") (event.target as HTMLElement).blur(); }}><Tooltip dismissOnEscape text={SYSTEM_STATUS_TOOLTIP} className="w-80 max-w-[calc(100vw-2rem)] max-sm:!left-1/2 [&>span.relative]:whitespace-normal"><span className="mt-2 inline-flex items-center gap-1 text-xs"><LockKeyhole className="h-3 w-3" />System Status</span></Tooltip></span>}
+              {row.is_system && <span onKeyDown={event => { if (event.key === "Escape") (event.target as HTMLElement).blur(); }}><Tooltip dismissOnEscape text={isCoreStatus(row) ? SYSTEM_STATUS_TOOLTIP : 'Legacy status IDs and workflow behavior are retained for task history, reporting and scoring. Only the owner can hide, deactivate or reactivate this status. Edit its display label to rename its column.'} className="w-80 max-w-[calc(100vw-2rem)] max-sm:!left-1/2 [&>span.relative]:whitespace-normal"><span className="mt-2 inline-flex items-center gap-1 text-xs"><LockKeyhole className="h-3 w-3" />{isCoreStatus(row) ? 'Core System Status' : 'Legacy Status'}</span></Tooltip></span>}
               <p className="mt-1 break-all text-xs text-text-secondary">{row.code || 'Code assigned when saved'}</p></td>
             <td className="min-w-[170px] p-3"><input aria-label={`Display label ${index + 1}`} className={input} maxLength={80} disabled={!canEdit} value={row.display_label} onChange={event => update(row.id, { display_label: event.target.value })} /></td>
             <td className="min-w-[180px] p-3"><textarea aria-label={`Description ${index + 1}`} className={input} rows={2} maxLength={500} disabled={!canEdit} value={row.description} onChange={event => update(row.id, { description: event.target.value })} />
@@ -160,17 +162,17 @@ export default function StatusManagement({ onDirtyChange }: { onDirtyChange: (di
               </select></label></td>
             <td className="p-3"><input type="color" aria-label={`Color ${index + 1}`} disabled={!canEdit} value={row.color} onChange={event => update(row.id, { color: event.target.value })} /><select aria-label={`Icon ${index + 1}`} className={input} disabled={!canEdit} value={row.icon} onChange={event => update(row.id, { icon: event.target.value })}>{icons.map(icon => <option key={icon}>{icon}</option>)}</select></td>
             <td className="p-3 tabular-nums">{row.task_count}</td>
-            <td className="p-3"><label className="flex gap-2"><input type="checkbox" aria-label={`Show ${row.display_label || "new status"} on Kanban`} checked={row.is_system || row.kanban_visible} disabled={!canEdit || row.is_system} onChange={event => update(row.id, { kanban_visible: event.target.checked })} />{row.is_system ? "Always on Kanban" : "Kanban"}</label><p className="mt-2 text-xs">{row.is_active ? 'Active' : 'Archived'}</p>
-              {!row.is_system && !row.is_active && <button className={button} disabled={!canEdit} onClick={() => update(row.id, { is_active: true })}>Restore</button>}</td>
-            <td className="space-y-2 p-3">{!row.is_system && saved.can_manage && (row.isNew
+            <td className="p-3"><label className="flex gap-2"><input type="checkbox" aria-label={`Show ${row.display_label || "new status"} on Kanban`} checked={row.kanban_visible} disabled={!canEdit || isCoreStatus(row) || !row.is_active} onChange={event => update(row.id, { kanban_visible: event.target.checked })} />{isCoreStatus(row) ? "Always on Kanban" : "Kanban"}</label><p className="mt-2 text-xs">{row.is_active ? 'Active' : row.is_system ? 'Inactive' : 'Archived'}</p>
+              {!isCoreStatus(row) && !row.is_active && canManage && <button className={button} disabled={!canEdit} onClick={() => update(row.id, { is_active: true, kanban_visible: true })}>{row.is_system ? 'Reactivate' : 'Restore'}</button>}</td>
+            <td className="space-y-2 p-3">{row.is_system && !isCoreStatus(row) && row.is_active && canManage && <button className={button} disabled={!canEdit || dirty} title={dirty ? 'Save or cancel unsaved changes first' : undefined} onClick={() => { setRemoval({ row, action: 'archive' }); setDestination(''); setConfirmation(''); setError(''); }}>Deactivate</button>}{!row.is_system && canManage && (row.isNew
               ? <button className={button} disabled={!canEdit} onClick={() => setDraft(previous => previous.filter(item => item.id !== row.id))}>Remove draft</button>
               : <>{(['archive', 'delete'] as const).filter(action => action !== 'archive' || row.is_active).map(action => <button key={action} className={button} disabled={!canEdit || dirty} title={dirty ? 'Save or cancel unsaved changes first' : undefined} onClick={() => { setRemoval({ row, action }); setDestination(''); setConfirmation(''); setError(''); }}>{action === 'archive' ? 'Archive' : 'Delete'}</button>)}</>)}</td>
           </tr>)}
         </tbody></table>
       </div>
-      <p className="text-xs text-text-secondary">Hiding a custom status retains its quests. They remain available in All Tasks and the board's hidden-status task list.</p>
+      <p className="text-xs text-text-secondary">Hiding or deactivating a legacy status retains its quests in All Tasks and the board's hidden-status task list. Inactive statuses cannot receive new assignments. Legacy identities cannot be deleted.</p>
       <KanbanPreview statuses={draft} disabled={!canEdit} onMove={move} />
-      {saved.can_manage && <div className="flex flex-wrap gap-3">
+      {canManage && <div className="flex flex-wrap gap-3">
         <button className={button} disabled={busy || !dirty} onClick={() => { setDraft(saved.statuses); setHoldReasonRequired(!!saved.hold_reason_required); setError(''); setMessage('Unsaved status changes cancelled.'); }}>Cancel</button>
         <button className={button} disabled={busy} onClick={() => { void load(); setMessage(''); }}>Reset unsaved changes</button>
         <button className={`${button} bg-primary text-white`} disabled={busy || !dirty} onClick={() => void save()}>{busy ? 'Saving…' : 'Save Status Changes'}</button>
@@ -180,12 +182,12 @@ export default function StatusManagement({ onDirtyChange }: { onDirtyChange: (di
     </>}
     <Dialog open={removal !== null} onClose={() => { if (!busy) setRemoval(null); }} className="relative z-[110]">
       <DialogBackdrop className="fixed inset-0 bg-black/60" /><div className="fixed inset-0 flex items-center justify-center p-4"><DialogPanel className="w-full max-w-lg space-y-4 rounded-2xl border border-border-color bg-surface p-6 text-text-primary">
-        <DialogTitle className="text-lg font-bold">{removal?.action === 'archive' ? 'Archive' : 'Delete'} custom status “{removal?.row.display_label}”?</DialogTitle>
-        <DialogDescription>{removal?.row.task_count || 0} tasks reference this status. Reassignment and removal are saved together and recorded in the audit log. Task IDs, history and points are preserved.</DialogDescription>
-        {!!removal?.row.task_count && <label className="block">Reassign all tasks to<select aria-label="Reassignment destination" className={input} value={destination} onChange={event => setDestination(event.target.value)}><option value="">Choose a destination</option>{destinations.map(row => <option key={row.id} value={row.id}>{row.display_label}</option>)}</select></label>}
+        <DialogTitle className="text-lg font-bold">{removal?.row.is_system ? "Deactivate legacy" : removal?.action === "archive" ? "Archive custom" : "Delete custom"} status &ldquo;{removal?.row.display_label}&rdquo;?</DialogTitle>
+        <DialogDescription>{removal?.row.task_count || 0} tasks reference this status. {removal?.row.is_system ? "Existing tasks keep this status, history and points. They remain in All Tasks and the board hidden-status list. New assignments are blocked until reactivation. This change is audited." : "Reassignment and removal are saved together and recorded in the audit log. Task IDs, history and points are preserved."}</DialogDescription>
+        {!!removal?.row.task_count && !removal.row.is_system && <label className="block">Reassign all tasks to<select aria-label="Reassignment destination" className={input} value={destination} onChange={event => setDestination(event.target.value)}><option value="">Choose a destination</option>{destinations.map(row => <option key={row.id} value={row.id}>{row.display_label}</option>)}</select></label>}
         <label className="block">Type “{removal?.row.display_label}” to confirm<input aria-label="Confirm status removal" className={input} value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label>
         {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
-        <div className="flex justify-end gap-3"><button className={button} disabled={busy} onClick={() => setRemoval(null)}>Cancel</button><button className={`${button} bg-primary text-white`} disabled={busy || confirmation !== removal?.row.display_label || (!!removal?.row.task_count && !destination)} onClick={() => void remove()}>Confirm {removal?.action}</button></div>
+        <div className="flex justify-end gap-3"><button className={button} disabled={busy} onClick={() => setRemoval(null)}>Cancel</button><button className={`${button} bg-primary text-white`} disabled={busy || confirmation !== removal?.row.display_label || (!!removal?.row.task_count && !removal.row.is_system && !destination)} onClick={() => void remove()}>Confirm {removal?.row.is_system ? "deactivation" : removal?.action}</button></div>
       </DialogPanel></div>
     </Dialog>
   </section>;

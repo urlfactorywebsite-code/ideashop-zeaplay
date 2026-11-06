@@ -209,13 +209,10 @@ def test_noop_saves_preserve_revision_and_control_characters_are_rejected(client
     assert client.patch(f'/api/tasks/{data.task.id}', headers=headers(data.owner), json={'custom_status_id': '\x00'}).status_code == 422
 
 
-def test_concurrent_saves_use_revision_lock_and_admin_can_manage(client, data):
+def test_concurrent_owner_saves_use_revision_lock(client, data):
     doc = document(client, data.owner)
-    with data.factory() as db:
-        db.get(m.User, data.owner.id).role = m.RoleEnum.ADMIN
-        db.commit()
     draft = payload(doc)
-    draft['statuses'][0]['display_label'] = 'Admin Planning'
+    draft['statuses'][0]['display_label'] = 'Owner Planning'
     with ThreadPoolExecutor(max_workers=2) as pool:
         responses = list(pool.map(lambda _: client.put('/api/task-statuses', headers=headers(data.owner), json=draft), range(2)))
     assert sorted(response.status_code for response in responses) == [200, 409]

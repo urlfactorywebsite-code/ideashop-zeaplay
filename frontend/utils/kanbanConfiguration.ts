@@ -17,9 +17,11 @@ export type StatusConfiguration = {
   color: string; icon: string; is_system: boolean; is_active: boolean; kanban_visible: boolean;
   sort_order: number; legacy_status: string | null; task_count: number; isNew?: boolean;
   default_sort_order?: number; default_display_label?: string; default_color?: string; default_icon?: string;
+  is_core?: boolean;
 };
 
-export const onBoard = (status: StatusConfiguration) => status.is_system || (status.is_active && status.kanban_visible);
+export const isCoreStatus = (status: StatusConfiguration) => status.is_system && ['BATTLE_PLAN', 'IN_PROGRESS', 'ON_HOLD', 'CONQUERED'].includes(status.code);
+export const onBoard = (status: StatusConfiguration) => status.is_active && status.kanban_visible;
 
 export function moveStatus<T>(items: T[], from: number, to: number): T[] {
   if (from < 0 || from >= items.length || to < 0 || to >= items.length || from === to) return items;

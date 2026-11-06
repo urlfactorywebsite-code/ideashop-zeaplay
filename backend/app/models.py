@@ -1431,7 +1431,7 @@ class TaskStatus(Base):
         UniqueConstraint("tenant_id", "normalized_label", name="uq_task_status_label"),
         UniqueConstraint("tenant_id", "legacy_column_id", name="uq_task_status_legacy_column"),
         UniqueConstraint("tenant_id", "legacy_status", name="uq_task_status_legacy_status"),
-        CheckConstraint("NOT is_system OR is_active", name="ck_task_status_system_active"),
+        CheckConstraint("NOT is_system OR code NOT IN ('BATTLE_PLAN','IN_PROGRESS','ON_HOLD','CONQUERED') OR is_active", name="ck_task_status_system_active"),
         CheckConstraint("is_system = (legacy_status IS NOT NULL)", name="ck_task_status_identity_kind"),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
@@ -2859,3 +2859,6 @@ _register_kanban_v2(Base.metadata)
 
 from .status_business_schema_v3 import register as _register_status_business_v3
 _register_status_business_v3(Base.metadata)
+
+from .status_owner_schema_v4 import register as _register_status_owner_v4
+_register_status_owner_v4(Base.metadata)

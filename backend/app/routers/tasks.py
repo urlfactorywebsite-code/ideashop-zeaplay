@@ -1456,7 +1456,7 @@ def list_tasks_kanban(
         known_predicates.append(and_(raw_status == pair[0],
             count_source.c.custom_status_id.is_(None) if pair[1] is None else count_source.c.custom_status_id == pair[1]))
         count = counts.get(pair, 0)
-        visible = column.is_system or (column.is_active and column.kanban_visible)
+        visible = column.is_active and column.kanban_visible
         if not visible and not count:
             continue
         tasks = db.execute(
@@ -1790,6 +1790,8 @@ def create_task(
         if "status" in payload.model_fields_set and payload_status != native:
             raise HTTPException(422, "Custom workflow behavior does not match task status")
         payload_status = native
+    else:
+        status_service.validate_native_assignment(db, current_user, payload_status.value)
     creation_points = get_task_creation_points(db)
 
     task_group_id = payload.task_group_id or str(uuid4())
@@ -2589,7 +2591,7 @@ def move_task_on_kanban(
     db.refresh(task, with_for_update=True)
     destination = db.scalar(select(models.TaskStatus).where(models.TaskStatus.id == payload.status_id,
         models.TaskStatus.tenant_id == current_user.tenant_id, models.TaskStatus.is_active.is_(True)))
-    if destination is None or (not destination.is_system and not destination.kanban_visible):
+    if destination is None or not destination.kanban_visible:
         raise HTTPException(409, "This status is not available on the Kanban board. Refresh the board and try again.")
     # All permissions, completion/subtask policies, rewards, audit and automation
     # remain owned by the existing task transition path.
