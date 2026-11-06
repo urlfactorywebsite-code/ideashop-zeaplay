@@ -1,0 +1,103 @@
+"""Upgrade a reviewed unversioned local status schema after backup/restore rehearsal.
+
+Read-only by default. Stop writers before --apply. Executes only the owner-control
+revision, preserves every existing record, and never stamps migration history.
+Versioned and production databases must use their reviewed Alembic procedure.
+"""
+import argparse
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+os.environ['VEE_BOOTSTRAP_SCHEMA'] = 'false'
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import sqlalchemy as sa
+from alembic.config import Config
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from alembic.script import ScriptDirectory
+from app.config import get_settings
+from app.database import engine
+from app.services.status_integrity import audit_data, schema_issues
+from app.tickets import models as tickets  # noqa: F401 - register Task relationships
+from scripts.apply_status_schema import snapshot
+
+REVISION = 'f44ab1c2d3e4'
+MISSING_GUARD = 'missing_guard:zea_zz_native_status_available'
+
+
+def plan(c):
+    if c.dialect.name != 'postgresql':
+        raise RuntimeError('This local upgrade supports PostgreSQL only')
+    inspector = sa.inspect(c)
+    if inspector.has_table('alembic_version'):
+        raise RuntimeError('Versioned database: use the reviewed Alembic procedure')
+    issues = set(schema_issues(c))
+    checks = {item['name']: item['sqltext'] for item in inspector.get_check_constraints('task_statuses')}
+    expression = checks.get('ck_task_status_system_active', '')
+    normalized = re.sub(r'[\s()]', '', expression).lower()
+    legacy = normalized == 'notis_systemoris_active'
+    owner = all("'" + code + "'" in expression for code in ('BATTLE_PLAN','IN_PROGRESS','ON_HOLD','CONQUERED'))
+    if issues == {MISSING_GUARD} and legacy:
+        state = 'upgrade_required'
+    elif not issues and owner:
+        state = 'already_compatible'
+    else:
+        raise RuntimeError('Schema differs from the reviewed owner-control baseline; no changes made: ' + json.dumps(sorted(issues)))
+    integrity = audit_data(c)
+    if integrity['errors']:
+        raise RuntimeError('Existing status data requires a reviewed repair: ' + json.dumps(integrity['errors']))
+    return state
+
+
+def repair(c):
+    inspector = sa.inspect(c)
+    columns = {table: [item['name'] for item in inspector.get_columns(table)] for table in inspector.get_table_names()}
+    quote = c.dialect.identifier_preparer.quote
+    c.exec_driver_sql('LOCK TABLE ' + ', '.join(map(quote, sorted(columns))) + ' IN SHARE ROW EXCLUSIVE MODE')
+    state = plan(c)
+    before = snapshot(c, columns)
+    if state == 'upgrade_required':
+        config = Config()
+        config.set_main_option('script_location', str(Path(__file__).resolve().parents[1] / 'alembic'))
+        scripts = ScriptDirectory.from_config(config)
+        with Operations.context(MigrationContext.configure(c)):
+            scripts.get_revision(REVISION).module.upgrade()
+    if plan(c) != 'already_compatible':
+        raise RuntimeError('Owner-control schema verification failed')
+    after = snapshot(c, columns)
+    if before != after:
+        raise RuntimeError('Existing records changed; rolling back the upgrade')
+    return {'status': 'applied' if state == 'upgrade_required' else state,
+            'revision_executed': REVISION if state == 'upgrade_required' else None,
+            'migration_history_changed': False, 'existing_records_unchanged': True,
+            'table_fingerprints': after, 'integrity': audit_data(c)}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--apply', action='store_true')
+    args = parser.parse_args()
+    if engine.dialect.name != 'postgresql':
+        parser.error('This local upgrade supports PostgreSQL only')
+    if args.apply and get_settings().environment.lower() not in {'development','dev','local','test','testing'}:
+        parser.error('Production apply requires the reviewed deployment procedure')
+    with engine.begin() as c:
+        if c.dialect.name == 'postgresql':
+            c.exec_driver_sql("SET LOCAL lock_timeout='10s'")
+            c.exec_driver_sql("SET LOCAL statement_timeout='120s'")
+        if args.apply:
+            c.execute(sa.text('SELECT pg_advisory_xact_lock(741906245)'))
+            result = repair(c)
+        else:
+            c.exec_driver_sql('SET TRANSACTION READ ONLY')
+            result = {'status': plan(c), 'migration_history_changed': False}
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

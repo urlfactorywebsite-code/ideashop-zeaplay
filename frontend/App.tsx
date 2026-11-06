@@ -2,6 +2,7 @@
 import React, { Suspense } from 'react';
 import { createHashRouter, RouterProvider, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth, SearchProvider, ThemeProvider, useTheme } from './hooks/useAuth';
+import { TaskStatusLabelsProvider } from './hooks/useTaskStatusLabels';
 import { LoadingProvider } from './components/loading/LoadingProvider';
 import PageLoader from './components/loading/PageLoader';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -100,11 +101,13 @@ const AppProviders: React.FC = () => {
       <ThemeProvider>
         <LoadingProvider>
           <AuthProvider>
-            <SearchProvider>
-              <NavigationProvider>
-              <AppContent />
-              </NavigationProvider>
-            </SearchProvider>
+            <TaskStatusLabelsProvider>
+              <SearchProvider>
+                <NavigationProvider>
+                  <AppContent />
+                </NavigationProvider>
+              </SearchProvider>
+            </TaskStatusLabelsProvider>
           </AuthProvider>
         </LoadingProvider>
       </ThemeProvider>

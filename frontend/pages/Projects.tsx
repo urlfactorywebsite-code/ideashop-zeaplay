@@ -1,3 +1,4 @@
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import Avatar from '../components/Avatar';
 import ClientSelect from '../components/ClientSelect';
 import SearchableMultiSelect from '../components/ui/SearchableMultiSelect';
@@ -36,10 +37,8 @@ import {
   TaskStatus,
   User,
   UserStatus,
-  CUSTOM_STATUS_NAMES,
 } from '../types';
 import { ProjectDraft, toProjectPayload, validateProjectDraft } from '../utils/projectValidation';
-import { formatTaskStatus } from '../utils';
 
 type ProjectFormProps = {
   project: Project | null;
@@ -93,7 +92,7 @@ const formatDuration = (seconds = 0) => {
   return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
 };
 
-const taskStatusLabel = (status: TaskStatus) => CUSTOM_STATUS_NAMES[status]?.name ?? formatTaskStatus(status);
+
 
 const subtaskStatusTone: Record<SubtaskStatus, string> = {
   [SubtaskStatus.WAITING]: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
@@ -122,6 +121,7 @@ const DashboardTaskRow: React.FC<{
   busy: boolean;
   onOverride: (task: ProjectDashboardTask, status: TaskStatus) => void;
 }> = ({ task, canManage, busy, onOverride }) => {
+  const { label: taskStatusLabel } = useTaskStatusLabels();
   const subtaskById = useMemo(() => new Map(task.subtasks.map((subtask) => [subtask.id, subtask])), [task.subtasks]);
   return (
     <article className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
@@ -332,6 +332,7 @@ const ProjectFormModal: React.FC<ProjectFormProps> = ({ project, clients, users,
 };
 
 const Projects: React.FC = () => {
+  const { label: taskStatusLabel } = useTaskStatusLabels();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const linkedProjectId = searchParams.get('projectId');

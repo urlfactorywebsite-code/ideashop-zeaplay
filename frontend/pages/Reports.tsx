@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAuth } from '../hooks/useAuth';
-import { TaskStatus, CUSTOM_STATUS_NAMES } from '../types';
+import { TaskStatus } from '../types';
+import { TaskStatusName, useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import { reportingApi } from '../services/reportingApi';
 import type { ReportingFilters, ReportingMeta, ReportingOverview, ReportingQuery, ReportingRow, ReportPreset, ReportSection } from '../types/reporting';
 import { numberValue, previousReportingPeriod, reportError, reportingDates, reportingDuration, reportingFiltersFromUrl, reportingSearchParams, reportingTaskLink, reportSections, reportTimezone, validateReportingDates } from '../utils/reporting';
@@ -22,7 +23,6 @@ const STATUS_COLOR: Record<string, string> = Object.fromEntries(Object.entries({
   BLOCKED: 'boss', IN_REVIEW: 'tactical', ON_HOLD: 'hold', DONE: 'conquered', DEPLOYED: 'conquered',
   FAILED: 'fallen', GRAVEYARD: 'graveyard',
 }).map(([status, token]) => [status, `var(--color-stage-${token})`]));
-const statusLabel = (status: string) => `${status.replace(/_/g, ' ')}${CUSTOM_STATUS_NAMES[status as TaskStatus]?.name ? ` · ${CUSTOM_STATUS_NAMES[status as TaskStatus].name}` : ''}`;
 const int = (value: unknown) => numberValue(value).toLocaleString();
 const present = (value: unknown) => value === null || value === undefined || value === '' ? 'Not recorded' : String(value);
 interface Column { key: string; label: string; sort?: boolean; kind?: 'status' | 'date' | 'percent' | 'duration' | 'people' | 'boolean' }
@@ -126,7 +126,7 @@ function displayCell(row: ReportingRow, column: Column, timezone: string): React
     const date = new Date(text);
     return Number.isNaN(date.getTime()) ? 'Not recorded' : date.toLocaleString(undefined, { timeZone: timezone, dateStyle: 'medium', timeStyle: 'short' });
   }
-  if (column.kind === 'status') return <span className="report-status" style={{ borderColor: STATUS_COLOR[String(value)] || 'var(--color-border-color)' }}>{statusLabel(String(value))}</span>;
+  if (column.kind === 'status') return <span className="report-status" style={{ borderColor: STATUS_COLOR[String(value)] || 'var(--color-border-color)' }}><TaskStatusName status={String(value)} /></span>;
   if (typeof value === 'number') return int(value);
   if (value === 'ARCHIVED' || value === 'INACTIVE') return <span className="report-archived">{value}</span>;
   return present(value);
@@ -179,6 +179,7 @@ function SearchPicker({ label, selected, onChange, options, total, busy, search,
   </div>;
 }
 function Overview({ data, onFilter }: { data: ReportingOverview; onFilter: (key: 'status' | 'employee_id' | 'project_id', value: string) => void }) {
+  const { label: statusLabel } = useTaskStatusLabels();
   const metricLabels: [string, string][] = [
     ['total_tasks', 'Unique parent tasks'], ['assigned_tasks', 'Assigned tasks'], ['unassigned_tasks', 'Unassigned tasks'],
     ['completed_tasks', 'Completed tasks'], ['in_progress_tasks', 'In progress'], ['pending_tasks', 'Pending tasks'],
@@ -194,10 +195,10 @@ function Overview({ data, onFilter }: { data: ReportingOverview; onFilter: (key:
             <Pie data={data.status_distribution} dataKey="count" nameKey="status" innerRadius={62} outerRadius={95} paddingAngle={2}
               isAnimationActive={false} onClick={entry => onFilter('status', entry.status)}>
               {data.status_distribution.map(row => <Cell key={row.status} fill={STATUS_COLOR[row.status]} />)}
-            </Pie><Tooltip contentStyle={{ background: 'var(--color-surface)', borderColor: 'var(--color-border-color)', color: 'var(--color-text-primary)' }} />
+            </Pie><Tooltip formatter={(value, name) => [value, statusLabel(String(name))]} contentStyle={{ background: 'var(--color-surface)', borderColor: 'var(--color-border-color)', color: 'var(--color-text-primary)' }} />
           </PieChart></ResponsiveContainer></div>
           <div className="report-legend">{data.status_distribution.filter(row => row.count).map(row => <button key={row.status} type="button" onClick={() => onFilter('status', row.status)}>
-            <i style={{ background: STATUS_COLOR[row.status] }} />{row.status.replace(/_/g, ' ')} <strong>{int(row.count)}</strong>
+            <i style={{ background: STATUS_COLOR[row.status] }} />{statusLabel(row.status)} <strong>{int(row.count)}</strong>
           </button>)}</div>
         </> : <Empty />}
       </section>
@@ -302,6 +303,7 @@ function DetailPanel({ target, query, onClose, onExplore }: { target: { section:
 }
 
 export default function Reports() {
+  const { label: statusLabel } = useTaskStatusLabels();
   const { user } = useAuth();
   const [url, setUrl] = useSearchParams();
   const timezone = reportTimezone(user?.timezone);

@@ -1,0 +1,6 @@
+# Existing, explicitly migrated databases must not run startup schema bootstrap.
+# Use with: docker compose -f docker-compose.yml -f ops/deploy/status-runtime.compose.yml ...
+services:
+  backend:
+    environment:
+      VEE_BOOTSTRAP_SCHEMA: "false"

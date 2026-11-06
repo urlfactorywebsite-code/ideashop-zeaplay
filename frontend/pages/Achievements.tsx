@@ -1,10 +1,11 @@
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import { useNavigation } from '../hooks/useNavigation';
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth, useTheme } from '../hooks/useAuth';
 import api from '../services/mockApi';
-import { Achievement, BadgeProgress, User, Reward, RewardStatus, Task, CUSTOM_STATUS_NAMES, Role, UserStatus } from '../types';
+import { Achievement, BadgeProgress, User, Reward, RewardStatus, Task, Role, UserStatus } from '../types';
 import { formatDate } from '../utils';
 import { loadPointsConfig, POINTS_CONFIG_UPDATED_EVENT } from '../utils/pointsConfigStorage';
 import { LEVELS_CONFIG_UPDATED_EVENT, LevelConfig, getLevelProgress, loadLevelsConfig } from '../utils/levelsConfigStorage';
@@ -1307,6 +1308,7 @@ const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
 };
 
 const Achievements: React.FC = () => {
+    const { label: taskStatusLabel } = useTaskStatusLabels();
     const [searchParams, setSearchParams] = useSearchParams();
     const [achievements, setAchievements] = useState<BadgeAchievement[]>([]);
     const [rewards, setRewards] = useState<Reward[]>([]);
@@ -2038,7 +2040,7 @@ const Achievements: React.FC = () => {
                     id: task.id,
                     title: task.title || 'Untitled task',
                     team: task.team || 'General',
-                    statusLabel: CUSTOM_STATUS_NAMES[task.status]?.name ?? task.status,
+                    statusLabel: taskStatusLabel(task.status, task.customStatusId, task.statusTitle),
                     priority: task.priority,
                     createdByName,
                     assigneesLabel: assignees.length ? assignees.join(', ') : 'Unassigned',
@@ -2052,7 +2054,7 @@ const Achievements: React.FC = () => {
                 };
             })
             .sort((a, b) => b.dateValue - a.dateValue);
-    }, [tasks, pointsHistoryUserId, pointsHistoryDepartment, usersById]);
+    }, [tasks, pointsHistoryUserId, pointsHistoryDepartment, usersById, taskStatusLabel]);
 
     const pointsHistoryTotal = pointsHistoryItems.length;
     const pointsHistoryPages = Math.max(1, Math.ceil(pointsHistoryTotal / POINTS_HISTORY_PAGE_SIZE));

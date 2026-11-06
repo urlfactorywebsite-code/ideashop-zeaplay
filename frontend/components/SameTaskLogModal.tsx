@@ -2,7 +2,8 @@ import Avatar from './Avatar';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import api from '../services/mockApi';
 import { Task, User } from '../types';
-import { formatDate, timeAgo, formatTaskStatus } from '../utils';
+import { formatDate, timeAgo } from '../utils';
+import { TaskStatusName } from '../hooks/useTaskStatusLabels';
 import TaskStatusBadge from './ui/TaskStatusBadge';
 
 interface SameTaskLogModalProps {
@@ -125,7 +126,7 @@ const SameTaskLogModal: React.FC<SameTaskLogModalProps> = ({ isOpen, onClose, ta
                           <span className="text-xs text-white/60">{timeAgo(task.updatedAt)}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-white/60">
-                          <TaskStatusBadge status={task.status} />
+                          <TaskStatusBadge status={task.status} customStatusId={task.customStatusId} statusTitle={task.statusTitle} />
                           <span>{task.dueAt ? `Due ${formatDate(task.dueAt)}` : 'No deadline'}</span>
                         </div>
                       </div>
@@ -148,7 +149,7 @@ const SameTaskLogModal: React.FC<SameTaskLogModalProps> = ({ isOpen, onClose, ta
                             <span className="text-xs text-white/60">{formatDate(entry.updatedAt, true)}</span>
                           </div>
                           <p className="mt-1 text-xs text-white/70">
-                            Status synced to <span className="font-semibold text-primary">{formatTaskStatus(entry.status)}</span> on “{entry.title}”.
+                            Status synced to <span className="font-semibold text-primary"><TaskStatusName status={entry.status} /></span> on “{entry.title}”.
                           </p>
                         </li>
                       );

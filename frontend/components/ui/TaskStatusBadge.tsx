@@ -1,5 +1,6 @@
 import React from 'react';
 import { TaskStatus, CUSTOM_STATUS_NAMES } from '../../types';
+import { useTaskStatusLabels } from '../../hooks/useTaskStatusLabels';
 import {
   RocketLaunchIcon,
   ClipboardDocumentListIcon,
@@ -43,12 +44,15 @@ const STATUS_STAGE_TOKEN: Record<TaskStatus, string> = {
 
 interface TaskStatusBadgeProps {
   status: TaskStatus;
+  customStatusId?: string | null;
+  statusTitle?: string | null;
   onClick?: () => void;
 }
 
-const TaskStatusBadge: React.FC<TaskStatusBadgeProps> = ({ status, onClick }) => {
+const TaskStatusBadge: React.FC<TaskStatusBadgeProps> = ({ status, customStatusId, statusTitle, onClick }) => {
+  const { label } = useTaskStatusLabels();
   const Icon = STATUS_ICONS[status] || STATUS_ICONS[TaskStatus.TODO];
-  const name = CUSTOM_STATUS_NAMES[status]?.name || status || 'Unknown';
+  const name = label(status, customStatusId, statusTitle);
   const tooltip = CUSTOM_STATUS_NAMES[status]?.tooltip || '';
   const stageToken = STATUS_STAGE_TOKEN[status] ?? '--color-stage-case';
 
@@ -59,14 +63,14 @@ const TaskStatusBadge: React.FC<TaskStatusBadgeProps> = ({ status, onClick }) =>
     color: 'var(--color-text-primary)',
   };
 
-  const baseClass = 'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold transition-all duration-200 ease-out';
+  const baseClass = 'inline-flex max-w-full min-w-0 items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold transition-all duration-200 ease-out';
   const interactiveClass = 'hover:-translate-y-0.5 hover:brightness-110 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-primary/60 cursor-pointer';
 
   if (!onClick) {
     return (
       <span title={tooltip} className={baseClass} style={style}>
-        <Icon className="h-4 w-4" style={{ color: `var(${stageToken})` }} />
-        {name}
+        <Icon className="h-4 w-4 shrink-0" style={{ color: `var(${stageToken})` }} />
+        <span className="min-w-0 [overflow-wrap:anywhere]">{name}</span>
       </span>
     );
   }
@@ -79,8 +83,8 @@ const TaskStatusBadge: React.FC<TaskStatusBadgeProps> = ({ status, onClick }) =>
       style={style}
       type="button"
     >
-      <Icon className="h-4 w-4" style={{ color: `var(${stageToken})` }} />
-      {name}
+      <Icon className="h-4 w-4 shrink-0" style={{ color: `var(${stageToken})` }} />
+      <span className="min-w-0 [overflow-wrap:anywhere]">{name}</span>
     </button>
   );
 };

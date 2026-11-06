@@ -117,7 +117,7 @@ export default function StatusManagement({ onDirtyChange }: { onDirtyChange: (di
   return <section aria-busy={busy} aria-labelledby="status-management-heading" className="space-y-4 border-t border-border-color pt-6">
     <header className="flex flex-wrap items-center justify-between gap-3">
       <div><h3 id="status-management-heading" className="text-xl font-bold">Status Management</h3>
-        <p className="mt-1 text-sm text-text-secondary">Workspace task statuses, Kanban labels and column order.</p></div>
+        <p className="mt-1 text-sm text-text-secondary">Rename task statuses across all pages, filters and boards. Internal identities and workflow rules are preserved.</p></div>
       {canManage && <button className={button} disabled={!canEdit || draft.length >= 100} onClick={() => setDraft(previous => [...previous, {
         id: crypto.randomUUID(), code: '', system_name: '', display_label: '', description: '', color: '#6366f1', icon: 'circle',
         is_system: false, is_active: true, kanban_visible: true, sort_order: previous.length, task_count: 0, legacy_status: null, isNew: true,
@@ -136,14 +136,14 @@ export default function StatusManagement({ onDirtyChange }: { onDirtyChange: (di
       <section aria-labelledby="kanban-customization-heading" className="space-y-5 rounded-2xl border border-cyan-400/20 bg-slate-950/5 p-3 sm:p-5">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div><h4 id="kanban-customization-heading" className="text-lg font-bold">Kanban Board Customization</h4>
-            <p className="mt-1 text-sm text-text-secondary">Arrange your guild's columns, labels, colors and icons. The four core columns always remain active and visible.</p></div>
+            <p className="mt-1 text-sm text-text-secondary">Arrange your guild's columns, labels, colors and icons. Display names apply to all task views; resetting restores their default names too. The four core columns always remain active and visible.</p></div>
           {canManage && <button type="button" className={button} disabled={!canEdit} onClick={() => {
             setDraft(defaultArrangement(draft)); setError(''); setMessage('Default Kanban arrangement staged. Save Status Changes to apply it.');
           }}>Reset to default arrangement</button>}
         </header>
       <div role="region" aria-label="Task status configuration table" tabIndex={0} className="overflow-x-auto rounded-xl border border-border-color focus-visible:ring-2 focus-visible:ring-primary">
         <table className="w-full min-w-[1050px] text-left text-sm"><thead className="bg-background"><tr>
-          {['Order', 'Status name', 'Kanban display label', 'Description / Behavior', 'Color / Icon', 'Tasks', 'Visibility', 'Actions'].map(title => <th key={title} scope="col" className="p-3">{title}</th>)}
+          {['Order', 'Internal name', 'Display name (all task views)', 'Description / Behavior', 'Color / Icon', 'Tasks', 'Visibility', 'Actions'].map(title => <th key={title} scope="col" className="p-3">{title}</th>)}
         </tr></thead><tbody>
           {draft.map((row, index) => <tr key={row.id} data-status-code={row.code || 'custom-draft'} className="border-t border-border-color align-top"
             onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); if (canEdit && dragId.current) move(dragId.current, index); dragId.current = null; }}>
@@ -152,7 +152,7 @@ export default function StatusManagement({ onDirtyChange }: { onDirtyChange: (di
             <td className="min-w-[160px] p-3"><input aria-label={`Status name ${index + 1}`} className={input} maxLength={80} disabled={!canEdit || row.is_system} value={row.system_name} onChange={event => update(row.id, { system_name: event.target.value })} />
               {row.is_system && <span onKeyDown={event => { if (event.key === "Escape") (event.target as HTMLElement).blur(); }}><Tooltip dismissOnEscape text={isCoreStatus(row) ? SYSTEM_STATUS_TOOLTIP : 'Legacy status IDs and workflow behavior are retained for task history, reporting and scoring. Only the owner can hide, deactivate or reactivate this status. Edit its display label to rename its column.'} className="w-80 max-w-[calc(100vw-2rem)] max-sm:!left-1/2 [&>span.relative]:whitespace-normal"><span className="mt-2 inline-flex items-center gap-1 text-xs"><LockKeyhole className="h-3 w-3" />{isCoreStatus(row) ? 'Core System Status' : 'Legacy Status'}</span></Tooltip></span>}
               <p className="mt-1 break-all text-xs text-text-secondary">{row.code || 'Code assigned when saved'}</p></td>
-            <td className="min-w-[170px] p-3"><input aria-label={`Display label ${index + 1}`} className={input} maxLength={80} disabled={!canEdit} value={row.display_label} onChange={event => update(row.id, { display_label: event.target.value })} /></td>
+            <td className="min-w-[170px] p-3"><input id={`status-label-${row.id}`} aria-label={`Display label ${index + 1}`} className={input} maxLength={80} disabled={!canEdit} value={row.display_label} onChange={event => update(row.id, { display_label: event.target.value })} />{canManage && <button type="button" className={`${button} mt-2`} disabled={!canEdit} onClick={() => { const field = document.getElementById(`status-label-${row.id}`) as HTMLInputElement | null; field?.focus(); field?.select(); }}>Rename</button>}</td>
             <td className="min-w-[180px] p-3"><textarea aria-label={`Description ${index + 1}`} className={input} rows={2} maxLength={500} disabled={!canEdit} value={row.description} onChange={event => update(row.id, { description: event.target.value })} />
               <label className="mt-2 block text-xs">Workflow behavior<select aria-label={`Workflow behavior ${index+1}`} className={input}
                 disabled={!canEdit || row.is_system || row.task_count>0} value={row.workflow_behavior || 'ACTIVE'}

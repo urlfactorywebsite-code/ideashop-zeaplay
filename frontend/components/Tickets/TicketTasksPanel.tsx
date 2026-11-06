@@ -1,3 +1,4 @@
+import { TaskStatusName } from '../../hooks/useTaskStatusLabels';
 import React, { useMemo, useState } from 'react';
 import { Ticket, TaskApprovalStatus, TaskPriority, TaskStatus } from '../../types';
 import { useTicketTasks } from '../../hooks/useTicketTasks';
@@ -95,7 +96,7 @@ const TicketTasksPanel: React.FC<TicketTasksPanelProps> = ({ ticketId, ticket, c
           <div key={task.id} className="rounded-2xl border border-gray-200/60 bg-white/70 p-4 shadow-sm dark:border-gray-700/60 dark:bg-gray-900/60">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadge[task.status]}`}>
-                {task.status.replace('_', ' ')}
+                <TaskStatusName status={task.status} />
               </span>
               {task.approvalRequired && (
                 <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${approvalBadge(task.approvalStatus)}`}>

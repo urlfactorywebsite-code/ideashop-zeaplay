@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Task, User, TaskStatus, TaskPriority, Role } from '../types';
 import { useAuth, useSearch, useTheme } from '../hooks/useAuth';
 import api from '../services/mockApi';
@@ -747,7 +747,7 @@ const Dashboard: React.FC = () => {
                                         </div>
                                         <p className="mt-2 text-xs text-text-secondary line-clamp-2">{task.description}</p>
                                         <div className="mt-3 flex items-center gap-2 text-xs text-text-secondary">
-                                            <TaskStatusBadge status={task.status} />
+                                            <TaskStatusBadge status={task.status} customStatusId={task.customStatusId} statusTitle={task.statusTitle} />
                                             <span>&bull;</span>
                                             <TaskPriorityBadge priority={task.priority} />
                                         </div>

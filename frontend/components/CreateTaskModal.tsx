@@ -9,6 +9,7 @@ import { TaskPriority, User, UserStatus, RecurrenceRule, KanbanColumn, TaskStatu
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { formatRecurrenceRule, formatTaskStatus } from '../utils';
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import { PlusIcon, XMarkIcon, SparklesIcon } from './icons';
 import GenerateTaskWithAIModal from './GenerateTaskWithAIModal';
 import SingleSelect from './ui/SingleSelect';
@@ -262,13 +263,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     const [followerSearch, setFollowerSearch] = useState('');
     const primaryTaskAssigneeId = assignedTo[0] ?? null;
 
+    const { label: taskStatusLabel } = useTaskStatusLabels();
     const statusOptions = (columns.length > 0
-        ? columns.map((column) => ({ id: column.id, name: column.title }))
+        ? columns.map((column) => ({ id: column.id, name: taskStatusLabel(column.id, undefined, column.title) }))
         : Object.values(TaskStatus).map((taskStatus) => {
             const typedStatus = taskStatus as TaskStatus;
             return {
                 id: typedStatus,
-                name: CUSTOM_STATUS_NAMES[typedStatus]?.name || formatTaskStatus(typedStatus),
+                name: taskStatusLabel(typedStatus),
             };
         })
     );

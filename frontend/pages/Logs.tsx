@@ -1,3 +1,4 @@
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import Avatar from '../components/Avatar';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -134,7 +135,7 @@ const formatStatusValue = (value: string) => {
   return formatLabel(value);
 };
 
-const formatValue = (key: string, value: unknown, userMap: Map<string, User>) => {
+const formatValue = (key: string, value: unknown, userMap: Map<string, User>, statusName = formatStatusValue) => {
   if (value === null || value === undefined || value === '') {
     return 'None';
   }
@@ -142,7 +143,7 @@ const formatValue = (key: string, value: unknown, userMap: Map<string, User>) =>
     return '[redacted]';
   }
   if (key === 'status' && typeof value === 'string') {
-    return formatStatusValue(value);
+    return statusName(value);
   }
   if (key === 'priority' && typeof value === 'string') {
     return formatLabel(value);
@@ -167,15 +168,16 @@ const formatValue = (key: string, value: unknown, userMap: Map<string, User>) =>
   return String(value);
 };
 
-const buildDiffLines = (log: AuditLog, userMap: Map<string, User>) => {
+const buildDiffLines = (log: AuditLog, userMap: Map<string, User>, statusName = formatStatusValue) => {
+  const displayStatus = log.entityType === 'task' ? statusName : formatStatusValue;
   const before = log.before ?? {};
   const after = log.after ?? {};
   const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)])).sort();
 
   if (keys.length > 0) {
     return keys.map((key) => {
-      const fromValue = formatValue(key, (before as Record<string, unknown>)[key], userMap);
-      const toValue = formatValue(key, (after as Record<string, unknown>)[key], userMap);
+      const fromValue = formatValue(key, (before as Record<string, unknown>)[key], userMap, displayStatus);
+      const toValue = formatValue(key, (after as Record<string, unknown>)[key], userMap, displayStatus);
       return `${formatLabel(key)}: ${fromValue} -> ${toValue}`;
     });
   }
@@ -193,8 +195,8 @@ const buildDiffLines = (log: AuditLog, userMap: Map<string, User>) => {
   return ['No recorded changes'];
 };
 
-const summarizeChanges = (log: AuditLog, userMap: Map<string, User>) => {
-  const lines = buildDiffLines(log, userMap);
+const summarizeChanges = (log: AuditLog, userMap: Map<string, User>, statusName = formatStatusValue) => {
+  const lines = buildDiffLines(log, userMap, statusName);
   if (lines.length === 1) {
     return lines[0];
   }
@@ -505,6 +507,7 @@ const DetailField: React.FC<{ label: string; value?: React.ReactNode }> = ({ lab
 );
 
 const Logs: React.FC = () => {
+  const { label: taskStatusLabel } = useTaskStatusLabels();
   const { user } = useAuth();
   const [tab, setTab] = useState<TabKey>('all');
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -1067,7 +1070,7 @@ const Logs: React.FC = () => {
               {loading && logs.length === 0 && <SkeletonRows />}
               {!loading && displayedLogs.map((log) => {
                 const actorName = log.actor?.name || log.actor?.email || log.actorId || 'System';
-                const summary = summarizeChanges(log, userMap);
+                const summary = summarizeChanges(log, userMap, taskStatusLabel);
                 const entityLink = getEntityLink(log);
                 return (
                   <tr key={log.id} className="audit-row">
@@ -1333,7 +1336,7 @@ const Logs: React.FC = () => {
                   )}
                 </div>
                 <pre className="mt-3 max-h-52 overflow-auto rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-xs leading-relaxed text-slate-300">
-                  {buildDiffLines(selectedLog, userMap).join('\n')}
+                  {buildDiffLines(selectedLog, userMap, taskStatusLabel).join('\n')}
                 </pre>
               </section>
 

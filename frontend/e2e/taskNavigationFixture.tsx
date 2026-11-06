@@ -12,7 +12,7 @@ import { DateTime } from 'luxon';
 const params = new URLSearchParams(location.search);
 const role = params.get('role') as Role || Role.OWNER;
 const rowCount = Number(params.get('rows') || 2);
-const user = { id: 'task-reviewer', tenantId: 'task-fixture', name: 'Task Reviewer', email: 'reviewer@example.test',
+const user = { id: params.get('account') || 'task-reviewer', tenantId: params.get('tenant') || 'task-fixture', name: 'Task Reviewer', email: 'reviewer@example.test',
   role, status: UserStatus.ACTIVE, points: 0, overallXpPoints: 0, claimedXpPoints: 0, tasksCreated: 0,
   tasksCompleted: 0, claimedRewardIds: [], unlockedAchievementIds: [], clarityScores: [], department: 'Engineering', timezone: params.get('zone') || undefined };
 const now = new Date();

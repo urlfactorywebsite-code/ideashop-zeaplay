@@ -1,3 +1,4 @@
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import Avatar from '../components/Avatar';
 import EmployeeDetails from '../components/EmployeeDetails';
 import ProfileMediaEditor from '../components/ProfileMediaEditor';
@@ -13,7 +14,6 @@ import {
   TaskStatus,
   DataExportScope,
   DataImportPayload,
-  CUSTOM_STATUS_NAMES,
   TaskTransferPayload,
 } from '../types';
 import { usePresence } from '../hooks/usePresence';
@@ -75,6 +75,7 @@ const parseTagInput = (value: string) =>
 const tagListToString = (items?: string[]) => (items && items.length > 0 ? items.join(', ') : '');
 
 const Users: React.FC = () => {
+  const { label: taskStatusLabel } = useTaskStatusLabels();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -1725,7 +1726,7 @@ const Users: React.FC = () => {
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {allTaskStatuses.map((status) => {
-                      const statusLabel = CUSTOM_STATUS_NAMES[status]?.name ?? status;
+                      const statusLabel = taskStatusLabel(status);
                       const count = transferStatusCounts.get(status) ?? 0;
                       const checked = transferStatuses.includes(status);
                       return (

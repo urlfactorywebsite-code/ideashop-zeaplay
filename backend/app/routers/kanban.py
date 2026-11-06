@@ -1,5 +1,5 @@
 """Compatibility facade: existing URLs now use tenant-owned status configuration."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from .. import schemas
@@ -14,7 +14,8 @@ router = APIRouter(prefix="/kanban-columns", tags=["kanban"])
 def column(row, hold_reason_required=False):
     return {"id": row.legacy_status or row.legacy_column_id or row.id,
             "custom_status_id": None if row.is_system else row.id, "title": row.display_label, "order": row.sort_order,
-            "workflow_behavior":row.workflow_behavior, "hold_reason_required":hold_reason_required and row.workflow_behavior=='HOLD'}
+            "workflow_behavior":row.workflow_behavior, "hold_reason_required":hold_reason_required and row.workflow_behavior=='HOLD',
+            "is_active": row.is_active, "kanban_visible": row.kanban_visible}
 
 
 def drafts(db, user):
@@ -32,10 +33,11 @@ def resolve(db, user, column_id):
 
 
 @router.get("", response_model=list[schemas.KanbanColumnRead])
-def list_columns(db: Session = Depends(get_db), user=Depends(get_current_active_user)):
+def list_columns(response: Response, include_inactive: bool = False, db: Session = Depends(get_db), user=Depends(get_current_active_user)):
     scope = service.scope(db, user)
-    result = [column(row, scope.hold_reason_required) for row in service.rows(db, user) if row.is_active]
+    result = [column(row, scope.hold_reason_required) for row in service.rows(db, user) if include_inactive or row.is_active]
     db.commit()
+    response.headers['Cache-Control'] = 'no-store'
     return result
 
 

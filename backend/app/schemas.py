@@ -1486,6 +1486,8 @@ class KanbanColumnUpdate(BaseModel):
 
 
 class KanbanColumnRead(KanbanColumnBase):
+    is_active: bool = True
+    kanban_visible: bool = True
     workflow_behavior: str = 'ACTIVE'
     hold_reason_required: bool = False
     model_config = ConfigDict(from_attributes=True)

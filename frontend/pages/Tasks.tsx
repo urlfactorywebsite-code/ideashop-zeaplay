@@ -1,10 +1,11 @@
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import { isTaskOverdue } from '../utils/taskDeadlines';
 import { workTimezone } from '../utils/activeWork';
 import { calendarToday, taskInstant } from '../utils/taskDates';
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Task, User, TaskStatus, TaskPriority, CUSTOM_STATUS_NAMES, Role, Project, ProjectStatus } from '../types';
+import { Task, User, TaskStatus, TaskPriority, Role, Project, ProjectStatus } from '../types';
 import { useAuth, useSearch, useTheme } from '../hooks/useAuth';
 import { useTaskList } from '../hooks/useTaskList';
 import { useTaskPrefetch } from '../hooks/useTaskPrefetch';
@@ -324,7 +325,7 @@ const FilterDropdown: React.FC<{
     }, [isOpen, searchQuery]);
 
     return (
-        <div ref={wrapperRef} className="relative min-w-[190px]">
+        <div ref={wrapperRef} className="relative min-w-[190px] max-w-full">
             <button
                 ref={buttonRef}
                 type="button"
@@ -333,7 +334,7 @@ const FilterDropdown: React.FC<{
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
             >
-                <span className={value ? '' : 'opacity-80'}>{selectedLabel}</span>
+                <span className={`min-w-0 [overflow-wrap:anywhere] ${value ? '' : 'opacity-80'}`}>{selectedLabel}</span>
                 <ChevronIcon open={isOpen} className="h-4 w-4 shrink-0 opacity-80 transition" />
             </button>
             {isOpen && typeof document !== 'undefined' && createPortal(
@@ -362,7 +363,7 @@ const FilterDropdown: React.FC<{
                                     type="button"
                                     role="option"
                                     aria-selected={isActive}
-                                    className={`${itemClassName} ${isActive ? activeItemClassName : ''}`}
+                                    className={`${itemClassName} whitespace-normal [overflow-wrap:anywhere] ${isActive ? activeItemClassName : ''}`}
                                     onClick={() => {
                                         onChange(option.value);
                                         setIsOpen(false);
@@ -385,6 +386,7 @@ const FilterDropdown: React.FC<{
 
 
 const Tasks: React.FC = () => {
+    const { label: taskStatusLabel } = useTaskStatusLabels();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
     const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
@@ -935,10 +937,10 @@ const Tasks: React.FC = () => {
         () =>
             STATUS_ORDER.map((status) => ({
                 status,
-                label: CUSTOM_STATUS_NAMES[status]?.name ?? status,
+                label: taskStatusLabel(status),
                 count: statusCounts[status] ?? 0,
             })),
-        [statusCounts],
+        [statusCounts, taskStatusLabel],
     );
     const newsItems = useMemo(() => {
         if (tasks.length === 0) {
@@ -959,7 +961,7 @@ const Tasks: React.FC = () => {
             const assigneeLabel = assigneeNames.length > 0 ? assigneeNames.join(', ') : 'unassigned';
             const departmentLabel = task.team || 'General';
             const projectLabel = task.project?.name ?? 'No project';
-            const statusLabel = CUSTOM_STATUS_NAMES[task.status]?.name ?? task.status;
+            const statusLabel = taskStatusLabel(task.status, task.customStatusId, task.statusTitle);
             return {
                 id: task.id,
                 title: task.title || 'Untitled task',
@@ -971,7 +973,7 @@ const Tasks: React.FC = () => {
                 status: statusLabel,
             };
         });
-    }, [tasks, usersMap]);
+    }, [tasks, usersMap, taskStatusLabel]);
     const newsTickerItems = useMemo(() => {
         if (newsItems.length === 0) {
             return [];
@@ -1208,7 +1210,7 @@ const Tasks: React.FC = () => {
             ? 'border-fuchsia-200/70 bg-white/82 shadow-[0_18px_42px_rgba(217,70,239,0.12)] backdrop-blur-xl'
             : 'border-cyan-400/25 bg-gradient-to-r from-slate-950/85 via-blue-950/80 to-slate-950/90 shadow-[0_20px_50px_rgba(8,145,178,0.22)]';
     const countCardBase = [
-        'relative overflow-hidden rounded-2xl border px-4 py-3 min-w-[110px]',
+        'relative max-w-full overflow-hidden rounded-2xl border px-4 py-3 min-w-[110px]',
         'transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(15,23,42,0.35)]',
     ].join(' ');
     const countCardTheme = isLight
@@ -1297,10 +1299,10 @@ const Tasks: React.FC = () => {
             { value: '', label: 'All Statuses' },
             ...STATUS_ORDER.map((status) => ({
                 value: String(status),
-                label: CUSTOM_STATUS_NAMES[status as TaskStatus]?.name || status.replace('_', ' '),
+                label: taskStatusLabel(status),
             })),
         ],
-        [],
+        [taskStatusLabel],
     );
     const priorityOptions = useMemo(
         () => [
@@ -1440,7 +1442,7 @@ const Tasks: React.FC = () => {
                         {statusSummary.map((item) => (
                             <div key={item.status} className={`${countCardBase} ${countCardTheme}`} style={getCountCardStyle(item.status)}>
                                 <span className={`pointer-events-none absolute inset-0 ${countCardGlow}`} />
-                                <p className={`relative text-[10px] uppercase tracking-[0.24em] ${countCardLabel}`}>{item.label}</p>
+                                <p className={`relative text-[10px] uppercase tracking-[0.24em] [overflow-wrap:anywhere] ${countCardLabel}`}>{item.label}</p>
                                 <p className={`relative text-lg font-semibold ${countCardValue}`}>{item.count}</p>
                             </div>
                         ))}
@@ -1764,7 +1766,7 @@ const Tasks: React.FC = () => {
                                       <span className={isLight || isColorful ? 'mt-1 inline-block text-xs font-semibold text-indigo-600' : 'mt-1 inline-block text-xs font-semibold text-primary/80'}>Read more..</span>
                                     )}
                                     <div className="mt-2 flex items-center gap-2">
-                                        <TaskStatusBadge status={task.status} />
+                                        <TaskStatusBadge status={task.status} customStatusId={task.customStatusId} statusTitle={task.statusTitle} />
                                         <TaskPriorityBadge priority={task.priority} />
                                         <span className={isLight || isColorful ? 'text-xs text-slate-600' : 'text-xs text-text-secondary'}>
                                             Assigned to: {formatAssigneeNames(task.assignedTo)}
@@ -1814,7 +1816,7 @@ const Tasks: React.FC = () => {
                                             <span className={isLight || isColorful ? 'mt-1 inline-block text-xs font-semibold text-indigo-600' : 'mt-1 inline-block text-xs font-semibold text-primary/80'}>Read more..</span>
                                         )}
                                         <div className="mt-2 flex items-center gap-2">
-                                            <TaskStatusBadge status={task.status} />
+                                            <TaskStatusBadge status={task.status} customStatusId={task.customStatusId} statusTitle={task.statusTitle} />
                                             <TaskPriorityBadge priority={task.priority} />
                                         </div>
                                         <div className={isLight || isColorful ? 'mt-2 text-xs text-slate-600' : 'mt-2 text-xs text-text-secondary'}>

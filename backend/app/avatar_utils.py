@@ -54,6 +54,17 @@ def avatar_public_url(asset):
     if (match and asset.is_default and not asset.created_by_id and not asset.tenant_id
             and not asset.storage_provider and asset.file_path == f'avatars/library/default-avatar-{match[1]}.svg'):
         return f'/assets/{asset.file_path}'
+    if asset.file_path and not asset.data_url and not asset.storage_provider:
+        # Legacy custom files lived in the application image and may be absent
+        # after a rebuild. Retain the asset reference for recovery, but do not
+        # advertise a broken image URL; the UI already supports initials.
+        try:
+            root = Path('assets').resolve()
+            source = (root / asset.file_path.lstrip('/')).resolve()
+            if not source.is_relative_to(root) or not source.is_file():
+                return None
+        except (OSError, ValueError):
+            return None
     if asset.file_path or asset.data_url:
         version = asset.updated_at.isoformat() if asset.updated_at else asset.id
         return f"/api/avatars/{asset.id}/image?v={version}"

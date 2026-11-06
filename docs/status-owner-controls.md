@@ -4,7 +4,7 @@ Status Management writes now require the authenticated tenant's **owner**. Admin
 
 The seven optional legacy statuses (Case Filed, Bug Fixing, Boss Encounter, Tactical Shift, Deployed, Fallen and Graveyard) support owner-managed labels, description, color, icon, order, Hide/Show, confirmed Deactivate, and Reactivate. Their IDs, enum mappings, internal names and scoring behavior remain immutable. The four core statuses (Battle Plan, In Progress, On Hold and Conquered) remain active and visible. Custom status create/edit/archive/delete/reassignment also becomes owner-only.
 
-Deactivation checks configuration revision, typed label confirmation and the current tenant's task count under the workflow lock. It sets activation and Kanban visibility off **without moving or deleting tasks**. Existing tasks retain their status, history, completion timestamps, rewards and subtask references. They remain in All Tasks and the Kanban outside-column list with correct counts and pagination. Tasks can move out; new assignments into an inactive status are rejected by the task APIs and database guards. Ordinary edits to existing inactive-status tasks still work. Hide alone only changes board visibility. Every change is audited and invalidates tenant task caches.
+Deactivation checks configuration revision, typed label confirmation and the current tenant's task count under workflow and native-status row locks. It sets activation and Kanban visibility off **without moving or deleting tasks**. Existing tasks retain their status, history, completion timestamps, rewards and subtask references. They remain in All Tasks and the Kanban outside-column list with correct counts and pagination. Tasks can move out; new assignments into an inactive status are rejected by the task APIs and database guards. Ordinary edits to existing inactive-status tasks still work. Hide alone only changes board visibility. Every change is audited and invalidates tenant task caches.
 
 ## Files
 
@@ -12,7 +12,7 @@ Deactivation checks configuration revision, typed label confirmation and the cur
 - Migration: `alembic/versions/f44ab1c2d3e4_owner_status_controls.py`.
 - Schema tools: `scripts/apply_status_schema.py` includes the new revision for its existing empty-schema recovery path; `scripts/check_status_integrity.py` expects the new head. Existing partial-recovery scripts are not an upgrade path for an already-populated schema.
 - Frontend: `components/StatusManagement.tsx`, `KanbanPreview.tsx`, `utils/kanbanConfiguration.ts`.
-- Tests: new `backend/tests/test_owner_status_controls.py`; updated concurrent-owner test, frontend visibility tests and Settings/Kanban browser scenarios.
+- Tests: new `backend/tests/test_owner_status_controls.py`; updated concurrent-owner test, production-readiness CLI migration target, frontend visibility tests and Settings/Kanban browser scenarios.
 
 ## Migration and deployment
 
@@ -33,4 +33,23 @@ No application database was migrated as part of this source change. Tests use di
 
 ## Verification
 
-Final test results are recorded below after the regression run. Browser tests use the actual Settings and Kanban components with synthetic HTTP fixtures; backend integration tests use actual JWT authentication, authorization, SQL guards and transactions on isolated SQLite/PostgreSQL databases. No production data is used in previews or browser fixtures.
+Browser tests use the actual Settings and Kanban components with synthetic HTTP fixtures; backend integration tests use actual JWT authentication, authorization, SQL guards and transactions on isolated SQLite/PostgreSQL databases. No production data is used in previews or browser fixtures.
+
+| Check | Result |
+| --- | --- |
+| Full status, Kanban, scoring, lifecycle and subtask backend regression | PASS after targeted reruns: 222 unique cases and one engine-specific skip; initial run had 220 passes and two CLI cases targeting the previous migration head, both corrected and rerun successfully |
+| Additional concurrent/direct-SQL assignment checks | PASS: 7, one PostgreSQL-only case skipped on SQLite |
+| Final native-status row locking check, including direct database writers | PASS: 3, one PostgreSQL-only case skipped on SQLite; adds one unique passing PostgreSQL case and one SQLite skip to the broad run |
+| Enhanced upgrade/downgrade with assigned custom tasks and retained histories/audits | PASS: 2, SQLite and PostgreSQL |
+| Actual Alembic CLI upgrade to the new head and read-only integrity script | PASS: 2, SQLite and PostgreSQL |
+| Frontend unit suite | PASS: 150 |
+| Settings browser regression, including owner-only hide/deactivate/reactivate, admin restrictions, typed confirmation, persistence, preview and accessibility | PASS: 45 checks |
+| Kanban browser regression | PASS: 29 checks |
+| Production frontend build | PASS; existing chunk-size/eval warnings |
+| TypeScript | FAIL: existing 116 diagnostics; zero added/removed after path/line normalization, no diagnostics in changed UI files |
+| Python compilation | PASS: 10 changed/new runtime and migration files |
+| Alembic head | PASS: single head `f44ab1c2d3e4` |
+
+Evidence is in ignored `.tmp/owner-status-*` logs. Production/target migration and deployment are **not run**. Automation or import jobs that request a newly deactivated legacy status must choose an active destination or wait for owner reactivation; the backend rejects the assignment. Full SQL database restores preserve historical inactive assignments by restoring data before guards. Existing project, subtask, hold, completion and scoring policies remain unchanged.
+
+The backend evidence covers **223 unique passing cases and two engine-specific skips** across the broad run and targeted reruns. No unresolved backend test failures remain. The whole application cannot be declared type-check clean because of the unchanged 116-diagnostic baseline.

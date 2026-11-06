@@ -206,7 +206,7 @@ def test_real_upgrade_cli_and_read_only_integrity_gate(client,data,engine,monkey
             url=url.update_query_dict({'options':f'-csearch_path={schema},public'})
     environment={**os.environ,'VEE_BOOTSTRAP_SCHEMA':'false','VEE_DATABASE_URL':url.render_as_string(hide_password=False)}
     cwd=Path(__file__).resolve().parents[1]
-    upgraded=subprocess.run([sys.executable,'-m','alembic','upgrade','f339a0b1c2d3'],cwd=cwd,env=environment,capture_output=True,text=True,timeout=60)
+    upgraded=subprocess.run([sys.executable,'-m','alembic','upgrade','f44ab1c2d3e4'],cwd=cwd,env=environment,capture_output=True,text=True,timeout=60)
     assert upgraded.returncode==0,upgraded.stderr
     checked=subprocess.run([sys.executable,'scripts/check_status_integrity.py'],cwd=cwd,env=environment,capture_output=True,text=True,timeout=60)
     assert checked.returncode==0,checked.stderr+checked.stdout

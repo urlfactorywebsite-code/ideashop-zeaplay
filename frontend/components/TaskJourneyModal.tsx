@@ -1,3 +1,4 @@
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import React, { Suspense, useCallback, useMemo, useState } from 'react';
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle, Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react';
 import { AlertTriangle, ArrowRight, Check, Clock3, History, RefreshCw, X } from 'lucide-react';
@@ -20,13 +21,14 @@ const Stamp = ({ value }: { value?: string | null }) => timestamp(value) === nul
 
 const SUBTASK_STAGES = Object.values(SubtaskStatus);
 
-const Roadmap = React.memo(function Roadmap({ current, events, stages }: { current: string; events: LifecycleEvent[]; stages: string[] }) {
+const Roadmap = React.memo(function Roadmap({ current, events, stages, taskStatuses = false }: { current: string; events: LifecycleEvent[]; stages: string[]; taskStatuses?: boolean }) {
+  const { label: taskStatusLabel } = useTaskStatusLabels();
   return <ol className="journey-roadmap">
     {stages.map(status => {
       const state = stageState(status, current, events);
       return <li key={status} className={`journey-stage journey-stage-${state}`} aria-current={state === 'active' ? 'step' : undefined}>
         <span className="journey-stage-dot" aria-hidden="true">{state === 'visited' && <Check size={14} />}</span>
-        <span>{label(status)}<small>{state === 'active' ? 'Current' : state === 'visited' ? 'Previously visited' : 'Not yet recorded'}</small></span>
+        <span>{taskStatuses ? taskStatusLabel(status) : label(status)}<small>{state === 'active' ? 'Current' : state === 'visited' ? 'Previously visited' : 'Not yet recorded'}</small></span>
       </li>;
     })}
   </ol>;
@@ -35,9 +37,11 @@ const Roadmap = React.memo(function Roadmap({ current, events, stages }: { curre
 const TransitionRow = React.memo(function TransitionRow({ event, seconds, users }: {
   event: LifecycleEvent; seconds: number | null; users: Map<string, User>;
 }) {
+  const { label: taskStatusLabel } = useTaskStatusLabels();
+  const statusLabel = event.subtask_id ? label : taskStatusLabel;
   return <li>
     <div className="journey-transition-heading">
-      <span>{event.previous_status ? label(event.previous_status) : 'Created'} <ArrowRight size={13} aria-hidden="true" /> <strong>{label(event.new_status || 'Unknown')}</strong></span>
+      <span>{event.previous_status ? statusLabel(event.previous_status) : 'Created'} <ArrowRight size={13} aria-hidden="true" /> <strong>{statusLabel(event.new_status || 'Unknown')}</strong></span>
       <span className="journey-mono">{duration(seconds)}</span>
     </div>
     <div className="journey-event-meta"><Stamp value={event.occurred_at} /><span>{person(event.actor_id, users)}</span></div>
@@ -55,11 +59,13 @@ function TransitionList({ events, current, now, complete, users }: {
 }
 
 function CustomStatusHistory({ events, users }: { events: LifecycleEvent[]; users: Map<string, User> }) {
+  const { label: taskStatusLabel } = useTaskStatusLabels();
   const moves = events.filter(event => event.event_type === 'task.custom_status_changed');
   if (!moves.length) return null;
   const display = (event: LifecycleEvent, side: 'previous' | 'new') => {
     const custom = event.details[`${side}_custom_label`];
-    return typeof custom === 'string' ? custom : label(event[`${side}_status`] || 'Created');
+    const id = event.details[`${side}_custom_status_id`];
+    return taskStatusLabel(event[`${side}_status`] || 'Created', typeof id === 'string' ? id : null, typeof custom === 'string' ? custom : null);
   };
   return <details className="journey-session-history"><summary>Custom status moves ({moves.length})</summary>
     <ol className="journey-transitions">{moves.map(event => <li key={event.id}>
@@ -145,6 +151,7 @@ export function TaskJourneyContent({ data, users, now, clockStale, busy, loadMor
   data: JourneySnapshot; users: Map<string, User>; now: number; clockStale: boolean; busy: boolean;
   loadMore: (kind: 'events' | 'sessions') => void;
 }) {
+  const { label: taskStatusLabel } = useTaskStatusLabels();
   const { task, journey, analytics, sessions } = data;
   const [openChildren, setOpenChildren] = useState<Set<string>>(() => new Set());
   const toggleChild = useCallback((id: string, expanded: boolean) => setOpenChildren(previous => {
@@ -215,7 +222,7 @@ export function TaskJourneyContent({ data, users, now, clockStale, busy, loadMor
 
   return <>
     <section className="journey-heading">
-      <div className="journey-title-row"><h2>{task.title}</h2><span className="journey-status">{label(journey.status)}</span></div>
+      <div className="journey-title-row"><h2>{task.title}</h2><span className="journey-status">{taskStatusLabel(journey.status, task.customStatusId, task.statusTitle)}</span></div>
       <p className="journey-id">Task {task.id}</p>
       <dl className="journey-facts">
         <div><dt>Creator</dt><dd>{person(journey.created_by_id, users)}</dd></div>
@@ -238,9 +245,9 @@ export function TaskJourneyContent({ data, users, now, clockStale, busy, loadMor
 
     <section className="journey-section" aria-labelledby="journey-workflow-title">
       <h3 id="journey-workflow-title">Workflow</h3>
-      <Roadmap current={journey.status} events={transitions} stages={MAIN_STAGES} />
+      <Roadmap current={journey.status} events={transitions} stages={MAIN_STAGES} taskStatuses />
       <h4>Alternate stages</h4>
-      <Roadmap current={journey.status} events={transitions} stages={OTHER_STAGES} />
+      <Roadmap current={journey.status} events={transitions} stages={OTHER_STAGES} taskStatuses />
     </section>
 
     <section className="journey-section" aria-labelledby="journey-history-title">

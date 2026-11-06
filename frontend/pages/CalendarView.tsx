@@ -21,7 +21,7 @@ import TaskPriorityBadge from '../components/ui/TaskPriorityBadge';
 import CreateTaskModal from '../components/CreateTaskModal';
 import { PlusIcon, DocumentTextIcon, BellIcon, XMarkIcon, SparklesIcon } from '../components/icons';
 import PageLoader from '../components/loading/PageLoader';
-import { CUSTOM_STATUS_NAMES } from '../types';
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 
 
 
@@ -144,12 +144,6 @@ const getPriorityCounts = (tasks: Task[]) => ({
     urgent: tasks.filter((task) => task.priority === TaskPriority.URGENT).length,
 });
 
-const getStatusLabel = (status: TaskStatus) => {
-    const custom = CUSTOM_STATUS_NAMES[status];
-    if (typeof custom === 'string') return custom;
-    if (custom && typeof custom === 'object' && 'name' in custom) return custom.name;
-    return status.replace(/_/g, ' ');
-};
 
 const getDateTaskSummary = (tasks: Task[], now = new Date()) => {
     const urgency = tasks.reduce<Record<DeadlineUrgency, number>>((acc, task) => {
@@ -238,6 +232,7 @@ const getRangeForView = (mode: ViewMode, reference: Date) => {
 const createLightweightId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 const CalendarView: React.FC = () => {
+    const { label: getStatusLabel } = useTaskStatusLabels();
     const { user } = useAuth() as { user: User | null };
     const queryClient = useQueryClient();
     const zone = workTimezone(user?.timezone);
@@ -804,7 +799,7 @@ const CalendarView: React.FC = () => {
                         </div>
                         <div className="calendar-task-meta mt-2 flex items-center gap-2 text-xs">
                             <div className="flex -space-x-1">{assignees.slice(0, 3).map(assignee => <Avatar key={assignee!.id} user={assignee} size={24} />)}{assignees.length > 3 && <span>+{assignees.length - 3}</span>}</div>
-                            <span>{task.status.replace(/_/g, ' ').toLowerCase()}</span>
+                            <span className="min-w-0 [overflow-wrap:anywhere]">{getStatusLabel(task.status, task.customStatusId, task.statusTitle)}</span>
                             {task.tags && task.tags.length > 0 && <span>/ {task.tags[0]}</span>}
                         </div>
                         {progress !== null && (
@@ -1180,7 +1175,7 @@ const CalendarView: React.FC = () => {
                                                 <TaskPriorityBadge priority={task.priority} />
                                             </div>
                                             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                                                <span className="rounded-full border border-current/15 px-2 py-0.5">{getStatusLabel(task.status)}</span>
+                                                <span className="rounded-full border border-current/15 px-2 py-0.5">{getStatusLabel(task.status, task.customStatusId, task.statusTitle)}</span>
                                                 <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 ${urgency.className}`}>
                                                     <span className={`h-1.5 w-1.5 rounded-full ${urgency.dot}`} />
                                                     {urgency.label}
@@ -1405,12 +1400,12 @@ const CalendarView: React.FC = () => {
             <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as 'ALL' | TaskStatus)}
-                className={`rounded-xl border px-4 py-2 text-sm focus:outline-none focus:ring-2 ${fieldClass}`}
+                className={`min-w-0 max-w-full rounded-xl border px-4 py-2 text-sm focus:outline-none focus:ring-2 ${fieldClass}`}
             >
                 <option value="ALL">All statuses</option>
                 {Object.values(TaskStatus).map((status) => (
                     <option key={status} value={status}>
-                        {status.replace(/_/g, ' ')}
+                        {getStatusLabel(status)}
                     </option>
                 ))}
             </select>

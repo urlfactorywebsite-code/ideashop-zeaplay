@@ -1517,6 +1517,7 @@ export interface TaskPointsBreakdown {
 }
 
 export interface Task {
+  statusTitle?: string | null;
   holdReason?: string | null;
   holdStartedAt?: string | null;
   holdPausedSeconds?: number;

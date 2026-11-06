@@ -4,6 +4,7 @@ import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import api from '../services/mockApi';
 import { STATUS_CONFIGURATION_EVENT, configurationStorageKey } from '../utils/kanbanConfiguration';
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import { Task, User, TaskPriority, Comment, UserStatus, KanbanColumn, TaskStatus, SubtaskStatus, Role, CUSTOM_STATUS_NAMES, TaskTransferWorkflowRead, CompletionSubmissionStatus, Subtask } from '../types';
 import { formatDate, timeAgo, formatRecurrenceRule, formatTaskStatus } from '../utils';
 import { loadPointsConfig, POINTS_CONFIG_UPDATED_EVENT } from '../utils/pointsConfigStorage';
@@ -270,6 +271,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     const taskFetchSequence = useRef(0);
     const taskScope = useRef('');
     const { user } = useAuth();
+    const { label: taskStatusLabel } = useTaskStatusLabels();
     taskScope.current = `${user?.tenantId}:${user?.id}:${taskId}:${isOpen}`;
     const { notify } = useToast();
     useEffect(() => {
@@ -1716,10 +1718,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                         className={selectFieldClass}
                                     >
                                         {!columns.some(column=>column.id===(task.customStatusId || task.status)) &&
-                                            <option disabled value={task.customStatusId || task.status}>Current status unavailable ({task.customStatusId || task.status}); choose a registered destination</option>}
+                                            <option disabled value={task.customStatusId || task.status}>{taskStatusLabel(task.status, task.customStatusId, task.statusTitle)} (inactive or unavailable); choose a registered destination</option>}
                                         {columns.map((c) => (
                                             <option key={c.id} value={c.id}>
-                                                {c.title}
+                                                {taskStatusLabel(c.id, undefined, c.title)}
                                             </option>
                                         ))}
                                     </select>

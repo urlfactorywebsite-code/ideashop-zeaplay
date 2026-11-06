@@ -8,7 +8,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Task, User, TaskStatus } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/mockApi';
-import { formatTaskStatus } from '../utils';
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import PageLoader from '../components/loading/PageLoader';
 
 /**
@@ -139,7 +139,7 @@ const Chip: React.FC<React.PropsWithChildren<{ active?: boolean; onClick?: () =>
     type="button"
     onClick={onClick}
     className={[
-      'rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] transition',
+      'max-w-full rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] [overflow-wrap:anywhere] transition',
       active ? 'border-emerald-400/70 bg-emerald-400/15 text-emerald-100' : 'border-white/15 bg-black/20 text-white/80 hover:border-white/30',
     ].join(' ')}
   >
@@ -191,6 +191,7 @@ const PaginationBar: React.FC<{
 );
 
 const GanttRaidMapPage: React.FC = () => {
+  const { label: formatTaskStatus } = useTaskStatusLabels();
   const { user } = useAuth();
   const zone = workTimezone(user?.timezone);
   const active = useTaskViewActive();
@@ -457,7 +458,7 @@ const GanttRaidMapPage: React.FC = () => {
                           Depends on: {task.dependencies.map(dependency => dependency.title).join(', ')}
                         </p>}
                         <span className="whitespace-nowrap rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.25em] text-white/70">
-                          {formatTaskStatus(task.status)}
+                          {formatTaskStatus(task.status, task.customStatusId, task.statusTitle)}
                         </span>
                       </div>
                     </div>
@@ -511,7 +512,7 @@ const GanttRaidMapPage: React.FC = () => {
                             className={`relative z-10 w-full max-w-full rounded-2xl border border-white/15 ${theme.gradient} ${theme.glow} ${theme.ring}`}
                             data-task-id={task.id} data-start-offset={startOffset} data-duration-days={duration}
                             style={{ marginLeft: `${left}%`, width: `${clampedWidth}%` }}
-                            title={`${task.title}\n${theme.title} | ${formatTaskStatus(task.status)}\nAssigned: ${assigneeNames}\nCreated: ${taskInstant(task.createdAt).setZone(zone).toFormat('MMM d, yyyy')}\nDue: ${task.dueAt ? taskInstant(task.dueAt).setZone(zone).toFormat('MMM d, yyyy') : 'None'}\nDependencies: ${(task.dependencies || []).map(dependency => dependency.title).join(', ') || 'None'}${dates.reversed ? '\nDeadline precedes creation' : ''}`}
+                            title={`${task.title}\n${formatTaskStatus(task.status, task.customStatusId, task.statusTitle)}\nAssigned: ${assigneeNames}\nCreated: ${taskInstant(task.createdAt).setZone(zone).toFormat('MMM d, yyyy')}\nDue: ${task.dueAt ? taskInstant(task.dueAt).setZone(zone).toFormat('MMM d, yyyy') : 'None'}\nDependencies: ${(task.dependencies || []).map(dependency => dependency.title).join(', ') || 'None'}${dates.reversed ? '\nDeadline precedes creation' : ''}`}
                           >
                             {/* Rarity shine */}
                             <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_60%_at_10%_-10%,rgba(255,255,255,0.18),transparent_35%),radial-gradient(80%_80%_at_100%_120%,rgba(255,255,255,0.12),transparent_40%)]" />
@@ -523,7 +524,7 @@ const GanttRaidMapPage: React.FC = () => {
                                   <div className="mt-0.5 truncate text-[11px] text-white/80">{assigneeNames}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <span className="whitespace-nowrap rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-[10px] uppercase tracking-[0.25em] text-white/70">{theme.title}</span>
+                                  <span className="whitespace-nowrap rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-[10px] uppercase tracking-[0.25em] text-white/70">{formatTaskStatus(task.status, task.customStatusId, task.statusTitle)}</span>
                                   <span className="whitespace-nowrap text-[11px] text-white/80">{task.dueAt ? `Due ${taskInstant(task.dueAt).setZone(zone).toFormat('MMM d')}` : 'Due TBD'}</span>
                                 </div>
                               </div>
@@ -565,10 +566,9 @@ const GanttRaidMapPage: React.FC = () => {
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.35em] text-white/80">Legend</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(statusThemes).map(([status, theme]) => (
-              <div key={status} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/90">
+              <div key={status} className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/90">
                 <span className={`h-2.5 w-2.5 rounded-full ${theme.accent}`} />
-                <span className="font-semibold">{theme.title}</span>
-                <span className="text-white/60">({formatTaskStatus(status as TaskStatus)})</span>
+                <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">{formatTaskStatus(status)}</span>
               </div>
             ))}
           </div>

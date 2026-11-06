@@ -3,6 +3,7 @@ import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/re
 import { Download, Eye, FileImage, FileText, X } from 'lucide-react';
 import api from '../services/mockApi';
 import { useTaskReport } from '../hooks/useTaskReport';
+import { TaskStatusName } from '../hooks/useTaskStatusLabels';
 import type { ExecutionEntity, ReportEvidence } from '../types/taskReport';
 import type { TaskJourney } from '../types/taskLifecycle';
 import { duration, exactTimestamp, timestamp } from '../utils/taskJourney';
@@ -139,7 +140,7 @@ export default function TaskExecutionReport({ taskId, revision, expected, render
   const allEvidence = [...data.completion.items, ...data.linked.items];
   return <div className="task-execution-report" aria-busy={busy}>
     <section className="journey-heading" aria-labelledby="execution-report-title">
-      <div className="journey-title-row"><h2 id="execution-report-title">{summary.task.title || 'Task execution report'}</h2><span className="journey-status">{reportLabel(summary.task.status || 'Unknown')}</span></div>
+      <div className="journey-title-row"><h2 id="execution-report-title">{summary.task.title || 'Task execution report'}</h2><span className="journey-status"><TaskStatusName status={summary.task.status || 'Unknown'} /></span></div>
       <p className="journey-id">Task {taskId}</p>
       <EntityFacts row={summary.task} />
       <p className="journey-sync journey-muted">Snapshot <Stamp value={summary.as_of} /></p>

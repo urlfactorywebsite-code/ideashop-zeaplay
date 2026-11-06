@@ -696,6 +696,7 @@ type ApiCompletionSubmission = {
 };
 
 type ApiTask = {
+  status_title?: string | null;
   hold_reason?: string | null;
   hold_started_at?: string | null;
   hold_paused_seconds?: number;
@@ -2507,6 +2508,7 @@ function mapTask(task: ApiTask): Task {
     description: task.description ?? '',
     status: task.status,
     customStatusId: task.custom_status_id ?? null,
+    statusTitle: task.status_title ?? null,
     holdReason:task.hold_reason ?? null, holdStartedAt:task.hold_started_at ?? null,
     holdPausedSeconds:task.hold_paused_seconds ?? 0, effectiveDueAt:task.effective_due_at ?? null,
     priority: task.priority,

@@ -1,3 +1,4 @@
+import { TaskStatusName } from '../../hooks/useTaskStatusLabels';
 import React, { useMemo } from 'react';
 import { TaskApprovalStatus, TaskStatus } from '../../types';
 import { useTicketTasks } from '../../hooks/useTicketTasks';
@@ -83,7 +84,7 @@ const TicketTasksSummary: React.FC<TicketTasksSummaryProps> = ({ ticketId, onVie
             <div key={task.id} className="rounded-xl border border-gray-200/50 bg-white/70 p-3 dark:border-gray-700/60 dark:bg-gray-900/60">
               <div className="flex items-center gap-2">
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusBadge[task.status]}`}>
-                  {task.status.replace('_', ' ')}
+                  <TaskStatusName status={task.status} />
                 </span>
                 {task.approvalRequired && (
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${approvalBadge(task.approvalStatus)}`}>

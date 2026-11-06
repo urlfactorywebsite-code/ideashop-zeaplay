@@ -15,10 +15,25 @@ from sqlalchemy import select
 from backend.app import models, schemas
 from backend.app.avatar_static import AvatarSafeStaticFiles
 from backend.app.avatar_utils import (
+    avatar_public_url,
     cleanup_unused_avatar,
     normalize_avatar,
     set_user_avatar_from_data_url,
 )
+
+
+def test_missing_legacy_avatar_returns_no_url_without_changing_recovery_reference(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    asset = SimpleNamespace(id='old-private-avatar', is_default=False, created_by_id='owner', tenant_id='guild',
+        storage_provider=None, file_path='avatars/custom/original.png', data_url=None, updated_at=None, external_url=None)
+    assert avatar_public_url(asset) is None
+    assert asset.file_path == 'avatars/custom/original.png'
+    path = tmp_path / 'assets' / asset.file_path
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b'restored-image')
+    assert avatar_public_url(asset) == '/api/avatars/old-private-avatar/image?v=old-private-avatar'
+    asset.file_path = '../../private.png'
+    assert avatar_public_url(asset) is None
 from backend.app.routers.auth import get_me
 from backend.app.storage.local import LocalAdapter
 from backend.tests.test_avatar_profiles import headers, picture, setup  # noqa: F401
