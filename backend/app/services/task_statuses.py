@@ -176,8 +176,17 @@ def save(db, user, payload):
         return _save(db, user, payload)
 
 
+def require_configuration_schema(db):
+    # Settings writes are rare. Check the actual guards before touching data so
+    # an incomplete deployment cannot masquerade as a duplicate-name conflict.
+    from .status_integrity import schema_issues
+    if schema_issues(db.connection()):
+        raise HTTPException(503, 'Status configuration database upgrade required. Ask the server administrator to complete the status migration before saving.')
+
+
 def _save(db, user, payload):
     require_owner(user)
+    require_configuration_schema(db)
     current_scope = scope(db, user, lock=True)
     check_revision(current_scope, payload.revision)
     existing = {row.id: row for row in rows(db, user)}
@@ -264,6 +273,7 @@ def validate_native_assignment(db, user, native):
 
 def remove(db, user, status_id, payload):
     require_owner(user)
+    require_configuration_schema(db)
     current_scope = scope(db, user, lock=True)
     check_revision(current_scope, payload.revision)
     row = db.scalar(select(m.TaskStatus).where(m.TaskStatus.id == status_id, m.TaskStatus.tenant_id == user.tenant_id))

@@ -105,3 +105,8 @@ The database remains historically unversioned; the strict production migration
 gate still requires a reviewed baseline adoption. Existing TypeScript baseline
 issues and earlier release-review limitations remain separate work. No VPS or
 production database was modified.
+
+Follow-up: the separately tested, backup-first VPS entry point is documented in
+`vps-owner-status-upgrade.md`. Direct production CLI applies still refuse without
+verified restored-backup proof. The local success above does not establish hosted
+schema compatibility or hosted repair success.

@@ -1,8 +1,9 @@
-"""Upgrade a reviewed unversioned local status schema after backup/restore rehearsal.
+"""Upgrade the reviewed unversioned status schema after backup/restore rehearsal.
 
 Read-only by default. Stop writers before --apply. Executes only the owner-control
 revision, preserves every existing record, and never stamps migration history.
-Versioned and production databases must use their reviewed Alembic procedure.
+Production requires matching restored-backup proof; versioned databases must use
+their reviewed Alembic procedure. Never stamp migration history to bypass refusal.
 """
 import argparse
 import json
@@ -53,13 +54,15 @@ def plan(c):
     return state
 
 
-def repair(c):
+def repair(c, expected_fingerprints=None):
     inspector = sa.inspect(c)
     columns = {table: [item['name'] for item in inspector.get_columns(table)] for table in inspector.get_table_names()}
     quote = c.dialect.identifier_preparer.quote
     c.exec_driver_sql('LOCK TABLE ' + ', '.join(map(quote, sorted(columns))) + ' IN SHARE ROW EXCLUSIVE MODE')
     state = plan(c)
     before = snapshot(c, columns)
+    if expected_fingerprints is not None and before != expected_fingerprints:
+        raise RuntimeError('Live records differ from the verified restored backup; no changes made')
     if state == 'upgrade_required':
         config = Config()
         config.set_main_option('script_location', str(Path(__file__).resolve().parents[1] / 'alembic'))
@@ -77,21 +80,61 @@ def repair(c):
             'table_fingerprints': after, 'integrity': audit_data(c)}
 
 
+def rehearsal_fingerprints(path):
+    result = json.loads(Path(path).read_text(encoding='utf-8-sig'))
+    if not isinstance(result, dict):
+        raise ValueError('A restored-backup JSON object is required')  # noqa: TRY004 - invalid file contents
+    hashes = result.get('table_fingerprints')
+    if (result.get('status') not in {'applied', 'already_compatible'}
+            or result.get('existing_records_unchanged') is not True
+            or result.get('migration_history_changed') is not False
+            or result.get('revision_executed') not in {None, REVISION}
+            or not isinstance(result.get('integrity'), dict)
+            or result['integrity'].get('errors') != {}
+            or not isinstance(hashes, dict) or not hashes):
+        raise ValueError('A successful restored-backup verification report is required')
+    for record in hashes.values():
+        if (not isinstance(record, dict) or type(record.get('rows')) is not int or record['rows'] < 0
+                or not isinstance(record.get('sha256'), str)
+                or not re.fullmatch('[0-9a-f]{64}', record['sha256'])):
+            raise ValueError('Invalid restored-backup fingerprints')
+    return hashes
+
+
+def target_engine(database):
+    if database is None:
+        return engine
+    if (not re.fullmatch(r'zea_owner_rehearsal_[a-z0-9_]{1,40}', database)
+            or database == engine.url.database):
+        raise ValueError('Database override must name a separate owner-upgrade rehearsal database')
+    return sa.create_engine(engine.url.set(database=database))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply', action='store_true')
+    parser.add_argument('--database', help='Separate zea_owner_rehearsal_* database only')
+    parser.add_argument('--verified-rehearsal', help='Successful restored-backup JSON; live rows must match exactly')
     args = parser.parse_args()
     if engine.dialect.name != 'postgresql':
         parser.error('This local upgrade supports PostgreSQL only')
-    if args.apply and get_settings().environment.lower() not in {'development','dev','local','test','testing'}:
-        parser.error('Production apply requires the reviewed deployment procedure')
-    with engine.begin() as c:
+    try:
+        selected_engine = target_engine(args.database)
+        expected = rehearsal_fingerprints(args.verified_rehearsal) if args.verified_rehearsal else None
+    except (ValueError, OSError) as exc:
+        parser.error(str(exc))
+    if args.verified_rehearsal and (not args.apply or args.database):
+        parser.error('Restored-backup proof is only for an explicit live --apply')
+    if (args.apply and not args.database and expected is None
+            and get_settings().environment.lower() not in {'development','dev','local','test','testing'}):
+        parser.error('Production apply requires --verified-rehearsal from the backup-first VPS wrapper')
+    with selected_engine.begin() as c:
         if c.dialect.name == 'postgresql':
             c.exec_driver_sql("SET LOCAL lock_timeout='10s'")
             c.exec_driver_sql("SET LOCAL statement_timeout='120s'")
         if args.apply:
             c.execute(sa.text('SELECT pg_advisory_xact_lock(741906245)'))
-            result = repair(c)
+            result = repair(c, expected_fingerprints=expected)
         else:
             c.exec_driver_sql('SET TRANSACTION READ ONLY')
             result = {'status': plan(c), 'migration_history_changed': False}
