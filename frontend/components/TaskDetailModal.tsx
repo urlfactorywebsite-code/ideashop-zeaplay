@@ -1,4 +1,6 @@
 import Avatar from './Avatar';
+import QuestParty from './QuestParty';
+import { Dialog, DialogPanel } from '@headlessui/react';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
@@ -223,7 +225,7 @@ const resolvePointsToneClasses = (tone: TaskPointsTone | undefined) => {
     }
 };
 
-const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initialTask = null, onClose, usersMap, onTaskDeleted, onTaskUpdated, notes = [], focusSubtaskId = null, requireFresh = false }) => {
+const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id: string) => void; focusAssignment: boolean }> = ({ taskId, isOpen, initialTask = null, onClose, usersMap, onTaskDeleted, onTaskUpdated, notes = [], focusSubtaskId = null, requireFresh = false, onOpenAssignment, focusAssignment }) => {
     const statusSelectId = React.useId();
     const [task, setTask] = useState<Task | null>(initialTask);
     const [loading, setLoading] = useState(!initialTask);
@@ -269,7 +271,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     const [subtaskBusyId, setSubtaskBusyId] = useState<string | null>(null);
     const subtaskMutation = useRef(false);
     const taskFetchSequence = useRef(0);
+    const groupFetchSequence = useRef(0);
+    const groupTasksRef = useRef(groupTasks);
+    groupTasksRef.current = groupTasks;
+    const partyFocusApplied = useRef(false);
     const taskScope = useRef('');
+    const detailMounted = useRef(false);
+    useEffect(() => { detailMounted.current = true; return () => { detailMounted.current = false; }; }, []);
     const { user } = useAuth();
     const { label: taskStatusLabel } = useTaskStatusLabels();
     taskScope.current = `${user?.tenantId}:${user?.id}:${taskId}:${isOpen}`;
@@ -306,7 +314,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
             fetchTask();
             setPendingUpdates({});
         }
-    }, [isOpen, taskId, initialTask]);
+    // Background list refreshes must not replace an open editor or clear its unsaved draft.
+    // Assignment changes remount this editor; realtime refreshes reconcile confirmed server data.
+    }, [isOpen, taskId]);
 
     useEffect(() => {
         if (!isOpen || !taskId) {
@@ -401,21 +411,24 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     }, []);
 
     const fetchGroupTasks = useCallback(
-        async (referenceTask?: Task) => {
+        async (referenceTask?: Pick<Task, 'id'>) => {
             const activeTask = referenceTask ?? task;
             if (!activeTask) {
                 return;
             }
+            const scope = taskScope.current;
+            const sequence = ++groupFetchSequence.current;
+            const current = () => detailMounted.current && scope === taskScope.current && sequence === groupFetchSequence.current;
             setGroupLoading(true);
             setGroupError(null);
             try {
-                const grouped = await api.getTaskGroup(activeTask.id);
-                setGroupTasks(grouped);
+                const grouped = await api.getTaskGroup(activeTask.id, { fresh: true });
+                if (current()) setGroupTasks(grouped);
             } catch (err) {
                 console.error('Failed to load linked tasks', err);
-                setGroupError('Unable to load linked tasks right now.');
+                if (current()) setGroupError('Unable to load linked tasks right now.');
             } finally {
-                setGroupLoading(false);
+                if (current()) setGroupLoading(false);
             }
         },
         [task],
@@ -423,8 +436,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
 
     const fetchTask = async (fresh = requireFresh) => {
         const sequence = ++taskFetchSequence.current;
+        const groupSequence = ++groupFetchSequence.current;
         const scope = taskScope.current;
-        const current = () => sequence === taskFetchSequence.current && scope === taskScope.current && isOpen;
+        const current = () => detailMounted.current && sequence === taskFetchSequence.current && scope === taskScope.current && isOpen;
         setLoading((previous) => (task ? previous : true));
         setError(null);
         setGroupLoading(true);
@@ -434,16 +448,18 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
             setTask(fetchedTask);
             setLoading(false);
             const [groupResult, commentsResult] = await Promise.allSettled([
-                api.getTaskGroup(fetchedTask.id),
+                api.getTaskGroup(fetchedTask.id, { fresh: true }),
                 api.getComments(taskId),
             ]);
             if (!current()) return;
-            if (groupResult.status === 'fulfilled') {
-                setGroupTasks(groupResult.value);
-                setGroupError(null);
-            } else {
-                console.error('Failed to load linked tasks', groupResult.reason);
-                setGroupError('Unable to load linked tasks right now.');
+            if (groupSequence === groupFetchSequence.current) {
+                if (groupResult.status === 'fulfilled') {
+                    setGroupTasks(groupResult.value);
+                    setGroupError(null);
+                } else {
+                    console.error('Failed to load linked tasks', groupResult.reason);
+                    setGroupError('Unable to load linked tasks right now.');
+                }
             }
             if (commentsResult.status === 'fulfilled') {
                 setComments(commentsResult.value);
@@ -457,23 +473,43 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
         } finally {
             if (current()) {
                 setLoading(false);
-                setGroupLoading(false);
+                if (groupSequence === groupFetchSequence.current) setGroupLoading(false);
             }
         }
     };
+    useEffect(() => {
+        if (!focusAssignment || partyFocusApplied.current || loading || !task || task.id !== taskId) return;
+        const frame = window.requestAnimationFrame(() => {
+            const status = document.getElementById(statusSelectId) as HTMLSelectElement | null;
+            const target = status && !status.disabled ? status : document.getElementById(`${statusSelectId}-heading`);
+            target?.focus();
+            partyFocusApplied.current = true;
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [focusAssignment, loading, task?.id, taskId, statusSelectId, columns.length]);
     const refreshTaskAndTimer = async () => { await fetchTask(); };
     useEffect(() => {
         if (!isOpen || !user) return;
         let timer: ReturnType<typeof setTimeout> | null = null;
-        const update = () => {
+        let needsTask = false;
+        const queueRefresh = (full: boolean) => {
+            needsTask ||= full;
             if (timer) return;
-            timer = setTimeout(() => { timer = null; void fetchTask(true); }, 150);
+            timer = setTimeout(() => {
+                timer = null;
+                const fullRefresh = needsTask;
+                needsTask = false;
+                if (fullRefresh) void fetchTask(true);
+                else void fetchGroupTasks({ id: taskId });
+            }, 150);
         };
+        const update = () => queueRefresh(true);
         const realtime = (event: Event) => {
             const notice = (event as CustomEvent<TaskRealtimeNotice>).detail;
             if (notice?.userId !== user.id || notice.tenantId !== (user.tenantId ?? null)) return;
             const target = notice.payload?.task_id;
-            if (!target || target === taskId) update();
+            if (!target || target === taskId) queueRefresh(true);
+            else if (groupTasksRef.current.some(member => member.id === target)) queueRefresh(false);
         };
         const notificationsChanged = (event: Event) => {
             const notice = (event as CustomEvent<{ userId: string; tenantId: string | null }>).detail;
@@ -484,6 +520,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
         window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, notificationsChanged);
         return () => {
             ++taskFetchSequence.current;
+            ++groupFetchSequence.current;
             if (timer) clearTimeout(timer);
             window.removeEventListener(WORK_UPDATED_EVENT, update);
             window.removeEventListener(TASK_REALTIME_EVENT, realtime);
@@ -496,19 +533,25 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
         if (!task || !canEditTask) return;
         const scope = taskScope.current;
         setIsUpdatingTask(true);
+        ++taskFetchSequence.current;
+        ++groupFetchSequence.current;
         try {
-        const updatedTask = await api.updateTask(task.id, updates, user?.id);
-            if (scope !== taskScope.current) return false;
+            const updatedTask = await api.updateTask(task.id, updates, user?.id);
+            if (!detailMounted.current || scope !== taskScope.current) return false;
             setTask(updatedTask);
+            setGroupTasks(previous => previous.map(member => member.id === updatedTask.id ? updatedTask : member));
             onTaskUpdated?.(updatedTask);
             await fetchGroupTasks(updatedTask);
             notify('Task updated successfully.');
             return true;
         } catch (err) {
-            if (scope === taskScope.current) notify(err instanceof Error ? err.message : 'Unable to update task.', 'error');
+            if (detailMounted.current && scope === taskScope.current) {
+                notify(err instanceof Error ? err.message : 'Unable to update task.', 'error');
+                await fetchGroupTasks(task);
+            }
             return false;
         } finally {
-            if (scope === taskScope.current) setIsUpdatingTask(false);
+            if (detailMounted.current && scope === taskScope.current) setIsUpdatingTask(false);
         }
     };
 
@@ -540,15 +583,15 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
         const scope = taskScope.current;
         try {
             const updatedTask = await api.updateSubtask(task.id, subtaskId, updates);
-            if (scope !== taskScope.current) return;
+            if (!detailMounted.current || scope !== taskScope.current) return;
             ++taskFetchSequence.current;
             setTask(updatedTask);
             onTaskUpdated?.(updatedTask);
         } catch (err) {
-            if (scope === taskScope.current) notify(err instanceof Error ? err.message : 'Unable to update subtask.', 'error');
+            if (detailMounted.current && scope === taskScope.current) notify(err instanceof Error ? err.message : 'Unable to update subtask.', 'error');
         } finally {
             subtaskMutation.current = false;
-            if (scope === taskScope.current) setSubtaskBusyId(null);
+            if (detailMounted.current && scope === taskScope.current) setSubtaskBusyId(null);
         }
     };
     const openCompletionDialog = (subtaskId: string) => {
@@ -805,15 +848,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
     useEffect(() => {
         setAssigneeSelection(groupAssigneeIds);
     }, [groupAssigneeIds]);
-    const assignedUsers = useMemo(() => {
-        if (groupAssigneeIds.length === 0) {
-            return [];
-        }
-
-        return groupAssigneeIds
-            .map((id) => usersMap.get(id))
-            .filter((user): user is User => Boolean(user));
-    }, [groupAssigneeIds, usersMap]);
     const assigneeOptions = useMemo(
         () =>
             Array.from(usersMap.values())
@@ -1040,10 +1074,23 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
         }
         return pendingTransferRequests.find((item) => item.requestedById === user.id) ?? null;
     }, [pendingTransferRequests, user]);
+    const partyDraft = useRef({ pendingUpdates, isEditingCore, newComment });
+    partyDraft.current = { pendingUpdates, isEditingCore, newComment };
+    const retryParty = useCallback(() => { void fetchGroupTasks(); }, [fetchGroupTasks]);
+    const openPartyAssignment = useCallback((id: string) => {
+        if (id === taskId) {
+            const status = document.getElementById(statusSelectId) as HTMLSelectElement | null;
+            (status && !status.disabled ? status : document.getElementById(`${statusSelectId}-heading`))?.focus();
+            return;
+        }
+        const draft = partyDraft.current;
+        if ((Object.keys(draft.pendingUpdates).length > 0 || draft.isEditingCore || draft.newComment.trim()) && !window.confirm('Discard unsaved changes and open this member assignment?')) return;
+        onOpenAssignment(id);
+    }, [taskId, statusSelectId, onOpenAssignment]);
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 px-4 pb-6 pt-20 sm:pt-16">
-            <div className="relative flex h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-black/60 backdrop-blur">
+        <Dialog open={isOpen} onClose={onClose} aria-label="Quest details" className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 px-4 pb-6 pt-20 sm:pt-16">
+            <DialogPanel className="relative flex h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-black/60 backdrop-blur">
             <button
                 onClick={() => {
                     onClose();
@@ -1092,6 +1139,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                         />
                                     ) : (
                                         <h2
+                                            id={`${statusSelectId}-heading`} tabIndex={-1}
                                             className="text-2xl md:text-3xl font-bold text-white"
                                             onClick={handleEditUnlockClick}
                                         >
@@ -1458,6 +1506,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                         value={newComment}
                                         onChange={(e) => setNewComment(e.target.value)}
                                         placeholder="Log a quick update or request backup..."
+                                        aria-label="Task comment"
                                         rows={3}
                                         className="w-full rounded-2xl border border-white/15 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none focus:ring-2 focus:ring-primary/70"
                                     />
@@ -1910,27 +1959,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                                     )}
                                 </div>
                             )}
-                            <div className="mt-6 space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4 text-xs text-white/70">
-                                <p className="text-xs uppercase tracking-[0.2em] text-white/60">Crew</p>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                    {assignedUsers.length === 0 ? (
-                                        <span className="text-xs text-white/70">No assignees yet</span>
-                                    ) : (
-                                        assignedUsers.map((member) => {
-
-                                            return (
-                                                <div key={member.id} className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-1 text-xs font-medium text-white shadow-sm">
-                                                    <span className="h-7 w-7 overflow-hidden rounded-full border border-white/20">
-                                                        <Avatar user={member} size={28} />
-                                                    </span>
-                                                    <span>{member.name}</span>
-                                                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/50">{formatRoleLabel(member.role)}</span>
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-                            </div>
+                            <QuestParty assignments={groupTasks} usersMap={usersMap} currentUser={user} currentTaskId={task.id}
+                                loading={groupLoading} error={groupError} onRetry={retryParty}
+                                busy={isUpdatingTask || isAssigningUser || isCommenting || isTransferProcessing || completionBusy || !!subtaskBusyId || !!reviewBusyId}
+                                onOpenAssignment={openPartyAssignment} />
                             <div className="mt-6 space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4 text-xs text-white/70">
                                 <div className="flex items-center justify-between">
                                     <span>Project</span>
@@ -1991,20 +2023,42 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ taskId, isOpen, initi
                         </aside>
                     </div>
                 )}
-            </div>
+            </DialogPanel>
             {journeyOpen && user && <React.Suspense fallback={<span role="status" className="sr-only">Loading task journey...</span>}>
                 <TaskJourneyModal taskId={taskId} usersMap={usersMap} onClose={() => setJourneyOpen(false)} />
             </React.Suspense>}
-            <SameTaskLogModal
+            <Dialog open={isSameTaskLogModalOpen} onClose={() => setIsSameTaskLogModalOpen(false)} aria-label="Shared task log">
+              <DialogPanel>
+              <SameTaskLogModal
                 isOpen={isSameTaskLogModalOpen}
                 onClose={() => setIsSameTaskLogModalOpen(false)}
                 taskId={taskId}
                 usersMap={usersMap}
                 groupTasks={groupTasks}
                 onRefreshGroup={fetchGroupTasks}
-            />
-        </div>
+              />
+              </DialogPanel>
+            </Dialog>
+        </Dialog>
     );
+};
+
+const TaskDetailModal: React.FC<TaskDetailModalProps> = props => {
+    const { user } = useAuth();
+    const scope = `${user?.tenantId}:${user?.id}:${props.taskId}:${props.isOpen}`;
+    const [selection, setSelection] = useState<{ scope: string; id: string } | null>(null);
+    const opener = useRef<HTMLElement | null>(typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    useEffect(() => () => {
+        const target = opener.current;
+        window.requestAnimationFrame(() => { if (target?.isConnected && target.getClientRects().length) target.focus({ preventScroll: true }); });
+    }, []);
+    const activeId = selection?.scope === scope ? selection.id : props.taskId;
+    return <TaskDetailContent key={`${scope}:${activeId}`} {...props} taskId={activeId}
+        initialTask={selection?.scope !== scope && props.initialTask?.id === activeId ? props.initialTask : null}
+        focusSubtaskId={activeId === props.taskId ? props.focusSubtaskId : null}
+        focusAssignment={selection?.scope === scope}
+        requireFresh={props.requireFresh || selection?.scope === scope}
+        onOpenAssignment={id => setSelection({ scope, id })} />;
 };
 
 export default TaskDetailModal;

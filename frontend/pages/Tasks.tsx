@@ -22,6 +22,8 @@ import TaskPriorityBadge from '../components/ui/TaskPriorityBadge';
 import CreateTaskModal from '../components/CreateTaskModal';
 import TaskDetailModal from '../components/TaskDetailModal';
 import TaskTemplateModal from '../components/TaskTemplateModal';
+import TaskGroupMembers, { GroupQuestIndicator, GroupQuestStatus } from '../components/TaskGroupMembers';
+import { assignmentIds, removeTaskAssignments, taskSelectionState, settleAssignmentActions } from '../utils/taskGroups';
 
 import { useTaskFilter, useTaskViewActive } from '../hooks/useTaskView';
 
@@ -259,6 +261,7 @@ const FilterDropdown: React.FC<{
     const buttonRef = useRef<HTMLButtonElement | null>(null);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const [menuStyle, setMenuStyle] = useState<React.CSSProperties | undefined>(undefined);
+    const listboxId = React.useId();
     const selectedLabel = options.find((option) => option.value === value)?.label ?? placeholder;
     const visibleOptions = useMemo(() => {
         if (!searchable || !searchQuery.trim()) {
@@ -292,6 +295,11 @@ const FilterDropdown: React.FC<{
     useEffect(() => {
         if (!isOpen) return;
         updateMenuPosition();
+        const frame = window.requestAnimationFrame(() => {
+            const target = searchable ? menuRef.current?.querySelector<HTMLInputElement>('input')
+                : (menuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]') ?? menuRef.current?.querySelector<HTMLButtonElement>('[role="option"]'));
+            target?.focus();
+        });
         const handleClick = (event: MouseEvent) => {
             if (menuRef.current?.contains(event.target as Node)) {
                 return;
@@ -304,6 +312,7 @@ const FilterDropdown: React.FC<{
         const handleKey = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 setIsOpen(false);
+                buttonRef.current?.focus();
             }
         };
         document.addEventListener('mousedown', handleClick);
@@ -311,6 +320,7 @@ const FilterDropdown: React.FC<{
         window.addEventListener('resize', updateMenuPosition);
         document.addEventListener('scroll', updateMenuPosition, true);
         return () => {
+            window.cancelAnimationFrame(frame);
             document.removeEventListener('mousedown', handleClick);
             document.removeEventListener('keydown', handleKey);
             window.removeEventListener('resize', updateMenuPosition);
@@ -331,7 +341,16 @@ const FilterDropdown: React.FC<{
                 type="button"
                 className={`${buttonClassName} flex w-full items-center justify-between gap-3 text-left`}
                 onClick={() => setIsOpen((prev) => !prev)}
+                onKeyDown={event => {
+                    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+                    event.preventDefault();
+                    if (!isOpen) setIsOpen(true);
+                    else (menuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')
+                        ?? menuRef.current?.querySelector<HTMLButtonElement>('[role="option"]'))?.focus();
+                }}
                 aria-haspopup="listbox"
+                aria-description={placeholder}
+                aria-controls={isOpen ? listboxId : undefined}
                 aria-expanded={isOpen}
             >
                 <span className={`min-w-0 [overflow-wrap:anywhere] ${value ? '' : 'opacity-80'}`}>{selectedLabel}</span>
@@ -340,6 +359,19 @@ const FilterDropdown: React.FC<{
             {isOpen && typeof document !== 'undefined' && createPortal(
                 <div
                     ref={menuRef}
+                    onKeyDown={event => {
+                        if (event.key === 'Tab') { setIsOpen(false); buttonRef.current?.focus(); return; }
+                        if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+                        if ((event.target as HTMLElement).tagName === 'INPUT' && !event.key.startsWith('Arrow')) return;
+                        const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []);
+                        if (!items.length) return;
+                        event.preventDefault();
+                        const current = items.indexOf(document.activeElement as HTMLButtonElement);
+                        const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+                            : current < 0 ? (event.key === 'ArrowDown' ? 0 : items.length - 1)
+                            : (current + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+                        items[next].focus();
+                    }}
                     style={menuStyle}
                     className={`overflow-hidden rounded-b-[12px] border ${menuClassName}`}
                 >
@@ -350,11 +382,12 @@ const FilterDropdown: React.FC<{
                                 value={searchQuery}
                                 onChange={(event) => setSearchQuery(event.target.value)}
                                 placeholder={searchPlaceholder}
+                                aria-label={searchPlaceholder}
                                 className="w-full rounded-md border border-white/20 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/50 focus:border-cyan-300/70 focus:outline-none"
                             />
                         </div>
                     )}
-                    <div className="max-h-64 overflow-y-auto py-1 custom-scrollbar">
+                    <div id={listboxId} role="listbox" aria-label={placeholder} className="max-h-64 overflow-y-auto py-1 custom-scrollbar">
                         {visibleOptions.map((option) => {
                             const isActive = option.value === value;
                             return (
@@ -367,6 +400,7 @@ const FilterDropdown: React.FC<{
                                     onClick={() => {
                                         onChange(option.value);
                                         setIsOpen(false);
+                                        buttonRef.current?.focus();
                                     }}
                                 >
                                     {option.label}
@@ -392,7 +426,7 @@ const Tasks: React.FC = () => {
     const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [totalTasks, setTotalTasks] = useState(0);
-    const [statusCounts, setStatusCounts] = useState<Record<TaskStatus, number>>({});
+    const [statusCounts, setStatusCounts] = useState<Partial<Record<TaskStatus, number>>>({});
     const { user } = useAuth();
     const zone = workTimezone(user?.timezone);
     const queryClient = useQueryClient();
@@ -477,6 +511,19 @@ const Tasks: React.FC = () => {
 
     // New state for selected tasks for bulk actions
     const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+    const [taskActionError, setTaskActionError] = useState<string | null>(null);
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+    const bulkDeleteRequest = useRef<object | null>(null);
+    const actionScope = `${user?.tenantId}:${user?.id}:${user?.role}`;
+    const actionScopeRef = useRef(actionScope);
+    actionScopeRef.current = actionScope;
+    useEffect(() => {
+        bulkDeleteRequest.current = null;
+        setIsBulkDeleting(false);
+        setSelectedTaskIds(new Set());
+        setTaskActionError(null);
+        return () => { bulkDeleteRequest.current = null; };
+    }, [actionScope]);
 
     // Filtering and sorting state
     const [statusFilter, setStatusFilter] = useTaskFilter('status');
@@ -613,6 +660,8 @@ const Tasks: React.FC = () => {
     const listParams = useMemo(
         () => ({
             viewMode,
+            grouped: true,
+            accountScope: JSON.stringify([user?.tenantId, user?.id, user?.role, user?.department]),
             timezone: zone,
             page: currentPage,
             pageSize: apiPageSize,
@@ -627,6 +676,10 @@ const Tasks: React.FC = () => {
             quickFilter: quickFilter || undefined,
         }),
         [
+            user?.id,
+            user?.tenantId,
+            user?.role,
+            user?.department,
             viewMode,
             currentPage,
             zone,
@@ -776,12 +829,14 @@ const Tasks: React.FC = () => {
         refreshTasks();
     }, [refreshTasks]);
 
-    const handleTaskEvent = useCallback(() => {
+    const handleTaskEvent = useCallback((event: Event) => {
+        const notice = (event as CustomEvent<{ userId: string; tenantId: string | null }>).detail;
+        if (!notice || !user || notice.userId !== user.id || notice.tenantId !== (user.tenantId ?? null)) return;
         if (realtimeRefreshTimerRef.current !== null) {
             window.clearTimeout(realtimeRefreshTimerRef.current);
         }
         realtimeRefreshTimerRef.current = window.setTimeout(flushRealtimeTaskRefresh, 250);
-    }, [flushRealtimeTaskRefresh]);
+    }, [flushRealtimeTaskRefresh, user?.id, user?.tenantId]);
 
     useEffect(() => () => {
         if (realtimeRefreshTimerRef.current !== null) {
@@ -835,8 +890,8 @@ const Tasks: React.FC = () => {
         }
     }, [currentPage, totalPages]);
 
-    const visibleTaskIds = useMemo(() => pagedTasks.map(task => task.id), [pagedTasks]);
-    const selectedTaskPreview = useMemo(() => tasks.find(task => task.id === selectedTaskId) ?? null, [tasks, selectedTaskId]);
+    const visibleTaskIds = useMemo(() => pagedTasks.flatMap(assignmentIds), [pagedTasks]);
+    const selectedTaskPreview = useMemo(() => tasks.flatMap(task => task.groupAssignments ?? [task]).find(task => task.id === selectedTaskId) ?? null, [tasks, selectedTaskId]);
     const prefetchTaskDetail = useCallback((taskId: string) => {
         if (prefetchedTaskIdsRef.current.has(taskId)) {
             return;
@@ -852,7 +907,7 @@ const Tasks: React.FC = () => {
         if (!user) return;
         try {
             await api.deleteTask(taskId);
-            setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+            setTasks(previous => removeTaskAssignments(previous, new Set([taskId])));
             setSelectedTaskIds((prev) => {
                 const newSet = new Set(prev);
                 newSet.delete(taskId);
@@ -870,16 +925,37 @@ const Tasks: React.FC = () => {
 
     // New bulk delete handler
     const handleBulkDelete = async () => {
-        if (!user || selectedTaskIds.size === 0) return;
+        if (!user || selectedTaskIds.size === 0 || bulkDeleteRequest.current) return;
+        const request = {};
+        const scope = actionScopeRef.current;
+        bulkDeleteRequest.current = request;
+        setIsBulkDeleting(true);
+        setTaskActionError(null);
         try {
-            await Promise.all(Array.from(selectedTaskIds).map((taskId) => api.deleteTask(taskId)));
-            setTasks((prevTasks) => prevTasks.filter((task) => !selectedTaskIds.has(task.id)));
-            setSelectedTaskIds(new Set());
-            setSelectedTaskId(null);
+            const ids = Array.from(selectedTaskIds);
+            const results = await settleAssignmentActions(ids, taskId => {
+                if (scope !== actionScopeRef.current || bulkDeleteRequest.current !== request) return Promise.reject(new Error('Task selection session changed'));
+                return api.deleteTask(taskId);
+            });
+            if (scope !== actionScopeRef.current || bulkDeleteRequest.current !== request) return;
+            const deletedIds = new Set(ids.filter((_, index) => results[index].status === 'fulfilled'));
+            setTasks(previous => removeTaskAssignments(previous, deletedIds));
+            setSelectedTaskIds(previous => new Set([...previous].filter(id => !deletedIds.has(id))));
+            if (selectedTaskId && deletedIds.has(selectedTaskId)) setSelectedTaskId(null);
             refreshTasks();
+            const failed = results.find(result => result.status === 'rejected');
+            if (failed?.status === 'rejected') {
+                const reason = failed.reason instanceof Error ? failed.reason.message : 'Some assignments could not be deleted';
+                setTaskActionError(reason);
+            }
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Unknown error';
             console.error('Failed to bulk delete tasks:', message);
+        } finally {
+            if (bulkDeleteRequest.current === request) {
+                bulkDeleteRequest.current = null;
+                setIsBulkDeleting(false);
+            }
         }
     };
 
@@ -887,11 +963,10 @@ const Tasks: React.FC = () => {
     const toggleSelectTask = (taskId: string) => {
         setSelectedTaskIds((prev) => {
             const newSet = new Set(prev);
-            if (newSet.has(taskId)) {
-                newSet.delete(taskId);
-            } else {
-                newSet.add(taskId);
-            }
+            const row = tasks.find(task => task.id === taskId);
+            const ids = row ? assignmentIds(row) : [taskId];
+            const selected = ids.every(id => newSet.has(id));
+            ids.forEach(id => selected ? newSet.delete(id) : newSet.add(id));
             return newSet;
         });
     };
@@ -1335,9 +1410,9 @@ const Tasks: React.FC = () => {
         () => [{ value: '', label: 'All Teams' }, ...departmentOptions.map((department) => ({ value: department, label: department }))],
         [departmentOptions],
     );
-    const handleTaskClick = (taskId: string) => {
+    const handleTaskClick = useCallback((taskId: string) => {
         setSelectedTaskId(taskId);
-    };
+    }, []);
 
     const handleCloseDetailModal = () => {
         setSelectedTaskId(null);
@@ -1458,6 +1533,7 @@ const Tasks: React.FC = () => {
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                         className={`${filterInputClass} w-full lg:w-[400px] lg:flex-none`}
                         placeholder="Search Tasks"
+                        aria-label="Search tasks"
                     />
                     <FilterDropdown
                         value={statusFilter}
@@ -1686,8 +1762,9 @@ const Tasks: React.FC = () => {
                         <button
                             onClick={handleBulkDelete}
                             className="rounded-full border border-red-500 bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-red-700 disabled:opacity-50 disabled:border-gray-500 disabled:bg-gray-700 disabled:text-gray-300"
-                            disabled={selectedTaskIds.size === 0}
-                            title="Delete all selected tasks"
+                            disabled={selectedTaskIds.size === 0 || isBulkDeleting}
+                            aria-busy={isBulkDeleting}
+                            title="Delete all selected individual assignments"
                         >
                             Delete Selected ({selectedTaskIds.size})
                         </button>
@@ -1695,6 +1772,7 @@ const Tasks: React.FC = () => {
                 </div>
             </div>
 
+            {taskActionError && <div role="alert" className="rounded-xl border border-red-500/40 bg-surface p-4 text-text-primary">{taskActionError}</div>}
             {taskListError && !loading && (
                 <div role="alert" className="rounded-xl border border-red-500/40 bg-surface p-4 text-text-primary">
                     <h2 className="font-semibold">Unable to load tasks</h2>
@@ -1727,7 +1805,7 @@ const Tasks: React.FC = () => {
                 )}
                 {loading && (
                     <div className="pointer-events-none absolute inset-0 z-20 flex items-start justify-center pt-6">
-                        <span className={loadingBadgeClass}>
+                        <span className={loadingBadgeClass} role="status">
                             Updating...
                         </span>
                     </div>
@@ -1737,7 +1815,8 @@ const Tasks: React.FC = () => {
                     return (
                         <div
                             key={task.id}
-                            className={`${taskCardClass} ${isContentFading ? 'opacity-65' : 'opacity-100'}`}
+                            data-task-card-id={task.id}
+                            className={`${taskCardClass} ${task.groupAssignments ? 'group-quest-card group-quest-card--list' : ''} ${isContentFading ? 'opacity-65' : 'opacity-100'}`}
                             style={getTaskCardInlineStyle(task.status)}
                             onMouseEnter={() => prefetchTaskDetail(task.id)}
                             onFocus={() => prefetchTaskDetail(task.id)}
@@ -1752,30 +1831,35 @@ const Tasks: React.FC = () => {
                             <div className="flex items-center gap-4">
                                 <input
                                     type="checkbox"
-                                    checked={selectedTaskIds.has(task.id)}
+                                    aria-label={`Select all visible assignments for ${task.title}`}
+                                    checked={taskSelectionState(task, selectedTaskIds).checked}
+                                    ref={input => { if (input) input.indeterminate = taskSelectionState(task, selectedTaskIds).indeterminate; }}
                                     onChange={(e) => {
                                         toggleSelectTask(task.id);
                                     }}
                                     onClick={(e) => e.stopPropagation()}
                                     className="rounded border-border-color bg-surface/50 text-primary focus:ring-primary"
                                 />
-                                <div className="relative flex-1">
-                                    <h3 className={isLight || isColorful ? 'font-semibold text-slate-950 line-clamp-2' : 'font-semibold text-text-primary line-clamp-2'}>{task.title}</h3>
-                                    <p className={isLight || isColorful ? 'text-sm text-slate-600 line-clamp-2 break-words overflow-hidden' : 'text-sm text-text-secondary line-clamp-2 break-words overflow-hidden'}>{task.description}</p>
-                                    {showReadMore && (
-                                      <span className={isLight || isColorful ? 'mt-1 inline-block text-xs font-semibold text-indigo-600' : 'mt-1 inline-block text-xs font-semibold text-primary/80'}>Read more..</span>
-                                    )}
-                                    <div className="mt-2 flex items-center gap-2">
-                                        <TaskStatusBadge status={task.status} customStatusId={task.customStatusId} statusTitle={task.statusTitle} />
-                                        <TaskPriorityBadge priority={task.priority} />
-                                        <span className={isLight || isColorful ? 'text-xs text-slate-600' : 'text-xs text-text-secondary'}>
-                                            Assigned to: {formatAssigneeNames(task.assignedTo)}
-                                        </span>
+                                <div className={`relative min-w-0 flex-1 ${task.groupAssignments ? 'quest-list-content' : ''}`}>
+                                    <div className="min-w-0">
+                                        {task.groupAssignments && <GroupQuestIndicator />}
+                                        <h3 className={isLight || isColorful ? 'font-semibold text-slate-950 line-clamp-2 break-words' : 'font-semibold text-text-primary line-clamp-2 break-words'}><button type="button" className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={event => { event.stopPropagation(); handleTaskClick(task.id); }}>{task.title}</button></h3>
+                                        <p className={isLight || isColorful ? 'text-sm text-slate-600 line-clamp-2 break-words overflow-hidden' : 'text-sm text-text-secondary line-clamp-2 break-words overflow-hidden'}>{task.description}</p>
+                                        {showReadMore && (
+                                          <span className={isLight || isColorful ? 'mt-1 inline-block text-xs font-semibold text-indigo-600' : 'mt-1 inline-block text-xs font-semibold text-primary/80'}>Read more..</span>
+                                        )}
+                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                            {task.groupAssignments ? <GroupQuestStatus task={task} /> : <TaskStatusBadge status={task.status} customStatusId={task.customStatusId} statusTitle={task.statusTitle} />}
+                                            <TaskPriorityBadge priority={task.priority} />
+                                            <span className={isLight || isColorful ? 'text-xs text-slate-600' : 'text-xs text-text-secondary'}>
+                                                {!task.groupAssignments && <>Assigned to: {formatAssigneeNames(task.assignedTo)}</>}
+                                            </span>
+                                        </div>
+                                        <div className={isLight || isColorful ? 'mt-2 text-xs font-semibold text-indigo-700' : 'mt-2 text-xs font-semibold text-cyan-200'}>
+                                            Project: {task.project?.name ?? 'Legacy task'}
+                                        </div>
                                     </div>
-                                    <div className={isLight || isColorful ? 'mt-2 text-xs font-semibold text-indigo-700' : 'mt-2 text-xs font-semibold text-cyan-200'}>
-                                        Project: {task.project?.name ?? 'Legacy task'}
-                                    </div>
-                                    {renderPointsBadge(task)}
+                                    {task.groupAssignments ? <TaskGroupMembers task={task} usersMap={usersMap} compact onOpenAssignment={handleTaskClick} /> : renderPointsBadge(task)}
                                 </div>
                             </div>
                         </div>
@@ -1788,7 +1872,8 @@ const Tasks: React.FC = () => {
                             return (
                                 <div
                                     key={task.id}
-                                    className={gridTaskCardClass}
+                                    data-task-card-id={task.id}
+                                    className={`${gridTaskCardClass} ${task.groupAssignments ? 'group-quest-card group-quest-card--grid' : ''}`}
                                     style={getTaskCardInlineStyle(task.status)}
                                     onMouseEnter={() => prefetchTaskDetail(task.id)}
                                     onFocus={() => prefetchTaskDetail(task.id)}
@@ -1802,7 +1887,9 @@ const Tasks: React.FC = () => {
                                     )}
                                     <input
                                         type="checkbox"
-                                        checked={selectedTaskIds.has(task.id)}
+                                        aria-label={`Select all visible assignments for ${task.title}`}
+                                        checked={taskSelectionState(task, selectedTaskIds).checked}
+                                    ref={input => { if (input) input.indeterminate = taskSelectionState(task, selectedTaskIds).indeterminate; }}
                                         onChange={(e) => {
                                             toggleSelectTask(task.id);
                                         }}
@@ -1810,22 +1897,23 @@ const Tasks: React.FC = () => {
                                         className="absolute top-3 left-3 z-10 rounded border-border-color bg-surface/50 text-primary focus:ring-primary h-4 w-4"
                                     />
                                     <div className="relative pt-1 pl-8"> {/* Padding for checkbox space */}
-                                        <h3 className={isLight || isColorful ? 'min-h-[3rem] font-semibold text-slate-950 line-clamp-2' : 'min-h-[3rem] font-semibold text-text-primary line-clamp-2'}>{task.title}</h3>
+                                        {task.groupAssignments && <GroupQuestIndicator />}
+                                    <h3 className={isLight || isColorful ? 'min-h-[3rem] font-semibold text-slate-950 line-clamp-2 break-words' : 'min-h-[3rem] font-semibold text-text-primary line-clamp-2 break-words'}><button type="button" className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={event => { event.stopPropagation(); handleTaskClick(task.id); }}>{task.title}</button></h3>
                                         <p className={isLight || isColorful ? 'min-h-[2.5rem] text-sm text-slate-600 line-clamp-2 break-words overflow-hidden' : 'min-h-[2.5rem] text-sm text-text-secondary line-clamp-2 break-words overflow-hidden'}>{task.description}</p>
                                         {showReadMore && (
                                             <span className={isLight || isColorful ? 'mt-1 inline-block text-xs font-semibold text-indigo-600' : 'mt-1 inline-block text-xs font-semibold text-primary/80'}>Read more..</span>
                                         )}
-                                        <div className="mt-2 flex items-center gap-2">
-                                            <TaskStatusBadge status={task.status} customStatusId={task.customStatusId} statusTitle={task.statusTitle} />
+                                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                                            {task.groupAssignments ? <GroupQuestStatus task={task} /> : <TaskStatusBadge status={task.status} customStatusId={task.customStatusId} statusTitle={task.statusTitle} />}
                                             <TaskPriorityBadge priority={task.priority} />
                                         </div>
                                         <div className={isLight || isColorful ? 'mt-2 text-xs text-slate-600' : 'mt-2 text-xs text-text-secondary'}>
-                                            Assigned to: {formatAssigneeNames(task.assignedTo)}
+                                            {!task.groupAssignments && <>Assigned to: {formatAssigneeNames(task.assignedTo)}</>}
                                         </div>
                                         <div className={isLight || isColorful ? 'mt-1 text-xs font-semibold text-indigo-700' : 'mt-1 text-xs font-semibold text-cyan-200'}>
                                             Project: {task.project?.name ?? 'Legacy task'}
                                         </div>
-                                        {renderPointsBadge(task)}
+                                        {task.groupAssignments ? <TaskGroupMembers task={task} usersMap={usersMap} onOpenAssignment={handleTaskClick} /> : renderPointsBadge(task)}
                                     </div>
                                 </div>
                             );
@@ -1894,6 +1982,7 @@ const Tasks: React.FC = () => {
                     isOpen={Boolean(selectedTaskId)}
                     initialTask={selectedTaskPreview}
                     onClose={handleCloseDetailModal}
+                    onTaskUpdated={() => refreshTasks()}
                     usersMap={usersMap}
                     onTaskDeleted={() => {
                         setSelectedTaskId(null);

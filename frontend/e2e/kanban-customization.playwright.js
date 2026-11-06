@@ -187,6 +187,8 @@ async (page) => {
   tasks=[];legacyCount=0;
   await page.evaluate(()=>window.dispatchEvent(new CustomEvent('task-statuses-updated',{detail:{tenantId:'kanban-fixture'}})));
   await panel.getByText('No quests on this page match the current filters.',{exact:true}).waitFor();
+  // The empty message can paint before the pagination effect applies the refreshed totals.
+  await page.waitForFunction(()=>Array.from(document.querySelectorAll('#tasks-panel-kanban button')).find(button=>button.textContent.trim()==='Next page')?.disabled===true);
   check(await panel.getByRole('button',{name:'Next page',exact:true}).isDisabled(),'empty board has explicit state and disabled pagination');
   await panel.getByRole('button',{name:'All Statuses',exact:true}).click();
   await panel.getByRole('option',{name:'All Statuses',exact:true}).press('Enter');

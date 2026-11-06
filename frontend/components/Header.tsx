@@ -4,7 +4,6 @@ import { Settings as SettingsIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, useSearch, useTheme } from '../hooks/useAuth';
 import api from '../services/mockApi';
-import { timeAgo } from '../utils';
 import {
   UserIcon,
   ArrowRightOnRectangleIcon,
@@ -25,6 +24,7 @@ import {
 } from './icons';
 import { Notification, NotificationType } from '../types';
 import NotificationDetailModal from './NotificationDetailModal';
+import NotificationInbox from './NotificationInbox';
 import { APP_REFRESH_EVENT } from '../utils/appEvents';
 import GlobalProgressBar from './loading/GlobalProgressBar';
 import { useNotifications } from '../hooks/useNotifications';
@@ -271,6 +271,18 @@ const fallbackNotificationAccent = {
   bg: 'bg-white/5',
 };
 
+const renderNotificationIcon = (notification: Notification) => {
+  const Icon = notificationIconMap[notification.type] ?? BellIcon;
+  const accent = notificationAccentMap[notification.type] ?? fallbackNotificationAccent;
+  const unread = !notification.isRead;
+  return <div className={`flex h-9 w-9 items-center justify-center rounded-full border bg-slate-900/70 ${
+    unread ? `${accent.ring} ${accent.glow} ${accent.bg}` : 'border-white/10 shadow-none'
+  }`}>
+    {notification.actorId ? <Avatar user={{ id: notification.actorId }} size={28} />
+      : <Icon className={`h-5 w-5 ${unread ? accent.icon : 'text-text-muted'}`} />}
+  </div>;
+};
+
 const countryTimezones = {
   "United States": "America/New_York",
   "United Kingdom": "Europe/London",
@@ -359,7 +371,7 @@ const themePresentation = {
 };
 
 const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = onNotificationClick }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isCurrentSession } = useAuth();
   const { searchQuery, setSearchQuery } = useSearch();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -392,6 +404,10 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
 
   const profileDropdownRef = useRef(null);
   const notificationDropdownRef = useRef(null);
+  const notificationButtonRef = useRef<HTMLButtonElement>(null);
+  const notificationIdentity = `${user?.tenantId ?? ''}:${user?.id ?? ''}`;
+  const notificationIdentityRef = useRef(notificationIdentity);
+  notificationIdentityRef.current = notificationIdentity;
   const refreshTimeoutRef = useRef<number | null>(null);
   const mobileMenuRef = useRef(null);
   const mobileMenuButtonRef = useRef(null);
@@ -429,12 +445,14 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
     const handleClickOutside = (event) => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target))
         setProfileDropdownOpen(false);
-      if (notificationDropdownRef.current && !notificationDropdownRef.current.contains(event.target))
+      if (notificationDropdownRef.current && !notificationDropdownRef.current.contains(event.target)
+          && !document.getElementById('notification-inbox')?.contains(event.target))
         setNotificationDropdownOpen(false);
       if (
         mobileMenuOpen &&
         mobileMenuRef.current &&
         !mobileMenuRef.current.contains(event.target) &&
+        !document.getElementById('notification-inbox')?.contains(event.target) &&
         mobileMenuButtonRef.current &&
         !mobileMenuButtonRef.current.contains(event.target)
       ) {
@@ -495,17 +513,36 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
     logout();
   };
 
-  const handleDeleteNotification = async (notificationId: string) => {
-    setNotifications((prev) => prev.filter((notification) => notification.id !== notificationId));
-    if (selectedNotification?.id === notificationId) {
-      setSelectedNotification(null);
-      setNotificationPreviewOpen(false);
-    }
+  const handleDeleteNotifications = async (ids: string[]) => {
+    if (!user || !isCurrentSession()) throw new Error('Please sign in again to update notifications.');
+    const identity = notificationIdentity;
     try {
-      await api.deleteNotification(notificationId);
-    } catch (error) {
-      console.error('Failed to delete notification:', error);
-      fetchNotifications();
+      await api.deleteNotifications(ids);
+      if (notificationIdentityRef.current !== identity || !isCurrentSession()) return;
+      const deleted = new Set(ids);
+      setNotifications(previous => previous.filter(notification => !deleted.has(notification.id)));
+      if (selectedNotification && deleted.has(selectedNotification.id)) {
+        setSelectedNotification(null);
+        setNotificationPreviewOpen(false);
+      }
+    } finally {
+      if (notificationIdentityRef.current === identity && isCurrentSession()) fetchNotifications();
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    if (!user || !isCurrentSession()) throw new Error('Please sign in again to update notifications.');
+    const identity = notificationIdentity;
+    // A notification arriving after the server's read-all transaction stays
+    // unread until the canonical refresh confirms its actual state.
+    const known = new Set(notifications.map(notification => notification.id));
+    try {
+      await api.markAllAsRead(user.id);
+      if (notificationIdentityRef.current !== identity || !isCurrentSession()) return;
+      setNotifications(previous => previous.map(notification => known.has(notification.id)
+        ? { ...notification, isRead: true } : notification));
+    } finally {
+      if (notificationIdentityRef.current === identity && isCurrentSession()) fetchNotifications();
     }
   };
 
@@ -700,6 +737,8 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
                 <div className="relative" ref={notificationDropdownRef}>
                   <button
                     onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
+                    ref={notificationButtonRef}
+                    aria-controls="notification-inbox"
                     aria-label={`Notifications, ${unreadCount} unread`}
                     aria-expanded={notificationDropdownOpen}
                     className="zea-header-icon-button p-2 relative"
@@ -710,61 +749,11 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
                     )}
                   </button>
                   {notificationDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-2xl border border-sky-400/40 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 shadow-[0_20px_60px_rgba(56,189,248,0.25),0_0_0_1px_rgba(59,130,246,0.35),inset_0_0_0_1px_rgba(236,72,153,0.25)] backdrop-blur z-[80]">
-                      <div className="p-3 border-b border-sky-400/30 flex justify-between items-center bg-gradient-to-r from-sky-500/10 via-fuchsia-500/10 to-indigo-500/10">
-                        <h3 className="font-semibold text-text-primary">Notifications</h3>
-                      </div>
-                      {notifications.length ? (
-                        notifications.map((notif) => (
-                          <div
-                            key={notif.id}
-                            onClick={() => handleNotificationItemClick(notif)}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(event) => {
-                              if (event.target === event.currentTarget && ['Enter', ' '].includes(event.key)) {
-                                event.preventDefault();
-                                void handleNotificationItemClick(notif);
-                              }
-                            }}
-                            className="p-3 flex items-start gap-3 border-b border-sky-400/20 last:border-0 hover:bg-sky-500/10 cursor-pointer relative transition"
-                          >
-                            {(() => {
-                              const Icon = notificationIconMap[notif.type] ?? BellIcon;
-                              const accent = notificationAccentMap[notif.type] ?? fallbackNotificationAccent;
-                              const isUnread = !notif.isRead;
-                              return (
-                                <div
-                                  className={`flex h-9 w-9 items-center justify-center rounded-full border bg-slate-900/70 ${
-                                    isUnread ? `${accent.ring} ${accent.glow} ${accent.bg}` : 'border-white/10 shadow-none'
-                                  }`}
-                                >
-                                  <>{notif.actorId ? <Avatar user={{ id: notif.actorId }} size={28} /> : <Icon className={`h-5 w-5 ${isUnread ? accent.icon : 'text-text-muted'}`} />}</>
-                                </div>
-                              );
-                            })()}
-                            <div className="flex-1">
-                              <p className={`text-sm ${notif.isRead ? 'text-text-muted' : 'text-text-primary'}`}>
-                                {notif.message}
-                              </p>
-                              <p className="text-xs text-text-muted mt-1">{timeAgo(notif.createdAt)}</p>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteNotification(notif.id);
-                              }}
-                              className="p-1 rounded-full border border-sky-400/30 bg-slate-900/70 text-text-inverted hover:border-rose-400/60 hover:text-text-warning transition-colors"
-                              title="Delete notification"
-                            >
-                              <TrashIcon className="h-4 w-4 text-text-inverted dark:text-text-primary" />
-                            </button>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="p-4 text-center text-sm text-text-muted">No new notifications.</p>
-                      )}
-                    </div>
+                    <NotificationInbox key={notificationIdentity} compact={isMobileView}
+                      notifications={notifications} renderIcon={renderNotificationIcon}
+                      onOpen={notification => void handleNotificationItemClick(notification)}
+                      onDelete={handleDeleteNotifications} onMarkAllRead={handleMarkAllNotificationsRead}
+                      onClose={() => { setNotificationDropdownOpen(false); notificationButtonRef.current?.focus(); }} />
                   )}
                 </div>
 
@@ -911,6 +900,8 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
         <div className="relative" ref={notificationDropdownRef}>
           <button
             onClick={() => setNotificationDropdownOpen(!notificationDropdownOpen)}
+            ref={notificationButtonRef}
+            aria-controls="notification-inbox"
             aria-label={`Notifications, ${unreadCount} unread`}
             aria-expanded={notificationDropdownOpen}
             className="zea-header-icon-button relative p-2"
@@ -921,61 +912,11 @@ const Header = ({ onNotificationClick, onRewardNotificationClick, onOpenWork = o
             )}
           </button>
           {notificationDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-2xl border border-sky-400/40 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 shadow-[0_20px_60px_rgba(56,189,248,0.25),0_0_0_1px_rgba(59,130,246,0.35),inset_0_0_0_1px_rgba(236,72,153,0.25)] backdrop-blur z-[80]">
-              <div className="p-3 border-b border-sky-400/30 flex justify-between items-center bg-gradient-to-r from-sky-500/10 via-fuchsia-500/10 to-indigo-500/10">
-                <h3 className="font-semibold text-text-primary">Notifications</h3>
-              </div>
-              {notifications.length ? (
-                notifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    onClick={() => handleNotificationItemClick(notif)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(event) => {
-                      if (event.target === event.currentTarget && ['Enter', ' '].includes(event.key)) {
-                        event.preventDefault();
-                        void handleNotificationItemClick(notif);
-                      }
-                    }}
-                    className="p-3 flex items-start gap-3 border-b border-sky-400/20 last:border-0 hover:bg-sky-500/10 cursor-pointer relative transition"
-                  >
-                    {(() => {
-                      const Icon = notificationIconMap[notif.type] ?? BellIcon;
-                      const accent = notificationAccentMap[notif.type] ?? fallbackNotificationAccent;
-                      const isUnread = !notif.isRead;
-                      return (
-                        <div
-                          className={`flex h-9 w-9 items-center justify-center rounded-full border bg-slate-900/70 ${
-                            isUnread ? `${accent.ring} ${accent.glow} ${accent.bg}` : 'border-white/10 shadow-none'
-                          }`}
-                        >
-                          <>{notif.actorId ? <Avatar user={{ id: notif.actorId }} size={28} /> : <Icon className={`h-5 w-5 ${isUnread ? accent.icon : 'text-text-muted'}`} />}</>
-                        </div>
-                      );
-                    })()}
-                    <div className="flex-1">
-                      <p className={`text-sm ${notif.isRead ? 'text-text-muted' : 'text-text-primary'}`}>
-                        {notif.message}
-                      </p>
-                      <p className="text-xs text-text-muted mt-1">{timeAgo(notif.createdAt)}</p>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteNotification(notif.id);
-                      }}
-                      className="p-1 rounded-full border border-sky-400/30 bg-slate-900/70 text-text-inverted hover:border-rose-400/60 hover:text-text-warning transition-colors"
-                      title="Delete notification"
-                    >
-                      <TrashIcon className="h-4 w-4 text-text-inverted dark:text-text-primary" />
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p className="p-4 text-center text-sm text-text-muted">No new notifications.</p>
-              )}
-            </div>
+            <NotificationInbox key={notificationIdentity} compact={isMobileView}
+              notifications={notifications} renderIcon={renderNotificationIcon}
+              onOpen={notification => void handleNotificationItemClick(notification)}
+              onDelete={handleDeleteNotifications} onMarkAllRead={handleMarkAllNotificationsRead}
+              onClose={() => { setNotificationDropdownOpen(false); notificationButtonRef.current?.focus(); }} />
           )}
         </div>
 

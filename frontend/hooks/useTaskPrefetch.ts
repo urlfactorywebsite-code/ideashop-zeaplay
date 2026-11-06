@@ -52,6 +52,7 @@ export const useTaskPrefetch = ({
       owned.set(cacheKey, controller);
       api
         .getTasksPage({
+          grouped: params.grouped,
           timezone: params.timezone,
           page,
           pageSize: params.pageSize,

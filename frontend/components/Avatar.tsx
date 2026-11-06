@@ -9,9 +9,15 @@ export type AvatarPerson = Partial<Pick<User, 'id' | 'name' | 'role' | 'avatarFr
 export const avatarInitials = (name = '') => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(word => Array.from(word)[0]).join('').toUpperCase() || '?';
 export const avatarColor = (name = '') => `hsl(${Array.from(name).reduce((hash, char) => (hash * 31 + char.codePointAt(0)!) >>> 0, 0) % 360} 38% 30%)`;
 
-export default function Avatar({ user, size = 40, className = '' }: { user?: AvatarPerson | null; size?: number; className?: string }) {
+// Share the same tenant-guarded identity with adjacent names and accessible tooltips.
+export function useAvatarIdentity(user?: AvatarPerson | null) {
   const fresh = useSyncExternalStore(subscribeProfiles, () => latestProfile(user?.id), () => undefined);
   const person = fresh && (!user?.tenantId || fresh.tenantId === user.tenantId) ? { ...user, ...fresh } : user;
+  return { person, fresh };
+}
+
+export default function Avatar({ user, size = 40, className = '' }: { user?: AvatarPerson | null; size?: number; className?: string }) {
+  const { person, fresh } = useAvatarIdentity(user);
   const source = getUserAvatarUrl(person);
   useEffect(() => {
     if (user?.id && !fresh && !('avatarUrl' in user)) ensureAvatarProfile(user.id).catch(() => {});

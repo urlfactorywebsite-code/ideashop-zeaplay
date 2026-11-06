@@ -696,6 +696,8 @@ type ApiCompletionSubmission = {
 };
 
 type ApiTask = {
+  group_assignments?: ApiTask[] | null;
+  assigned_member?: { id: string; name: string; avatar_url?: string | null } | null;
   status_title?: string | null;
   hold_reason?: string | null;
   hold_started_at?: string | null;
@@ -2499,6 +2501,11 @@ function mapTask(task: ApiTask): Task {
   const assignedIds = task.assigned_to_ids ?? (task.assigned_to_id ? [task.assigned_to_id] : null);
 
   const mapped: Task = {
+    groupAssignments: task.group_assignments?.map(mapTask) ?? null,
+    assignedMember: task.assigned_member ? {
+      id: task.assigned_member.id, name: task.assigned_member.name,
+      avatarUrl: task.assigned_member.avatar_url ?? null,
+    } : null,
     id: task.id,
     dependencies: task.dependencies ?? [],
     canEdit: task.can_edit,
@@ -4692,16 +4699,18 @@ const api = {
     return { ...data, items: data.items.map(mapTimeEntry) };
   },
 
-  async getTaskGroup(taskId: string): Promise<Task[]> {
+  async getTaskGroup(taskId: string, options: { fresh?: boolean; signal?: AbortSignal } = {}): Promise<Task[]> {
     try {
       const cacheKey = taskSessionCacheKey(`task-group:${taskId}`);
-      const cached = getCached<Task[]>(cacheKey);
+      const cached = options.fresh ? null : getCached<Task[]>(cacheKey);
       if (cached) {
         return cached;
       }
-      const { data } = await http.get<ApiTask[]>(`/tasks/${taskId}/group`);
+      const { data } = await http.get<ApiTask[]>(`/tasks/${taskId}/group`, {
+        signal: options.signal, showGlobalProgress: !options.fresh, timeout: options.fresh ? 15000 : undefined,
+      });
       const mapped = (data ?? []).map(mapTask);
-      setCached(cacheKey, mapped);
+      if (!options.fresh) setCached(cacheKey, mapped);
       return mapped;
     } catch (error) {
       mapAxiosError(error);
@@ -6331,6 +6340,7 @@ const api = {
     },
 
     async getTasksPage(params: {
+      grouped?: boolean;
       timezone?: string;
       page: number;
       pageSize: number;
@@ -6354,6 +6364,7 @@ const api = {
           page: params.page,
           page_size: params.pageSize,
         };
+        if (params.grouped) query.grouped = true;
         if (params.cursor) query.cursor = params.cursor;
         if (params.timezone) query.timezone = params.timezone;
         if (params.search) query.search = params.search;
@@ -6833,6 +6844,15 @@ const api = {
   async deleteNotification(notificationId: string): Promise<void> {
     try {
       await http.delete(`/notifications/${notificationId}`);
+      invalidateCache('notifications:');
+    } catch (error) {
+      mapAxiosError(error);
+    }
+  },
+
+  async deleteNotifications(notificationIds: string[]): Promise<void> {
+    try {
+      await http.post('/notifications/bulk-delete', { notification_ids: notificationIds });
       invalidateCache('notifications:');
     } catch (error) {
       mapAxiosError(error);

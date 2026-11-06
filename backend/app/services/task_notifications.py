@@ -9,8 +9,9 @@ from . import notifications as notification_service
 def notify_status_change(
     db: Session, *, task: models.Task, actor: models.User,
     previous_status: models.TaskStatusEnum,
+    previous_custom_status_id: str | None = None,
 ) -> None:
-    if task.status == previous_status:
+    if task.status == previous_status and task.custom_status_id == previous_custom_status_id:
         return
 
     recipients = {task.created_by_id, task.assigned_to_id, actor.id}
@@ -24,7 +25,7 @@ def notify_status_change(
     tenant = task.project.tenant_id if task.project else task.creator.tenant_id
     configured = db.scalars(select(models.TaskStatus).where(models.TaskStatus.tenant_id == tenant)).all()
     titles = {row.legacy_status or row.id:row.display_label for row in configured}
-    previous = titles.get(previous_status.value, previous_status.value.replace("_", " ").title())
+    previous = titles.get(previous_custom_status_id or previous_status.value, previous_status.value.replace("_", " ").title())
     current = titles.get(task.custom_status_id or task.status.value, task.status.value.replace("_", " ").title())
     completed = task.status in {models.TaskStatusEnum.DONE, models.TaskStatusEnum.DEPLOYED}
     title = "Task completed" if completed else "Task status updated"

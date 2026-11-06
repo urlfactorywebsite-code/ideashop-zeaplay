@@ -1517,6 +1517,8 @@ export interface TaskPointsBreakdown {
 }
 
 export interface Task {
+  groupAssignments?: Task[] | null;
+  assignedMember?: { id: string; name: string; avatarUrl: string | null } | null;
   statusTitle?: string | null;
   holdReason?: string | null;
   holdStartedAt?: string | null;

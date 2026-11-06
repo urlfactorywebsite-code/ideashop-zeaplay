@@ -1181,6 +1181,7 @@ class TaskBase(BaseModel):
 
 
 class TaskCreate(TaskBase):
+    task_group_id: str | None = Field(default=None, min_length=1, max_length=36, pattern=r"^[^\x00-\x1f\x7f]+$")
     assigned_to_ids: List[str] = Field(default_factory=list)
     follower_ids: List[str] = Field(default_factory=list)
     dependencies: List[str] = Field(default_factory=list)
@@ -1306,7 +1307,16 @@ class TaskRead(TaskBase):
     can_review_subtasks: bool = False
 
 
+class TaskAssignedMember(BaseModel):
+    id: str
+    name: str
+    avatar_url: str | None = None
+
+
 class TaskListItem(BaseModel):
+    # Present only for opt-in logical-task retrieval; each nested item remains an assignment.
+    group_assignments: list["TaskListItem"] | None = None
+    assigned_member: TaskAssignedMember | None = None
     hold_started_at: Optional[datetime] = None
     hold_paused_seconds: float = 0
     effective_due_at: Optional[datetime] = None
@@ -2709,6 +2719,15 @@ class NotificationRead(NotificationBase):
 
 class NotificationUnreadCount(BaseModel):
     unread_count: int
+
+
+class NotificationBulkDelete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    notification_ids: list[Annotated[str, Field(min_length=1, max_length=36, pattern=r"^[^\x00-\x1f\x7f]+$")]] = Field(min_length=1, max_length=500)
+
+
+class NotificationBulkDeleteResult(BaseModel):
+    deleted_ids: list[str]
 
 
 class NotificationOutboxRead(BaseModel):

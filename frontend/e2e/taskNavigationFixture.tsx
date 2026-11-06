@@ -25,13 +25,22 @@ let tasks = Array.from({ length: rowCount }, (_, index) => ({
   attachments: [], subtasks: [], tags: [], followerIds: [], points: 0, projectId: index < 60 ? 'project-0' : 'project-1', updatedAt: now.toISOString(),
   dependencies: index === 0 ? [{ id: 'task-1', title: 'Navigation task 1' }] : [],
 }));
+if (params.has('multiAssignee')) {
+  tasks = tasks.map((task, index) => ({ ...task, canEdit: params.has('memberPermissions') ? index === 3 : !params.has('readOnlyParty'), taskGroupId: 'shared-fixture-group', title: 'Shared mission',
+    priority: TaskPriority.LOW, dueAt: null, completedAt: index < 2 ? '2026-11-02T06:00:00Z' : null,
+    project: { id: 'project-0', name: 'Verification project', status: 'ACTIVE' },
+    status: index < 2 ? TaskStatus.DONE : TaskStatus.IN_PROGRESS, assignedTo: [`member-${index}`] }));
+}
 const calls: { method: string; args: unknown[] }[] = [];
 const rawTasks = api.getTasks.bind(api);
 const rawTaskPage = api.getTasksPage.bind(api);
+const rawTaskGroup = api.getTaskGroup.bind(api);
+const rawDeleteTask = api.deleteTask.bind(api);
 let rejectUpdate = false;
 const changed = () => publishTaskRealtime({ userId: user.id, tenantId: user.tenantId, payload: { type: 'task.updated' } });
-Object.assign(window, { taskNavigationAudit: { calls, changed, rawTasks,
+Object.assign(window, { taskNavigationAudit: { calls, changed, rawTasks, rawTaskGroup,
   rotateSession: () => storeTokens('synthetic-next-task-token', 'synthetic-next-task-refresh'),
+  moveMember: (id: string, status: TaskStatus) => { tasks = tasks.map(task => task.id === id ? { ...task, status } : task); publishTaskRealtime({ userId: user.id, tenantId: user.tenantId, payload: { type: 'task.updated', task_id: id } }); },
   rejectNextUpdate: () => { rejectUpdate = true; }, move: (notify = true) => {
   tasks = tasks.map(task => task.id === 'task-0' ? { ...task, status: TaskStatus.DONE } : task); if (notify) changed();
 } } });
@@ -54,7 +63,7 @@ const emptyPage = { items: [], total: 0, page: 1, pageSize: 20, totalPages: 1 };
 const overrides: Record<string, (...args: any[]) => unknown> = {
   restoreBrowserSession: () => { storeTokens('synthetic-task-token', 'synthetic-task-refresh'); return true; },
   getCurrentUser: () => user,
-  getUsers: () => [user], getDepartments: () => [{ id: 'engineering', name: 'Engineering' }],
+  getUsers: () => params.has('multiAssignee') ? [user, ...tasks.map((task, index) => ({ ...user, id: task.assignedTo[0], name: params.has('longPartyName') && index === 0 ? '<script>' + 'x'.repeat(250) : 'Member ' + index, role: Role.USER, avatarUrl: null }))] : [user], getDepartments: () => [{ id: 'engineering', name: 'Engineering' }],
   getReleaseNotes: () => ({ versionLabel: 'Zea.Play V6.0.1', updates: [], content: '' }),
   getActiveWork: () => ({ items: [{ id: 'session-0', entry_id: 'entry-0', status: 'RUNNING', task_id: 'task-1', subtask_id: null,
     project_name: 'Verification project', task_title: 'Navigation task 1', subtask_title: null, subtask_status: 'IN_PROGRESS',
@@ -66,10 +75,23 @@ const overrides: Record<string, (...args: any[]) => unknown> = {
   getProjects: () => ({ ...emptyPage, items: [{ id: 'project-0', name: 'Verification project', status: 'ACTIVE',
     createdBy: user.id, assignedTo: [user.id], memberIds: [user.id], createdAt: now.toISOString() }], total: 1 }), getClients: () => emptyPage,
   getTasksPage: options => params.has('networkTaskPage') ? rawTaskPage(options) : page(options), getTasks: () => tasks, getTask: id => tasks.find(task => task.id === id) || tasks[0],
-  getTaskGroup: id => tasks.filter(task => task.id === id),
+  getTaskGroup: async (id, options) => {
+    if (params.has('networkParty')) return rawTaskGroup(id, options);
+    if (params.has('partyDelay')) await new Promise(resolve => setTimeout(resolve, 700));
+    if (params.has('partyError')) throw Error('Synthetic party outage');
+    if (params.has('emptyParty')) return [];
+    return tasks.filter(task => params.has('multiAssignee') ? task.taskGroupId === tasks.find(item => item.id === id)?.taskGroupId : task.id === id);
+  },
+  getKanbanColumns: () => params.has('multiAssignee') ? Object.values(TaskStatus).map((status, order) => ({ id: status, title: status, order, workflowBehavior: status === TaskStatus.ON_HOLD ? 'HOLD' : 'ACTIVE' })) : [],
+  deleteTask: id => params.has('networkTaskPage') ? rawDeleteTask(id) : [],
   getTaskCalendarSummary: summary, getTaskCalendarTasks: calendarTasks,
+  moveTaskToKanbanStatus: (id, statusId) => {
+    const status = statusId.replace('fixture-status-', '') as TaskStatus;
+    tasks = tasks.map(task => task.id === id ? { ...task, status } : task); changed(); return tasks.find(task => task.id === id);
+  },
   getTasksKanban: options => ({ columns: Object.values(TaskStatus).map((status, order) => ({ status,
-    title: params.get('customStage') && status === TaskStatus.TODO ? 'Custom owner stage' : undefined,
+    ...(params.has('multiAssignee') ? { statusId: 'fixture-status-' + status, title: status } : {}),
+    title: params.get('customStage') && status === TaskStatus.TODO ? 'Custom owner stage' : params.has('multiAssignee') ? status : undefined,
     order, items: filtered(options).filter(task => task.status === status).slice(((options.page || 1) - 1) * (options.pageSize || 20), (options.page || 1) * (options.pageSize || 20)),
     count: filtered(options).filter(task => task.status === status).length })) }),
   getComments: () => [],

@@ -12,6 +12,10 @@ interface TooltipProps {
   triggerClassName?: string;
   /** Opt-in keyboard dismissal for persistent explanatory tooltips. */
   dismissOnEscape?: boolean;
+  /** Keep long member names readable near viewport edges. Existing placement is the default. */
+  constrainToViewport?: boolean;
+  /** Keep explanatory content visible while the pointer is over the tooltip itself. */
+  hoverable?: boolean;
 }
 
 /**
@@ -22,21 +26,27 @@ interface TooltipProps {
  * - Accessible with proper ARIA attributes
  * - Styled with Tailwind CSS
  */
-const Tooltip: React.FC<TooltipProps> = ({ text, children, className, triggerClassName, dismissOnEscape = false }) => {
+const Tooltip: React.FC<TooltipProps> = ({ text, children, className, triggerClassName, dismissOnEscape = false, constrainToViewport = false, hoverable = false }) => {
   const tooltipId = useId();
   const triggerRef = useRef<HTMLSpanElement | null>(null);
+  const tooltipRef = useRef<HTMLSpanElement | null>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [coords, setCoords] = useState<{ left: number; top: number } | null>(null);
+  const [coords, setCoords] = useState<{ left: number; top: number; below?: boolean } | null>(null);
 
   const updatePosition = useCallback(() => {
     const trigger = triggerRef.current;
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
+    const tooltip = tooltipRef.current?.getBoundingClientRect();
+    const width = tooltip?.width ?? 0;
+    const below = constrainToViewport && rect.top - (tooltip?.height ?? 0) - 12 < 8;
     setCoords({
-      left: rect.left + rect.width / 2,
-      top: rect.top - 40,
+      left: constrainToViewport ? Math.max(12 + width / 2, Math.min(rect.left + rect.width / 2, window.innerWidth - 12 - width / 2)) : rect.left + rect.width / 2,
+      top: constrainToViewport ? (below ? rect.bottom + 12 : rect.top - 12) : rect.top - 40,
+      below,
     });
-  }, []);
+  }, [constrainToViewport]);
 
   useEffect(() => {
     if (!isVisible || typeof window === 'undefined') return;
@@ -48,10 +58,16 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children, className, triggerCla
       window.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', handleScroll);
     };
-  }, [isVisible, updatePosition]);
+  }, [isVisible, !!coords, updatePosition, text]);
 
-  const showTooltip = () => setIsVisible(true);
-  const hideTooltip = () => setIsVisible(false);
+  const clearHide = () => { if (hideTimer.current) { clearTimeout(hideTimer.current); hideTimer.current = null; } };
+  const showTooltip = () => { clearHide(); setIsVisible(true); };
+  const hideTooltip = () => {
+    clearHide();
+    if (hoverable) hideTimer.current = setTimeout(() => setIsVisible(false), 150);
+    else setIsVisible(false);
+  };
+  useEffect(() => () => { if (hideTimer.current) clearTimeout(hideTimer.current); }, []);
 
   useEffect(() => {
     if (!isVisible || !dismissOnEscape) return;
@@ -65,14 +81,18 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children, className, triggerCla
       ? createPortal(
           <span
             id={tooltipId}
+            ref={tooltipRef}
+            data-placement={coords.below ? 'below' : 'above'}
             role="tooltip"
+            onMouseEnter={hoverable ? showTooltip : undefined}
+            onMouseLeave={hoverable ? hideTooltip : undefined}
             className={`
-              pointer-events-none fixed left-0 top-0 -translate-x-1/2 -translate-y-full
+              ${hoverable ? 'pointer-events-auto' : 'pointer-events-none'} fixed left-0 top-0 -translate-x-1/2 -translate-y-full
               opacity-0 translate-y-2 scale-95 transition-all duration-150 ease-out
               data-[show=true]:opacity-100 data-[show=true]:translate-y-0 data-[show=true]:scale-100
               z-[200] ${className ?? ''}
             `}
-            style={{ left: coords.left, top: coords.top }}
+            style={{ left: coords.left, top: coords.top, ...(constrainToViewport ? { transform: `translate(-50%, ${coords.below ? '0' : '-100%'})` } : {}) }}
             data-show={isVisible}
           >
             <span className="absolute -inset-1 rounded-lg bg-cyan-400/20 blur-md" aria-hidden="true" />
@@ -94,7 +114,7 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children, className, triggerCla
       onMouseEnter={showTooltip}
       onMouseLeave={hideTooltip}
       onFocus={showTooltip}
-      onBlur={hideTooltip}
+      onBlur={() => { clearHide(); setIsVisible(false); }}
     >
       <span
         ref={triggerRef}

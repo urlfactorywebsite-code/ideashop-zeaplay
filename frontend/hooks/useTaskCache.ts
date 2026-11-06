@@ -4,6 +4,8 @@ import { LRUCache } from '../utils/lruCache';
 const DEFAULT_TASK_CACHE_TTL_MS = 60000;
 
 export type TaskListCacheParams = {
+  accountScope?: string;
+  grouped?: boolean;
   timezone?: string;
   viewMode: 'list' | 'grid' | 'kanban';
   page: number;

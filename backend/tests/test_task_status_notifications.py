@@ -8,7 +8,12 @@ from backend.app import models
 from backend.app.realtime import capture
 from backend.app.routers import tasks
 from backend.app.services import notification_dispatcher as dispatcher
-from backend.tests.test_task_lifecycle import api, auth, data, engine  # noqa: F401
+from backend.tests import test_task_lifecycle as lifecycle_fixtures
+
+api = lifecycle_fixtures.api
+auth = lifecycle_fixtures.auth
+data = lifecycle_fixtures.data
+engine = lifecycle_fixtures.engine
 
 
 @pytest.fixture(autouse=True)
@@ -42,6 +47,15 @@ def notices(data, task_id=None):
     with data.factory() as db:
         return list(db.scalars(select(models.Notification).where(
             models.Notification.related_task_id == (task_id or data.task.id))))
+
+
+def status_label(data, value):
+    native = value.value if hasattr(value, "value") else value
+    with data.factory() as db:
+        configured = db.scalar(select(models.TaskStatus.display_label).where(
+            models.TaskStatus.tenant_id == data.owner.tenant_id,
+            models.TaskStatus.legacy_status == native))
+    return configured or native.replace("_", " ").title()
 
 
 def test_self_assigned_creation_generates_history_and_push(api, data, delivery):
@@ -82,8 +96,7 @@ def test_every_status_notifies_self_once_and_same_status_is_silent(api, data, de
         assert len(rows) == before + 1, target.value
         row = next(row for row in rows if row.id not in {item[1]["notification_id"] for item in delivery[:pushes_before]})
         assert row.user_id == data.owner.id
-        assert previous.value.replace("_", " ").title() in row.message
-        assert target.value.replace("_", " ").title() in row.message
+        assert f"from {status_label(data, previous)} to {status_label(data, target)}." in row.message
         assert len(delivery) == pushes_before + 1
         assert delivery[-1][0] == [data.owner.id]
         assert delivery[-1][1]["notification_id"] == row.id
@@ -107,7 +120,7 @@ def test_complete_endpoint_and_subtask_completion_reopening_notify_self(api, dat
         assert response.json()["status"] == parent
         parent_rows = [row for row in notices(data) if row.entity_type == models.NotificationEntityTypeEnum.TASK]
         assert parent_rows[-1].user_id == data.owner.id
-        assert parent.replace("_", " ").title() in parent_rows[-1].message
+        assert f"to {status_label(data, parent)}." in parent_rows[-1].message
         assert len(parent_rows) == (2 if target == "TODO" else 3)
     assert len(delivery) == len(notices(data))
 
@@ -171,3 +184,22 @@ def test_assigning_an_existing_task_to_self_notifies_once(api, data, delivery):
     repeat = api.patch(f"/api/tasks/{data.task.id}",
         json={"assigned_to_id": data.owner.id}, headers=auth(data.owner))
     assert repeat.status_code == 200 and len(delivery) == 1
+
+
+def test_renamed_labels_notify_without_changing_native_identity(api, data, delivery):
+    with data.factory() as db:
+        tasks.status_service.scope(db, data.owner)
+        db.commit()
+    with data.factory() as db:
+        for value, label in (("TODO", "Mission queue"), ("IN_PROGRESS", "Active raid")):
+            row = db.scalar(select(models.TaskStatus).where(models.TaskStatus.tenant_id == data.owner.tenant_id,
+                                                           models.TaskStatus.legacy_status == value))
+            row.display_label = label
+            row.normalized_label = label.casefold()
+        db.commit()
+    response = api.patch(f"/api/tasks/{data.task.id}", json={"status": "IN_PROGRESS"}, headers=auth(data.owner))
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "IN_PROGRESS"
+    assert response.json()["status_title"] == "Active raid"
+    assert len(notices(data)) == len(delivery) == 1
+    assert "from Mission queue to Active raid." in notices(data)[0].message

@@ -11,8 +11,10 @@ export function useNotifications() {
   const identity = `${user?.tenantId ?? ''}:${user?.id ?? ''}`;
   const [state, setState] = useState<{ identity: string; items: Notification[] }>({ identity, items: [] });
   const refreshRef = useRef<() => void>(() => undefined);
+  const mutationVersion = useRef(0);
   const refresh = useCallback(() => refreshRef.current(), []);
   const setNotifications = useCallback((update: (items: Notification[]) => Notification[]) => {
+    mutationVersion.current += 1;
     setState(previous => ({ identity, items: update(previous.identity === identity ? previous.items : []) }));
   }, [identity]);
 
@@ -30,10 +32,14 @@ export function useNotifications() {
       if (running) return;
       running = true;
       pending = false;
+      const startedAtVersion = mutationVersion.current;
       try {
         const items = await api.getNotifications(user.id);
-        if (valid()) setState({ identity, items: items.filter(item => item.userId === user.id &&
-          (!item.tenantId || item.tenantId === user.tenantId)) });
+        if (valid()) {
+          if (startedAtVersion === mutationVersion.current) setState({ identity, items: items.filter(item => item.userId === user.id &&
+            (!item.tenantId || item.tenantId === user.tenantId)) });
+          else pending = true; // A stale read must not resurrect a deleted/unread item.
+        }
       } catch {
         // Preserve existing history during transient network errors.
       } finally {

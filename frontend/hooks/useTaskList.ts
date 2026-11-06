@@ -52,6 +52,7 @@ export const useTaskList = ({ params, enabled = true }: UseTaskListOptions): Use
 
     api
       .getTasksPage({
+        grouped: params.grouped,
         timezone: params.timezone,
         page: params.page,
         pageSize: params.pageSize,

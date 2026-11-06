@@ -10,6 +10,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request,
 from fastapi.responses import FileResponse
 from ..realtime import capture as realtime_capture
 from sqlalchemy import String, and_, case, cast, func, inspect, or_, select, text, update
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.orm.attributes import set_committed_value
@@ -26,7 +27,7 @@ from ..dependencies import get_current_active_user
 from ..integrations import trigger_n8n_event
 from ..services import notifications as notification_service
 from ..services import task_statuses as status_service
-from ..services import task_deadlines, task_transitions
+from ..services import task_deadlines, task_transitions, task_groups
 from ..services import audit_logger, task_events, task_notifications
 from ..tickets import task_link_service
 from ..tickets.models import Ticket
@@ -757,7 +758,11 @@ def _apply_task_filters(
     if tag:
         tag_value = tag.strip()
         if tag_value:
-            stmt = stmt.where(models.Task.tags.contains([tag_value]))
+            if db.get_bind().dialect.name == "postgresql":
+                stmt = stmt.where(cast(models.Task.tags, JSONB).contains([tag_value]))
+            else:
+                values = func.json_each(models.Task.tags).table_valued("value")
+                stmt = stmt.where(select(1).select_from(values).where(values.c.value == tag_value).exists())
     due_range = _parse_date_filter(due_date)
     if due_range:
         stmt = stmt.where(models.Task.due_at.between(due_range[0], due_range[1]))
@@ -951,6 +956,20 @@ def list_tasks(
     return serialized
 
 
+def _ensure_unique_group_assignee(db, task, assignee_id, project_id):
+    if not task.task_group_id:
+        return
+    duplicate = db.scalar(select(models.Task.id).where(
+        models.Task.task_group_id == task.task_group_id,
+        models.Task.project_id == project_id,
+        models.Task.created_by_id == task.created_by_id if project_id is None else True,
+        models.Task.assigned_to_id == assignee_id,
+        models.Task.id != task.id,
+    ).limit(1))
+    if duplicate:
+        raise HTTPException(409, "This member already has an assignment in the task group")
+
+
 @router.post("/transfer", response_model=schemas.TaskTransferResponse)
 def transfer_tasks(
     payload: schemas.TaskTransferRequest,
@@ -983,13 +1002,21 @@ def transfer_tasks(
         ):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Department mismatch")
 
-    stmt = select(models.Task).where(models.Task.assigned_to_id == from_user.id)
+    status_service.scope(db, current_user, lock=True)
+    stmt = select(models.Task).where(_task_tenant_predicate(current_user), models.Task.assigned_to_id == from_user.id)
     stmt = stmt.options(selectinload(models.Task.project).selectinload(models.Project.members))
     if payload.statuses:
         stmt = stmt.where(models.Task.status.in_(payload.statuses))
     tasks = db.execute(stmt).scalars().all()
     now = datetime.utcnow()
+    seen_groups = set()
     for task in tasks:
+        _ensure_task_update_access(task, current_user)
+        identity = task_groups.key(task)
+        if identity in seen_groups:
+            raise HTTPException(409, "Transfer would create duplicate assignments in a task group")
+        seen_groups.add(identity)
+        _ensure_unique_group_assignee(db, task, to_user.id, task.project_id)
         if task.project:
             _ensure_project_assignee_allowed(task.project, to_user.id)
         task.assigned_to_id = to_user.id
@@ -1036,6 +1063,7 @@ def create_task_transfer_request(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user),
 ) -> schemas.TaskTransferWorkflowRead:
+    status_service.scope(db, current_user, lock=True)
     task = _fetch_task_or_404(db, task_id)
     _ensure_task_access(task, current_user)
 
@@ -1047,6 +1075,7 @@ def create_task_transfer_request(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found")
     _ensure_user_in_current_tenant(target_user, current_user, label="Target user")
     _ensure_project_assignee_allowed(task.project, target_user.id)
+    _ensure_unique_group_assignee(db, task, target_user.id, task.project_id)
 
     existing = db.execute(
         select(models.TaskTransferRequest).where(
@@ -1073,6 +1102,7 @@ def create_task_transfer_request(
         models.RoleEnum.OWNER,
     }
     if auto_approve:
+        _ensure_task_update_access(task, current_user)
         transfer_request.status = models.TaskTransferStatusEnum.APPROVED
         transfer_request.approved_by_id = current_user.id
         transfer_request.acted_at = now
@@ -1106,11 +1136,11 @@ def create_task_transfer_request(
     else:
         recipient_ids: set[str] = set()
         managers = db.execute(
-            select(models.User.id).where(models.User.role == models.RoleEnum.MANAGER)
+            select(models.User.id).where(models.User.role == models.RoleEnum.MANAGER, models.User.tenant_id == current_user.tenant_id)
         ).scalars().all()
         recipient_ids.update(str(manager_id) for manager_id in managers if manager_id)
         admins = db.execute(
-            select(models.User.id).where(models.User.role.in_([models.RoleEnum.ADMIN, models.RoleEnum.OWNER]))
+            select(models.User.id).where(models.User.role.in_([models.RoleEnum.ADMIN, models.RoleEnum.OWNER]), models.User.tenant_id == current_user.tenant_id)
         ).scalars().all()
         recipient_ids.update(str(admin_id) for admin_id in admins if admin_id)
         if current_user.manager_id:
@@ -1120,10 +1150,13 @@ def create_task_transfer_request(
                 select(models.User.id).where(
                     models.User.role == models.RoleEnum.MANAGER,
                     models.User.department_id == current_user.department_id,
+                    models.User.tenant_id == current_user.tenant_id,
                 )
             ).scalars().all()
             recipient_ids.update(str(manager_id) for manager_id in department_manager_ids if manager_id)
         recipient_ids.discard(str(current_user.id))
+        recipient_ids = set(db.scalars(select(models.User.id).where(
+            models.User.id.in_(recipient_ids), models.User.tenant_id == current_user.tenant_id)))
 
         for recipient_id in recipient_ids:
             notification_service.create_notification(
@@ -1172,7 +1205,9 @@ def act_on_transfer_request(
     if current_user.role not in {models.RoleEnum.MANAGER, models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
 
-    transfer_request = db.get(models.TaskTransferRequest, request_id)
+    status_service.scope(db, current_user, lock=True)
+    transfer_request = db.scalar(select(models.TaskTransferRequest).where(
+        models.TaskTransferRequest.id == request_id).with_for_update())
     if not transfer_request:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transfer request not found")
 
@@ -1180,6 +1215,7 @@ def act_on_transfer_request(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Transfer request already acted on")
 
     task = _fetch_task_or_404(db, transfer_request.task_id)
+    _ensure_task_update_access(task, current_user)
     now = datetime.utcnow()
     transfer_request.approved_by_id = current_user.id
     transfer_request.acted_at = now
@@ -1192,6 +1228,7 @@ def act_on_transfer_request(
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found")
             _ensure_user_in_current_tenant(target_user, current_user, label="Target user")
             _ensure_project_assignee_allowed(task.project, target_user.id)
+        _ensure_unique_group_assignee(db, task, transfer_request.to_user_id, task.project_id)
         task.assigned_to_id = transfer_request.to_user_id
         task.assigned_at = now
     else:
@@ -1239,10 +1276,80 @@ def act_on_transfer_request(
     return schemas.TaskTransferWorkflowRead.model_validate(transfer_request)
 
 
+def _grouped_page(db, current_user, stmt, *, page, page_size, sort_by, sort_order, cursor):
+    """Page logical tasks before loading visible assignments in bounded batched queries.
+
+    Filters match any visible assignment. The matching sort-leading assignment is the
+    representative, including for status counts; its original ID/status are unchanged.
+    """
+    stmt, order_column = _resolve_sort_column(stmt, sort_by)
+    ordering = (order_column.asc().nullslast(), models.Task.id.asc()) if sort_order == "asc" else (
+        order_column.desc().nullslast(), models.Task.id.desc())
+    ranked = stmt.order_by(None).with_only_columns(
+        models.Task.id,
+        func.row_number().over(partition_by=task_groups.partition_columns(), order_by=ordering).label("group_rank"),
+    ).subquery()
+    representatives = select(ranked.c.id).where(ranked.c.group_rank == 1)
+    grouped = _lean_task_stmt().where(models.Task.id.in_(representatives))
+    total = db.scalar(select(func.count()).select_from(representatives.subquery()))
+    status_rows = db.execute(select(models.Task.status, func.count()).where(
+        models.Task.id.in_(representatives)).group_by(models.Task.status)).all()
+    grouped, sort_column = _resolve_sort_column(grouped, sort_by)
+    grouped = grouped.order_by(*((sort_column.asc().nullslast(), models.Task.id.asc()) if sort_order == "asc" else (
+        sort_column.desc().nullslast(), models.Task.id.desc())))
+    if cursor and sort_by in {"created_at", "lastUpdated", "dueAt"}:
+        value, separator, cursor_id = cursor.partition("|")
+        try:
+            cursor_date = datetime.fromisoformat(value) if value else None
+            if not separator or not cursor_id or (cursor_date is None and sort_by != "dueAt"):
+                raise ValueError()
+        except ValueError:
+            raise HTTPException(422, "Invalid task cursor")
+        if cursor_date is None:
+            grouped = grouped.where(sort_column.is_(None), models.Task.id > cursor_id if sort_order == "asc" else models.Task.id < cursor_id)
+        else:
+            comparison = sort_column > cursor_date if sort_order == "asc" else sort_column < cursor_date
+            tie = models.Task.id > cursor_id if sort_order == "asc" else models.Task.id < cursor_id
+            grouped = grouped.where(or_(comparison, and_(sort_column == cursor_date, tie), sort_column.is_(None)))
+    else:
+        grouped = grouped.offset((page - 1) * page_size)
+    records = list(db.scalars(grouped.limit(page_size + 1)))
+    has_more = len(records) > page_size
+    records = records[:page_size]
+    members_by_key = {}
+    if records:
+        member_stmt = _apply_task_visibility(_lean_task_stmt(), current_user).where(
+            or_(*(task_groups.predicate(task) for task in records))
+        ).options(selectinload(models.Task.assignee).joinedload(models.User.avatar_asset)).order_by(models.Task.id)
+        for member in db.scalars(member_stmt):
+            item = _serialize_task_card_item(member)
+            # Do not serialize a full UserRead (email, points, reward claims, etc.).
+            if member.assignee and _same_tenant(member.assignee.tenant_id, current_user.tenant_id):
+                item.assigned_member = schemas.TaskAssignedMember(
+                    id=member.assignee.id, name=member.assignee.name, avatar_url=member.assignee.avatar_url)
+            members_by_key.setdefault(task_groups.key(member), []).append(item)
+    items = []
+    for task in records:
+        members = members_by_key.get(task_groups.key(task))
+        if not members or task.id not in {member.id for member in members}:
+            raise HTTPException(409, "Task visibility changed during loading. Refresh the task list.")
+        item = _serialize_task_card_item(task)
+        item.group_assignments = members
+        items.append(item)
+    return schemas.TaskListResponse(
+        items=items, page=page, page_size=page_size, total=total,
+        total_pages=max(1, (total + page_size - 1) // page_size),
+        status_counts={row[0].value: row[1] for row in status_rows},
+        next_cursor=_encode_task_cursor(records[-1], sort_by) if has_more and records else None,
+        has_more=has_more,
+    )
+
+
 @router.get("/page", response_model=schemas.TaskListResponse)
 def list_tasks_page(
     request: Request,
     timezone_name: str | None = Query(default=None, alias="timezone"),
+    grouped: bool = Query(False, description="Return one logical task with visible assignments for Grid/List."),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
     search: Optional[str] = Query(default=None, description="Search title, description, team, or assignee name."),
@@ -1266,6 +1373,7 @@ def list_tasks_page(
     tenant_id = str(current_user.tenant_id or settings.default_tenant_id)
     cache_params = {
         "timezone": zone.key if zone else None,
+        "grouped": grouped,
         "page": page,
         "page_size": page_size,
         "cursor": cursor,
@@ -1283,7 +1391,9 @@ def list_tasks_page(
         "sort_order": sort_order,
     }
     cache_key = _list_cache_key(tenant_id=tenant_id, user_id=str(current_user.id), params=cache_params)
-    cached_payload = get_cached_json(cache_key)
+    # Grouped pages expand member identities. Re-evaluate their complete RBAC
+    # scope on every request, including after role/project membership changes.
+    cached_payload = get_cached_json(cache_key) if not grouped else None
     if cached_payload is not None:
         return schemas.TaskListResponse.model_validate(cached_payload)
 
@@ -1304,6 +1414,12 @@ def list_tasks_page(
     )
     if zone:
         stmt = _calendar_date_filters(stmt, due_date, created_date, zone)
+
+    if grouped:
+        response_payload = _grouped_page(db, current_user, stmt, page=page, page_size=page_size,
+                                        sort_by=sort_by, sort_order=sort_order, cursor=cursor)
+        _log_slow_endpoint("tasks.page.grouped", started_at)
+        return response_payload
 
     stmt, order_column = _resolve_sort_column(stmt, sort_by)
 
@@ -1803,6 +1919,10 @@ def create_task(
             .scalars()
             .all()
         )
+        for peer in existing_group_tasks:
+            _ensure_task_update_access(peer, current_user)
+            if peer.project_id != project.id:
+                raise HTTPException(422, "Task group belongs to another project")
         existing_assignees = {task.assigned_to_id for task in existing_group_tasks}
 
     assignee_cache: dict[str, models.User] = {}
@@ -2339,6 +2459,10 @@ def assign_task_template(
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task template not found")
 
+    creator = db.get(models.User, template.created_by_id)
+    if not creator or not _same_tenant(creator.tenant_id, current_user.tenant_id):
+        raise HTTPException(404, "Task template not found")
+    status_service.scope(db, current_user, lock=True)
     creation_points = get_task_creation_points(db)
     assigned_tasks = []
 
@@ -2350,6 +2474,7 @@ def assign_task_template(
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+        _ensure_user_in_current_tenant(user, current_user, label="Assigned user")
         group_id = str(uuid4())
 
         task = models.Task(
@@ -2391,10 +2516,11 @@ def assign_task_template(
 
         batch_group_id = str(uuid4())
 
-        for user_id in payload.user_ids:
+        for user_id in dict.fromkeys(payload.user_ids):
             user = db.execute(select(models.User).where(models.User.id == user_id)).scalars().first()
             if not user:
                 continue  # Skip invalid users
+            _ensure_user_in_current_tenant(user, current_user, label="Assigned user")
 
             task = models.Task(
                 title=template.title,
@@ -2440,6 +2566,7 @@ def assign_task_template(
         active_users = db.execute(
             select(models.User).where(
                 models.User.department_id == payload.department_id,
+                models.User.tenant_id == current_user.tenant_id,
                 models.User.status == models.UserStatusEnum.ACTIVE
             )
         ).scalars().all()
@@ -2563,7 +2690,7 @@ def get_task_group(
     task = _fetch_task_or_404(db, task_id)
     _ensure_task_access(task, current_user)
 
-    stmt = _task_query().where(models.Task.task_group_id == task.task_group_id)
+    stmt = _apply_task_visibility(_task_query(), current_user).where(task_groups.predicate(task))
     group_tasks = db.execute(stmt).unique().scalars().all()
     visible_group_tasks: list[models.Task] = []
     for group_task in group_tasks:
@@ -2614,6 +2741,23 @@ def update_task(
     _ensure_task_update_access(task, current_user)
 
     update_data = payload.model_dump(exclude_unset=True)
+    if "assigned_to_id" in update_data or "project_id" in update_data:
+        status_service.scope(db, current_user, lock=True)
+        # Refresh under the shared creation lock before validating concurrent reassignment.
+        db.refresh(task)
+        _ensure_task_update_access(task, current_user)
+        next_assignee = update_data.get("assigned_to_id", task.assigned_to_id)
+        next_project = update_data.get("project_id", task.project_id)
+        if task.task_group_id and next_project != task.project_id:
+            destination_group = db.scalar(select(models.Task.id).where(
+                models.Task.task_group_id == task.task_group_id,
+                models.Task.project_id == next_project,
+                models.Task.created_by_id == task.created_by_id if next_project is None else True,
+                models.Task.id != task.id,
+            ).limit(1))
+            if destination_group:
+                raise HTTPException(409, "Moving this assignment would merge distinct project task groups")
+        _ensure_unique_group_assignee(db, task, next_assignee, next_project)
     if "status" in update_data and update_data["status"] is None:
         raise HTTPException(422, "Task status cannot be null")
     if "custom_status_id" in update_data and update_data["custom_status_id"]:
@@ -2634,6 +2778,7 @@ def update_task(
     if "completed_at" in update_data:
         raise HTTPException(422, "Completion timestamps are managed by the task transition service")
     previous_status = task.status
+    previous_custom_status_id = task.custom_status_id
     previous_priority = task.priority
     previous_assignee_id = task.assigned_to_id
     previous_clarity_rating = task.clarity_rating
@@ -2869,12 +3014,13 @@ def update_task(
         peer_stmt = (
             select(models.Task)
             .where(
-                models.Task.task_group_id == task.task_group_id,
+                task_groups.predicate(task),
                 models.Task.id != task.id,
             )
         )
         peer_tasks = db.execute(peer_stmt).scalars().all()
         for peer in peer_tasks:
+            _ensure_task_update_access(peer, current_user)
             for field, value in shared_updates.items():
                 setattr(peer, field, value)
 
@@ -2894,11 +3040,15 @@ def update_task(
         )
 
     status_changed = task.status != previous_status
-    if status_changed and not parent_changed_by_subtasks:
-        task_notifications.notify_status_change(db, task=task, actor=current_user, previous_status=previous_status)
+    workflow_changed = status_changed or task.custom_status_id != previous_custom_status_id
+    if workflow_changed and not parent_changed_by_subtasks:
+        task_notifications.notify_status_change(db, task=task, actor=current_user,
+            previous_status=previous_status, previous_custom_status_id=previous_custom_status_id)
 
-    other_fields_updated = bool(set(update_fields) - {"status"})
-    if task.created_by_id and task.created_by_id != current_user.id and not parent_changed_by_subtasks and not status_changed and other_fields_updated:
+    # Status move payloads also carry custom_status_id/hold_reason; unchanged
+    # values are not an edit and must not notify other assignees on every retry.
+    other_fields_updated = bool(set(update_fields) - {"status", "custom_status_id", "hold_reason"})
+    if task.created_by_id and task.created_by_id != current_user.id and not parent_changed_by_subtasks and not workflow_changed and other_fields_updated:
         notification_service.create_notification(
             db,
             user_id=task.created_by_id,
@@ -2913,7 +3063,7 @@ def update_task(
             related_task_id=task.id,
         )
 
-    if other_fields_updated and not parent_changed_by_subtasks and not status_changed:
+    if other_fields_updated and not parent_changed_by_subtasks and not workflow_changed:
         _notify_task_participants(
             db,
             task=task,

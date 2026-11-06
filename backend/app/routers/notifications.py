@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
 from ..auth import oauth2_scheme
@@ -214,6 +215,36 @@ def mark_notification_read(
         )
     )
     db.commit()
+
+
+@router.post("/bulk-delete", response_model=schemas.NotificationBulkDeleteResult)
+def delete_notifications(
+    payload: schemas.NotificationBulkDelete,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.User, Depends(get_current_active_user)],
+) -> schemas.NotificationBulkDeleteResult:
+    requested = set(payload.notification_ids)
+    selected = db.scalars(select(models.Notification).where(
+        models.Notification.id.in_(requested),
+        models.Notification.user_id == current_user.id,
+        or_(models.Notification.tenant_id == current_user.tenant_id, models.Notification.tenant_id.is_(None)),
+    ).order_by(models.Notification.id).options(selectinload(models.Notification.outbox_messages)).with_for_update()).all()
+    if len(selected) != len(requested):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "One or more notifications are no longer available. Refresh and select again.")
+    deleted_ids = [notification.id for notification in selected]
+    for notification in selected:
+        db.delete(notification)
+    db.add(models.AuditEvent(actor_id=current_user.id, event_type="notifications.deleted",
+        entity_type="notification", entity_id="bulk", payload={"notification_ids": deleted_ids, "count": len(deleted_ids)},
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None)))
+    db.commit()
+    audit_logger.log_event(audit_logger.AuditLogInput(
+        action="NOTIFICATIONS_DELETED", category=models.AuditLogCategoryEnum.NOTIFICATION,
+        actor_id=str(current_user.id), actor_role=current_user.role.value if current_user.role else None,
+        entity_type="notification", entity_id="bulk", target_user_id=str(current_user.id),
+        source=models.AuditLogSourceEnum.MANUAL, metadata={"notification_ids": deleted_ids, "count": len(deleted_ids)},
+    ))
+    return schemas.NotificationBulkDeleteResult(deleted_ids=deleted_ids)
 
 
 @router.delete("/{notification_id}", status_code=status.HTTP_204_NO_CONTENT)
