@@ -5,7 +5,7 @@ import Avatar, { useAvatarIdentity } from './Avatar';
 import TaskStatusBadge from './ui/TaskStatusBadge';
 import { calculateTaskPoints, formatPointsValue, summarizeTaskPoints } from '../utils/taskPoints';
 import { loadPointsConfig, type PointsConfig } from '../utils/pointsConfigStorage';
-import { assignmentMember } from '../utils/taskGroups';
+import { assignmentMember, isOwnAssignmentView } from '../utils/taskGroups';
 import { taskPermissions } from '../utils/taskPermissions';
 
 type QuestPartyProps = {
@@ -24,13 +24,14 @@ type QuestPartyProps = {
 function QuestParty({ assignments, usersMap, currentUser, currentTaskId, loading, error, onRetry, onOpenAssignment, busy = false }: QuestPartyProps) {
   const headingId = useId();
   const config = loadPointsConfig();
+  const ownView = isOwnAssignmentView(assignments, currentUser);
   return <section className="quest-party-panel" aria-labelledby={headingId} aria-busy={loading}>
     <div className="quest-party-heading">
-      <div><p className="quest-party-label"><UsersRound size={15} aria-hidden="true" /> Assigned Members</p>
-        <h3 id={headingId} className="mt-1 text-base font-semibold">Quest Party</h3></div>
+      <div><p className="quest-party-label"><UsersRound size={15} aria-hidden="true" /> {ownView ? 'Your assignment' : 'Assigned Members'}</p>
+        <h3 id={headingId} className="mt-1 text-base font-semibold">{ownView ? 'Quest progress' : 'Quest Party'}</h3></div>
       <span className="quest-overall-status">{assignments.length} {assignments.length === 1 ? 'assignment' : 'assignments'}</span>
     </div>
-    <p className="quest-party-help">Each member has independent progress and rewards. Open an assignment to use its permitted status, timer and task actions.</p>
+    <p className="quest-party-help">{ownView ? 'Your progress and rewards apply to your assignment. Open it to use your permitted status, timer and task actions.' : 'Each member has independent progress and rewards. Open an assignment to use its permitted status, timer and task actions.'}</p>
     {loading && <p role="status" className="quest-party-help">Loading quest party...</p>}
     {error && <div role="alert" className="quest-party-error"><p>{error}</p>
       <button type="button" className="quest-party-action quest-focus" disabled={loading} onClick={onRetry}><RefreshCw size={13} aria-hidden="true" /> Retry party</button>

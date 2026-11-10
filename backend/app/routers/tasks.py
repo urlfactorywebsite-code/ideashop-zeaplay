@@ -12,7 +12,7 @@ from ..realtime import capture as realtime_capture
 from sqlalchemy import String, and_, case, cast, func, inspect, or_, select, text, update
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, joinedload, object_session, selectinload
 from sqlalchemy.orm.attributes import set_committed_value
 import os
 import shutil
@@ -44,6 +44,8 @@ from ..services.task_access import (
     task_belongs_to_user_tenant as _task_belongs_to_user_tenant,
     task_tenant_predicate as _task_tenant_predicate,
     ensure_task_update_access as _ensure_task_update_access,
+    ensure_group_assignment_access,
+    group_assignment_predicate,
 )
 from .task_lifecycle import router as task_lifecycle_router
 
@@ -190,13 +192,23 @@ def _stabilize_subtasks_for_serialization(task: models.Task) -> None:
             set_committed_value(subtask, "sort_order", index)
 
 
-def _serialize_task(task: models.Task, status_title_map: dict[str, str], viewer: Optional[models.User] = None) -> schemas.TaskRead:
+def _serialize_task(task: models.Task, status_title_map: dict[str, str], viewer: Optional[models.User] = None,
+                    visible_dependency_ids: Optional[set[str]] = None,
+                    read_access_verified: bool = False) -> schemas.TaskRead:
     if task.attachments is None:
         task.attachments = []
     if task.tags is None:
         task.tags = []
     _stabilize_subtasks_for_serialization(task)
     payload = schemas.TaskRead.model_validate(task)
+    dependencies = payload.dependencies
+    if viewer and dependencies:
+        db = object_session(task)
+        permitted = visible_dependency_ids
+        if permitted is None:
+            permitted = set(db.scalars(_apply_task_visibility(select(models.Task.id), viewer).where(
+                models.Task.id.in_([dependency.id for dependency in dependencies])))) if db else set()
+        dependencies = [dependency for dependency in dependencies if dependency.id in permitted]
     total_tracked_seconds = sum(entry.duration_seconds or 0 for entry in task.time_entries)
     total_tracked_seconds += sum(
         entry.duration_seconds or 0
@@ -205,11 +217,14 @@ def _serialize_task(task: models.Task, status_title_map: dict[str, str], viewer:
     )
     capabilities = {"can_edit": False, "can_manage_subtasks": False, "can_review_subtasks": False}
     if viewer:
-        try:
-            _ensure_task_access(task, viewer)
-        except HTTPException:
-            pass
-        else:
+        if not read_access_verified:
+            try:
+                _ensure_task_access(task, viewer)
+            except HTTPException:
+                pass
+            else:
+                read_access_verified = True
+        if read_access_verified:
             for capability, check in (
                 ("can_edit", _ensure_task_update_access),
                 ("can_manage_subtasks", _ensure_subtask_workflow_write),
@@ -227,12 +242,24 @@ def _serialize_task(task: models.Task, status_title_map: dict[str, str], viewer:
         "follower_ids": [follower.id for follower in task.followers],
         "project": _serialize_task_project(task.project),
         "subtasks": _serialize_subtasks(task, viewer),
+        "dependencies": dependencies,
         "total_tracked_seconds": total_tracked_seconds,
     })
 
 
 def _serialize_tasks(tasks: List[models.Task], status_title_map: dict[str, str], viewer: Optional[models.User] = None) -> List[schemas.TaskRead]:
-    return [_serialize_task(task, status_title_map, viewer) for task in tasks]
+    # Callers pass visibility-filtered query results or rows just created by the
+    # viewer. Rechecking collection read grants per row would introduce N+1 SQL;
+    # mutation/review capability checks below still enforce their own policies.
+    visible_dependency_ids = None
+    if viewer and tasks:
+        dependency_ids = {dependency.id for task in tasks for dependency in task.dependencies}
+        if dependency_ids:
+            db = object_session(tasks[0])
+            visible_dependency_ids = set(db.scalars(_apply_task_visibility(select(models.Task.id), viewer).where(
+                models.Task.id.in_(dependency_ids)))) if db else set()
+    return [_serialize_task(task, status_title_map, viewer, visible_dependency_ids,
+                            read_access_verified=True) for task in tasks]
 
 
 def _serialize_task_list_item(task: models.Task) -> schemas.TaskListItem:
@@ -493,8 +520,7 @@ def _can_override_subtask_workflow(task: models.Task, current_user: models.User)
 
 
 def _ensure_task_access(task: models.Task, user: models.User) -> None:
-    if not _task_belongs_to_user_tenant(task, user):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    ensure_group_assignment_access(task, user)
     if user.role in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
         return
     if task.approver_id == user.id:
@@ -530,7 +556,7 @@ def _ensure_priority_allowed(priority: models.TaskPriorityEnum, user: models.Use
 
 
 def _apply_task_visibility(stmt: select, current_user: models.User) -> select:
-    stmt = stmt.where(_task_tenant_predicate(current_user))
+    stmt = stmt.where(group_assignment_predicate(current_user))
     if current_user.role == models.RoleEnum.MANAGER:
         visibility_filters = [
             models.Task.created_by_id == current_user.id,
@@ -681,17 +707,17 @@ def _hash_params(params: dict[str, Any]) -> str:
 
 def _list_cache_key(*, tenant_id: str, user_id: str, params: dict[str, Any]) -> str:
     fingerprint = _hash_params(params)
-    return f"{settings.cache_prefix}:tasks:list:tenant:{tenant_id}:user:{user_id}:q:{fingerprint}"
+    return f"{settings.cache_prefix}:tasks:list:tenant:{tenant_id}:user:{user_id}:assignment-v2:q:{fingerprint}"
 
 
 def _kanban_cache_key(*, tenant_id: str, user_id: str, params: dict[str, Any]) -> str:
     fingerprint = _hash_params(params)
-    return f"{settings.cache_prefix}:tasks:kanban:tenant:{tenant_id}:user:{user_id}:q:{fingerprint}"
+    return f"{settings.cache_prefix}:tasks:kanban:tenant:{tenant_id}:user:{user_id}:assignment-v2:q:{fingerprint}"
 
 
 def _calendar_cache_key(*, tenant_id: str, user_id: str, params: dict[str, Any]) -> str:
     fingerprint = _hash_params(params)
-    return f"{settings.cache_prefix}:tasks:calendar:tenant:{tenant_id}:user:{user_id}:q:{fingerprint}"
+    return f"{settings.cache_prefix}:tasks:calendar:tenant:{tenant_id}:user:{user_id}:assignment-v2:q:{fingerprint}"
 
 
 def _lean_task_stmt() -> select:
@@ -837,14 +863,14 @@ def list_tasks(
 ) -> List[schemas.TaskRead]:
     manager_notifications_created = False
     cache_key = None
-    if skip_overdue_notifications:
+    if skip_overdue_notifications and _is_admin_or_owner(current_user):
         tenant_id = str(current_user.tenant_id or settings.default_tenant_id)
         cache_key = build_cache_key(
             resource="tasks:list",
             tenant_id=tenant_id,
             user_id=str(current_user.id),
             path=request.url.path,
-            params=[*request.query_params.multi_items(), ("completion_metadata_policy", "2")],
+            params=[*request.query_params.multi_items(), ("completion_metadata_policy", "2"), ("assignment_policy", "2")],
         )
         cached_payload = get_cached_json(cache_key)
         if cached_payload is not None:
@@ -1393,7 +1419,7 @@ def list_tasks_page(
     cache_key = _list_cache_key(tenant_id=tenant_id, user_id=str(current_user.id), params=cache_params)
     # Grouped pages expand member identities. Re-evaluate their complete RBAC
     # scope on every request, including after role/project membership changes.
-    cached_payload = get_cached_json(cache_key) if not grouped else None
+    cached_payload = get_cached_json(cache_key) if not grouped and _is_admin_or_owner(current_user) else None
     if cached_payload is not None:
         return schemas.TaskListResponse.model_validate(cached_payload)
 
@@ -1710,7 +1736,7 @@ def get_calendar_summary(
         "quick_filter": quick_filter,
     }
     cache_key = _calendar_cache_key(tenant_id=tenant_id, user_id=str(current_user.id), params=cache_params)
-    cached_payload = get_cached_json(cache_key)
+    cached_payload = get_cached_json(cache_key) if _is_admin_or_owner(current_user) else None
     if cached_payload is not None:
         return schemas.TaskCalendarSummaryResponse.model_validate(cached_payload)
 
@@ -1884,7 +1910,7 @@ def create_task(
         normalized_assignees = [None]
 
     if payload.dependencies:
-        dependency_stmt = _task_query().where(models.Task.id.in_(payload.dependencies))
+        dependency_stmt = _apply_task_visibility(_task_query(), current_user).where(models.Task.id.in_(payload.dependencies))
         dependencies = db.execute(dependency_stmt).unique().scalars().all()
         found_ids = {dependency.id for dependency in dependencies}
         missing_ids = [dep_id for dep_id in payload.dependencies if dep_id not in found_ids]
@@ -2692,15 +2718,8 @@ def get_task_group(
 
     stmt = _apply_task_visibility(_task_query(), current_user).where(task_groups.predicate(task))
     group_tasks = db.execute(stmt).unique().scalars().all()
-    visible_group_tasks: list[models.Task] = []
-    for group_task in group_tasks:
-        try:
-            _ensure_task_access(group_task, current_user)
-        except HTTPException:
-            continue
-        visible_group_tasks.append(group_task)
     status_title_map = _status_title_map(db, current_user)
-    return _serialize_tasks(visible_group_tasks, status_title_map, viewer=current_user)
+    return _serialize_tasks(group_tasks, status_title_map, viewer=current_user)
 
 
 @router.patch("/{task_id}/kanban-status", response_model=schemas.TaskRead)
@@ -2886,7 +2905,7 @@ def update_task(
         if task_id in dependencies_ids:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Task cannot depend on itself")
         if dependencies_ids:
-            dependency_stmt = _task_query().where(models.Task.id.in_(dependencies_ids))
+            dependency_stmt = _apply_task_visibility(_task_query(), current_user).where(models.Task.id.in_(dependencies_ids))
             dependencies = db.execute(dependency_stmt).unique().scalars().all()
             found_ids = {dependency.id for dependency in dependencies}
             missing_ids = [dep_id for dep_id in dependencies_ids if dep_id not in found_ids]

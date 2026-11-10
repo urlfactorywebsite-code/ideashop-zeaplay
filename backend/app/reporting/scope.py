@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from sqlalchemy import and_, exists, or_, select
 
 from .. import models as m
-from ..services.task_access import task_tenant_predicate
+from ..services.task_access import task_tenant_predicate, group_assignment_predicate
 
 
 def admin(user):
@@ -24,7 +24,7 @@ def own_task_predicate(user):
 
 
 def authorized_tasks(user):
-    stmt = select(m.Task).where(task_tenant_predicate(user))
+    stmt = select(m.Task).where(group_assignment_predicate(user))
     if admin(user):
         return stmt
     own = own_task_predicate(user)

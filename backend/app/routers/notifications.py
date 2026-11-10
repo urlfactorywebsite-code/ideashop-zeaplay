@@ -12,6 +12,7 @@ from ..database import get_db
 from ..dependencies import get_current_active_user
 from ..services import audit_logger
 from ..services.notification_stream import notification_events
+from ..services.task_access import assignment_reference_predicate, notification_assignment_predicate
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -41,6 +42,7 @@ def list_notifications(
         select(models.Notification)
         .where(
             models.Notification.user_id == current_user.id,
+            notification_assignment_predicate(current_user),
             or_(
                 models.Notification.tenant_id == current_user.tenant_id,
                 models.Notification.tenant_id.is_(None),
@@ -60,6 +62,7 @@ def unread_count(
         select(func.count(models.Notification.id)).where(
             models.Notification.user_id == current_user.id,
             models.Notification.is_read.is_(False),
+            notification_assignment_predicate(current_user),
             or_(
                 models.Notification.tenant_id == current_user.tenant_id,
                 models.Notification.tenant_id.is_(None),
@@ -82,6 +85,10 @@ def list_notification_outbox(
     stmt = (
         select(models.NotificationOutbox)
         .where(models.NotificationOutbox.tenant_id == current_user.tenant_id)
+        .where(assignment_reference_predicate(current_user,
+            models.NotificationOutbox.payload["related_task_id"].as_string()))
+        .where(or_(models.NotificationOutbox.notification_id.is_(None),
+            models.NotificationOutbox.notification.has(notification_assignment_predicate(current_user))))
         .order_by(models.NotificationOutbox.created_at.desc())
         .limit(limit)
     )

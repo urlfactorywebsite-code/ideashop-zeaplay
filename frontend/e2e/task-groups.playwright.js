@@ -9,6 +9,8 @@ async (page) => {
   } };
   let empty = false, fail = false, paginationMode = false, deferParty = false, releaseParty = null, secondProject = false, deleteBarrier = null;
   const deleted = new Set(), deniedDeletes = new Set(), deleteCalls = [];
+  let personalAssignment = false;
+  let restrictedParty = false;
   const assignments = Array.from({ length: 8 }, (_, index) => ({
     id: 'task-' + index, title: 'Shared mission', description: 'One mission, independent member assignments.',
     status: index < 2 ? 'DONE' : 'IN_PROGRESS', priority: 'LOW', team: 'Engineering',
@@ -24,9 +26,10 @@ async (page) => {
     const url = new URL(route.request().url());
     if (url.hostname === 'cdn.tailwindcss.com') return route.fulfill({ path: 'docs/push-notifications/checks/tailwind-test-runtime.js', contentType: 'text/javascript' });
     if (url.origin !== base) return route.abort();
-    if (url.pathname === '/__task-groups') {
+    if (url.pathname === '/__task-groups' || url.pathname === '/__group-preview-review') {
       const response = await route.fetch({ url: base + '/' });
-      return route.fulfill({ response, body: (await response.text()).replace(/src="\/index\.tsx[^"]*"/, 'src="/e2e/taskNavigationFixture.tsx"') });
+      const fixture = url.pathname === '/__group-preview-review' ? 'groupQuestPreviewFixture' : 'taskNavigationFixture';
+      return route.fulfill({ response, body: (await response.text()).replace(/src="\/index\.tsx[^"]*"/, `src="/e2e/${fixture}.tsx"`) });
     }
     if (url.pathname === '/api/navigation') return route.fulfill({ json: { revision: 0, actorRole: 'owner', canManageGlobal: true,
       canManagePersonal: true, oauthManagementAccess: 'allowed', roles: ['owner','admin','manager','user'], apiSections: [],
@@ -35,7 +38,7 @@ async (page) => {
     if (url.pathname === '/api/tasks/page') {
       queries.push(Object.fromEntries(url.searchParams));
       if (fail) return route.fulfill({ status: 503, json: { detail: 'Synthetic task outage' } });
-      const available = assignments.filter(item => !deleted.has(item.id));
+      const available = assignments.filter(item => !deleted.has(item.id) && (!personalAssignment || item.assigned_to_id === 'member-2'));
       const pageNumber = Number(url.searchParams.get('page') || 1);
       const pageSize = Number(url.searchParams.get('page_size') || 10);
       let groups = paginationMode ? Array.from({ length: pageSize + 1 }, (_, index) => {
@@ -64,7 +67,8 @@ async (page) => {
     }
     if (/^\/api\/tasks\/[^/]+\/group$/.test(url.pathname)) {
       partyQueries.push(url.pathname);
-      const json = assignments.map(item => ({ ...item, can_edit: true }));
+      const json = assignments.filter(item => (!personalAssignment || item.assigned_to_id === 'member-2') &&
+        (!restrictedParty || item.id === 'task-7')).map(item => ({ ...item, can_edit: true }));
       if (deferParty) {
         deferParty = false;
         await new Promise(resolve => { releaseParty = async () => { await route.fulfill({ json }); resolve(); }; });
@@ -278,6 +282,16 @@ async (page) => {
   await card.getByRole('button', { name: 'Shared mission', exact: true }).click();
   await wait(async () => await party.locator('[data-party-assignment-id]').count() === 8);
   check(partyQueries.length > beforeParty && (await party.locator('[data-party-assignment-id="task-5"]').innerText()).includes('On Hold'), 'Party loading bypasses a populated stale group cache using the real API mapper');
+  restrictedParty = true;
+  await page.getByRole('button', { name: '8 users', exact: true }).click();
+  const restrictedLog = page.getByRole('dialog', { name: 'Shared task log', exact: true });
+  await restrictedLog.getByText(/1 users/).waitFor();
+  check(!(await restrictedLog.innerText()).match(/Member [0-6]/), 'Shared task log bypasses a cached group after permissions narrow');
+  restrictedParty = false;
+  await restrictedLog.getByRole('button', { name: 'Refresh', exact: true }).click();
+  await restrictedLog.getByText(/8 users/).waitFor();
+  check(true, 'Shared task log refresh rechecks current grants');
+  await restrictedLog.getByRole('button', { name: 'Close modal', exact: true }).click();
   await page.waitForTimeout(500);
   const beforeDetailReads = await page.evaluate(() => window.taskNavigationAudit.calls.filter(call => ['getTask', 'getComments'].includes(call.method)).length);
   const beforeRealtime = partyQueries.length;
@@ -429,6 +443,36 @@ async (page) => {
   await card.first().waitFor();
   check(await card.count() === 1, 'List retrieval errors recover without duplicate quest cards');
 
+  personalAssignment = true;
+  await go('&personalAssignment=1&networkParty=1&account=member-2&role=user');
+  await card.first().waitFor();
+  for (const view of ['List', 'Grid']) {
+    await page.getByRole('button', { name: new RegExp(view, 'i'), exact: true }).click();
+    await card.getByText('Your assignment', { exact: true }).waitFor();
+    check(await card.count() === 1, `${view} keeps one personal quest card`);
+    check(await card.getByText('Your progress', { exact: true }).count() === 1, `${view} labels personal progress`);
+    await card.getByText('View 1 assignment', { exact: true }).click();
+    check(await card.getByRole('button', { name: /^Open assignment for Member/ }).count() === 1, `${view} exposes only one assignment action`);
+    check(!(await card.innerText()).match(/Member [0134567]|2\/8|8 assigned members/), `${view} contains no hidden identities or group totals`);
+  }
+  await card.getByRole('button', { name: 'Open assignment for Member 2', exact: true }).click();
+  const personalParty = page.getByRole('region', { name: 'Quest progress', exact: true });
+  await personalParty.locator('[data-party-assignment-id="task-2"]').waitFor();
+  check(await personalParty.locator('[data-party-assignment-id]').count() === 1, 'Assignee details expose only their own assignment');
+  check(!(await personalParty.innerText()).match(/Member [0134567]/), 'Personal details contain no sibling identities');
+  check(await personalParty.getByRole('button', { name: 'Manage assignment for Member 2', exact: true }).count() === 1, 'Own permitted assignment actions remain available');
+  await page.goto(base + '/__group-preview-review');
+  await page.getByRole('heading', { name: 'Private cached assignment', exact: true }).waitFor();
+  check(true, 'Authorized creator preview still opens normally');
+  await page.evaluate(() => window.groupPreviewReview.switchRole('user'));
+  await page.getByText('Loading zea.play quest intel...', { exact: true }).waitFor();
+  check(!(await page.locator('body').innerText()).includes('Private cached assignment'), 'Permission downgrade clears the cached preview before a fresh response');
+  await page.evaluate(() => window.groupPreviewReview.switchRole('owner'));
+  await page.getByText('Loading zea.play quest intel...', { exact: true }).waitFor();
+  check(!(await page.locator('body').innerText()).includes('Private cached assignment'), 'Returning to an earlier role cannot restore an unverified preview');
+  await page.evaluate(() => window.groupPreviewReview.release());
+  await page.getByRole('heading', { name: 'Private cached assignment', exact: true }).waitFor();
+  check(true, 'Fresh authorized response restores task details after a permission change');
   check(errors.length === 0, 'No browser runtime errors');
   return { passed: cases.length, cases, errors };
 }

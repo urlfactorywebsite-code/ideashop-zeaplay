@@ -450,7 +450,8 @@ def test_grouped_requests_do_not_reuse_stale_authorization_payloads(grouped, mon
     outsider = data.client.get("/api/tasks/page", params={"grouped": True}, headers={"x-actor": data.outsider.id}).json()
     assert outsider["total"] == 1
     member = data.client.get("/api/tasks/page", params={"grouped": True}, headers={"x-actor": data.members[0].id}).json()
-    assert member["total"] == 3
+    assert member["total"] == 2
+    assert all(len(item["group_assignments"]) == 1 for item in member["items"])
     assert page(data, assignee_id=data.members[0].id)["total"] == 2
     assert len(payloads) == 1  # Only the unchanged assignment API uses the backend payload cache.
     owner_payload = page(data)

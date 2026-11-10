@@ -20,6 +20,7 @@ const SameTaskLogModal: React.FC<SameTaskLogModalProps> = ({ isOpen, onClose, ta
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const refreshGroupRef = useRef(onRefreshGroup);
+  const requestSequence = useRef(0);
 
   useEffect(() => {
     refreshGroupRef.current = onRefreshGroup;
@@ -32,17 +33,20 @@ const SameTaskLogModal: React.FC<SameTaskLogModalProps> = ({ isOpen, onClose, ta
   }, [groupTasks]);
 
   const fetchSameTasks = useCallback(async () => {
+    const sequence = ++requestSequence.current;
     setLoading(true);
     setError(null);
     try {
-      const grouped = await api.getTaskGroup(taskId);
+      const grouped = await api.getTaskGroup(taskId, { fresh: true });
+      if (sequence !== requestSequence.current) return;
       setTasks(grouped);
       refreshGroupRef.current?.();
     } catch (err) {
+      if (sequence !== requestSequence.current) return;
       console.error('Failed to fetch same tasks:', err);
       setError('Failed to load linked tasks');
     } finally {
-      setLoading(false);
+      if (sequence === requestSequence.current) setLoading(false);
     }
   }, [taskId]);
 
@@ -50,6 +54,7 @@ const SameTaskLogModal: React.FC<SameTaskLogModalProps> = ({ isOpen, onClose, ta
     if (isOpen && taskId) {
       fetchSameTasks();
     }
+    return () => { ++requestSequence.current; };
   }, [fetchSameTasks, isOpen, taskId]);
 
   const activityFeed = useMemo(() => {

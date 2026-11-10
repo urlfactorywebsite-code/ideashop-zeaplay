@@ -4,7 +4,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import TaskGroupMembers, { GroupQuestStatus } from '../components/TaskGroupMembers';
 import QuestParty from '../components/QuestParty';
-import { Task, TaskPriority, TaskStatus, TaskCategory, RecurrenceRule } from '../types';
+import { Task, TaskPriority, TaskStatus, TaskCategory, RecurrenceRule, User, Role } from '../types';
 import { assignmentIds, assignmentMember, taskSelectionState, settleAssignmentActions, taskGroupSummary, visibleAssignments, removeTaskAssignments } from '../utils/taskGroups';
 import { calculateTaskPoints, summarizeTaskPoints } from '../utils/taskPoints';
 import { buildTaskListKey } from '../hooks/useTaskCache';
@@ -19,6 +19,43 @@ const member = (index: number): Task => ({
   clarityRating: null, attachments: [], estimatedHours: null, tags: [],
 });
 const grouped = (): Task => ({ ...member(7), groupAssignments: Array.from({ length: 8 }, (_, index) => member(index)) });
+
+test('server-filtered personal group renders only own identity, status, rewards and progress', () => {
+  const own = member(2);
+  const task = { ...own, groupAssignments: [own] };
+  const currentUser = { id: 'member-2', role: Role.USER } as User;
+  // Directory profiles must never expand assignment membership.
+  const usersMap = new Map(Array.from({ length: 8 }, (_, index) => [`member-${index}`, {
+    id: `member-${index}`, name: `Member ${index}`, role: Role.USER,
+  } as User]));
+  for (const compact of [false, true]) {
+    const html = renderToStaticMarkup(<TaskGroupMembers task={task} currentUser={currentUser}
+      usersMap={usersMap} compact={compact} onOpenAssignment={() => {}} />);
+    assert.match(html, /Your assignment/); assert.match(html, /Your progress/);
+    assert.match(html, /0\/1 complete/);
+    assert.equal((html.match(/Open assignment for Member/g) || []).length, 1);
+    for (const index of [0, 1, 3, 4, 5, 6, 7]) assert(!html.includes(`Member ${index}`));
+    assert(!html.includes('Overall progress') && !html.includes('8 assigned members'));
+  }
+  const party = renderToStaticMarkup(<QuestParty assignments={[own]} usersMap={usersMap} currentUser={currentUser}
+    currentTaskId={own.id} loading={false} error={null} onRetry={() => {}} onOpenAssignment={() => {}} />);
+  assert.match(party, /Your assignment/); assert.match(party, /Your progress and rewards/);
+  assert.equal((party.match(/data-party-assignment-id=/g) || []).length, 1);
+  for (const index of [0, 1, 3, 4, 5, 6, 7]) assert(!party.includes(`Member ${index}`));
+  assert.deepEqual(assignmentIds(task), [own.id]);
+});
+
+test('creator still renders the complete grouped card and party', () => {
+  const creator = { id: 'owner', role: Role.USER } as User;
+  const task = grouped();
+  const html = renderToStaticMarkup(<TaskGroupMembers task={task} currentUser={creator} onOpenAssignment={() => {}} />);
+  assert.match(html, /8 assigned members/); assert.match(html, /2\/8 complete/);
+  assert.match(html, /Quest progress/); assert(!html.includes('Your progress'));
+  const party = renderToStaticMarkup(<QuestParty assignments={task.groupAssignments!} usersMap={new Map()} currentUser={creator}
+    currentTaskId={task.id} loading={false} error={null} onRetry={() => {}} onOpenAssignment={() => {}} />);
+  assert.match(party, /Quest Party/);
+  assert.equal((party.match(/data-party-assignment-id=/g) || []).length, 8);
+});
 
 test('group progress and XP are display aggregates while every assignment ID/status is preserved', () => {
   const task = grouped(), before = structuredClone(task);

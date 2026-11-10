@@ -12,7 +12,7 @@ from sqlalchemy.orm import aliased
 
 from .. import models
 from . import time_tracking as timers
-from .task_access import task_tenant_predicate
+from .task_access import group_assignment_predicate
 
 
 def chains(user):
@@ -37,7 +37,7 @@ def _clipped(start, end, lower, upper):
 def _visible_task(user):
     """Match timer target visibility without lazy-loading relationships per task."""
     task = models.Task
-    tenant = task_tenant_predicate(user)
+    tenant = group_assignment_predicate(user)
     if user.role in {models.RoleEnum.ADMIN, models.RoleEnum.OWNER}:
         return tenant
     return tenant & or_(task.created_by_id == user.id, task.assigned_to_id == user.id,

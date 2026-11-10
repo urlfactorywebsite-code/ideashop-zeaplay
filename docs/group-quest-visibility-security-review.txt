@@ -1,0 +1,162 @@
+Group Quest assignment visibility - implementation and security review
+Date: 10 November 2026
+Project: Idea Shop / ZeaPlay, F:\Projects\ideashop-zeaplay-v5
+
+RESULT
+The creator retains one logical Group Quest card containing every authorized
+assignment, its member identity, individual status, progress and existing actions.
+An ordinary assignee receives only their own assignment. Assignment IDs, group
+IDs, task creation, database relationships, scoring and independent Kanban cards
+remain in place. No application schema migration or dependency was added.
+
+ORIGINAL ROOT CAUSE
+Assignments are existing Task rows sharing task_group_id, rather than a new
+assignment table. The previous task policy granted project members access to all
+project task rows. Group expansion reused that broad policy, so ordinary project
+members received sibling assignments through both list and detail APIs. Frontend
+components correctly rendered the supplied data, including unauthorized siblings.
+
+BACKEND FIX AND SECURITY FINDINGS
+- task_access.py supplies one tenant-aware assignment predicate plus an object
+  access guard. Query filtering runs before pagination, counts and group expansion.
+- Creators keep access to their assignment rows. Existing tenant-wide Admin/Owner
+  access is preserved. Managers require an established project-manager membership
+  or assignee-department read scope; a Manager label alone does not open a group.
+  Explicit per-assignment approver access is preserved.
+- The original creator also retains read access to members added by an authorized
+  project manager while the creator remains a member of that project. Existing
+  write permissions still apply separately to each assignment.
+- Legacy records without group IDs retain their previous policy. Single-assignee
+  subtask handoffs and explicit observers retain their established grants without
+  expanding multi-assignee groups. The last surviving assignment stays private
+  from users whose only grant was general project membership.
+- Direct reads, edits, completion, deletion, comments, task history and timer
+  access use the shared guard. Foreign tenants receive 404; denied same-tenant
+  assignment access uses the existing 403 convention. IDs supplied in queries or
+  request bodies cannot replace the authenticated server identity.
+- Nested dependency summaries are filtered; dependency IDs submitted on creation
+  or update must also be visible. Dependency checks for list responses are batched.
+- List, Kanban, calendar, search, reporting and project task dashboards apply
+  assignment restrictions. Project task counts, dashboard workloads and nested
+  dashboard member lists describe permitted assignments only. The separately
+  authorized general project directory retains its existing membership policy.
+- Realtime single-task events recheck access. Batch events filter task_ids per
+  recipient. Denied events become content-free invalidations rather than exposing
+  assignment IDs, statuses, actor IDs or private workflow payloads.
+- Notification creation/delivery uses existing authorization checks with the new
+  guard. Existing notification history/counts and managerial outbox listings hide
+  restricted assignment references. Queued email rechecks access before sending.
+- Server task cache keys are versioned. Restricted viewers bypass stored task
+  population/count payloads so permission changes are reevaluated. Detail/group
+  requests are fresh, and modal state is scoped to account, tenant, role and
+  department. Existing session-generation cache separation remains in place.
+
+REFINEMENT REVIEW FINDINGS
+Five additional defects were confirmed and corrected without redesigning cards:
+- A realtime event containing both task_id and task_ids could retain hidden
+  sibling IDs. Both fields now share one recipient-specific visibility query.
+- A queued email with a linked notification but no task ID in its payload could
+  bypass assignment authorization. Delivery now checks the linked notification,
+  recipient and tenant as well as any explicit payload task reference. Tests
+  confirm denial of a peer notification and delivery of an authorized own notice
+  using a stub sender; no external email was sent.
+- Shared task logs could reuse cached group members after permissions changed.
+  Group loads and Refresh now request fresh data and ignore stale/closed requests.
+- A detail preview could retain privileged data after a role change, including
+  switching back before fresh data arrived. A changed viewer scope invalidates
+  the preview for that modal lifetime until the server returns authorized data.
+- An original creator could lose a member added by an authorized project manager.
+  A tenant/project-scoped creator read grant restores the complete grouped view.
+  The creator cannot edit manager-created rows without an existing write grant;
+  removing project membership revokes this additional read grant.
+
+FRONTEND
+The existing Group Quest card and Quest Party render the server-authorized rows.
+A personal view labels its metrics "Your assignment" and "Your progress"; it has
+no hidden-member avatars, sibling actions or misleading full-group totals.
+Creator markup, grouped-card count, member actions and overall progress remain
+unchanged. The frontend does not act as the security filter.
+
+PERFORMANCE
+Group member retrieval remains batched. Tests compare assignee pages containing
+1 versus 20 logical tasks and enforce the same query count, at most 12 SELECTs.
+Existing creator query-bound and pagination/cursor tests also pass. Nested
+dependency authorization is checked once per list rather than once per task.
+Batch-loaded manager relationships avoid repeated object-policy SELECTs.
+Creator group-detail query counts are equal at 3 and 18 assignments, including
+manager-created rows. Serialization reuses the already-filtered collection for
+read authorization while retaining independent mutation-capability checks.
+Realtime authorization batches referenced IDs once per connected recipient.
+
+VERIFICATION RESULTS
+PASS: 232 distinct backend cases; 5 engine-specific SQLite skips. PostgreSQL
+      counterparts ran against a disposable rt3_test database, with isolated
+      schemas. The count deduplicates repeated focused checks.
+      - Security and existing task-group suite: 76 passed, 2 skipped.
+      - Task status notifications: 14 passed.
+      - Notification inbox: 28 passed.
+      - Subtask handoff: 28 passed.
+      - Reporting inventory: 38 passed.
+      - Timer refinement: 32 passed, 3 skipped.
+      - Project task dashboard: 9 passed.
+      - Project management: 7 passed.
+PASS: 32 frontend unit tests covering grouped rendering, personal rendering,
+      status labels, subtask contracts and existing business status rules.
+PASS: 102 browser checks, including creator regression, assignee List/Grid/detail
+      rendering, independent Kanban cards, filters, pagination, actions and
+      realtime refreshes, shared-log cache invalidation and role-change previews;
+      no browser runtime errors.
+PASS: Production Vite build, targeted Ruff undefined-name checks, unused-import
+      checks on the shared policy/new security tests, and git diff --check.
+FAIL (existing baseline): Full TypeScript check reports 114 diagnostics. Comparing
+      normalized signatures with the prior grouped UI baseline found zero changed
+      signatures. The repository is not type-check clean.
+NOT RUN: Frontend lint; package.json provides no lint script.
+
+The security suite creates exactly three assignments, then logs in through the
+real /api/auth/login endpoint as the creator and each assignee. It exercises
+separate bearer identities, forged IDs/query parameters/request bodies, own
+updates/completion, cross-tenant denial and creator refresh after completion.
+Browser checks use synthetic loopback fixtures; real FastAPI authentication and
+SQL authorization are exercised separately by the HTTP regression tests.
+
+An older project test fixture omitted NavigationPolicy. Its disposable fixture
+now creates that existing table, and its bounded-query assertion accounts for the
+existing authenticated navigation-policy lookup. No runtime authorization check
+was removed. Windows Python 3.14 hit a native worker-thread stack overflow during
+an earlier combined run; completed backend runs used an 8 MiB test-thread stack.
+
+FILES MODIFIED
+backend/app/reporting/scope.py
+backend/app/routers/notifications.py
+backend/app/routers/projects.py
+backend/app/routers/tasks.py
+backend/app/services/notification_outbox.py
+backend/app/services/notification_stream.py
+backend/app/services/project_dashboard.py
+backend/app/services/projects.py
+backend/app/services/task_access.py
+backend/app/services/time_tracking.py
+backend/app/services/work_history.py
+backend/app/ws/tasks.py
+backend/tests/test_group_assignment_visibility.py (new)
+backend/tests/test_projects_phase4.py
+backend/tests/test_task_groups.py
+frontend/components/QuestParty.tsx
+frontend/components/SameTaskLogModal.tsx
+frontend/components/TaskDetailModal.tsx
+frontend/components/TaskGroupMembers.tsx
+frontend/e2e/task-groups.playwright.js
+frontend/e2e/groupQuestPreviewFixture.tsx (new)
+frontend/e2e/taskNavigationFixture.tsx
+frontend/pages/Tasks.tsx
+frontend/test/task-groups.test.tsx
+frontend/utils/taskGroups.ts
+docs/group-quest-visibility-security-review.txt (this report)
+
+LIMITS
+This is source and isolated local verification. No production deployment,
+production browser certification or production database modification occurred.
+Existing TypeScript diagnostics and Vite bundle/eval warnings remain. Previously
+authorized general project membership visibility is distinct from assignment
+visibility; its directory endpoint was not redesigned.

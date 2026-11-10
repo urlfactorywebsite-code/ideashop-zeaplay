@@ -1859,7 +1859,7 @@ const Tasks: React.FC = () => {
                                             Project: {task.project?.name ?? 'Legacy task'}
                                         </div>
                                     </div>
-                                    {task.groupAssignments ? <TaskGroupMembers task={task} usersMap={usersMap} compact onOpenAssignment={handleTaskClick} /> : renderPointsBadge(task)}
+                                    {task.groupAssignments ? <TaskGroupMembers task={task} usersMap={usersMap} currentUser={user} compact onOpenAssignment={handleTaskClick} /> : renderPointsBadge(task)}
                                 </div>
                             </div>
                         </div>
@@ -1913,7 +1913,7 @@ const Tasks: React.FC = () => {
                                         <div className={isLight || isColorful ? 'mt-1 text-xs font-semibold text-indigo-700' : 'mt-1 text-xs font-semibold text-cyan-200'}>
                                             Project: {task.project?.name ?? 'Legacy task'}
                                         </div>
-                                        {task.groupAssignments ? <TaskGroupMembers task={task} usersMap={usersMap} onOpenAssignment={handleTaskClick} /> : renderPointsBadge(task)}
+                                        {task.groupAssignments ? <TaskGroupMembers task={task} usersMap={usersMap} currentUser={user} onOpenAssignment={handleTaskClick} /> : renderPointsBadge(task)}
                                     </div>
                                 </div>
                             );

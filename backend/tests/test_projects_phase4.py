@@ -17,6 +17,7 @@ from backend.app.models import (
     AuditEvent,
     Client,
     Department,
+    NavigationPolicy,
     Project,
     ProjectMember,
     ProjectMemberRoleEnum,
@@ -59,6 +60,7 @@ AvatarAsset.__table__.create(bind=engine, checkfirst=True)
 Client.__table__.create(bind=engine, checkfirst=True)
 Project.__table__.create(bind=engine, checkfirst=True)
 ProjectMember.__table__.create(bind=engine, checkfirst=True)
+NavigationPolicy.__table__.create(bind=engine, checkfirst=True)
 AuditEvent.__table__.create(bind=engine, checkfirst=True)
 Reward.__table__.create(bind=engine, checkfirst=True)
 RewardClaim.__table__.create(bind=engine, checkfirst=True)
@@ -439,7 +441,8 @@ def test_project_list_uses_bounded_queries_with_many_team_members():
     assert listed.status_code == 200, listed.text
     assert listed.json()["total"] == 5
     assert all(len(item["members"]) == 62 for item in listed.json()["items"])
-    assert len(statements) <= 7
+    # Includes the authenticated navigation-policy lookup as well as project loaders.
+    assert len(statements) <= 8
 
 
 def test_project_user_selector_reads_only_current_tenant_users():

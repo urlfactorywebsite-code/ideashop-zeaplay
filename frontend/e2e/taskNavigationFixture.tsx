@@ -27,10 +27,12 @@ let tasks = Array.from({ length: rowCount }, (_, index) => ({
 }));
 if (params.has('multiAssignee')) {
   tasks = tasks.map((task, index) => ({ ...task, canEdit: params.has('memberPermissions') ? index === 3 : !params.has('readOnlyParty'), taskGroupId: 'shared-fixture-group', title: 'Shared mission',
+    createdBy: params.has('personalAssignment') ? 'task-reviewer' : task.createdBy,
     priority: TaskPriority.LOW, dueAt: null, completedAt: index < 2 ? '2026-11-02T06:00:00Z' : null,
     project: { id: 'project-0', name: 'Verification project', status: 'ACTIVE' },
     status: index < 2 ? TaskStatus.DONE : TaskStatus.IN_PROGRESS, assignedTo: [`member-${index}`] }));
 }
+if (params.has('personalAssignment')) tasks = tasks.filter(task => task.assignedTo.includes(user.id));
 const calls: { method: string; args: unknown[] }[] = [];
 const rawTasks = api.getTasks.bind(api);
 const rawTaskPage = api.getTasksPage.bind(api);
@@ -63,7 +65,7 @@ const emptyPage = { items: [], total: 0, page: 1, pageSize: 20, totalPages: 1 };
 const overrides: Record<string, (...args: any[]) => unknown> = {
   restoreBrowserSession: () => { storeTokens('synthetic-task-token', 'synthetic-task-refresh'); return true; },
   getCurrentUser: () => user,
-  getUsers: () => params.has('multiAssignee') ? [user, ...tasks.map((task, index) => ({ ...user, id: task.assignedTo[0], name: params.has('longPartyName') && index === 0 ? '<script>' + 'x'.repeat(250) : 'Member ' + index, role: Role.USER, avatarUrl: null }))] : [user], getDepartments: () => [{ id: 'engineering', name: 'Engineering' }],
+  getUsers: () => params.has('multiAssignee') ? [user, ...tasks.map((task, index) => ({ ...user, id: task.assignedTo[0], name: params.has('longPartyName') && index === 0 ? '<script>' + 'x'.repeat(250) : 'Member ' + (params.has('personalAssignment') ? task.assignedTo[0].replace('member-', '') : index), role: Role.USER, avatarUrl: null }))] : [user], getDepartments: () => [{ id: 'engineering', name: 'Engineering' }],
   getReleaseNotes: () => ({ versionLabel: 'Zea.Play V6.0.1', updates: [], content: '' }),
   getActiveWork: () => ({ items: [{ id: 'session-0', entry_id: 'entry-0', status: 'RUNNING', task_id: 'task-1', subtask_id: null,
     project_name: 'Verification project', task_title: 'Navigation task 1', subtask_title: null, subtask_status: 'IN_PROGRESS',

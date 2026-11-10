@@ -14,6 +14,7 @@ from ..integrations import trigger_n8n_event
 from ..tickets import task_link_service
 from . import audit_logger, projects as project_service, security_audit
 from . import task_events, task_notifications, task_statuses
+from .task_access import group_assignment_predicate
 
 
 STATUS_POLICY = (
@@ -215,7 +216,7 @@ def _serialize_dashboard_task(
     )
 
 
-def _build_workload(project: models.Project, tasks: list[models.Task]) -> list[schemas.ProjectDashboardWorkload]:
+def _build_workload(project: models.Project, tasks: list[models.Task], visible_member_ids=None) -> list[schemas.ProjectDashboardWorkload]:
     workload = {
         member.user_id: schemas.ProjectDashboardWorkload(
             user_id=member.user_id,
@@ -223,7 +224,7 @@ def _build_workload(project: models.Project, tasks: list[models.Task]) -> list[s
             role=member.role,
         )
         for member in project.members
-        if member.user is not None
+        if member.user is not None and (visible_member_ids is None or member.user_id in visible_member_ids)
     }
     for task in tasks:
         if task.assigned_to_id in workload:
@@ -276,7 +277,8 @@ def project_task_dashboard(
     project = project_service.get_project(db, tenant_id=actor.tenant_id, project_id=project_id, actor=actor)
     page = max(page, 1)
     page_size = min(max(page_size, 1), 100)
-    stmt = _task_query().where(models.Task.project_id == project.id)
+    visible_tasks = _task_query().where(models.Task.project_id == project.id, group_assignment_predicate(actor))
+    stmt = visible_tasks
     if search:
         needle = f"%{search.strip().casefold()}%"
         stmt = stmt.where(or_(func.lower(models.Task.title).like(needle), func.lower(models.Task.description).like(needle)))
@@ -294,7 +296,7 @@ def project_task_dashboard(
 
     total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
     tasks = db.execute(stmt.offset((page - 1) * page_size).limit(page_size)).unique().scalars().all()
-    all_project_tasks = db.execute(_task_query().where(models.Task.project_id == project.id)).unique().scalars().all()
+    all_project_tasks = db.execute(visible_tasks).unique().scalars().all()
     force_started_ids = _force_started_ids(db, all_project_tasks)
     dashboard_tasks = [_serialize_dashboard_task(db, task, force_started_ids=force_started_ids) for task in tasks]
     all_dashboard_tasks = [_serialize_dashboard_task(db, task, force_started_ids=force_started_ids) for task in all_project_tasks]
@@ -317,6 +319,11 @@ def project_task_dashboard(
             active_timer_users.update(subtask.active_timer_user_ids)
     progress_percent = int(round((completed_subtasks / subtask_total) * 100)) if subtask_total else 0
 
+    visible_member_ids = None
+    if not (_is_admin(actor) or (actor.role == models.RoleEnum.MANAGER and actor.id in _project_manager_ids(project))):
+        visible_member_ids = {actor.id}
+        visible_member_ids.update(task.assigned_to_id for task in all_project_tasks if task.assigned_to_id)
+        visible_member_ids.update(child.assigned_to_id for task in all_project_tasks for child in task.subtasks if child.assigned_to_id)
     summary = schemas.ProjectDashboardSummary(
         task_total=len(all_project_tasks),
         subtask_total=subtask_total,
@@ -328,10 +335,14 @@ def project_task_dashboard(
         derived_status_counts={status: int(derived_status_counts.get(status, 0)) for status in models.TaskStatusEnum},
         subtask_status_counts={status: int(subtask_status_counts.get(status, 0)) for status in models.SubtaskStatusEnum},
         priority_counts={priority: int(priority_counts.get(priority, 0)) for priority in models.TaskPriorityEnum},
-        workload=_build_workload(project, all_project_tasks),
+        workload=_build_workload(project, all_project_tasks, visible_member_ids),
     )
+    project_read = project_service.to_read(project, task_count=len(all_project_tasks))
+    if visible_member_ids is not None:
+        project_read = project_read.model_copy(update={
+            "members": [member for member in project_read.members if member.user_id in visible_member_ids]})
     return schemas.ProjectTaskDashboardResponse(
-        project=project_service.to_read(project, task_count=len(all_project_tasks)),
+        project=project_read,
         summary=summary,
         items=dashboard_tasks,
         page=page,

@@ -103,13 +103,26 @@ class TaskConnectionManager:
                         await self.disconnect(tenant_id, socket)
                         await socket.close(code=1008)
                         continue
-                    if message.get("task_id"):
-                        from ..routers.tasks import _ensure_task_access, _fetch_task_or_404
-                        try:
-                            _ensure_task_access(_fetch_task_or_404(db, message["task_id"]), user)
-                        except Exception:
-                            # A deletion or revoked assignment must also clear stale lists without disclosing resource data.
+                    task_id = message.get("task_id")
+                    task_ids = message.get("task_ids") or []
+                    references = set(task_ids)
+                    if task_id:
+                        references.add(task_id)
+                    if references:
+                        # Check primary and batch references together. A permitted
+                        # primary task must never authorize the other batch IDs.
+                        # Only IDs are needed; avoid loading full task/user graphs
+                        # for every socket receiving an invalidation.
+                        from ..routers.tasks import _apply_task_visibility
+                        from ..models import Task
+                        visible_ids = set(db.scalars(_apply_task_visibility(
+                            select(Task.id), user).where(Task.id.in_(references))))
+                        if task_id and task_id not in visible_ids:
                             outgoing = {"type": "task.changed", "tenant_id": str(tenant_id), "action": "invalidate", "event_id": message.get("event_id")}
+                        elif task_ids:
+                            outgoing = {**message, "task_ids": [identifier for identifier in task_ids if identifier in visible_ids]}
+                            if not outgoing["task_ids"]:
+                                outgoing = {"type": "task.changed", "tenant_id": str(tenant_id), "action": "invalidate", "event_id": message.get("event_id")}
                 await asyncio.wait_for(socket.send_json(outgoing), timeout=get_settings().realtime_send_timeout)
             except Exception as exc:
                 FANOUT_FAILURES.labels("tasks", "timeout" if isinstance(exc, TimeoutError) else "error").inc()

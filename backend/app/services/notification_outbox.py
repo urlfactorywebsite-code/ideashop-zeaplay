@@ -7,6 +7,7 @@ from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
+from fastapi import HTTPException
 from sqlalchemy import insert, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -207,6 +208,25 @@ def _attempt_email_delivery(db: Session, outbox_id: str) -> int:
         recipient = db.get(models.User, outbox.recipient_user_id)
         if not recipient or str(recipient.tenant_id) != str(outbox.tenant_id) or recipient.status != models.UserStatusEnum.ACTIVE or recipient.email != payload.get('to_address'):
             raise SmtpError('recipient_rejected')
+        if outbox.notification_id:
+            from .task_access import notification_assignment_predicate
+            # Legacy jobs may identify the assignment only through their linked
+            # notification, with no related_task_id in the queued payload.
+            permitted_notice = db.scalar(select(models.Notification.id).where(
+                models.Notification.id == outbox.notification_id,
+                models.Notification.user_id == recipient.id,
+                or_(models.Notification.tenant_id == recipient.tenant_id, models.Notification.tenant_id.is_(None)),
+                notification_assignment_predicate(recipient)))
+            if permitted_notice is None:
+                raise SmtpError('recipient_rejected')
+        if payload.get('related_task_id'):
+            from .task_access import ensure_group_assignment_access
+            task = db.get(models.Task, payload['related_task_id'])
+            if task:
+                try:
+                    ensure_group_assignment_access(task, recipient)
+                except HTTPException:
+                    raise SmtpError('recipient_rejected') from None
         body = payload['body']
         if outbox.event_type == 'password_reset':
             from .password_recovery import delivery_body

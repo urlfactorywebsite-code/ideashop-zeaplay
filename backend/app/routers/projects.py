@@ -82,7 +82,7 @@ def get_project(
     current_user: models.User = Depends(get_current_active_user),
 ) -> schemas.ProjectRead:
     project = project_service.get_project(db, tenant_id=current_user.tenant_id, project_id=project_id, actor=current_user)
-    return project_service.to_read(project, task_count=project_service.count_project_tasks(db, project_id=project.id))
+    return project_service.to_read(project, task_count=project_service.count_project_tasks(db, project_id=project.id, actor=current_user))
 
 
 @router.get("/{project_id}/task-dashboard", response_model=schemas.ProjectTaskDashboardResponse)
@@ -184,7 +184,7 @@ def restore_project(
 ) -> schemas.ProjectRead:
     project = project_service.restore_project(
         db, tenant_id=current_user.tenant_id, project_id=project_id, actor=current_user)
-    return project_service.to_read(project, task_count=project_service.count_project_tasks(db, project_id=project.id))
+    return project_service.to_read(project, task_count=project_service.count_project_tasks(db, project_id=project.id, actor=current_user))
 
 
 @router.post("/{project_id}/archive", response_model=schemas.ProjectRead)

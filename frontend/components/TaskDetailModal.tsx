@@ -280,7 +280,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
     useEffect(() => { detailMounted.current = true; return () => { detailMounted.current = false; }; }, []);
     const { user } = useAuth();
     const { label: taskStatusLabel } = useTaskStatusLabels();
-    taskScope.current = `${user?.tenantId}:${user?.id}:${taskId}:${isOpen}`;
+    taskScope.current = `${user?.tenantId}:${user?.id}:${user?.role}:${user?.department}:${taskId}:${isOpen}`;
     const { notify } = useToast();
     useEffect(() => {
         if (!isOpen || !user) return;
@@ -2045,7 +2045,14 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
 
 const TaskDetailModal: React.FC<TaskDetailModalProps> = props => {
     const { user } = useAuth();
-    const scope = `${user?.tenantId}:${user?.id}:${props.taskId}:${props.isOpen}`;
+    const viewerScope = `${user?.tenantId}:${user?.id}:${user?.role}:${user?.department}`;
+    // A preview belongs to the viewer who opened the modal. Account/permission
+    // changes must wait for the fresh authorized request before showing content.
+    const previewViewer = useRef({ scope: viewerScope, trusted: true });
+    if (previewViewer.current.scope !== viewerScope) {
+        previewViewer.current = { scope: viewerScope, trusted: false };
+    }
+    const scope = `${viewerScope}:${props.taskId}:${props.isOpen}`;
     const [selection, setSelection] = useState<{ scope: string; id: string } | null>(null);
     const opener = useRef<HTMLElement | null>(typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null);
     useEffect(() => () => {
@@ -2054,10 +2061,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = props => {
     }, []);
     const activeId = selection?.scope === scope ? selection.id : props.taskId;
     return <TaskDetailContent key={`${scope}:${activeId}`} {...props} taskId={activeId}
-        initialTask={selection?.scope !== scope && props.initialTask?.id === activeId ? props.initialTask : null}
+        initialTask={previewViewer.current.trusted && selection?.scope !== scope && props.initialTask?.id === activeId ? props.initialTask : null}
         focusSubtaskId={activeId === props.taskId ? props.focusSubtaskId : null}
         focusAssignment={selection?.scope === scope}
-        requireFresh={props.requireFresh || selection?.scope === scope}
+        requireFresh
         onOpenAssignment={id => setSelection({ scope, id })} />;
 };
 

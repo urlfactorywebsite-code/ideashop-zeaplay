@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, load_only, selectinload
 
 from .. import models, schemas
 from ..lifecycle.context import bind_actor
-from .task_access import task_belongs_to_user_tenant, task_tenant_predicate
+from .task_access import task_tenant_predicate, ensure_group_assignment_access
 
 
 TERMINAL_TASK_STATUSES = {
@@ -88,8 +88,7 @@ def _project_manager_ids(project: models.Project) -> set[str]:
 
 
 def ensure_task_visible(task: models.Task, user: models.User) -> None:
-    if not task_belongs_to_user_tenant(task, user):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    ensure_group_assignment_access(task, user)
     if _is_admin_or_owner(user):
         return
     if task.project and user.id in _project_member_ids(task.project):

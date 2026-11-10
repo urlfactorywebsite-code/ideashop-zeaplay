@@ -4,7 +4,7 @@ import { Task, TaskStatus, User } from '../types';
 import Avatar, { useAvatarIdentity, type AvatarPerson } from './Avatar';
 import Tooltip from './ui/Tooltip';
 import TaskStatusBadge from './ui/TaskStatusBadge';
-import { assignmentMember, taskGroupSummary, visibleAssignments } from '../utils/taskGroups';
+import { assignmentMember, isOwnAssignmentView, taskGroupSummary, visibleAssignments } from '../utils/taskGroups';
 import { formatPointsValue } from '../utils/taskPoints';
 
 export function GroupQuestIndicator() {
@@ -24,10 +24,11 @@ export function GroupQuestStatus({ task }: { task: Task }) {
   </span>;
 }
 
-function TaskGroupMembers({ task, onOpenAssignment, usersMap, compact = false }: {
-  task: Task; onOpenAssignment: (id: string) => void; usersMap?: Map<string, User>; compact?: boolean;
+function TaskGroupMembers({ task, onOpenAssignment, usersMap, currentUser, compact = false }: {
+  task: Task; onOpenAssignment: (id: string) => void; usersMap?: Map<string, User>; currentUser?: User | null; compact?: boolean;
 }) {
   const summary = taskGroupSummary(task, undefined, usersMap);
+  const ownView = isOwnAssignmentView(summary.assignments, currentUser);
   return <div className={`quest-group-members ${compact ? 'quest-group-members--compact' : ''}`} onClick={event => event.stopPropagation()}>
     <div className="quest-party-roster">
       <div className="quest-avatar-stack" role="group" aria-label="Assigned members">
@@ -39,11 +40,11 @@ function TaskGroupMembers({ task, onOpenAssignment, usersMap, compact = false }:
         {summary.members.length > 4 && <span role="img" className="quest-avatar-overflow quest-avatar-overflow--compact"
           aria-label={`${summary.members.length - 4} more members`}>+{summary.members.length - 4}</span>}
       </div>
-      <span className="quest-member-count">{summary.members.length} assigned {summary.members.length === 1 ? 'member' : 'members'}</span>
+      <span className="quest-member-count">{ownView ? 'Your assignment' : `${summary.members.length} assigned ${summary.members.length === 1 ? 'member' : 'members'}`}</span>
     </div>
-    <div className="quest-progress-heading"><span>Quest progress</span><span>{summary.progress}% ({summary.complete}/{summary.total} complete)</span></div>
+    <div className="quest-progress-heading"><span>{ownView ? 'Your progress' : 'Quest progress'}</span><span>{summary.progress}% ({summary.complete}/{summary.total} complete)</span></div>
     <progress className="quest-progress" max={Math.max(1, summary.total)} value={summary.complete}
-      aria-label={`Overall progress for ${task.title}`} aria-valuetext={`${summary.complete} of ${summary.total} assignments complete (${summary.progress}%)`} />
+      aria-label={`${ownView ? 'Your' : 'Overall'} progress for ${task.title}`} aria-valuetext={`${summary.complete} of ${summary.total} assignments complete (${summary.progress}%)`} />
     <div className="quest-rewards" title="Display estimate using the existing points configuration. Rewards remain independent for each assignment.">
       <Sparkles size={15} aria-hidden="true" />
       <span><span className="font-semibold">XP estimate:</span> {formatPointsValue(summary.awarded)} completed <span aria-hidden="true">/</span> {formatPointsValue(summary.potential)} potential remaining</span>

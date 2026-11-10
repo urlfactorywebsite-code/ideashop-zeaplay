@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from .. import models
 from ..auth import credentials_match
 from ..dependencies import _decode_access_token, _extract_user_id
+from .task_access import notification_assignment_predicate
 
 logger = logging.getLogger(__name__)
 POLL_SECONDS = 1
@@ -33,6 +34,7 @@ def notification_snapshot(bind, *, token, user_id, tenant_id):
             func.sum(case((models.Notification.is_read.is_(False), 1), else_=0)),
         ).where(
             models.Notification.user_id == user_id,
+            notification_assignment_predicate(user),
             or_(models.Notification.tenant_id == tenant_id, models.Notification.tenant_id.is_(None)),
         )).one())
 

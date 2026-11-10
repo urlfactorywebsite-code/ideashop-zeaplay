@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
 from . import archive_state, entity_notifications, security_audit
+from .task_access import group_assignment_predicate
 
 
 SortField = Literal["name", "created_at", "updated_at", "status", "client"]
@@ -301,6 +302,7 @@ def list_projects(
             db.execute(
                 select(models.Task.project_id, func.count(models.Task.id))
                 .where(models.Task.project_id.in_(project_ids))
+                .where(group_assignment_predicate(actor))
                 .group_by(models.Task.project_id)
             ).all()
         )
@@ -536,15 +538,16 @@ def restore_project(db: Session, *, tenant_id: uuid.UUID | str, project_id: str,
     return db.execute(_project_query(project.tenant_id).where(models.Project.id == project.id)).scalars().first()
 
 
-def count_project_tasks(db: Session, *, project_id: str) -> int:
+def count_project_tasks(db: Session, *, project_id: str, actor: models.User | None = None) -> int:
     try:
         if "tasks" not in inspect(db.bind).get_table_names():
             return 0
     except Exception:
         return 0
-    return int(
-        db.execute(select(func.count(models.Task.id)).where(models.Task.project_id == project_id)).scalar_one()
-    )
+    stmt = select(func.count(models.Task.id)).where(models.Task.project_id == project_id)
+    if actor is not None:
+        stmt = stmt.where(group_assignment_predicate(actor))
+    return int(db.scalar(stmt))
 
 
 def to_read(project: models.Project, *, task_count: int = 0) -> schemas.ProjectRead:

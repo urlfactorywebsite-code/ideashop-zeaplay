@@ -5,6 +5,11 @@ import { loadPointsConfig } from './pointsConfigStorage';
 export const visibleAssignments = (task: Task): Task[] => task.groupAssignments ?? [task];
 export const assignmentIds = (task: Task): string[] => visibleAssignments(task).map(member => member.id);
 
+// The API owns authorization; this only names a server-filtered personal view.
+export const isOwnAssignmentView = (assignments: Task[], user?: User | null): boolean =>
+  !!user && assignments.length === 1 && assignments[0].createdBy !== user.id &&
+  assignments[0].assignedTo?.[0] === user.id;
+
 export const taskSelectionState = (task: Task, selected: ReadonlySet<string>) => {
   const ids = assignmentIds(task);
   const count = ids.filter(id => selected.has(id)).length;
