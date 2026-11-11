@@ -3730,6 +3730,45 @@ def delete_subtask_dependency(
     return None
 
 
+@router.post("/{task_id}/subtasks", response_model=schemas.TaskRead, status_code=status.HTTP_201_CREATED)
+def create_subtask(
+    task_id: str,
+    payload: schemas.SubtaskCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+) -> schemas.TaskRead:
+    task = _fetch_task_or_404(db, task_id)
+    _ensure_task_access(task, current_user)
+    _ensure_subtask_workflow_write(task, current_user)
+    _ensure_subtask_assignee_allowed(db, task, payload.assigned_to_id, current_user)
+    # Serialize appends against this parent; never replace an older client-side list.
+    db.execute(select(models.Task.id).where(models.Task.id == task_id).with_for_update()).first()
+    children = db.scalars(select(models.Subtask).where(models.Subtask.task_id == task_id)).all()
+    subtask = models.Subtask(
+        title=payload.title,
+        assigned_to_id=payload.assigned_to_id,
+        status=models.SubtaskStatusEnum.TODO,
+        completed=False,
+        sort_order=max((child.sort_order or 0 for child in children), default=-1) + 1,
+    )
+    task.subtasks.append(subtask)
+    db.flush()
+    subtask_workflow.synchronize_parent_completion(db, task, actor=current_user)
+    subtask_notifications.enqueue_reassignment_notification(
+        db, task=task, subtask=subtask, previous_assignee_id=None, actor_id=current_user.id,
+    )
+    security_audit.append_event(
+        db, actor=current_user, event_type="subtask.created", entity_type="subtask",
+        entity_id=subtask.id, payload={"task_id": task_id},
+    )
+    db.commit()
+    _invalidate_task_cache(current_user, action="subtask_created", task_id=task_id)
+    _schedule_notification_outbox_delivery(background_tasks)
+    updated_task = _fetch_task_or_404(db, task_id)
+    return _serialize_task(updated_task, _status_title_map(db, current_user), viewer=current_user)
+
+
 @router.patch("/{task_id}/subtasks/{subtask_id}", response_model=schemas.TaskRead)
 def update_subtask(
     task_id: str,

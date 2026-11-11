@@ -20,7 +20,7 @@ import MultiSelect from './ui/MultiSelect';
 import { StarIcon, PaperClipIcon, TagIcon, TrashIcon } from './icons';
 import SameTaskLogModal from './SameTaskLogModal';
 import TaskHoldHistory from './TaskHoldHistory';
-import { History } from 'lucide-react';
+import { History, Plus, Pencil } from 'lucide-react';
 import { WorkTimerControls } from './ActiveWork';
 import { WORK_UPDATED_EVENT } from '../hooks/useActiveWork';
 import { TASK_REALTIME_EVENT, type TaskRealtimeNotice } from '../services/taskRealtimeEvents';
@@ -269,6 +269,9 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
     const [completionBusy, setCompletionBusy] = useState(false);
     const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
     const [subtaskBusyId, setSubtaskBusyId] = useState<string | null>(null);
+    const [subtaskDraft, setSubtaskDraft] = useState<{ id?: string; title: string; assignedToId: string | null } | null>(null);
+    const [subtaskEditorError, setSubtaskEditorError] = useState<string | null>(null);
+    const subtaskEditorId = React.useId();
     const subtaskMutation = useRef(false);
     const taskFetchSequence = useRef(0);
     const groupFetchSequence = useRef(0);
@@ -313,6 +316,8 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
             }
             fetchTask();
             setPendingUpdates({});
+            setSubtaskDraft(null);
+            setSubtaskEditorError(null);
         }
     // Background list refreshes must not replace an open editor or clear its unsaved draft.
     // Assignment changes remount this editor; realtime refreshes reconcile confirmed server data.
@@ -567,6 +572,36 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
     const handleSubtaskToggle = async (subtaskId: string, completed: boolean) => {
         if (completed) openCompletionDialog(subtaskId);
         else await handleSubtaskUpdate(subtaskId, { status: SubtaskStatus.TODO });
+    };
+    const saveSubtaskDraft = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (!task || !subtaskDraft || subtaskMutation.current || !taskPermissions(task, user).canManageSubtasks) return;
+        const title = subtaskDraft.title.trim();
+        if (!title) { setSubtaskEditorError('Enter a subtask title.'); return; }
+        subtaskMutation.current = true;
+        setSubtaskBusyId(subtaskDraft.id ?? 'new');
+        setSubtaskEditorError(null);
+        ++taskFetchSequence.current;
+        const scope = taskScope.current;
+        try {
+            const existing = task.subtasks.find(sub => sub.id === subtaskDraft.id);
+            const updatedTask = subtaskDraft.id
+                ? await api.updateSubtask(task.id, subtaskDraft.id, {
+                    title,
+                    ...(existing?.assignedToId !== subtaskDraft.assignedToId ? { assignedToId: subtaskDraft.assignedToId } : {}),
+                })
+                : await api.createSubtask(task.id, { title, assignedToId: subtaskDraft.assignedToId });
+            if (!detailMounted.current || scope !== taskScope.current) return;
+            ++taskFetchSequence.current;
+            setTask(updatedTask);
+            onTaskUpdated?.(updatedTask);
+            setSubtaskDraft(null);
+        } catch (err) {
+            if (detailMounted.current && scope === taskScope.current) setSubtaskEditorError(err instanceof Error ? err.message : 'Unable to save subtask.');
+        } finally {
+            subtaskMutation.current = false;
+            if (detailMounted.current && scope === taskScope.current) setSubtaskBusyId(null);
+        }
     };
     const handleSubtaskUpdate = async (
         subtaskId: string,
@@ -1242,8 +1277,47 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                             <section className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-lg font-semibold text-white">Subtasks</h3>
-                                    <span className="text-xs text-white/70">{subtaskStats.progress}% complete</span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs text-white/70">{subtaskStats.progress}% complete</span>
+                                        {canManageSubtasks && (
+                                            <button type="button" aria-label="Add subtask" title="Add subtask"
+                                                aria-expanded={Boolean(subtaskDraft && !subtaskDraft.id)} aria-controls={subtaskEditorId}
+                                                disabled={Boolean(subtaskBusyId) || completionBusy || Boolean(subtaskDraft)}
+                                                onClick={() => { setSubtaskDraft({ title: '', assignedToId: task.assignedTo?.[0] ?? null }); setSubtaskEditorError(null); }}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-50">
+                                                <Plus className="h-4 w-4" aria-hidden="true" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+                                {subtaskDraft && canManageSubtasks && (
+                                    <form id={subtaskEditorId} onSubmit={saveSubtaskDraft} aria-label={subtaskDraft.id ? 'Edit subtask' : 'Add subtask'}
+                                        className="mt-4 space-y-3 rounded-2xl border border-white/20 bg-black/30 p-4">
+                                        <h4 className="text-sm font-semibold text-white">{subtaskDraft.id ? 'Edit subtask' : 'Add subtask'}</h4>
+                                        <label className="block text-sm text-white/80" htmlFor={`${subtaskEditorId}-title`}>Subtask title</label>
+                                        <input id={`${subtaskEditorId}-title`} autoFocus required maxLength={255} value={subtaskDraft.title}
+                                            disabled={Boolean(subtaskBusyId)} className={selectFieldClass}
+                                            onChange={event => setSubtaskDraft({ ...subtaskDraft, title: event.target.value })} />
+                                        <label className="block text-sm text-white/80" htmlFor={`${subtaskEditorId}-assignee`}>Assignee</label>
+                                        <select id={`${subtaskEditorId}-assignee`} value={subtaskDraft.assignedToId ?? ''}
+                                            disabled={Boolean(subtaskBusyId)} className={selectFieldClass}
+                                            onChange={event => setSubtaskDraft({ ...subtaskDraft, assignedToId: event.target.value || null })}>
+                                            <option value="">Unassigned</option>
+                                            {Array.from(usersMap.values()).filter(candidate => candidate.status === UserStatus.ACTIVE || candidate.id === subtaskDraft.assignedToId)
+                                                .map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
+                                        </select>
+                                        {subtaskEditorError && <p role="alert" className="text-sm text-rose-200">{subtaskEditorError}</p>}
+                                        <div className="flex flex-wrap gap-2">
+                                            <button type="submit" disabled={Boolean(subtaskBusyId) || completionBusy || !subtaskDraft.title.trim()}
+                                                className="rounded-full border border-sky-400/50 bg-sky-500/15 px-4 py-2 text-sm text-sky-100 disabled:opacity-50">
+                                                {subtaskBusyId ? 'Saving…' : subtaskDraft.id ? 'Save changes' : 'Add subtask'}
+                                            </button>
+                                            <button type="button" disabled={Boolean(subtaskBusyId)}
+                                                onClick={() => { setSubtaskDraft(null); setSubtaskEditorError(null); }}
+                                                className="rounded-full border border-white/20 px-4 py-2 text-sm text-white/80 disabled:opacity-50">Cancel</button>
+                                        </div>
+                                    </form>
+                                )}
                                 {subtaskStats.total > 0 ? (
                                     <>
                                         <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-black/40">
@@ -1270,7 +1344,15 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                                                             className="mt-1 h-4 w-4 rounded border-white/30 bg-black/20 text-emerald-400 focus:ring-emerald-300"
                                                         />
                                                         <div className="min-w-0 flex-1">
-                                                            <span className="text-sm text-white/80">{sub.title}</span>
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <span className="break-words text-sm text-white/80">{sub.title}</span>
+                                                                {canManageSubtasks && <button type="button" aria-label={`Edit subtask: ${sub.title}`} title="Edit subtask"
+                                                                    disabled={Boolean(subtaskBusyId) || completionBusy || Boolean(subtaskDraft)}
+                                                                    onClick={() => { setSubtaskDraft({ id: sub.id, title: sub.title, assignedToId: sub.assignedToId ?? null }); setSubtaskEditorError(null); }}
+                                                                    className="shrink-0 rounded-full p-1 text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-50">
+                                                                    <Pencil className="h-4 w-4" aria-hidden="true" />
+                                                                </button>}
+                                                            </div>
                                                             <div className="mt-2 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-white/55">
                                                                 <span>{formatTaskStatus(sub.status ?? (sub.completed ? SubtaskStatus.DONE : SubtaskStatus.TODO))}</span>
                                                                 <span>{sub.dependencyState ?? 'READY'}</span>

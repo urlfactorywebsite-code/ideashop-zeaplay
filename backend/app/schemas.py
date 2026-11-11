@@ -1003,13 +1003,30 @@ class SubtaskInput(SubtaskBase):
     id: Optional[str] = None
 
 
+class SubtaskCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    assigned_to_id: Optional[str] = None
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def clean_title(cls, value: str) -> str:
+        return value.strip() if isinstance(value, str) else value
+
+
 class SubtaskUpdate(BaseModel):
-    title: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=255)
     completed: Optional[bool] = None
     assigned_to_id: Optional[str] = None
     status: Optional[SubtaskStatusEnum] = None
     sort_order: Optional[int] = None
     force_start_reason: Optional[str] = Field(default=None, min_length=3, max_length=500)
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def clean_title(cls, value: str) -> str:
+        if value is None:
+            raise ValueError("Subtask title is required")
+        return value.strip() if isinstance(value, str) else value
 
 
 class SubtaskDependencyBase(BaseModel):

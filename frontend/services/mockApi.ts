@@ -4870,6 +4870,21 @@ const api = {
     }
   },
 
+  async createSubtask(taskId: string, input: { title: string; assignedToId: string | null }): Promise<Task> {
+    try {
+      const { data } = await http.post<ApiTask>(`/tasks/${taskId}/subtasks`, {
+        title: input.title, assigned_to_id: input.assignedToId,
+      });
+      invalidateCache('tasks');
+      invalidateCache('task:');
+      invalidateCache('task-group:');
+      invalidateCache('comments:');
+      return mapTask(data);
+    } catch (error) {
+      mapAxiosError(error);
+    }
+  },
+
   async updateSubtask(taskId: string, subtaskId: string, updates: Partial<Subtask>): Promise<Task> {
     try {
       const body: Record<string, unknown> = {};

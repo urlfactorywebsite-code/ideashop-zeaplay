@@ -56,6 +56,64 @@ def patch_child(api, data, child, user, state):
                      json={"status": state}, headers=auth(user))
 
 
+def test_add_and_rename_subtask_preserves_existing_workflow(api, data, chain):
+    first = chain.children[0]
+    assert patch_child(api, data, first, data.owner, "IN_PROGRESS").status_code == 200
+    path = f"/api/tasks/{data.task.id}/subtasks"
+    before = api.get(f"/api/tasks/{data.task.id}", headers=auth(data.owner)).json()["subtasks"]
+    created = api.post(path, json={"title": "  New work  ", "assigned_to_id": chain.users[1].id}, headers=auth(data.owner))
+    assert created.status_code == 201, created.text
+    children = created.json()["subtasks"]
+    assert children[:-1] == before
+    added = children[-1]
+    assert added["title"] == "New work"
+    assert added["assigned_to_id"] == chain.users[1].id
+    assert added["status"] == "TODO" and not added["completed"]
+    assert added["sort_order"] == 3
+    renamed = api.patch(f"{path}/{first.id}", json={"title": " Updated design "}, headers=auth(data.owner))
+    assert renamed.status_code == 200, renamed.text
+    edited = next(child for child in renamed.json()["subtasks"] if child["id"] == first.id)
+    assert edited["title"] == "Updated design"
+    assert edited["status"] == "IN_PROGRESS"
+    assert edited["assigned_to_id"] == chain.users[0].id
+
+
+def test_add_subtask_authorization_and_tenant_isolation(api, data, chain):
+    path = f"/api/tasks/{data.task.id}/subtasks"
+    for user in (chain.users[0], chain.users[1]):
+        assert api.post(path, json={"title": "Forbidden"}, headers=auth(user)).status_code == 403
+    assert api.post(path, json={"title": "Other tenant"}, headers=auth(data.outsider)).status_code == 404
+    assert api.post(path, json={"title": "Wrong tenant", "assigned_to_id": data.outsider.id}, headers=auth(data.owner)).status_code == 404
+    assert api.post("/api/tasks/missing/subtasks", json={"title": "Missing"}, headers=auth(data.owner)).status_code == 404
+    with data.factory() as db:
+        assert len(db.get(models.Task, data.task.id).subtasks) == 3
+
+
+@pytest.mark.parametrize("title", ["", "   ", None, "x" * 256])
+def test_subtask_title_validation_on_add_and_edit(api, data, title):
+    path = f"/api/tasks/{data.task.id}/subtasks"
+    assert api.post(path, json={"title": title}, headers=auth(data.owner)).status_code == 422
+    assert api.patch(f"{path}/{data.child.id}", json={"title": title}, headers=auth(data.owner)).status_code == 422
+
+
+def test_add_first_subtask_and_reopen_completed_parent(api, data):
+    path = f"/api/tasks/{data.task.id}/subtasks"
+    assert patch_child(api, data, data.child, data.owner, "DONE").json()["status"] == "DONE"
+    created = api.post(path, json={"title": "Follow-up"}, headers=auth(data.owner))
+    assert created.status_code == 201, created.text
+    assert created.json()["status"] == "IN_PROGRESS"
+    assert created.json()["completed_at"] is None
+    assert len(created.json()["subtasks"]) == 2
+    with data.factory() as db:
+        task = db.get(models.Task, data.task.id)
+        task.subtasks.clear()
+        db.commit()
+    first = api.post(path, json={"title": "First subtask"}, headers=auth(data.owner))
+    assert first.status_code == 201, first.text
+    assert len(first.json()["subtasks"]) == 1
+    assert first.json()["subtasks"][0]["sort_order"] == 0
+
+
 def activations(data, user):
     with data.factory() as db:
         return db.scalars(select(models.Notification).where(
