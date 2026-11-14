@@ -50,6 +50,17 @@ async (page) => {
   const loadingBox = await strip.boundingBox();
   const initial = data([1000,0,9,10,99,100,1000]);
   initial.statuses[3].label = 'Awaiting client review';
+  await page.evaluate(()=>{
+    window.countTiming={start:null,finish:null,seen:false};
+    const observer=new MutationObserver(()=>{
+      if (document.querySelector('.task-count-strip [data-rolling="true"]')) {
+        if (!window.countTiming.seen) window.countTiming.start=performance.now();
+        window.countTiming.seen=true;
+      }
+      else if (window.countTiming.seen) { window.countTiming.finish=performance.now(); observer.disconnect(); }
+    });
+    observer.observe(document.querySelector('.task-count-strip'),{subtree:true,attributes:true,attributeFilter:['data-rolling']});
+  });
   await set(initial);
   await page.waitForFunction(() => document.querySelectorAll('[data-rolling="true"]').length > 0);
   check(await strip.locator('[data-count-id="WAITING_FOR_REQUIREMENT"] [data-rolling="true"]').count() === 0, 'Initial zero count settles without spinning');
@@ -58,7 +69,11 @@ async (page) => {
   await page.waitForTimeout(110);
   check(await sample.evaluate(el=>getComputedStyle(el).transform) !== before, 'Digits roll vertically using transforms');
   await settled();
+  const elapsed=await page.evaluate(()=>window.countTiming.finish-window.countTiming.start);
+  check(elapsed>=800 && elapsed<=1150, 'Initial roll finishes within approximately one second (' + Math.round(elapsed) + 'ms)');
   check(await strip.locator('.task-count-label').evaluateAll(nodes=>nodes.every(node=>node.clientHeight===28)), 'Long labels use a consistent two-line header height');
+  check(await strip.locator('.task-count-label').evaluateAll(nodes=>nodes.every(node=>node.scrollHeight<=node.clientHeight)), 'Status labels fit without hidden extra lines');
+  check(await strip.locator('.task-count-bindings').evaluateAll(nodes=>nodes.every(node=>node.children.length===2)), 'Every calendar has two consistent metallic rings');
   check((await strip.boundingBox()).height === loadingBox.height, 'Loading and settled card heights remain stable');
   check(await strip.locator('[data-count-id="total"] .task-count-rest').innerText() === '1000', 'Four-digit counts settle to exact sharp static text');
   check(await strip.locator('[data-count-id="TODO"]').getAttribute('aria-label') === initial.statuses[1].label + ': 9', 'Accessible names expose only final status and count');
@@ -70,6 +85,9 @@ async (page) => {
   await page.waitForTimeout(100);
   await set(data([9,0,10,100,1000,99,9]));
   await settled();
+  const finalCounts=data([9,0,10,100,1000,99,9]);
+  check(JSON.stringify(await strip.locator('.task-count-rest').allTextContents())===JSON.stringify([finalCounts.total,...finalCounts.statuses.map(status=>status.count)].map(String)),
+    'Every counter settles to its exact latest value after rapid digit growth and shrinkage');
   check(await strip.locator('[data-count-id="total"] .task-count-rest').innerText() === '9', 'Rapid increases and decreases retarget to the latest exact count');
   check(await strip.locator('[data-count-id="total"] .task-count-digit').count() === 1, 'Leading reels retire after a decrease without resizing cards');
   check((await page.evaluate(()=>window.countStripFixture.parentRenders)) - renders <= 6, 'Animation never updates the parent on each frame');
@@ -85,11 +103,17 @@ async (page) => {
   check(await strip.getAttribute('aria-busy')==='true' && await strip.locator('[data-rolling="true"]').count()===0,
     'Losing valid data during motion cancels reels and restores loading placeholders');
   await page.waitForTimeout(1050);
+  check(await page.evaluate(()=>window.countFrameProbe.size)===0, 'Interrupted loading leaves no animation frames running');
   await set(data([1000,0,9,10,99,100,1000]));
   await settled();
   check(await strip.locator('[data-count-id="total"] .task-count-rest').innerText()==='1000',
     'The same valid count recovers correctly after interrupted loading');
-  await set(data([9,0,10,100,1000,99,9])); await settled();
+  const responsiveCounts=data([9,0,10,100,1000,99,9]);
+  await set(responsiveCounts); await settled();
+  await set({...responsiveCounts,statuses:responsiveCounts.statuses.map((status,index)=>index===3 ? {...status,label:'Awaiting client review'} : status)});
+  await page.waitForTimeout(30);
+  check(await strip.locator('[data-rolling="true"]').count()===0 && await strip.locator('[data-count-id="BUG_FIXING"]').getAttribute('aria-label')==='Awaiting client review: 1000',
+    'Status label updates remain accessible without replaying unchanged counts');
   for (const width of [1600,1280,768,375,320]) {
     await page.setViewportSize({width,height:800});
     const layout = await strip.evaluate(el=>({viewport:el.clientWidth,scroll:el.scrollWidth,page:document.documentElement.scrollWidth,window:innerWidth,
@@ -97,6 +121,7 @@ async (page) => {
       panels:[...el.querySelectorAll('.task-count-number')].map(c=>[c.clientWidth,c.scrollWidth])}));
     check(new Set(layout.cards.map(c=>c.y)).size === 1 && new Set(layout.cards.map(c=>c.h)).size === 1 && Math.max(...layout.cards.map(c=>c.w))-Math.min(...layout.cards.map(c=>c.w)) < 1, width + 'px keeps every equal-sized card in one row');
     check(layout.page <= layout.window && layout.panels.every(([w,s])=>s<=w), width + 'px has no page or multi-digit panel overflow');
+    check(await strip.locator('.task-count-label').evaluateAll(nodes=>nodes.every(node=>node.scrollHeight<=node.clientHeight)), width + 'px fits long labels within two lines');
     if (width===1600) check(layout.scroll<=layout.viewport, 'Desktop fits all readable counters');
     if (width<=768) check(layout.scroll>layout.viewport, width + 'px scrolls within the strip');
     await page.screenshot({path:'.tmp/task-count-strip/calendar-' + width + '.png'});
@@ -144,7 +169,8 @@ async (page) => {
   check(await strip.locator('[data-rolling="true"]').count()===0, 'Unchanged count responses from filtering do not replay the reels');
   for (const theme of ['light', 'colorful', 'dark']) {
     await page.evaluate(theme=>localStorage.setItem('zenith-task-theme',theme), theme);
-    await go(); await page.reload(); await strip.waitFor(); await settled();
+    await go(); await page.reload(); await strip.waitFor();
+    await page.waitForFunction(()=>document.querySelector('.task-count-strip')?.getAttribute('aria-busy')==='false'); await settled();
     check(await strip.locator('.task-count-number').first().evaluate(el=>getComputedStyle(el).color)==='rgb(241, 249, 255)', theme + ' theme retains bright readable digits on navy panels');
     for (const width of [1600,768,375]) {
       await page.setViewportSize({width,height:1000});

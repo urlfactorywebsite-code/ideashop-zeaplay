@@ -19,7 +19,11 @@ const CountDigit = React.memo(function CountDigit({ digit, value, delay, leading
   const y = useTransform(position, row => `${-row}em`);
   const previous = useRef<number | null>(null);
   useEffect(() => {
-    if (value === null) return;
+    if (value === null) {
+      previous.current = null;
+      position.set(10);
+      return;
+    }
     const before = previous.current;
     previous.current = value;
     if (reduced || before === null && value === 0) { position.set(10 + digit); return; }
@@ -45,7 +49,12 @@ const RollingTaskCount = React.memo(function RollingTaskCount({ value, index, re
   const length = String(value ?? 0).length;
   const delay = countStagger(index);
   useLayoutEffect(() => {
-    if (value === null) return;
+    if (value === null) {
+      previous.current = null;
+      deadline.current = 0;
+      setRolling(false); setSlots(1);
+      return;
+    }
     const before = previous.current;
     previous.current = value;
     if (reduced || before === null && value === 0) {
@@ -74,17 +83,19 @@ const RollingTaskCount = React.memo(function RollingTaskCount({ value, index, re
 
 export interface TaskCountItem { id: string; label: string; count: number }
 
-const CalendarTaskCount = React.memo(function CalendarTaskCount({ item, ready, index, reduced }: { item: TaskCountItem; ready: boolean; index: number; reduced: boolean }) {
-  const value = ready && validTaskCount(item.count) ? item.count : null;
-  return <div className="task-count-calendar" role="group" aria-label={`${item.label}: ${value ?? 'Loading count'}`}
-    data-count-id={item.id} data-count-value={value ?? ''}>
+const CalendarTaskCount = React.memo(function CalendarTaskCount({ id, label, count, ready, index, reduced }: TaskCountItem & { ready: boolean; index: number; reduced: boolean }) {
+  const value = ready && validTaskCount(count) ? count : null;
+  return <div className="task-count-calendar" role="group" aria-label={`${label}: ${value ?? 'Loading count'}`}
+    data-count-id={id} data-count-value={value ?? ''}>
     <span className="task-count-bindings" aria-hidden="true"><i /><i /></span>
-    <span className="task-count-label" title={item.label} aria-hidden="true">{item.label}</span>
+    <span className="task-count-label" title={label} aria-hidden="true">{label}</span>
     <RollingTaskCount value={value} index={index} reduced={reduced} />
   </div>;
 });
 
-export default function TaskCountStrip({ total, statuses, ready }: { total: number; statuses: TaskCountItem[]; ready: boolean }) {
+interface TaskCountStripProps { total: number; statuses: TaskCountItem[]; ready: boolean }
+
+function TaskCountStrip({ total, statuses, ready }: TaskCountStripProps) {
   const reduced = useSyncExternalStore(subscribeReducedMotion, readReducedMotion, () => true);
   return <section className="task-count-strip" aria-label="Task counts" aria-busy={!ready} tabIndex={0}
     onKeyDown={event => {
@@ -95,8 +106,16 @@ export default function TaskCountStrip({ total, statuses, ready }: { total: numb
       else strip.scrollBy({ left: (event.key === 'ArrowRight' ? 1 : -1) * Math.max(106, strip.clientWidth * .6), behavior: reduced ? 'instant' : 'smooth' });
     }}>
     <div className="task-count-row" style={{ '--task-count-columns': statuses.length + 1 } as React.CSSProperties}>
-      <CalendarTaskCount item={{ id: 'total', label: 'Total tasks', count: total }} ready={ready} index={0} reduced={reduced} />
-      {statuses.map((item, index) => <CalendarTaskCount key={item.id} item={item} ready={ready} index={index + 1} reduced={reduced} />)}
+      <CalendarTaskCount id="total" label="Total tasks" count={total} ready={ready} index={0} reduced={reduced} />
+      {statuses.map((item, index) => <CalendarTaskCount key={item.id} {...item} ready={ready} index={index + 1} reduced={reduced} />)}
     </div>
   </section>;
 }
+
+// The page and refetches can create fresh arrays without changing any counter.
+// Compare the small count catalog so unrelated page updates do no strip work.
+export default React.memo(TaskCountStrip, (before, after) => before.total === after.total && before.ready === after.ready
+  && before.statuses.length === after.statuses.length && before.statuses.every((item, index) => {
+    const next = after.statuses[index];
+    return item.id === next.id && item.label === next.label && item.count === next.count;
+  }));

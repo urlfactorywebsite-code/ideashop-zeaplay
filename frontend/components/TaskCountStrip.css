@@ -1,5 +1,5 @@
 .task-count-strip {
-  max-width: 100%; min-width: 0; contain: inline-size; overflow-x: auto; overflow-y: hidden;
+  box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; contain: inline-size; overflow-x: auto; overflow-y: hidden;
   padding: 18px 12px 12px; border: 1px solid #243b60; border-radius: 16px;
   background: linear-gradient(110deg, #09172e, #0d142b 55%, #081226); color: #f0f8ff;
   scrollbar-width: thin; scrollbar-color: #46628c #0a1429; overscroll-behavior-x: contain;
