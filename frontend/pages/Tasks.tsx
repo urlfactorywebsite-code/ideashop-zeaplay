@@ -24,6 +24,7 @@ import TaskDetailModal from '../components/TaskDetailModal';
 import TaskTemplateModal from '../components/TaskTemplateModal';
 import { GroupQuestIndicator, GroupQuestStatus, TaskAssigneeRoster } from '../components/TaskGroupMembers';
 import TaskSelectionCheckbox from '../components/ui/TaskSelectionCheckbox';
+import TaskCountStrip from '../components/TaskCountStrip';
 import GroupedTaskSummary from '../components/GroupedTaskSummary';
 import GroupedTaskNavigator from '../components/GroupedTaskNavigator';
 import { assignmentIds, assignmentMembers, logicalTaskKey, removeTaskAssignments, replaceAssignment, replaceVisibleGroup, taskSelectionState, settleAssignmentActions } from '../utils/taskGroups';
@@ -429,6 +430,7 @@ const Tasks: React.FC = () => {
     const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
     const [totalPages, setTotalPages] = useState(1);
     const [totalTasks, setTotalTasks] = useState(0);
+    const [taskCountsReady, setTaskCountsReady] = useState(false);
     const [statusCounts, setStatusCounts] = useState<Partial<Record<TaskStatus, number>>>({});
     const { user } = useAuth();
     const zone = workTimezone(user?.timezone);
@@ -733,6 +735,7 @@ const Tasks: React.FC = () => {
         setTotalPages(pageResult.totalPages);
         setTotalTasks(pageResult.total);
         setStatusCounts(pageResult.statusCounts ?? {});
+        setTaskCountsReady(true);
     }, [pageResult]);
 
     useEffect(() => {
@@ -1290,45 +1293,6 @@ const Tasks: React.FC = () => {
             ? 'bg-gradient-to-r from-fuchsia-100 to-sky-100 text-slate-950'
             : 'bg-sky-500/30 text-white';
     const dropdownButtonClass = filterSelectClass;
-    const countPanelClass = isLight
-        ? 'border-indigo-200/70 bg-white/82 shadow-[0_18px_42px_rgba(79,124,255,0.12)] backdrop-blur-xl'
-        : isColorful
-            ? 'border-fuchsia-200/70 bg-white/82 shadow-[0_18px_42px_rgba(217,70,239,0.12)] backdrop-blur-xl'
-            : 'border-cyan-400/25 bg-gradient-to-r from-slate-950/85 via-blue-950/80 to-slate-950/90 shadow-[0_20px_50px_rgba(8,145,178,0.22)]';
-    const countCardBase = [
-        'relative max-w-full overflow-hidden rounded-2xl border px-4 py-3 min-w-[110px]',
-        'transition duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(15,23,42,0.35)]',
-    ].join(' ');
-    const countCardTheme = isLight
-        ? 'border-indigo-200/75 bg-gradient-to-br from-white via-[#F7FAFF] to-[#EEF6FF] text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_22px_rgba(79,124,255,0.1)]'
-        : isColorful
-            ? 'border-fuchsia-200/75 bg-gradient-to-br from-white via-[#fff7fb] to-[#eef6ff] text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_10px_22px_rgba(217,70,239,0.1)]'
-            : 'border-white/15 bg-gradient-to-br from-slate-900/70 via-slate-950/85 to-black/90 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]';
-    const countCardLabel = isLight || isColorful ? 'text-slate-500' : 'text-white/70';
-    const countCardValue = isLight || isColorful ? 'text-slate-900' : 'text-white';
-    const countCardGlow = isLight
-        ? 'bg-[radial-gradient(circle,rgba(79,124,255,0.16),transparent_70%)]'
-        : isColorful
-            ? 'bg-[radial-gradient(circle,rgba(217,70,239,0.14),transparent_70%)]'
-            : 'bg-[radial-gradient(circle,rgba(34,211,238,0.25),transparent_70%)]';
-    const totalCountCardStyle = isColorful
-        ? {
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.92), rgba(236,254,255,0.88))',
-            borderColor: 'rgba(125, 211, 252, 0.62)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.95), 0 12px 26px rgba(14,165,233,0.14)',
-        }
-        : undefined;
-    const getCountCardStyle = (status: TaskStatus): React.CSSProperties | undefined => {
-        if (!isColorful) {
-            return undefined;
-        }
-        const statusStyle = getLightTaskStatusStyle(status);
-        return {
-            background: statusStyle.background,
-            borderColor: statusStyle.borderColor,
-            boxShadow: statusStyle.shadow,
-        };
-    };
     const missionUpdatesClass = isLight
         ? 'mission-updates rounded-2xl border border-indigo-200/70 bg-gradient-to-r from-slate-950 via-indigo-800 to-fuchsia-700 px-4 py-3 shadow-[0_20px_46px_rgba(79,70,229,0.22)]'
         : isColorful
@@ -1541,22 +1505,8 @@ const Tasks: React.FC = () => {
             </div>
 
             {canSeeTaskCounts && (
-                <div className={`rounded-2xl border p-4 ${countPanelClass}`}>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className={`${countCardBase} ${countCardTheme}`} style={totalCountCardStyle}>
-                            <span className={`pointer-events-none absolute inset-0 ${countCardGlow}`} />
-                            <p className={`relative text-[10px] uppercase tracking-[0.24em] ${countCardLabel}`}>Total tasks</p>
-                            <p className={`relative text-lg font-semibold ${countCardValue}`}>{totalTasks}</p>
-                        </div>
-                        {statusSummary.map((item) => (
-                            <div key={item.status} className={`${countCardBase} ${countCardTheme}`} style={getCountCardStyle(item.status)}>
-                                <span className={`pointer-events-none absolute inset-0 ${countCardGlow}`} />
-                                <p className={`relative text-[10px] uppercase tracking-[0.24em] [overflow-wrap:anywhere] ${countCardLabel}`}>{item.label}</p>
-                                <p className={`relative text-lg font-semibold ${countCardValue}`}>{item.count}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <TaskCountStrip total={totalTasks} ready={taskCountsReady}
+                    statuses={statusSummary.map(item => ({ id: item.status, label: item.label, count: item.count }))} />
             )}
 
             <div className={`${toolbarPanelClass} mb-4`}>
