@@ -79,6 +79,17 @@ async (page) => {
   await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   await page.waitForTimeout(150);
   check(await strip.locator('[data-rolling="true"]').count() === 0 && (await page.evaluate(()=>window.countStripFixture.commits)) - frameBefore < 4, 'Unchanged values, unrelated rerenders and focus never replay settled reels');
+  await set(data([1000,0,9,10,99,100,1000]));
+  await page.waitForTimeout(100);
+  await set(null);
+  check(await strip.getAttribute('aria-busy')==='true' && await strip.locator('[data-rolling="true"]').count()===0,
+    'Losing valid data during motion cancels reels and restores loading placeholders');
+  await page.waitForTimeout(1050);
+  await set(data([1000,0,9,10,99,100,1000]));
+  await settled();
+  check(await strip.locator('[data-count-id="total"] .task-count-rest').innerText()==='1000',
+    'The same valid count recovers correctly after interrupted loading');
+  await set(data([9,0,10,100,1000,99,9])); await settled();
   for (const width of [1600,1280,768,375,320]) {
     await page.setViewportSize({width,height:800});
     const layout = await strip.evaluate(el=>({viewport:el.clientWidth,scroll:el.scrollWidth,page:document.documentElement.scrollWidth,window:innerWidth,
