@@ -117,13 +117,17 @@ async (page) => {
   await go(); await page.locator('[data-task-card-id]').first().waitFor();
 
   await page.evaluate(() => { window.questPointsReads = 0; const original = Storage.prototype.getItem; Storage.prototype.getItem = function(key) { if (key === 'task-points-config') window.questPointsReads++; return original.call(this, key); }; });
-  await card.getByRole('checkbox').check();
+  await card.getByRole('checkbox').focus();
+  await card.getByRole('checkbox').press('Space');
+  check(await card.getByRole('checkbox').isChecked() && await page.getByRole('dialog').count() === 0, 'Space selects the task without opening its details');
+  check(await card.locator('.task-selection-check').evaluate(element => getComputedStyle(element).opacity === '1'), 'Checked task shows its styled checkmark');
   check(await page.evaluate(() => window.questPointsReads) === 0, 'Selection does not recompute unchanged Group Quest rewards');
   check(await page.getByRole('button', { name: 'Delete Selected (8)', exact: true }).count() === 1, 'Group selection retains all eight assignment IDs');
   assignments.push({ ...assignments[7], id: 'extra-task', assigned_to_id: 'extra-member', assigned_member: { id: 'extra-member', name: 'Extra member', avatar_url: null } });
   await page.evaluate(() => window.taskNavigationAudit.changed());
   await card.getByText('9 assignments', { exact: true }).waitFor();
   check(await card.getByRole('checkbox').evaluate(element => element.indeterminate), 'New party membership exposes a mixed selection to assistive technology');
+  check(await card.getByRole('checkbox').getAttribute('aria-checked') === 'mixed' && await card.locator('.task-selection-mixed').evaluate(element => getComputedStyle(element).opacity === '1'), 'Partial selection displays the styled minus indicator');
   await card.getByRole('checkbox').click();
   check(await page.getByRole('button', { name: 'Delete Selected (9)', exact: true }).count() === 1, 'Selecting a mixed group adds only its newly visible assignment');
   assignments.pop();

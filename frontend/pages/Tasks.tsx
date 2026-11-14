@@ -23,6 +23,7 @@ import CreateTaskModal from '../components/CreateTaskModal';
 import TaskDetailModal from '../components/TaskDetailModal';
 import TaskTemplateModal from '../components/TaskTemplateModal';
 import { GroupQuestIndicator, GroupQuestStatus, TaskAssigneeRoster } from '../components/TaskGroupMembers';
+import TaskSelectionCheckbox from '../components/ui/TaskSelectionCheckbox';
 import GroupedTaskSummary from '../components/GroupedTaskSummary';
 import GroupedTaskNavigator from '../components/GroupedTaskNavigator';
 import { assignmentIds, assignmentMembers, logicalTaskKey, removeTaskAssignments, replaceAssignment, replaceVisibleGroup, taskSelectionState, settleAssignmentActions } from '../utils/taskGroups';
@@ -1862,21 +1863,16 @@ const Tasks: React.FC = () => {
                                     style={{ backgroundColor: getTaskAccentColor(task.status) }}
                                 />
                             )}
-                            <div className="flex items-center gap-4">
-                                <input
-                                    type="checkbox"
-                                    aria-label={`Select all visible assignments for ${task.title}`}
+                            <div className="task-card-list-row">
+                                <TaskSelectionCheckbox
+                                    label={`Select all visible assignments for ${task.title}`}
                                     checked={taskSelectionState(task, selectedTaskIds).checked}
-                                    ref={input => { if (input) input.indeterminate = taskSelectionState(task, selectedTaskIds).indeterminate; }}
-                                    onChange={(e) => {
-                                        toggleSelectTask(task.id);
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="rounded border-border-color bg-surface/50 text-primary focus:ring-primary"
+                                    indeterminate={taskSelectionState(task, selectedTaskIds).indeterminate}
+                                    onChange={() => toggleSelectTask(task.id)}
                                 />
                                 <div className={`relative min-w-0 flex-1 ${task.groupAssignments ? 'quest-list-content' : ''}`}>
                                     <div className="min-w-0">
-                                        {task.groupAssignments && <GroupQuestIndicator />}
+                                        {task.groupAssignments && <GroupQuestIndicator task={task} />}
                                         <h3 className={isLight || isColorful ? 'font-semibold text-slate-950 line-clamp-2 break-words' : 'font-semibold text-text-primary line-clamp-2 break-words'}><button type="button" className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={event => { event.stopPropagation(); handleTaskClick(task.id); }}>{task.title}</button></h3>
                                         <p className={isLight || isColorful ? 'text-sm text-slate-600 line-clamp-2 break-words overflow-hidden' : 'text-sm text-text-secondary line-clamp-2 break-words overflow-hidden'}>{task.description}</p>
                                         {showReadMore && (
@@ -1920,20 +1916,19 @@ const Tasks: React.FC = () => {
                                             style={{ backgroundColor: getTaskAccentColor(task.status) }}
                                         />
                                     )}
-                                    <input
-                                        type="checkbox"
-                                        aria-label={`Select all visible assignments for ${task.title}`}
-                                        checked={taskSelectionState(task, selectedTaskIds).checked}
-                                    ref={input => { if (input) input.indeterminate = taskSelectionState(task, selectedTaskIds).indeterminate; }}
-                                        onChange={(e) => {
-                                            toggleSelectTask(task.id);
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="absolute top-3 left-3 z-10 rounded border-border-color bg-surface/50 text-primary focus:ring-primary h-4 w-4"
-                                    />
-                                    <div className="relative pt-1 pl-8"> {/* Padding for checkbox space */}
-                                        {task.groupAssignments && <GroupQuestIndicator />}
-                                    <h3 className={isLight || isColorful ? 'min-h-[3rem] font-semibold text-slate-950 line-clamp-2 break-words' : 'min-h-[3rem] font-semibold text-text-primary line-clamp-2 break-words'}><button type="button" className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={event => { event.stopPropagation(); handleTaskClick(task.id); }}>{task.title}</button></h3>
+                                    <div className="task-card-grid-content">
+                                        <div className="task-card-grid-heading">
+                                            <TaskSelectionCheckbox
+                                                label={`Select all visible assignments for ${task.title}`}
+                                                checked={taskSelectionState(task, selectedTaskIds).checked}
+                                                indeterminate={taskSelectionState(task, selectedTaskIds).indeterminate}
+                                                onChange={() => toggleSelectTask(task.id)}
+                                            />
+                                            <div className="task-card-heading-copy">
+                                                {task.groupAssignments && <GroupQuestIndicator task={task} />}
+                                                <h3 className={isLight || isColorful ? 'min-h-[3rem] font-semibold text-slate-950 line-clamp-2 break-words' : 'min-h-[3rem] font-semibold text-text-primary line-clamp-2 break-words'}><button type="button" className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={event => { event.stopPropagation(); handleTaskClick(task.id); }}>{task.title}</button></h3>
+                                            </div>
+                                        </div>
                                         <p className={isLight || isColorful ? 'min-h-[2.5rem] text-sm text-slate-600 line-clamp-2 break-words overflow-hidden' : 'min-h-[2.5rem] text-sm text-text-secondary line-clamp-2 break-words overflow-hidden'}>{task.description}</p>
                                         {showReadMore && (
                                             <span className={isLight || isColorful ? 'mt-1 inline-block text-xs font-semibold text-indigo-600' : 'mt-1 inline-block text-xs font-semibold text-primary/80'}>Read more..</span>

@@ -4,10 +4,12 @@ import { Task, TaskStatus, User } from '../types';
 import Avatar, { useAvatarIdentity, type AvatarPerson } from './Avatar';
 import Tooltip from './ui/Tooltip';
 import TaskStatusBadge from './ui/TaskStatusBadge';
-import { assignmentMember, isOwnAssignmentView, taskGroupSummary, visibleAssignments } from '../utils/taskGroups';
+import { assignmentMember, assignmentMembers, isOwnAssignmentView, taskGroupSummary, visibleAssignments } from '../utils/taskGroups';
 import { formatPointsValue } from '../utils/taskPoints';
 
-export function GroupQuestIndicator() {
+export function GroupQuestIndicator({ task }: { task: Task }) {
+  // Group IDs also exist for solo tasks; use only distinct, visible assignees.
+  if (assignmentMembers(task).length < 2) return null;
   return <span className="quest-party-label"><UsersRound size={14} aria-hidden="true" /> Group Quest</span>;
 }
 

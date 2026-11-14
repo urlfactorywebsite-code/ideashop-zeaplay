@@ -3494,8 +3494,6 @@ html:not(.theme-colorful) .kanban-board-dark-theme > * {
 @media (max-width: 639px) {
   .quest-avatar-stack > .quest-avatar-extra, .quest-avatar-overflow--wide { display: none; }
   .quest-avatar-overflow--compact { display: inline-flex; }
-  .group-quest-card--grid > .relative { padding-left: 0; }
-  .group-quest-card--grid > .relative > .quest-party-label { margin-left: 24px; }
   .quest-party-panel { padding: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3509,8 +3507,12 @@ html:not(.theme-colorful) .kanban-board-dark-theme > * {
 
 .quest-member-tooltip[data-placement="below"] > span.relative > span { top: auto; bottom: 100%; }
 
-.group-quest-card--grid > .relative { padding-left: 0; }
-.group-quest-card--grid > .relative > .quest-party-label { margin-left: 24px; }
+.task-card-list-row { display: flex; align-items: flex-start; gap: 10px; }
+.task-card-grid-content, .task-card-heading-copy { min-width: 0; }
+.task-card-grid-heading { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: start; gap: 10px; margin-bottom: 12px; }
+.task-card-heading-copy { padding-top: 5px; }
+.task-card-grid-heading h3 { margin-top: 0; }
+.task-card-grid-heading .quest-party-label { margin-bottom: 6px; }
 @container quest-members (max-width: 240px) {
   .quest-avatar-stack > .quest-avatar-extra, .quest-avatar-overflow--wide { display: none; }
   .quest-avatar-overflow--compact { display: inline-flex; }

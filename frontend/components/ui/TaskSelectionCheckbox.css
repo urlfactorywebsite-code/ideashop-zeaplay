@@ -1,0 +1,26 @@
+.task-selection-control {
+  --selection-accent: #0369a1; --selection-mark: #fff;
+  position: relative; display: inline-grid; place-items: center; flex: 0 0 32px;
+  width: 32px; height: 32px; margin: 0; border-radius: 9px; cursor: pointer;
+}
+.dark .task-selection-control { --selection-accent: #22d3ee; --selection-mark: #082f49; }
+.theme-colorful .task-selection-control { --selection-accent: #6d28d9; --selection-mark: #fff; }
+.task-selection-control .task-selection-checkbox {
+  appearance: none; -webkit-appearance: none; box-sizing: border-box;
+  display: block; width: 20px; height: 20px; margin: 0; padding: 0;
+  border: 1.5px solid var(--color-text-secondary, #64748b); border-radius: 6px;
+  background: var(--color-surface, #fff); cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.task-selection-control:hover .task-selection-checkbox { border-color: var(--selection-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--selection-accent) 12%, transparent); }
+.task-selection-control .task-selection-checkbox:is(:checked, :indeterminate) { background: var(--selection-accent); border-color: var(--selection-accent); }
+.task-selection-control .task-selection-checkbox:focus-visible { outline: 2px solid var(--selection-accent); outline-offset: 4px; }
+.task-selection-control > svg { position: absolute; top: 9px; left: 9px; color: var(--selection-mark); pointer-events: none; opacity: 0; }
+.task-selection-checkbox:checked ~ .task-selection-check { opacity: 1; }
+.task-selection-checkbox:indeterminate ~ .task-selection-check { opacity: 0; }
+.task-selection-checkbox:indeterminate ~ .task-selection-mixed { opacity: 1; }
+@media (forced-colors: active) {
+  .task-selection-control .task-selection-checkbox { appearance: auto; border-color: ButtonText; forced-color-adjust: auto; }
+  .task-selection-control > svg { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .task-selection-control .task-selection-checkbox { transition: none; } }

@@ -95,6 +95,16 @@ async (page) => {
   for (const view of ['List', 'Grid']) {
     await page.getByRole('button',{name:new RegExp(view,'i'),exact:true}).click();
     const soloCard = page.locator('[data-task-card-id="unrelated"]');
+    check(await soloCard.getByText('Group Quest', {exact:true}).count() === 0, view + ' hides the group label for a single assignee');
+    for (const target of [soloCard, page.locator('[data-task-group-key]').filter({hasText:'24 assignments'})]) {
+      const layout = await target.evaluate(card => {
+        const input = card.querySelector('input[type="checkbox"]'), title = card.querySelector('h3');
+        const box = input.getBoundingClientRect(), heading = title.getBoundingClientRect(), style = getComputedStyle(input);
+        return { gap: heading.left - box.right, width: box.width, height: box.height, radius: style.borderRadius, appearance: style.appearance };
+      });
+      check(layout.gap >= 8 && layout.width === 20 && layout.height === 20 && layout.radius === '6px' && layout.appearance === 'none', view + ' checkbox has a reserved column and styled native control: ' + JSON.stringify(layout));
+    }
+    check(await page.locator('[data-task-group-key]').filter({hasText:'24 assignments'}).getByText('Group Quest', {exact:true}).count() === 1, view + ' labels only the task with multiple visible assignees');
     check(await soloCard.getByText('1 task',{exact:true}).count() === 1 && await soloCard.getByText('View task',{exact:false}).count() === 1, view + ' labels the single assignment as one task');
     const groupReads = count(/\/group$/), pageReads = count(/\/tasks\/page$/), detailReads = count(/\/tasks\/unrelated$/);
     await soloCard.getByRole('button',{name:'Shared mission',exact:true}).click();
@@ -311,6 +321,7 @@ async (page) => {
   restricted = true;
   await go('&account=member-3&role=user&personalAssignment=1');
   const ownRoster = page.locator('[data-task-card-id]').getByRole('group',{name:'Assigned members',exact:true});
+  check(await page.locator('[data-task-card-id]').getByText('Group Quest', {exact:true}).count() === 0, 'restricted single-assignee card does not reveal a hidden group');
   check(await ownRoster.getByRole('img').count() === 1 && await ownRoster.getByRole('img',{name:"Member 3's avatar",exact:true}).count() === 1, 'restricted card shows only its visible assignee avatar');
   await page.locator('[data-task-card-id]').getByRole('button',{name:'Shared mission',exact:true}).click();
   await detail.waitFor();
@@ -322,6 +333,7 @@ async (page) => {
   await page.setViewportSize({width:1440,height:1000});
   await go();
   const pairCard = page.locator('[data-task-card-id="task-0"]');
+  check(await pairCard.getByText('Group Quest', {exact:true}).count() === 1, 'two visible assignees show the group label');
   await pairCard.getByRole('button',{name:'Shared mission',exact:true}).click();
   await list.waitFor();
   check(await list.getByRole('button').count() === 2, 'two visible assignees open the picker instead of either assignment directly');
