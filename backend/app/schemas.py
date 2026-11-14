@@ -1394,6 +1394,7 @@ class TaskSummaryResponse(BaseModel):
 
 
 class TaskKanbanItem(TaskListItem):
+    group_assignments: list["TaskKanbanItem"] | None = None
     can_edit: bool = False
 
 

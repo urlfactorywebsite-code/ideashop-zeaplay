@@ -696,6 +696,7 @@ type ApiCompletionSubmission = {
 };
 
 type ApiTask = {
+  assignee?: { id: string; name: string; avatar_url?: string | null } | null;
   group_assignments?: ApiTask[] | null;
   assigned_member?: { id: string; name: string; avatar_url?: string | null } | null;
   status_title?: string | null;
@@ -2499,12 +2500,13 @@ function mapTimeEntry(entry: ApiTimeEntry): TimeEntry {
 
 function mapTask(task: ApiTask): Task {
   const assignedIds = task.assigned_to_ids ?? (task.assigned_to_id ? [task.assigned_to_id] : null);
+  const assignedMember = task.assigned_member ?? (task.assignee?.id === assignedIds?.[0] ? task.assignee : null);
 
   const mapped: Task = {
     groupAssignments: task.group_assignments?.map(mapTask) ?? null,
-    assignedMember: task.assigned_member ? {
-      id: task.assigned_member.id, name: task.assigned_member.name,
-      avatarUrl: task.assigned_member.avatar_url ?? null,
+    assignedMember: assignedMember ? {
+      id: assignedMember.id, name: assignedMember.name,
+      avatarUrl: assignedMember.avatar_url ?? null,
     } : null,
     id: task.id,
     dependencies: task.dependencies ?? [],
@@ -5453,14 +5455,14 @@ const api = {
     }
   },
 
-  async getComments(taskId: string): Promise<Comment[]> {
+  async getComments(taskId: string, options: { fresh?: boolean; signal?: AbortSignal } = {}): Promise<Comment[]> {
     try {
       const cacheKey = taskSessionCacheKey(`comments:${taskId}`);
-      const cached = getCached<Comment[]>(cacheKey);
+      const cached = options.fresh ? null : getCached<Comment[]>(cacheKey);
       if (cached) {
         return cached;
       }
-      const { data } = await http.get<ApiComment[]>(`/comments/task/${taskId}`);
+      const { data } = await http.get<ApiComment[]>(`/comments/task/${taskId}`, { signal: options.signal });
       const mapped = data.map(mapComment);
       setCached(cacheKey, mapped);
       return mapped;

@@ -65,7 +65,7 @@ const emptyPage = { items: [], total: 0, page: 1, pageSize: 20, totalPages: 1 };
 const overrides: Record<string, (...args: any[]) => unknown> = {
   restoreBrowserSession: () => { storeTokens('synthetic-task-token', 'synthetic-task-refresh'); return true; },
   getCurrentUser: () => user,
-  getUsers: () => params.has('multiAssignee') ? [user, ...tasks.map((task, index) => ({ ...user, id: task.assignedTo[0], name: params.has('longPartyName') && index === 0 ? '<script>' + 'x'.repeat(250) : 'Member ' + (params.has('personalAssignment') ? task.assignedTo[0].replace('member-', '') : index), role: Role.USER, avatarUrl: null }))] : [user], getDepartments: () => [{ id: 'engineering', name: 'Engineering' }],
+  getUsers: () => params.has('multiAssignee') ? [user, ...tasks.map((task, index) => ({ ...user, id: task.assignedTo[0], name: params.has('longPartyName') && index === 0 ? '<script>' + 'x'.repeat(250) : 'Member ' + (params.has('personalAssignment') ? task.assignedTo[0].replace('member-', '') : index), role: Role.USER, avatarUrl: params.has('partyAvatars') && index < 2 ? '/__assignee-avatar.svg' : null }))] : [user], getDepartments: () => [{ id: 'engineering', name: 'Engineering' }],
   getReleaseNotes: () => ({ versionLabel: 'Zea.Play V6.0.1', updates: [], content: '' }),
   getActiveWork: () => ({ items: [{ id: 'session-0', entry_id: 'entry-0', status: 'RUNNING', task_id: 'task-1', subtask_id: null,
     project_name: 'Verification project', task_title: 'Navigation task 1', subtask_title: null, subtask_status: 'IN_PROGRESS',
@@ -105,6 +105,7 @@ const overrides: Record<string, (...args: any[]) => unknown> = {
 };
 for (const [name, method] of Object.entries(api)) {
   if (typeof method !== 'function' || ['clearBrowserMemory', 'invalidateNotificationCaches'].includes(name)) continue;
+  if (params.has('networkAssignmentDetails') && ['getTask', 'updateTask', 'getComments', 'addComment', 'createSubtask', 'updateSubtask'].includes(name)) continue;
   (api as any)[name] = async (...args: unknown[]) => {
     calls.push({ method: name, args });
     return overrides[name] ? overrides[name](...args) : [];

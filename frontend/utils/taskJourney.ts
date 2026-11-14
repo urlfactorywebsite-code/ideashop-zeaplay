@@ -1,5 +1,24 @@
 import { TaskStatus, type TimeEntry } from '../types';
 import type { LifecycleEvent, TaskJourney, TimeMetrics } from '../types/taskLifecycle';
+import type { StatusLabelEntry } from './taskStatusLabels';
+
+export const enabledWorkflowStages = (entries: StatusLabelEntry[]) => entries
+  .filter(entry => entry.is_active === true)
+  .slice().sort((a, b) => a.order - b.order);
+
+// Custom moves have their own immutable capture timestamps. Do not pair them
+// to core events by timestamp proximity: PostgreSQL triggers use clock_timestamp.
+export function customStatusTransitions(events: LifecycleEvent[]): LifecycleEvent[] {
+  return events.filter(event => event.subtask_id === null && event.event_type === 'task.custom_status_changed')
+    .map(event => ({ ...event,
+      previous_status: typeof event.details.previous_custom_status_id === 'string' ? event.details.previous_custom_status_id : event.previous_status,
+      new_status: typeof event.details.new_custom_status_id === 'string' ? event.details.new_custom_status_id : event.new_status }));
+}
+
+export function elapsedSeconds(start: string | null | undefined, end: number): number | null {
+  const left = timestamp(start);
+  return left !== null && Number.isFinite(end) && end >= left ? (end - left) / 1000 : null;
+}
 
 export const MAIN_STAGES = [TaskStatus.WAITING_FOR_REQUIREMENT, TaskStatus.TODO,
   TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW, TaskStatus.DONE, TaskStatus.DEPLOYED];

@@ -13,6 +13,9 @@ import { TaskPriority } from '../types';
 import { useAuth, useSearch, useTheme } from '../hooks/useAuth';
 import api from '../services/mockApi';
 import TaskDetailModal from '../components/TaskDetailModal';
+import TaskStatusBadge from '../components/ui/TaskStatusBadge';
+import { TaskAssigneeRoster } from '../components/TaskGroupMembers';
+import { assignmentMember, assignmentMembers, visibleAssignments } from '../utils/taskGroups';
 import PageLoader from '../components/loading/PageLoader';
 import { loadPointsConfig, POINTS_CONFIG_UPDATED_EVENT } from '../utils/pointsConfigStorage';
 import { augmentTasksWithPoints, summarizeTaskPoints, formatPointsValue } from '../utils/taskPoints';
@@ -147,12 +150,16 @@ const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, 
   const pointsSummary = task.pointsBreakdown ? summarizeTaskPoints(task.pointsBreakdown) : null;
   const showReadMore = (task.description ?? '').trim().length > 100;
   const createdByName = creator?.name ?? 'Unknown';
+  const assignments = visibleAssignments(task);
+  const grouped = assignments.length > 1;
+  const canMove = !grouped && task.canEdit === true;
 
   return (
     <div
       data-task-id={task.id}
+      data-assignment-count={assignments.length}
       aria-busy={moving}
-      draggable={task.canEdit === true && !moving}
+      draggable={canMove && !moving}
       onDragStart={(e) => onDragStart(e, task.id)}
       onClick={() => onClick(task.id)}
       className={`group relative overflow-hidden rounded-2xl border p-4 transition duration-200 hover:-translate-y-1 hover:shadow-xl ${cardSurface}`}
@@ -175,6 +182,7 @@ const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, 
       <div className={`mt-3 grid gap-1 text-xs ${cardTextMutedClass}`}>
         <div>Created by: {createdByName}</div>
         <div>Created at: {formatDate(task.createdAt, true)}</div>
+        <TaskAssigneeRoster members={assignees} compact />
         <div>Assigned to: {assigneeNames}</div>
         <div>Due date: {formatDate(task.dueAt)}</div>
       </div>
@@ -193,7 +201,7 @@ const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, 
         >
           View
         </button>
-        {task.canEdit === true && (
+        {assignments.some((assignment: Task) => assignment.canEdit === true) && (
           <button
             onClick={event => { event.stopPropagation(); onEdit(task.id); }}
             className={`flex-1 ${buttonClass}`}
@@ -203,7 +211,8 @@ const KanbanTaskCard: React.FC<any> = ({ task, assignees, creator, onDragStart, 
           </button>
         )}
       </div>
-      {task.canEdit === true && <label className={`mt-3 block text-xs ${cardTextMutedClass}`} onClick={event => event.stopPropagation()}>
+      {grouped && <p className={`mt-3 text-xs ${cardTextMutedClass}`}>{assignments.length} assignments in this stage. Open an assignment to edit or move it.</p>}
+      {canMove && <label className={`mt-3 block text-xs ${cardTextMutedClass}`} onClick={event => event.stopPropagation()}>
         Move quest
         <select aria-label={`Move ${task.title} to status`} value="" disabled={moving}
           onChange={event => { const destination = destinations.find((column: KanbanColumn) => column.statusId === event.target.value); if (destination) void onMove(task, destination); }}
@@ -584,8 +593,15 @@ const KanbanBoard: React.FC = () => {
 
   const handleDragOver = (e: React.DragEvent<HTMLElement>) => e.preventDefault();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const handleTaskClick = (id: string) => setSelectedTaskId(id);
-  const handleTaskEdit = (id: string) => setSelectedTaskId(id);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const selectedCard = tasks.find(task => task.id === selectedCardId);
+  const handleTaskClick = (id: string) => setSelectedCardId(id);
+  const handleTaskEdit = (id: string) => {
+    const task = tasks.find(task => task.id === id);
+    if (task && visibleAssignments(task).length > 1) setSelectedCardId(id);
+    else setSelectedTaskId(id);
+  };
+  const cardAssignees = (task: Task) => assignmentMembers(task, usersMap);
 
   const scrollBoard = (direction: 'left' | 'right') => {
     if (!boardRef.current) return;
@@ -1072,7 +1088,7 @@ const KanbanBoard: React.FC = () => {
             statusKey={column.id} label={column.title} color={column.color} icon={column.icon} theme={resolvedTheme}
             count={column.count || 0} onDrop={event => void handleDrop(event, column)} onDragOver={handleDragOver}>
             {visibleTasks.map(task => <KanbanTaskCard key={task.id} task={task}
-              assignees={(task.assignedTo || []).map(id => usersMap.get(id)).filter(Boolean) as User[]}
+              assignees={cardAssignees(task)}
               creator={usersMap.get(task.createdBy)} onDragStart={handleDragStart} onClick={handleTaskClick}
               onEdit={handleTaskEdit} theme={resolvedTheme} timezone={zone} columnColor={column.color}
               destinations={columns} onMove={moveTask} moving={movingIds.has(task.id)} />)}
@@ -1086,7 +1102,7 @@ const KanbanBoard: React.FC = () => {
         {kanbanQuery.data.outsideColumns.filter(column => !statusFilter || column.status === statusFilter).map(column => <section key={column.status} aria-label={`${column.title} retained quests`} className="mt-4">
           <h3 className="mb-3 font-semibold">{column.title} ({column.count}) / {column.outsideReason}</h3>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{(groupedTasks.get(column.status) || []).map(task => <KanbanTaskCard key={task.id} task={task}
-            assignees={(task.assignedTo || []).map(id => usersMap.get(id)).filter(Boolean) as User[]}
+            assignees={cardAssignees(task)}
             creator={usersMap.get(task.createdBy)} onDragStart={handleDragStart} onClick={handleTaskClick}
             onEdit={handleTaskEdit} theme={resolvedTheme} timezone={zone} columnColor={column.color}
             destinations={columns} onMove={moveTask} moving={movingIds.has(task.id)} />)}</div>
@@ -1159,6 +1175,22 @@ const KanbanBoard: React.FC = () => {
             <button className="rounded-lg border border-cyan-300/50 bg-cyan-500/20 px-4 py-2 focus-visible:ring-2 disabled:opacity-40"
               disabled={!pendingHold || movingIds.has(pendingHold.task.id) || (!!pendingHold.column.holdReasonRequired && !holdReason.trim())}
               onClick={async () => { if (pendingHold && await moveTask(pendingHold.task,pendingHold.column,holdReason,pendingHold.configurationRevision)) setPendingHold(null); }}>Confirm hold</button></div>
+        </DialogPanel></div>
+      </Dialog>
+      <Dialog open={!!selectedCardId && !selectedTaskId} onClose={() => setSelectedCardId(null)} className="relative z-[100]">
+        <DialogBackdrop className="fixed inset-0 bg-black/70" />
+        <div className="fixed inset-0 flex items-center justify-center p-4"><DialogPanel className={`max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-2xl border p-6 ${isBrightMode ? 'border-slate-300 bg-white text-slate-950' : 'border-white/20 bg-slate-950 text-white'}`}>
+          <DialogTitle className="break-words text-lg font-semibold">{selectedCard?.title || 'Task assignments'}</DialogTitle>
+          <DialogDescription className="mt-2 text-sm">Assignments in this stage. Select an entry to view its task details.</DialogDescription>
+          {selectedCard ? <ul aria-label="Stage assignments" className="my-4 space-y-2">
+            {visibleAssignments(selectedCard).map(assignment => <li key={assignment.id}>
+              <button type="button" onClick={() => setSelectedTaskId(assignment.id)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-current/20 p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400">
+                <span className="min-w-0 break-words">{assignmentMember(assignment, usersMap)?.name || 'Unassigned'}</span>
+                <TaskStatusBadge status={assignment.status} customStatusId={assignment.customStatusId} statusTitle={assignment.statusTitle} />
+              </button>
+            </li>)}
+          </ul> : <p role="status" className="my-4 text-sm">This card is no longer on the current page. Close this list to see the updated board.</p>}
+          <button type="button" onClick={() => setSelectedCardId(null)} className="rounded-lg border border-current/20 px-4 py-2 focus-visible:ring-2 focus-visible:ring-cyan-400">Close assignments</button>
         </DialogPanel></div>
       </Dialog>
       {selectedTaskId &&

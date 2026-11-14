@@ -1,6 +1,8 @@
 // Run against loopback Vite :6337. Real Header/auth/hook with synthetic APIs/SSE.
 async (page) => {
   const base = 'http://127.0.0.1:6337';
+  const theme = process.env.ZEAPLAY_INBOX_THEME || 'light';
+  await page.addInitScript(theme => localStorage.setItem('zenith-task-theme', theme), theme);
   const cases = [], errors = [], writes = [];
   const check = (value, name) => { if (!value) throw new Error(name); cases.push(name); };
   const stamp = '2026-11-06T06:00:00Z';
@@ -87,11 +89,46 @@ async (page) => {
   await bell().waitFor();
   await bell().click();
   await row('n4').waitFor();
+  const readable = async (locator, description, field = false) => {
+    const colors = await locator.evaluate((element, field) => {
+      const style = getComputedStyle(element), panel = getComputedStyle(document.querySelector('#notification-inbox'));
+      return {fg:style.color,bg:field ? style.backgroundColor : panel.backgroundColor,base:panel.backgroundColor};
+    }, field);
+    const parse = color => {
+      const values=color.match(/[\d.]+/g).map(Number);
+      // color-mix() serializes as normalized CSS Color 4 sRGB in Chromium.
+      return color.startsWith('color(srgb ') ? values.map((n,i)=>i<3?n*255:n) : values;
+    };
+    const luminance = rgb => {
+      const channels = rgb.slice(0,3).map(value => {
+        const n=value/255; return n<=.04045?n/12.92:Math.pow((n+.055)/1.055,2.4);
+      });
+      return channels[0]*.2126+channels[1]*.7152+channels[2]*.0722;
+    };
+    const background=parse(colors.bg),base=parse(colors.base),alpha=background[3] ?? 1;
+    const a=luminance(parse(colors.fg)),b=luminance(background.slice(0,3).map((n,i)=>n*alpha+base[i]*(1-alpha)));
+    const ratio=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+    if (ratio<4.5) throw Error(`${theme}: ${description} contrast ${ratio.toFixed(2)}: ${JSON.stringify(colors)}`);
+    check(true, `${theme}: ${description} has readable text contrast`);
+  };
+  check(await panel.evaluate(el => {
+    const style=getComputedStyle(el);
+    return style.backgroundColor.match(/[\d.]+/g).length===3 && style.backgroundImage==='none' && style.opacity==='1';
+  }), `${theme}: notification panel has an opaque surface`);
+  await readable(panel.getByRole('heading',{name:'Notifications',exact:true}), 'title');
+  await readable(row('n1').getByText(data.owner[0].message,{exact:true}), 'unread message');
+  await readable(row('n2').getByText(data.owner[1].message,{exact:true}), 'read message');
+  await readable(row('n1').locator('.text-xs').last(), 'timestamp');
+  await readable(panel.getByRole('button',{name:'Mark all as read',exact:true}), 'mark-read action');
+  await readable(row('n1').getByRole('button',{name:'Delete notification',exact:true}), 'delete action');
+  await panel.screenshot({path:`.tmp/notification-inbox-${theme}-initial.png`});
   check(await panel.locator('button button').count() === 0 && await panel.getByRole('list', { name: 'Notification list' }).count() === 1,
     'notification actions are separate buttons within a named semantic list');
   check(await panel.getByRole('textbox', { name: 'Search notifications' }).count() === 0, 'filters stay inside the filter icon');
   await panel.getByRole('button', { name: /^Filter notifications/ }).click();
   await panel.getByRole('searchbox', { name: 'Search notifications' }).waitFor();
+  await readable(panel.getByRole('searchbox'), 'search field', true);
+  await readable(panel.getByRole('combobox',{name:'Category'}), 'category field', true);
   check(await panel.getByRole('searchbox').evaluate(element => element === document.activeElement), 'filter search receives keyboard focus');
   await panel.getByRole('combobox', { name: 'Category' }).selectOption('tasks');
   await wait(async () => await panel.locator('li').count() === 2);
@@ -169,7 +206,7 @@ async (page) => {
   await row('arrived').waitFor();
   await wait(async () => await bell().getAttribute('aria-label') === 'Notifications, 1 unread');
   check(data.owner.find(item => item.id === 'arrived').is_read === false, 'post-commit arrival remains unread');
-  await page.screenshot({ path: '.tmp/notification-inbox-desktop.png', fullPage: true });
+  await page.screenshot({ path: `.tmp/notification-inbox-${theme}-desktop.png`, fullPage: true });
 
   // A delayed mutation response cannot remove another account's same synthetic ID.
   holdDelete = true;
@@ -194,7 +231,8 @@ async (page) => {
   const box = await panel.boundingBox();
   check(box.x >= 0 && box.x + box.width <= 390 && box.y >= 0 && box.y + box.height <= 844, 'mobile inbox stays within the viewport');
   check(await row('mobile').evaluate(element => element.scrollWidth <= element.clientWidth), 'long notification messages do not overflow');
-  await page.screenshot({ path: '.tmp/notification-inbox-mobile.png', fullPage: true });
+  check(await panel.evaluate(el => getComputedStyle(el).backgroundColor.match(/[\d.]+/g).length===3), `${theme}: mobile portal retains the opaque theme surface`);
+  await panel.screenshot({ path: `.tmp/notification-inbox-${theme}-mobile.png` });
   await panel.getByRole('button', { name: 'Mark all as read', exact: true }).click();
   await wait(async () => await bell().getAttribute('aria-label') === 'Notifications, 0 unread');
   cases.push('mobile mark-all-read succeeds inside the portal');

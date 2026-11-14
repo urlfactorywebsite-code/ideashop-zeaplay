@@ -1541,7 +1541,7 @@ def list_tasks_kanban(
     }
     workflow_scope = status_service.scope(db, current_user)
     viewer_id = str(current_user.id)
-    cache_params["configuration_schema"] = 5
+    cache_params["configuration_schema"] = 6
     db.commit()  # Persist first-use tenant provisioning before cache reads.
     # Counts, registry and every paginated column must describe one database
     # snapshot. Otherwise a concurrent move can appear twice or disappear
@@ -1583,7 +1583,18 @@ def list_tasks_kanban(
         base_stmt = _calendar_date_filters(base_stmt, due_date, created_date, zone)
 
     registered = status_service.rows(db, current_user)
-    count_source = base_stmt.order_by(None).subquery()
+    # Rank only authorized, filtered assignments. Page logical task/stage cards,
+    # then expand their matching assignments without splitting them across pages.
+    stage_window = {
+        "partition_by": (*task_groups.partition_columns(), models.Task.status, models.Task.custom_status_id),
+        "order_by": (models.Task.updated_at.desc(), models.Task.id.asc()),
+    }
+    ranked = base_stmt.order_by(None).add_columns(
+        func.row_number().over(**stage_window).label("stage_rank"),
+        func.first_value(models.Task.id).over(**stage_window).label("stage_card_id"),
+    ).subquery()
+    count_source = select(ranked).where(ranked.c.stage_rank == 1).subquery()
+    representatives = select(count_source.c.id)
     raw_status = cast(count_source.c.status, String)
     count_rows = db.execute(select(raw_status, count_source.c.custom_status_id, func.count())
         .group_by(raw_status, count_source.c.custom_status_id)).all()
@@ -1592,6 +1603,7 @@ def list_tasks_kanban(
     outside: list[schemas.TaskKanbanColumn] = []
     known_pairs = set()
     known_predicates = []
+    page_records = []
     for column in registered:
         pair = (column.legacy_status, None) if column.legacy_status else (status_service.native_status(column), column.id)
         known_pairs.add(pair)
@@ -1602,26 +1614,45 @@ def list_tasks_kanban(
         if not visible and not count:
             continue
         tasks = db.execute(
-            base_stmt.where(status_service.task_column_predicate(column))
+            base_stmt.where(status_service.task_column_predicate(column), models.Task.id.in_(representatives))
             .order_by(models.Task.updated_at.desc(), models.Task.id.asc())
             .offset((page - 1) * page_size).limit(page_size)
         ).scalars().all() if count > (page - 1) * page_size else []
-        cards = []
-        for task in tasks:
-            can_edit = True
-            try:
-                _ensure_task_update_access(task, current_user)
-            except HTTPException:
-                can_edit = False
-            cards.append(schemas.TaskKanbanItem(**_serialize_task_card_item(task).model_dump(), can_edit=can_edit))
         item = schemas.TaskKanbanColumn(
             status_id=column.id, status=status_service.key(column), is_system=column.is_system,
             workflow_behavior=column.workflow_behavior, hold_reason_required=workflow_scope.hold_reason_required and column.workflow_behavior == "HOLD",
             title=column.display_label, order=column.sort_order, color=column.color, icon=column.icon,
-            count=count, items=cards,
+            count=count, items=[],
             outside_reason=None if visible else "hidden" if column.is_active else "archived",
         )
         (column_payloads if visible else outside).append(item)
+        page_records.append((item, column, tasks))
+
+    def assignment_card(task):
+        can_edit = True
+        try:
+            _ensure_task_update_access(task, current_user)
+        except HTTPException:
+            can_edit = False
+        card = schemas.TaskKanbanItem(**_serialize_task_card_item(task).model_dump(), can_edit=can_edit)
+        if task.assignee and _same_tenant(task.assignee.tenant_id, current_user.tenant_id):
+            card.assigned_member = schemas.TaskAssignedMember(
+                id=task.assignee.id, name=task.assignee.name, avatar_url=task.assignee.avatar_url)
+        return card
+
+    members_by_stage = {}
+    page_ids = [task.id for _, _, records in page_records for task in records]
+    if page_ids:
+        member_ids = select(ranked.c.id).where(ranked.c.stage_card_id.in_(page_ids))
+        members = db.scalars(base_stmt.where(models.Task.id.in_(member_ids)).order_by(models.Task.id))
+        for member in members:
+            key = (task_groups.key(member), member.status, member.custom_status_id)
+            members_by_stage.setdefault(key, []).append(assignment_card(member))
+    for item, _, records in page_records:
+        for task in records:
+            card = assignment_card(task)
+            card.group_assignments = members_by_stage[(task_groups.key(task), task.status, task.custom_status_id)]
+            item.items.append(card)
 
     # Read raw identifiers through a SQL projection: unknown historical enum
     # values cannot be deserialized by TaskStatusEnum, and must not disappear.

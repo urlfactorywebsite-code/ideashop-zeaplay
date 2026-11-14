@@ -6,10 +6,12 @@ import { useAuth } from '../hooks/useAuth';
 import { useJourneyClock, useTaskJourney, type JourneySnapshot } from '../hooks/useTaskJourney';
 import type { LifecycleEvent } from '../types/taskLifecycle';
 import { SubtaskStatus, type TimeEntry, type User } from '../types';
-import { currentStageStart, duration, exactTimestamp, MAIN_STAGES, OTHER_STAGES, orderedSessions,
+import { currentStageStart, customStatusTransitions, duration, elapsedSeconds, enabledWorkflowStages, exactTimestamp, orderedSessions,
   prepareLiveMetrics, sessionSeconds, stageState, stageVisits, statusEvents, timestamp, type PreparedTimeMetrics } from '../utils/taskJourney';
 import './TaskJourneyModal.css';
 import { linkedPause } from '../utils/taskReport';
+import WorkflowJourney from './workflow/WorkflowJourney';
+import { buildWorkflowJourney } from '../utils/workflowJourney';
 
 const TaskExecutionReport = React.lazy(() => import('./TaskExecutionReport'));
 
@@ -21,41 +23,58 @@ const Stamp = ({ value }: { value?: string | null }) => timestamp(value) === nul
 
 const SUBTASK_STAGES = Object.values(SubtaskStatus);
 
-const Roadmap = React.memo(function Roadmap({ current, events, stages, taskStatuses = false }: { current: string; events: LifecycleEvent[]; stages: string[]; taskStatuses?: boolean }) {
+const Roadmap = React.memo(function Roadmap({ current, events, stages, taskStatuses = false, now, complete = false, customEvents = [], customStages = [] }: { current: string; events: LifecycleEvent[]; stages: string[]; taskStatuses?: boolean; now?: number; complete?: boolean; customEvents?: LifecycleEvent[]; customStages?: string[] }) {
   const { label: taskStatusLabel } = useTaskStatusLabels();
+  const visits = now === undefined ? [] : stageVisits(events, current, now, complete);
+  const customVisits = now === undefined ? [] : stageVisits(customEvents, current, now, complete);
   return <ol className="journey-roadmap">
     {stages.map(status => {
-      const state = stageState(status, current, events);
+      const isCustom = customStages.includes(status);
+      const state = stageState(status, current, isCustom ? customEvents : events);
+      const stays = (isCustom ? customVisits : visits).filter(visit => visit.event.new_status === status);
+      const total = stays.length && stays.every(visit => visit.seconds !== null) ? stays.reduce((sum, visit) => sum + visit.seconds!, 0) : null;
       return <li key={status} className={`journey-stage journey-stage-${state}`} aria-current={state === 'active' ? 'step' : undefined}>
         <span className="journey-stage-dot" aria-hidden="true">{state === 'visited' && <Check size={14} />}</span>
-        <span>{taskStatuses ? taskStatusLabel(status) : label(status)}<small>{state === 'active' ? 'Current' : state === 'visited' ? 'Previously visited' : 'Not yet recorded'}</small></span>
+        <span>{taskStatuses ? taskStatusLabel(status) : label(status)}<small>{state === 'active' ? 'Current' : state === 'visited' ? 'Previously visited' : 'Not yet recorded'}</small>
+          {stays.length > 0 && <small className="journey-stage-time">Recorded time: {duration(total)}</small>}</span>
       </li>;
     })}
   </ol>;
 });
 
-const TransitionRow = React.memo(function TransitionRow({ event, seconds, users }: {
-  event: LifecycleEvent; seconds: number | null; users: Map<string, User>;
+const TransitionRow = React.memo(function TransitionRow({ event, previousSeconds, overallSeconds, users }: {
+  event: LifecycleEvent; previousSeconds: number | null; overallSeconds: number | null; users: Map<string, User>;
 }) {
   const { label: taskStatusLabel } = useTaskStatusLabels();
-  const statusLabel = event.subtask_id ? label : taskStatusLabel;
+  const statusLabel = (status: string, side: 'previous' | 'new') => event.subtask_id ? label(status) :
+    taskStatusLabel(status, null, typeof event.details[`${side}_custom_label`] === 'string' ? event.details[`${side}_custom_label`] as string : null);
   return <li>
     <div className="journey-transition-heading">
-      <span>{event.previous_status ? statusLabel(event.previous_status) : 'Created'} <ArrowRight size={13} aria-hidden="true" /> <strong>{statusLabel(event.new_status || 'Unknown')}</strong></span>
-      <span className="journey-mono">{duration(seconds)}</span>
+      <span>{event.previous_status ? statusLabel(event.previous_status, 'previous') : 'Created'} <ArrowRight size={13} aria-hidden="true" /> <strong>{statusLabel(event.new_status || 'Unknown', 'new')}</strong></span>
     </div>
     <div className="journey-event-meta"><Stamp value={event.occurred_at} /><span>{person(event.actor_id, users)}</span></div>
+    <dl className="journey-transition-times">
+      {event.previous_status && <div><dt>Time in previous status</dt><dd>{duration(previousSeconds)}</dd></div>}
+      <div><dt>Overall at change</dt><dd>{duration(overallSeconds)}</dd></div>
+    </dl>
     <p className="journey-reason">Reason: {typeof event.details.reason === 'string' && event.details.reason.trim() ? event.details.reason : 'Not recorded'}</p>
   </li>;
 });
 
-function TransitionList({ events, current, now, complete, users }: {
-  events: LifecycleEvent[]; current: string; now: number; complete: boolean; users: Map<string, User>;
+function TransitionList({ events, current, now, complete, users, createdAt }: {
+  events: LifecycleEvent[]; current: string; now: number; complete: boolean; users: Map<string, User>; createdAt?: string;
 }) {
   if (!events.length) return <p className="journey-muted">No recorded status transitions.</p>;
-  return <ol className="journey-transitions">
-    {stageVisits(events, current, now, complete).map(({ event, seconds }) => <TransitionRow key={event.id} event={event} seconds={seconds} users={users} />)}
-  </ol>;
+  const visits = stageVisits(events, current, now, complete);
+  const origin = createdAt || (events[0]?.previous_status === null ? events[0].occurred_at : undefined);
+  return <><ol className="journey-transitions">
+    {visits.map(({ event }, index) => <TransitionRow key={event.id} event={event}
+      previousSeconds={index > 0 ? visits[index - 1].seconds : null}
+      overallSeconds={timestamp(event.occurred_at)! <= now ? elapsedSeconds(origin, timestamp(event.occurred_at)!) : null} users={users} />)}
+  </ol>
+    {complete && visits.at(-1)?.event.new_status === current && <p className="journey-current-stay"><Clock3 size={15} aria-hidden="true" />
+      <span>Time in current status <strong className="journey-mono">{duration(visits.at(-1)!.seconds)}</strong><small>So far · elapsed time, including waiting</small></span></p>}
+  </>;
 }
 
 function CustomStatusHistory({ events, users }: { events: LifecycleEvent[]; users: Map<string, User> }) {
@@ -151,7 +170,7 @@ export function TaskJourneyContent({ data, users, now, clockStale, busy, loadMor
   data: JourneySnapshot; users: Map<string, User>; now: number; clockStale: boolean; busy: boolean;
   loadMore: (kind: 'events' | 'sessions') => void;
 }) {
-  const { label: taskStatusLabel } = useTaskStatusLabels();
+  const { label: taskStatusLabel, entries: configuredStatuses, loading: statusesLoading, unavailable: statusesUnavailable } = useTaskStatusLabels();
   const { task, journey, analytics, sessions } = data;
   const [openChildren, setOpenChildren] = useState<Set<string>>(() => new Set());
   const toggleChild = useCallback((id: string, expanded: boolean) => setOpenChildren(previous => {
@@ -164,6 +183,11 @@ export function TaskJourneyContent({ data, users, now, clockStale, busy, loadMor
   const allEvents = journey.next_after_id === null;
   const allSessions = sessions.next_after_id === null && sessions.items.length === analytics.aggregate.session_count;
   const transitions = useMemo(() => statusEvents(journey.items, null), [journey.items]);
+  const customTransitions = useMemo(() => customStatusTransitions(journey.items), [journey.items]);
+  const workflowStages = useMemo(() => enabledWorkflowStages(configuredStatuses), [configuredStatuses]);
+  const currentStatus = task.customStatusId || journey.status;
+  const workflow = useMemo(() => buildWorkflowJourney(configuredStatuses, transitions, customTransitions, currentStatus, now, allEvents, journey.history_complete),
+    [configuredStatuses, transitions, customTransitions, currentStatus, now, allEvents, journey.history_complete]);
   const byChild = useMemo(() => {
     const result = new Map<string | null, { events: LifecycleEvent[]; sessions: TimeEntry[] }>();
     result.set(null, { events: [], sessions: [] });
@@ -192,8 +216,8 @@ export function TaskJourneyContent({ data, users, now, clockStale, busy, loadMor
   const direct = prepared.direct.at(now);
   const children = prepared.children.at(now);
   const aggregate = prepared.aggregate.at(now);
-  const stageStart = allEvents ? timestamp(currentStageStart(transitions, journey.status)) : null;
-  const created = timestamp(journey.created_at);
+  const currentTransitions = task.customStatusId ? customTransitions : [...transitions, ...customTransitions].sort((a, b) => a.id - b.id);
+  const stageStart = allEvents ? currentStageStart(currentTransitions, currentStatus) : null;
   const childIds = useMemo(() => [...new Set([...journey.subtasks.map(child => child.id), ...byChild.keys()].filter((id): id is string => !!id))], [journey.subtasks, byChild]);
   const childTasks = useMemo(() => new Map(task.subtasks.map(child => [child.id, child])), [task.subtasks]);
   const childStates = useMemo(() => new Map(journey.subtasks.map(child => [child.id, child])), [journey.subtasks]);
@@ -237,23 +261,28 @@ export function TaskJourneyContent({ data, users, now, clockStale, busy, loadMor
       <dl className="journey-metrics">
         <div><dt>Task direct work</dt><dd>{duration(direct.person_seconds)}</dd></div>
         <div><dt>Subtask work</dt><dd>{duration(children.person_seconds)}</dd></div>
-        <div><dt>Elapsed lifetime</dt><dd>{duration(created !== null && created <= now ? (now - created) / 1000 : null)}</dd></div>
-        <div><dt>Current status duration</dt><dd>{duration(stageStart !== null && stageStart <= now ? (now - stageStart) / 1000 : null)}</dd></div>
+        <div><dt>Overall elapsed time</dt><dd>{duration(elapsedSeconds(journey.created_at, now))}</dd><small>Created to now · includes waiting</small></div>
+        <div><dt>Current status duration</dt><dd>{duration(elapsedSeconds(stageStart, now))}</dd><small>Since the latest status change</small></div>
       </dl>
       <p className="journey-totals">Combined active work <strong>{duration(aggregate.person_seconds)}</strong><span>Work elapsed <strong>{duration(aggregate.elapsed_seconds)}</strong></span><span>{analytics.aggregate.active_session_count} running sessions</span></p>
     </section>
 
     <section className="journey-section" aria-labelledby="journey-workflow-title">
-      <h3 id="journey-workflow-title">Workflow</h3>
-      <Roadmap current={journey.status} events={transitions} stages={MAIN_STAGES} taskStatuses />
-      <h4>Alternate stages</h4>
-      <Roadmap current={journey.status} events={transitions} stages={OTHER_STAGES} taskStatuses />
+      {(statusesLoading || statusesUnavailable || !workflowStages.length) && <h3 id="journey-workflow-title">Workflow Progress</h3>}
+      {statusesLoading ? <p className="journey-muted" role="status">Loading workflow statuses...</p> : statusesUnavailable ?
+        <p className="journey-notice">Workflow configuration is unavailable. Recorded transitions remain below.</p> :
+        workflowStages.length ? <WorkflowJourney titleId="journey-workflow-title" mainStages={workflow.main} alternateStages={workflow.alternate} historyComplete={journey.history_complete && allEvents} /> :
+        <p className="journey-muted">No enabled workflow statuses.</p>}
+      {!statusesLoading && !statusesUnavailable && workflowStages.length > 0 && !workflowStages.some(entry => (entry.custom_status_id || entry.id) === currentStatus) &&
+        <p className="journey-notice">The current status is disabled in Status Management. Its history is retained below.</p>}
     </section>
 
     <section className="journey-section" aria-labelledby="journey-history-title">
       <div className="journey-section-title"><h3 id="journey-history-title">Task transitions</h3><span className="journey-muted">Recorded order</span></div>
-      <TransitionList events={transitions} current={journey.status} now={now} complete={allEvents} users={users} />
-      <CustomStatusHistory events={data.journey.items} users={users} />
+      <TransitionList events={transitions} current={currentStatus} now={now} complete={allEvents} users={users} createdAt={journey.created_at} />
+      {customTransitions.length > 0 && <details className="journey-session-history"><summary>Custom status moves ({customTransitions.length})</summary>
+        <TransitionList events={customTransitions} current={currentStatus} now={now} complete={allEvents} users={users} createdAt={journey.created_at} />
+      </details>}
       <SessionHistory entries={parentEntries} events={parentTimerEvents} now={now} asOf={asOf} users={users} />
     </section>
 

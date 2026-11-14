@@ -7,6 +7,39 @@ import { canAdvanceMetrics, currentStageStart, duration, exactTimestamp, liveMet
   mergeEvents, OTHER_STAGES, sessionMetrics, stageState, stageVisits, statusEvents, timestamp } from '../utils/taskJourney';
 import { journeyMatchesTarget, orderedSessions, prepareLiveMetrics, sameSubtaskStates, sessionSeconds, sessionsMatchTarget } from '../utils/taskJourney';
 import type { TaskJourney } from '../types/taskLifecycle';
+import { elapsedSeconds, enabledWorkflowStages, customStatusTransitions } from '../utils/taskJourney';
+
+test('workflow uses enabled configuration in configured order, including custom and board-hidden statuses', () => {
+  assert.deepEqual(enabledWorkflowStages([
+    { id: 'TODO', title: 'New', order: 2, is_active: true },
+    { id: 'disabled', title: 'Disabled', order: 0, is_active: false },
+    { id: 'custom', custom_status_id: 'custom-id', title: 'Review', order: 1, is_active: true, kanban_visible: false },
+  ]).map(row => row.id), ['custom', 'TODO']);
+  assert.deepEqual(enabledWorkflowStages([]), []);
+});
+
+test('custom transitions retain independent identity and calculate time between moves', () => {
+  const core = event(2, 'TODO', 'IN_PROGRESS', at('10:10:00'));
+  core.details = { reason: 'Ready for review' };
+  const custom = { ...core, id: 3, event_type: 'task.custom_status_changed', details: {
+    previous_custom_status_id: null, new_custom_status_id: 'review', new_custom_label: 'Review' } };
+  const move = { ...custom, id: 4, previous_status: 'IN_PROGRESS', occurred_at: at('10:20:00'), details: {
+    previous_custom_status_id: 'review', new_custom_status_id: 'test' } };
+  const rows = customStatusTransitions([event(1, null, 'TODO', at('10:00:00')), core, custom, move]);
+  assert.deepEqual(rows.map(row => row.new_status), ['review', 'test']);
+  assert.equal(currentStageStart(rows, 'test'), at('10:20:00'));
+  assert.deepEqual(stageVisits(rows, 'test', timestamp(at('10:25:00'))!, true).map(row => row.seconds), [600, 300]);
+  assert.equal(elapsedSeconds(at('10:00:00'), timestamp(at('10:20:00'))!), 1200);
+  assert.equal(elapsedSeconds('invalid', timestamp(at('10:20:00'))!), null);
+  assert.equal(elapsedSeconds(at('10:30:00'), timestamp(at('10:20:00'))!), null);
+});
+
+test('multiple custom moves at one transaction timestamp are retained in recorded order', () => {
+  const a = { ...event(1, 'IN_PROGRESS', 'IN_PROGRESS', at('10:00:00')), event_type: 'task.custom_status_changed',
+    details: { previous_custom_status_id: 'a', new_custom_status_id: 'b' } };
+  const b = { ...a, id: 2, details: { previous_custom_status_id: 'b', new_custom_status_id: 'c' } };
+  assert.deepEqual(customStatusTransitions([a, b]).map(row => row.new_status), ['b', 'c']);
+});
 
 const event = (id: number, previous: string | null, next: string, at: string, subtask: string | null = null): LifecycleEvent => ({
   id, previous_status: previous, new_status: next, occurred_at: at, recorded_at: at,

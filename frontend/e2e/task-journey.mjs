@@ -48,6 +48,10 @@ function fixturePdf() {
   return pdf;
 }
 let mode = 'normal';
+const statusCodes = ['WAITING_FOR_REQUIREMENT', 'TODO', 'IN_PROGRESS', 'BUG_FIXING', 'BLOCKED', 'IN_REVIEW', 'ON_HOLD', 'DONE', 'DEPLOYED', 'FAILED', 'GRAVEYARD'];
+let disabledStatuses = [];
+let workflowUnavailable = false;
+let customStage = false;
 let paginated = false;
 let sessionsPaginated = false;
 let longText = false;
@@ -74,7 +78,6 @@ const apiUser = { id: 'reviewer', name: 'Asha Reviewer', email: 'asha@example.te
 
 await context.addInitScript(() => {
   if (window.top !== window) return;
-  localStorage.setItem('vee_access_token', 'synthetic-local-test-token');
   const intervals = new Map();
   const notices = new Set();
   const start = window.setInterval.bind(window);
@@ -101,17 +104,22 @@ await page.route('**/*', async route => {
   if (url.protocol === 'chrome-extension:' && url.hostname === 'mhjfbmdgcfjbbpaeojofohoefgiehjai') return route.continue();
   if (['chrome:', 'chrome-untrusted:'].includes(url.protocol)) return route.continue();
   if (url.origin !== new URL(base).origin) return route.abort();
-  if (url.pathname === '/__journey-test') return route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  if (url.pathname === '/__journey-test') return route.fulfill({ contentType: 'text/html', body: `<!doctype html><html class="dark"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>
     :root{--color-bg-primary:#050b18;--color-surface:#0d1830;--color-border-color:#34435a;--color-text-primary:#eef2f6;--color-text-secondary:#aab6c9}
     body{margin:0;font:14px Arial;background:#050b18;color:#eef2f6}button{padding:12px}*{box-sizing:border-box}h1,h2,h3,h4,h5,p{margin:0}details>summary{list-style:none}
     </style></head><body><div id="root"></div><script type="module">import RefreshRuntime from '/@react-refresh';RefreshRuntime.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;</script><script type="module" src="/e2e/taskJourneyFixture.tsx"></script></body></html>` });
   if (!url.pathname.startsWith('/api/')) return route.continue();
   requests.push({ path: url.pathname, search: url.search, method: route.request().method() });
-  if (url.pathname === '/api/auth/logout' && route.request().method() === 'POST') return route.fulfill({ status: 204 });
+  if (['/api/auth/logout', '/api/auth/browser-session/logout'].includes(url.pathname) && route.request().method() === 'POST') return route.fulfill({ status: 204 });
   const statusEdit = route.request().method() === 'PATCH' && /^\/api\/tasks\/[^/]+$/.test(url.pathname);
   if (statusEdit) taskStatus = route.request().postDataJSON().status;
   if (route.request().method() !== 'GET' && !statusEdit) return route.abort();
   if (url.pathname === '/api/auth/me') return route.fulfill({ json: apiUser });
+  if (url.pathname === '/api/kanban-columns') return route.fulfill({ status: workflowUnavailable ? 503 : 200, json: workflowUnavailable ? { detail: 'Unavailable' } : [
+    ...statusCodes.map((id, order) => ({ id, title: id.toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, value => value.toUpperCase()), order,
+      is_active: !disabledStatuses.includes(id), kanban_visible: id !== 'IN_REVIEW' })),
+    { id: 'custom-review', custom_status_id: 'custom-review-id', title: 'Quality gate', order: 12, is_active: true, kanban_visible: false },
+  ] });
   if (url.pathname === '/api/time-entries/work/active') return route.fulfill({ json: { items: [], user_id: apiUser.id, tenant_id: apiUser.tenant_id, server_time: asOf, limit: 5, running_count: 0, next_offset: null } });
   const capturedMode = mode;
   const capturedDelay = delay;
@@ -132,6 +140,7 @@ await page.route('**/*', async route => {
   const children = [child, ...Array.from({ length: childCount - 1 }, (_, index) => ({ ...child,
     id: `child-${index}`, title: `Subtask ${index} ` + 'lengthy-unbroken-title'.repeat(4), status: 'TODO', assigned_to_id: null }))];
   const task = { id: taskId, title: isB ? 'Second authorized task' : 'Release review: acceptance and delivery',
+    custom_status_id: customStage ? 'custom-review-id' : null,
     status: taskStatus, priority: 'HIGH', assigned_to_ids: ['worker'], created_by_id: 'reviewer', created_at: '2026-10-19T08:00:00.123456Z',
     updated_at: asOf, subtasks: children, recurrence_rule: 'NONE', task_group_id: null };
   if (longText) { task.title = 'UnbrokenLongTaskTitle'.repeat(35); child.title = 'LongChildTitle'.repeat(35); }
@@ -139,7 +148,9 @@ await page.route('**/*', async route => {
     const more = url.searchParams.get('after_id') !== '0';
     return route.fulfill({ json: { task_id: taskId, created_by_id: 'reviewer', created_at: task.created_at,
       status: taskStatus, subtasks: children.map(row => ({ id: row.id, status: row.status })), capture_started_at: '2026-10-19T07:00:00Z',
-      history_complete: capturedMode !== 'legacy', items: (capturedMode === 'empty' ? [] : paginated ? more ? events.slice(3) : events.slice(0, 3) : events).map(row => ({ ...row, task_id: foreignEvent ? 'foreign' : taskId })),
+      history_complete: capturedMode !== 'legacy', items: (capturedMode === 'empty' ? [] : customStage ? [...events,
+        { ...event(10, 'IN_PROGRESS', 'IN_PROGRESS', '2026-10-19T09:50:00.123456Z'), event_type: 'task.custom_status_changed',
+          details: { previous_custom_status_id: null, new_custom_status_id: 'custom-review-id', new_custom_label: 'Quality gate' } }] : paginated ? more ? events.slice(3) : events.slice(0, 3) : events).map(row => ({ ...row, task_id: foreignEvent ? 'foreign' : taskId })),
       next_after_id: paginated && !more ? 3 : null, response_sequence: responseSequence } });
   }
   const time = sessionBatch ? { ...metric(2640, 30, 1), raw_session_seconds: 53040 } : metric(840, 1, 1);
@@ -206,7 +217,8 @@ await page.route('**/*', async route => {
 async function run(name, fn) {
   if (process.env.ZEAPLAY_JOURNEY_CASE && !name.includes(process.env.ZEAPLAY_JOURNEY_CASE)) return;
   try { await fn(); results.push({ name, result: 'PASS' }); console.log(`PASS ${name}`); }
-  catch (error) { results.push({ name, result: 'FAIL', error: error.message }); failures.push(name); console.error(`FAIL ${name}: ${error.message}`); }
+  catch (error) { results.push({ name, result: 'FAIL', error: error.message }); failures.push(name); console.error(`FAIL ${name}: ${error.message}`);
+    console.error(JSON.stringify({ pageErrors, body: (await page.locator('body').innerText()).slice(0, 3000) })); }
 }
 async function open() {
   await page.goto(`${base}/__journey-test`);
@@ -227,19 +239,132 @@ async function checkIndicatorContrast() {
   });
 }
 try {
+  await run('rocket workflow: live stages, read-only checkpoint details, tooltips and keyboard navigation', async () => {
+    await open();
+    const map = page.locator('.workflow-journey');
+    await map.getByRole('heading', { name: 'Workflow Progress', exact: true }).waitFor();
+    assert.equal(await map.locator('.wf-track-main .wf-checkpoint').count(), 6);
+    assert.equal(await map.locator('.wf-track-alternate .wf-checkpoint').count(), 6);
+    assert.equal(await map.locator('[aria-current="step"]').count(), 1);
+    assert.equal(await map.getByRole('progressbar').getAttribute('aria-valuenow'), '33');
+    assert.equal(await map.locator('.wf-route-completed').count(), 1); // No route is invented across skipped checkpoints.
+    const writes = requests.filter(row => row.method !== 'GET').length;
+    const pending = map.locator('[data-stage-id="DEPLOYED"] button');
+    await pending.click();
+    assert.ok((await map.getByRole('region', { name: 'Selected stage details' }).innerText()).includes('Deployed'));
+    assert.ok((await map.getByRole('region', { name: 'Selected stage details' }).innerText()).includes('Not recorded'));
+    await page.mouse.move(1, 1);
+    await pending.hover();
+    await map.getByRole('tooltip').filter({ hasText: 'Deployed' }).waitFor();
+    assert.ok((await map.getByRole('tooltip').filter({ hasText: 'Deployed' }).innerText()).includes('Recorded time: Not recorded'));
+    await pending.press('Home');
+    assert.equal(await page.evaluate(() => document.activeElement?.closest('[data-stage-id]')?.getAttribute('data-stage-id')), 'WAITING_FOR_REQUIREMENT');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Enter');
+    assert.ok((await map.getByRole('region', { name: 'Selected stage details' }).innerText()).includes('Todo'));
+    await map.getByRole('button', { name: 'Next main workflow checkpoint', exact: true }).click();
+    assert.equal(await page.evaluate(() => document.activeElement?.closest('[data-stage-id]')?.getAttribute('data-stage-id')), 'IN_PROGRESS');
+    await map.getByRole('button', { name: 'Next main workflow checkpoint', exact: true }).click();
+    assert.equal(await page.evaluate(() => document.activeElement?.closest('[data-stage-id]')?.getAttribute('data-stage-id')), 'IN_REVIEW');
+    await map.getByRole('button', { name: 'Alternate Flow', exact: true }).click();
+    assert.equal(await map.getByRole('button', { name: 'Alternate Flow', exact: true }).getAttribute('aria-pressed'), 'true');
+    assert.equal(await map.locator('.wf-track-alternate.wf-track-focused').count(), 1);
+    assert.equal(requests.filter(row => row.method !== 'GET').length, writes);
+    const reads = requests.filter(row => row.path.includes('/tasks/')).length;
+    await page.waitForTimeout(1300);
+    assert.equal(requests.filter(row => row.path.includes('/tasks/')).length, reads);
+  });
+  await run('rocket workflow: responsive scrolling, active-stage changes, themes and reduced motion', async () => {
+    await open();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const map = page.locator('.workflow-journey');
+    for (const width of [1440, 768, 375, 320]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await map.locator('.wf-header').evaluate(element => element.scrollIntoView({ block: 'start' }));
+      const size = await page.locator('.journey-scroll').evaluate(element => [element.clientWidth, element.scrollWidth]);
+      assert.ok(size[1] <= size[0] + 1, `Page overflow at ${width}: ${size}`);
+      const viewport = await map.locator('.wf-track-main .wf-track-viewport').evaluate(element => ({ width: element.clientWidth, scrollWidth: element.scrollWidth }));
+      if (width <= 375) assert.ok(viewport.scrollWidth > viewport.width);
+      await page.screenshot({ path: new URL(`rocket-workflow-dark-${width}.png`, output).pathname.replace(/^\/(?=[A-Z]:)/, '') });
+    }
+    taskStatus = 'DEPLOYED';
+    await page.getByRole('button', { name: 'Refresh task journey' }).click();
+    await map.locator('[data-stage-id="DEPLOYED"] [aria-current="step"]').waitFor();
+    await page.waitForTimeout(100);
+    const visible = await map.locator('.wf-track-main .wf-track-viewport').evaluate(view => {
+      const active = view.querySelector('[aria-current="step"]').getBoundingClientRect(); const bounds = view.getBoundingClientRect();
+      return active.left >= bounds.left - 1 && active.right <= bounds.right + 1;
+    });
+    assert.ok(visible, 'Active checkpoint stays visible after a status change on mobile');
+    assert.equal(await map.evaluate(element => element.getAnimations({ subtree: true }).length), 0);
+    await page.evaluate(() => { document.documentElement.classList.remove('dark'); for (const [key, value] of Object.entries({ '--color-bg-primary': '#fff', '--color-surface': '#f6f8fa', '--color-border-color': '#cbd5e1', '--color-text-primary': '#111827', '--color-text-secondary': '#475569' })) document.documentElement.style.setProperty(key, value); });
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 1000 }); await map.locator('.wf-header').evaluate(element => element.scrollIntoView({ block: 'start' }));
+      const contrast = await map.evaluate(element => {
+        const lum = color => { const c = color.match(/[\d.]+/g).slice(0, 3).map(Number).map(n => n / 255 <= .04045 ? n / 255 / 12.92 : ((n / 255 + .055) / 1.055) ** 2.4); return c[0] * .2126 + c[1] * .7152 + c[2] * .0722; };
+        const style = getComputedStyle(element), a = lum(style.color), b = lum(style.backgroundColor); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+      });
+      assert.ok(contrast >= 4.5);
+      await page.screenshot({ path: new URL(`rocket-workflow-light-${width}.png`, output).pathname.replace(/^\/(?=[A-Z]:)/, '') });
+    }
+    taskStatus = 'IN_PROGRESS'; await open();
+  });
   await run('heading, recorded transitions, reopens and exact timestamps', async () => {
     await open();
-    assert.equal(await page.locator('.journey-transitions').first().locator('li').count(), 4);
+    assert.equal(await page.locator('.journey-transitions').first().locator('li:not(.journey-current-stay)').count(), 4);
     await page.getByText('Returned after the acceptance review.').waitFor();
     assert.ok((await page.locator('.journey-heading').innerText()).includes('.123456 UTC'));
-    assert.equal(await page.locator('.journey-stage-active').first().getAttribute('aria-current'), 'step');
+    assert.equal(await page.locator('.workflow-journey [aria-current="step"]').first().getAttribute('aria-current'), 'step');
     assert.equal(await page.locator('[aria-labelledby="journey-workflow-title"] .journey-stage-upcoming').filter({ hasText: 'In Review' }).count(), 1);
+  });
+  await run('enabled workflow configuration, exact change intervals and cumulative elapsed time', async () => {
+    await open();
+    const map = page.locator('[aria-labelledby="journey-workflow-title"]');
+    const history = page.locator('[aria-labelledby="journey-history-title"]');
+    assert.equal(await map.locator('.wf-checkpoint').count(), 12);
+    assert.ok((await map.innerText()).includes('Quality gate'));
+    assert.ok((await map.innerText()).includes('In Review')); // Enabled, even when hidden on Kanban.
+    const rows = history.locator('.journey-transitions > li:not(.journey-current-stay)');
+    assert.deepEqual(await rows.nth(1).locator('.journey-transition-times dd').allTextContents(), ['14m 59s', '14m 59s']);
+    assert.deepEqual(await rows.nth(2).locator('.journey-transition-times dd').allTextContents(), ['45m 0s', '59m 59s']);
+    assert.deepEqual(await rows.nth(3).locator('.journey-transition-times dd').allTextContents(), ['45m 0s', '1h 44m 59s']);
+    assert.ok((await page.locator('.journey-metrics').innerText()).includes('Overall elapsed time'));
+    assert.ok((await map.locator('.journey-stage-active').innerText()).includes('Recorded time:'));
+    disabledStatuses = ['DONE', 'IN_REVIEW', 'IN_PROGRESS'];
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('task-statuses-updated', { detail: { tenantId: 'tenant-a' } })));
+    await page.waitForFunction(() => document.querySelectorAll('[aria-labelledby="journey-workflow-title"] .wf-checkpoint').length === 9);
+    assert.equal(await map.locator('[aria-current="step"]').count(), 0);
+    assert.ok((await map.innerText()).includes('current status is disabled'));
+    assert.equal(await rows.count(), 4); // Disabling presentation never erases history.
+    disabledStatuses = [];
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('task-statuses-updated', { detail: { tenantId: 'tenant-a' } })));
+    await page.waitForFunction(() => document.querySelectorAll('[aria-labelledby="journey-workflow-title"] .wf-checkpoint').length === 12);
+    workflowUnavailable = true;
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('task-statuses-updated', { detail: { tenantId: 'tenant-a' } })));
+    await map.getByText(/Workflow configuration is unavailable/).waitFor();
+    assert.equal(await map.locator('.wf-checkpoint').count(), 0);
+    assert.equal(await rows.count(), 4);
+    workflowUnavailable = false;
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('task-statuses-updated', { detail: { tenantId: 'tenant-a' } })));
+    await page.waitForFunction(() => document.querySelectorAll('[aria-labelledby="journey-workflow-title"] .wf-checkpoint').length === 12);
+  });
+  await run('custom current stage uses its captured time and preserves core transition history', async () => {
+    customStage = true;
+    await open();
+    assert.ok((await page.locator('[aria-labelledby="journey-workflow-title"] [aria-current="step"]').innerText()).includes('Quality gate'));
+    assert.match(await page.locator('.journey-metrics dd').nth(3).innerText(), /^9m 59s|10m [0-2]s$/);
+    assert.equal(await page.locator('[aria-labelledby="journey-history-title"] > .journey-transitions > li').count(), 4);
+    await page.getByText('Custom status moves (1)', { exact: true }).click();
+    assert.deepEqual(await page.locator('.journey-session-history .journey-transition-times dd').allTextContents(), ['Not recorded', '1h 50m 0s']);
+    await page.screenshot({ path: new URL('journey-custom-status.png', output).pathname.replace(/^\/(?=[A-Z]:)/, '') });
+    customStage = false;
+    await open();
   });
   await run('only the current task stage glows, and the normal-motion glow actually animates', async () => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     const active = page.locator('[aria-labelledby="journey-workflow-title"] .journey-stage-active .journey-stage-dot');
     assert.equal(await active.count(), 1);
-    assert.equal(await active.evaluate(el => getComputedStyle(el).animationName), 'journey-glow');
+    assert.equal(await active.evaluate(el => getComputedStyle(el).animationName), 'wf-pulse');
     const before = await active.evaluate(el => getComputedStyle(el).boxShadow);
     await page.waitForTimeout(350);
     assert.notEqual(await active.evaluate(el => getComputedStyle(el).boxShadow), before);
@@ -270,7 +395,7 @@ try {
     }
     await page.emulateMedia({ reducedMotion: 'reduce' });
     assert.equal(await page.locator('.journey-stage-active .journey-stage-dot').first().evaluate(el => getComputedStyle(el).animationName), 'none');
-    await page.evaluate(() => { for (const [key, value] of Object.entries({ '--color-bg-primary': '#fff', '--color-surface': '#f6f8fa', '--color-border-color': '#cbd5e1', '--color-text-primary': '#111827', '--color-text-secondary': '#475569' })) document.documentElement.style.setProperty(key, value); });
+    await page.evaluate(() => { document.documentElement.classList.remove('dark'); for (const [key, value] of Object.entries({ '--color-bg-primary': '#fff', '--color-surface': '#f6f8fa', '--color-border-color': '#cbd5e1', '--color-text-primary': '#111827', '--color-text-secondary': '#475569' })) document.documentElement.style.setProperty(key, value); });
     assert.ok(await checkIndicatorContrast() >= 3);
     await page.screenshot({ path: new URL('journey-light-mobile.png', output).pathname.replace(/^\/(?=[A-Z]:)/, ''), fullPage: true });
   });
@@ -297,7 +422,7 @@ try {
     assert.equal(await page.locator('.journey-metrics dd').nth(3).innerText(), 'Not recorded');
     await page.getByRole('button', { name: 'Load more events' }).click();
     await page.getByText('Returned after the acceptance review.').waitFor();
-    assert.equal(await page.locator('.journey-transitions').first().locator('li').count(), 4);
+    assert.equal(await page.locator('.journey-transitions').first().locator('li:not(.journey-current-stay)').count(), 4);
     paginated = false;
   });
   await run('partial session pages retain snapshot totals until reconciliation', async () => {
@@ -429,10 +554,10 @@ try {
     await page.getByRole('alert').waitFor();
     assert.equal(await page.locator('.journey-heading').count(), 0);
     assert.equal(await page.locator('.journey-transitions').count(), 0);
-    const before = requests.length;
+    const before = requests.filter(row => row.path !== '/api/kanban-columns').length;
     await page.evaluate(() => { window.journeyProbe.poll(); window.dispatchEvent(new Event('focus')); });
     await page.waitForTimeout(400);
-    assert.equal(requests.length, before);
+    assert.equal(requests.filter(row => row.path !== '/api/kanban-columns').length, before);
     mode = 'normal';
     await page.getByRole('button', { name: 'Try again' }).click();
     await page.getByRole('heading', { name: 'Second authorized task' }).waitFor();
@@ -512,7 +637,7 @@ try {
     await page.getByRole('button', { name: 'Close task journey' }).click();
     assert.equal(await page.getByRole('button', { name: 'Open task status journey' }).count(), 1);
     const selector = page.getByRole('combobox', { name: 'Status', exact: true });
-    assert.equal(await selector.locator('option').count(), 11);
+    assert.equal(await selector.locator('option').count(), 12);
     await selector.selectOption('BUG_FIXING');
     const update = page.getByRole('button', { name: 'Update Task', exact: true });
     assert.equal(await update.isEnabled(), true);
@@ -682,7 +807,7 @@ try {
       assert.ok(size[1] <= size[0] + 1);
       await page.screenshot({ path: new URL(`execution-evidence-${width}.png`, output).pathname.replace(/^\/(?=[A-Z]:)/, '') });
     }
-    await page.evaluate(() => { for (const [key, value] of Object.entries({ '--color-bg-primary': '#fff', '--color-surface': '#f6f8fa', '--color-border-color': '#cbd5e1', '--color-text-primary': '#111827', '--color-text-secondary': '#475569' })) document.documentElement.style.setProperty(key, value); });
+    await page.evaluate(() => { document.documentElement.classList.remove('dark'); for (const [key, value] of Object.entries({ '--color-bg-primary': '#fff', '--color-surface': '#f6f8fa', '--color-border-color': '#cbd5e1', '--color-text-primary': '#111827', '--color-text-secondary': '#475569' })) document.documentElement.style.setProperty(key, value); });
     assert.ok((await page.locator('.report-evidence > li').first().innerText()).includes('Dev Kumar'));
     await page.screenshot({ path: new URL('execution-evidence-light.png', output).pathname.replace(/^\/(?=[A-Z]:)/, '') });
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -730,7 +855,7 @@ try {
     await page.getByRole('heading', { name: 'Execution summary', exact: true }).waitFor();
   });
   await run('review: selected tab text retains readable light-theme contrast', async () => {
-    await page.evaluate(() => { for (const [key, value] of Object.entries({ '--color-bg-primary': '#fff', '--color-surface': '#f6f8fa', '--color-border-color': '#cbd5e1', '--color-text-primary': '#111827', '--color-text-secondary': '#475569' })) document.documentElement.style.setProperty(key, value); });
+    await page.evaluate(() => { document.documentElement.classList.remove('dark'); for (const [key, value] of Object.entries({ '--color-bg-primary': '#fff', '--color-surface': '#f6f8fa', '--color-border-color': '#cbd5e1', '--color-text-primary': '#111827', '--color-text-secondary': '#475569' })) document.documentElement.style.setProperty(key, value); });
     const ratio = await page.locator('[role="tab"][aria-selected="true"]').evaluate(element => {
       const luminance = value => {
         const [r, g, b] = value.match(/[\d.]+/g).slice(0, 3).map(Number).map(n => { const v = n / 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; });
@@ -749,7 +874,7 @@ try {
     assert.equal(await page.locator('.journey-heading').count(), 0);
   });
   await run('no business writes or additional sockets, no browser exceptions', async () => {
-    assert.ok(requests.every(row => row.method === 'GET' || row.path === '/api/auth/logout' || (row.method === 'PATCH' && row.path === '/api/tasks/task-a')));
+    assert.ok(requests.every(row => row.method === 'GET' || ['/api/auth/logout', '/api/auth/browser-session/logout'].includes(row.path) || (row.method === 'PATCH' && row.path === '/api/tasks/task-a')));
     assert.equal(requests.filter(row => row.method === 'PATCH').length, 1);
     assert.equal(sockets.filter(url => /\/ws\/tasks|\/socket\.io/.test(url)).length, 0);
     assert.deepEqual(pageErrors, []);

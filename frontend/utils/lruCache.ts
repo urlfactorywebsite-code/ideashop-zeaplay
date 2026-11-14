@@ -42,6 +42,12 @@ export class LRUCache<T> {
     this.cache.clear();
   }
 
+  updateMatching(predicate: (key: string) => boolean, update: (value: T) => T): void {
+    for (const [key, entry] of this.cache) {
+      if (predicate(key) && Date.now() <= entry.expiresAt) entry.value = update(entry.value);
+    }
+  }
+
   has(key: string): boolean {
     return this.get(key) !== null;
   }

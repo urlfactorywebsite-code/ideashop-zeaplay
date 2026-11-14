@@ -15,10 +15,10 @@ const browser = await chromium.launch({ headless: true,
 const output = path.join(tmpdir(), 'zeaplay-task-groups');
 await mkdir(output, { recursive: true });
 try {
-  const page = await browser.newPage({ reducedMotion: 'reduce' });
+  const page = await browser.newPage({ reducedMotion: process.env.ZEAPLAY_REDUCED_MOTION === 'no-preference' ? 'no-preference' : 'reduce' });
   page.setDefaultTimeout(18000);
   try {
-    const source = await readFile(new URL('./task-groups.playwright.js', import.meta.url), 'utf8');
+    const source = await readFile(new URL(process.argv[2] || './task-groups.playwright.js', import.meta.url), 'utf8');
     const run = new Function('return (' + source + ')')();
     const result = await run(page);
     await writeFile(path.join(output, 'results.json'), JSON.stringify(result, null, 2));

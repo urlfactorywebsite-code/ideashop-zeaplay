@@ -22,8 +22,10 @@ import TaskPriorityBadge from '../components/ui/TaskPriorityBadge';
 import CreateTaskModal from '../components/CreateTaskModal';
 import TaskDetailModal from '../components/TaskDetailModal';
 import TaskTemplateModal from '../components/TaskTemplateModal';
-import TaskGroupMembers, { GroupQuestIndicator, GroupQuestStatus } from '../components/TaskGroupMembers';
-import { assignmentIds, removeTaskAssignments, taskSelectionState, settleAssignmentActions } from '../utils/taskGroups';
+import { GroupQuestIndicator, GroupQuestStatus, TaskAssigneeRoster } from '../components/TaskGroupMembers';
+import GroupedTaskSummary from '../components/GroupedTaskSummary';
+import GroupedTaskNavigator from '../components/GroupedTaskNavigator';
+import { assignmentIds, assignmentMembers, logicalTaskKey, removeTaskAssignments, replaceAssignment, replaceVisibleGroup, taskSelectionState, settleAssignmentActions } from '../utils/taskGroups';
 
 import { useTaskFilter, useTaskViewActive } from '../hooks/useTaskView';
 
@@ -506,6 +508,13 @@ const Tasks: React.FC = () => {
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [isTemplateModalOpen, setTemplateModalOpen] = useState(false);
     const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+    const viewerScope = `${user?.tenantId}:${user?.id}:${user?.role}:${user?.department}`;
+    const [selectedGroup, setSelectedGroup] = useState<{ task: Task; scope: string } | null>(null);
+    const groupNavigationOpen = !!selectedGroup && selectedGroup.scope === viewerScope && active;
+    const groupNavigationRef = useRef(groupNavigationOpen);
+    groupNavigationRef.current = groupNavigationOpen;
+    const groupOpener = useRef<HTMLElement | null>(null);
+    const originalScroll = useRef({ window: 0, elements: [] as { element: HTMLElement; top: number }[] });
     const prefetchedTaskIdsRef = useRef<Set<string>>(new Set());
     const realtimeRefreshTimerRef = useRef<number | null>(null);
 
@@ -696,7 +705,7 @@ const Tasks: React.FC = () => {
         ],
     );
 
-    const { data: pageResult, loading: listLoading, error: taskListError, refresh: refreshTasks } = useTaskList({
+    const { data: pageResult, loading: listLoading, error: taskListError, refresh: refreshTasks, updateItems } = useTaskList({
         params: listParams,
         enabled: Boolean(user) && active,
     });
@@ -832,6 +841,7 @@ const Tasks: React.FC = () => {
     const handleTaskEvent = useCallback((event: Event) => {
         const notice = (event as CustomEvent<{ userId: string; tenantId: string | null }>).detail;
         if (!notice || !user || notice.userId !== user.id || notice.tenantId !== (user.tenantId ?? null)) return;
+        if (groupNavigationRef.current) return; // The open navigator reconciles authorized assignments by ID.
         if (realtimeRefreshTimerRef.current !== null) {
             window.clearTimeout(realtimeRefreshTimerRef.current);
         }
@@ -1411,8 +1421,31 @@ const Tasks: React.FC = () => {
         [departmentOptions],
     );
     const handleTaskClick = useCallback((taskId: string) => {
-        setSelectedTaskId(taskId);
-    }, []);
+        const task = tasks.find(item => item.id === taskId);
+        if (task?.groupAssignments) {
+            const card = document.querySelector<HTMLElement>(`[data-task-card-id="${CSS.escape(taskId)}"]`);
+            groupOpener.current = document.activeElement instanceof HTMLElement && card?.contains(document.activeElement)
+                ? document.activeElement : card?.querySelector<HTMLElement>('h3 button') ?? null;
+            const elements: { element: HTMLElement; top: number }[] = [];
+            for (let element = card?.parentElement; element; element = element.parentElement) {
+                if (element.scrollHeight > element.clientHeight) elements.push({ element, top: element.scrollTop });
+            }
+            originalScroll.current = { window: window.scrollY, elements };
+            setSelectedGroup({ task, scope: viewerScope });
+        } else setSelectedTaskId(taskId);
+    }, [tasks, viewerScope]);
+
+    const closeGroupNavigation = () => {
+        const closingGroup = selectedGroup;
+        setSelectedGroup(null);
+        requestAnimationFrame(() => {
+            window.scrollTo({ top: originalScroll.current.window, behavior: 'instant' });
+            for (const { element, top } of originalScroll.current.elements) if (element.isConnected) element.scrollTop = top;
+            const opener = groupOpener.current?.isConnected ? groupOpener.current : closingGroup
+                ? document.querySelector<HTMLElement>(`[data-task-group-key="${CSS.escape(logicalTaskKey(closingGroup.task))}"] h3 button`) : null;
+            opener?.focus({ preventScroll: true });
+        });
+    };
 
     const handleCloseDetailModal = () => {
         setSelectedTaskId(null);
@@ -1816,10 +1849,11 @@ const Tasks: React.FC = () => {
                         <div
                             key={task.id}
                             data-task-card-id={task.id}
+                            data-task-group-key={task.groupAssignments ? logicalTaskKey(task) : undefined}
                             className={`${taskCardClass} ${task.groupAssignments ? 'group-quest-card group-quest-card--list' : ''} ${isContentFading ? 'opacity-65' : 'opacity-100'}`}
                             style={getTaskCardInlineStyle(task.status)}
-                            onMouseEnter={() => prefetchTaskDetail(task.id)}
-                            onFocus={() => prefetchTaskDetail(task.id)}
+                            onMouseEnter={() => { if (!task.groupAssignments) prefetchTaskDetail(task.id); }}
+                            onFocus={() => { if (!task.groupAssignments) prefetchTaskDetail(task.id); }}
                             onClick={() => handleTaskClick(task.id)}
                         >
                             {(isLight || isColorful) && (
@@ -1859,7 +1893,7 @@ const Tasks: React.FC = () => {
                                             Project: {task.project?.name ?? 'Legacy task'}
                                         </div>
                                     </div>
-                                    {task.groupAssignments ? <TaskGroupMembers task={task} usersMap={usersMap} currentUser={user} compact onOpenAssignment={handleTaskClick} /> : renderPointsBadge(task)}
+                                    {task.groupAssignments ? <GroupedTaskSummary task={task} usersMap={usersMap} compact /> : <><TaskAssigneeRoster members={assignmentMembers(task, usersMap)} compact showSingleName />{renderPointsBadge(task)}</>}
                                 </div>
                             </div>
                         </div>
@@ -1873,10 +1907,11 @@ const Tasks: React.FC = () => {
                                 <div
                                     key={task.id}
                                     data-task-card-id={task.id}
+                                    data-task-group-key={task.groupAssignments ? logicalTaskKey(task) : undefined}
                                     className={`${gridTaskCardClass} ${task.groupAssignments ? 'group-quest-card group-quest-card--grid' : ''}`}
                                     style={getTaskCardInlineStyle(task.status)}
-                                    onMouseEnter={() => prefetchTaskDetail(task.id)}
-                                    onFocus={() => prefetchTaskDetail(task.id)}
+                                    onMouseEnter={() => { if (!task.groupAssignments) prefetchTaskDetail(task.id); }}
+                                    onFocus={() => { if (!task.groupAssignments) prefetchTaskDetail(task.id); }}
                                     onClick={() => handleTaskClick(task.id)}
                                 >
                                     {(isLight || isColorful) && (
@@ -1913,7 +1948,7 @@ const Tasks: React.FC = () => {
                                         <div className={isLight || isColorful ? 'mt-1 text-xs font-semibold text-indigo-700' : 'mt-1 text-xs font-semibold text-cyan-200'}>
                                             Project: {task.project?.name ?? 'Legacy task'}
                                         </div>
-                                        {task.groupAssignments ? <TaskGroupMembers task={task} usersMap={usersMap} currentUser={user} onOpenAssignment={handleTaskClick} /> : renderPointsBadge(task)}
+                                        {task.groupAssignments ? <GroupedTaskSummary task={task} usersMap={usersMap} /> : <><TaskAssigneeRoster members={assignmentMembers(task, usersMap)} />{renderPointsBadge(task)}</>}
                                     </div>
                                 </div>
                             );
@@ -1976,6 +2011,10 @@ const Tasks: React.FC = () => {
                 />
             )}
 
+            {groupNavigationOpen && selectedGroup && <GroupedTaskNavigator key={`${selectedGroup.scope}:${selectedGroup.task.id}`} task={selectedGroup.task} usersMap={usersMap}
+                onClose={closeGroupNavigation}
+                onAssignmentUpdated={updated => updateItems(items => replaceAssignment(items, updated))}
+                onGroupLoaded={assignments => updateItems(items => replaceVisibleGroup(items, selectedGroup.task, assignments))} />}
             {active && selectedTaskId && (
                 <TaskDetailModal
                     taskId={selectedTaskId}

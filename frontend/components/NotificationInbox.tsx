@@ -15,7 +15,7 @@ type Props = {
   onClose: () => void;
   compact?: boolean;
 };
-const control = 'rounded-lg border border-sky-400/30 px-2 py-1.5 text-xs text-text-primary transition hover:bg-sky-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 disabled:cursor-not-allowed disabled:opacity-50';
+const control = 'rounded-lg border border-border-strong px-2 py-1.5 text-xs text-text-primary transition hover:bg-sky-500/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50';
 
 export default function NotificationInbox({ notifications, renderIcon, onOpen, onDelete, onMarkAllRead, onClose, compact = false }: Props) {
   const id = useId();
@@ -108,11 +108,11 @@ export default function NotificationInbox({ notifications, renderIcon, onOpen, o
   const cancelDeletion = () => { setConfirmIds(null); deleteButton.current?.focus(); };
 
   const content = <section id="notification-inbox" aria-labelledby={`${id}-heading`} aria-busy={!!working}
-    className={`${compact ? 'fixed right-4 top-20' : 'absolute right-0 mt-2'} z-[80] flex max-h-[min(36rem,calc(100dvh-6rem))] w-[min(25rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-sky-400/40 bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 shadow-[0_20px_60px_rgba(56,189,248,0.25),0_0_0_1px_rgba(59,130,246,0.35),inset_0_0_0_1px_rgba(236,72,153,0.25)] backdrop-blur`}>
+    className={`notification-inbox ${compact ? 'fixed right-4 top-20' : 'absolute right-0 mt-2'} z-[80] flex max-h-[min(36rem,calc(100dvh-6rem))] w-[min(25rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border-strong`}>
     <div className="shrink-0 border-b border-sky-400/30 bg-gradient-to-r from-sky-500/10 via-fuchsia-500/10 to-indigo-500/10 p-3">
       <div className="flex items-center justify-between gap-2">
         <div><h3 id={`${id}-heading`} className="font-semibold text-text-primary">Notifications</h3>
-          <p className="text-xs text-text-muted">{unread} unread · {notifications.length} total</p></div>
+          <p className="text-xs text-text-secondary">{unread} unread · {notifications.length} total</p></div>
         <div className="flex items-center gap-1">
           <button type="button" ref={filterButton} className={`${control} ${filterCount ? 'bg-sky-500/20 ring-1 ring-sky-300/60' : ''}`} disabled={!!working}
             aria-label={`Filter notifications${filterCount ? ` (${filterCount} active)` : ''}`} title="Filter notifications"
@@ -133,17 +133,17 @@ export default function NotificationInbox({ notifications, renderIcon, onOpen, o
       </div>
     </div>
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-    {filtersOpen && <fieldset id={`${id}-filters`} className="shrink-0 space-y-2 border-b border-sky-400/20 bg-slate-950/60 p-3" disabled={!!working}>
+    {filtersOpen && <fieldset id={`${id}-filters`} className="notification-inbox-filters shrink-0 space-y-2 border-b border-border-color p-3" disabled={!!working}>
       <legend className="sr-only">Notification filters</legend>
       <label className="block text-xs text-text-secondary">Search notifications
         <input ref={searchInput} type="search" value={filters.search} maxLength={200} onChange={event => updateFilters({ ...filters, search: event.target.value })}
-          placeholder="Search notifications…" className="mt-1 w-full rounded-lg border border-sky-400/30 bg-slate-900 p-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-sky-300" /></label>
+          placeholder="Search notifications…" className="mt-1 w-full rounded-lg border border-border-strong bg-surface p-2 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary" /></label>
       <div className="grid grid-cols-2 gap-2">
         <label className="text-xs text-text-secondary">Read status<select value={filters.read} onChange={event => updateFilters({ ...filters, read: event.target.value as NotificationFilters['read'] })}
-          className="mt-1 w-full rounded-lg border border-sky-400/30 bg-slate-900 p-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-sky-300">
+          className="mt-1 w-full rounded-lg border border-border-strong bg-surface p-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="all">All notifications</option><option value="unread">Unread</option><option value="read">Read</option></select></label>
         <label className="min-w-0 text-xs text-text-secondary">Category<select value={filters.category} onChange={event => updateFilters({ ...filters, category: event.target.value as NotificationFilters['category'] })}
-          className="mt-1 w-full rounded-lg border border-sky-400/30 bg-slate-900 p-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-sky-300">
+          className="mt-1 w-full rounded-lg border border-border-strong bg-surface p-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary">
           <option value="all">All categories</option>{notificationCategories.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
       </div>
       <button type="button" className={control} onClick={() => updateFilters(defaultNotificationFilters)} disabled={!filterCount}>Reset filters</button>
@@ -156,19 +156,19 @@ export default function NotificationInbox({ notifications, renderIcon, onOpen, o
             onClick={() => { setConfirmIds(null); setSelected(new Set(visible.slice(0, MAX_NOTIFICATION_SELECTION).map(item => item.id))); }}>
             {visible.length > MAX_NOTIFICATION_SELECTION ? `Select first ${MAX_NOTIFICATION_SELECTION}` : 'Select all shown'}</button>
           <button type="button" className={control} disabled={!!working || !selected.size} onClick={() => { setConfirmIds(null); setSelected(new Set()); }}>Clear selection</button>
-          <button type="button" ref={deleteButton} className={`${control} inline-flex items-center gap-1 text-rose-300`} disabled={!!working || !selected.size}
+          <button type="button" ref={deleteButton} className={`${control} notification-inbox-danger inline-flex items-center gap-1`} disabled={!!working || !selected.size}
             onClick={() => setConfirmIds([...selected])}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" />Delete selected</button>
         </div>
       </div>
-      <p className="text-xs text-text-muted">Ctrl+click or Cmd+click to select. Up to {MAX_NOTIFICATION_SELECTION} at a time.</p>
+      <p className="text-xs text-text-secondary">Ctrl+click or Cmd+click to select. Up to {MAX_NOTIFICATION_SELECTION} at a time.</p>
     </div>}
     {confirmIds && <div role="group" aria-label="Confirm notification deletion" className="shrink-0 border-b border-rose-400/30 bg-rose-500/10 p-3">
       <p className="text-sm text-text-primary">Delete {confirmIds.length} selected notification{confirmIds.length === 1 ? '' : 's'}? This cannot be undone.</p>
       <div className="mt-2 flex gap-2"><button type="button" ref={cancelButton} className={control} disabled={!!working} onClick={cancelDeletion}>Cancel deletion</button>
-        <button type="button" className={`${control} text-rose-300`} disabled={!!working} onClick={() => void run('delete', confirmIds)}>{working === 'delete' ? 'Deleting…' : 'Confirm delete'}</button></div>
+        <button type="button" className={`${control} notification-inbox-danger`} disabled={!!working} onClick={() => void run('delete', confirmIds)}>{working === 'delete' ? 'Deleting…' : 'Confirm delete'}</button></div>
     </div>}
-    {error && <p role="alert" className="shrink-0 break-words border-b border-rose-400/20 p-3 text-xs text-rose-300">{error}</p>}
-    <p role="status" className={notice ? 'shrink-0 px-3 py-2 text-xs text-sky-200' : 'sr-only'}>{notice}</p>
+    {error && <p role="alert" className="notification-inbox-danger shrink-0 break-words border-b border-rose-400/20 p-3 text-xs">{error}</p>}
+    <p role="status" className={notice ? 'shrink-0 px-3 py-2 text-xs text-text-accent' : 'sr-only'}>{notice}</p>
     <div>
       <ul aria-label="Notification list" className="divide-y divide-sky-400/20">
         {visible.map(item => <li key={item.id} data-notification-id={item.id}
@@ -181,19 +181,19 @@ export default function NotificationInbox({ notifications, renderIcon, onOpen, o
             onClick={event => { if (event.ctrlKey || event.metaKey || selecting) toggle(item.id); else onOpen(item); }}
             className="flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 disabled:cursor-wait">
             <span className="shrink-0" aria-hidden="true">{renderIcon(item)}</span>
-            <span className="min-w-0 flex-1"><span className={`block break-words text-sm ${item.isRead ? 'text-text-muted' : 'text-text-primary'}`}>{item.message}</span>
-              <span className="mt-1 block text-xs text-text-muted">{timeAgo(item.createdAt)}</span>
+            <span className="min-w-0 flex-1"><span className={`block break-words text-sm ${item.isRead ? 'text-text-secondary' : 'font-medium text-text-primary'}`}>{item.message}</span>
+              <span className="mt-1 block text-xs text-text-secondary">{timeAgo(item.createdAt)}</span>
               {!item.isRead && <span className="sr-only">Unread</span>}</span>
           </button>
           <button type="button" disabled={!!working || !!confirmIds} aria-label="Delete notification" title="Delete notification"
-            onClick={() => void run('delete', [item.id])} className={`${control} shrink-0 rounded-full p-1.5 text-rose-300`}>
+            onClick={() => void run('delete', [item.id])} className={`${control} notification-inbox-danger shrink-0 rounded-full p-1.5`}>
             <Trash2 className="h-4 w-4" aria-hidden="true" /></button>
         </li>)}
       </ul>
-      {!visible.length && <p className="p-6 text-center text-sm text-text-muted">{notifications.length ? 'No notifications match your filters.' : 'No notifications yet.'}</p>}
+      {!visible.length && <p className="p-6 text-center text-sm text-text-secondary">{notifications.length ? 'No notifications match your filters.' : 'No notifications yet.'}</p>}
     </div>
     </div>
-    <p className="shrink-0 border-t border-sky-400/20 px-3 py-2 text-xs text-text-muted">Showing {visible.length} of {notifications.length} · Ctrl+click to select</p>
+    <p className="shrink-0 border-t border-border-color px-3 py-2 text-xs text-text-secondary">Showing {visible.length} of {notifications.length} · Ctrl+click to select</p>
   </section>;
   return compact && typeof document !== 'undefined' ? createPortal(content, document.body) : content;
 }

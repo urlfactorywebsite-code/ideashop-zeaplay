@@ -3,6 +3,7 @@ import { CUSTOM_STATUS_NAMES, TaskStatus } from '../types';
 export type StatusLabelEntry = {
   id: string; custom_status_id?: string | null; title: string; order: number;
   is_active?: boolean; kanban_visible?: boolean;
+  workflow_behavior?: string;
 };
 
 export function createStatusLabels(entries: StatusLabelEntry[] = []) {

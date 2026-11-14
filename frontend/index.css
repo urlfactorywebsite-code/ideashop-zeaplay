@@ -1558,6 +1558,22 @@ html:not(.dark):not(.theme-colorful) {
   box-shadow: 0 0 0 2px var(--notification-ring), 0 0 10px rgba(244, 63, 94, 0.42);
 }
 
+/* Match notification surfaces to the theme, including the mobile body portal. */
+.notification-inbox {
+  --notification-surface: #fff;
+  --notification-danger: #be123c;
+  background: var(--notification-surface);
+  color: var(--color-text-primary);
+  isolation: isolate;
+  box-shadow: 0 16px 48px rgb(15 23 42 / .2);
+}
+.dark .notification-inbox {
+  --notification-surface: #0d1830;
+  --notification-danger: #fda4af;
+}
+.notification-inbox-filters { background: var(--color-surface-secondary); }
+.notification-inbox .notification-inbox-danger { color: var(--notification-danger); }
+
 .mode-switch-button {
   position: relative;
   overflow: hidden;
@@ -3430,6 +3446,11 @@ html:not(.theme-colorful) .kanban-board-dark-theme > * {
 }
 .quest-avatar-overflow--compact { display: none; }
 .quest-member-count { color: var(--color-text-primary); font-weight: 600; }
+.task-assignee-roster { min-width: 0; margin: 10px 0; font-size: 12px; line-height: 1.5; }
+.task-assignee-roster .quest-member-count { min-width: 0; overflow-wrap: anywhere; }
+.task-assignee-roster--compact { gap: 6px 10px; font-size: 11px; }
+.task-assignee-roster--compact .quest-avatar-overflow { min-width: 28px; height: 28px; }
+.grouped-task-summary > .task-assignee-roster { margin: 0 0 12px; }
 .quest-progress-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin: 12px 0 6px; font-size: 11px; }
 .quest-progress-heading > :last-child { color: var(--color-text-primary); font-weight: 600; }
 .quest-progress {

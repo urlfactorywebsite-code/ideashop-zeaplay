@@ -20,7 +20,7 @@ import MultiSelect from './ui/MultiSelect';
 import { StarIcon, PaperClipIcon, TagIcon, TrashIcon } from './icons';
 import SameTaskLogModal from './SameTaskLogModal';
 import TaskHoldHistory from './TaskHoldHistory';
-import { History, Plus, Pencil } from 'lucide-react';
+import { ArrowLeft, History, Plus, Pencil } from 'lucide-react';
 import { WorkTimerControls } from './ActiveWork';
 import { WORK_UPDATED_EVENT } from '../hooks/useActiveWork';
 import { TASK_REALTIME_EVENT, type TaskRealtimeNotice } from '../services/taskRealtimeEvents';
@@ -88,6 +88,12 @@ const countCompletionWords = (value: string): number => {
     return (value.trim().match(/[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)?/g) ?? []).length;
 };
 interface TaskDetailModalProps {
+  assignmentNavigation?: {
+    exiting?: boolean;
+    assignments: Task[];
+    onBack?: () => void;
+    onAssignmentsChanged: (assignments: Task[]) => void;
+  };
     focusSubtaskId?: string | null;
     requireFresh?: boolean;
   taskId: string;
@@ -225,7 +231,7 @@ const resolvePointsToneClasses = (tone: TaskPointsTone | undefined) => {
     }
 };
 
-const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id: string) => void; focusAssignment: boolean }> = ({ taskId, isOpen, initialTask = null, onClose, usersMap, onTaskDeleted, onTaskUpdated, notes = [], focusSubtaskId = null, requireFresh = false, onOpenAssignment, focusAssignment }) => {
+const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id: string) => void; focusAssignment: boolean }> = ({ taskId, isOpen, initialTask = null, onClose, usersMap, onTaskDeleted, onTaskUpdated, notes = [], focusSubtaskId = null, requireFresh = false, onOpenAssignment, focusAssignment, assignmentNavigation }) => {
     const statusSelectId = React.useId();
     const [task, setTask] = useState<Task | null>(initialTask);
     const [loading, setLoading] = useState(!initialTask);
@@ -274,6 +280,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
     const subtaskEditorId = React.useId();
     const subtaskMutation = useRef(false);
     const taskFetchSequence = useRef(0);
+    const commentsFetchSequence = useRef(0);
     const groupFetchSequence = useRef(0);
     const groupTasksRef = useRef(groupTasks);
     groupTasksRef.current = groupTasks;
@@ -314,7 +321,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                 setTask(initialTask);
                 setLoading(false);
             }
-            fetchTask();
+            fetchTask(requireFresh, !!assignmentNavigation);
             setPendingUpdates({});
             setSubtaskDraft(null);
             setSubtaskEditorError(null);
@@ -428,7 +435,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
             setGroupError(null);
             try {
                 const grouped = await api.getTaskGroup(activeTask.id, { fresh: true });
-                if (current()) setGroupTasks(grouped);
+                if (current()) { setGroupTasks(grouped); assignmentNavigation?.onAssignmentsChanged(grouped); }
             } catch (err) {
                 console.error('Failed to load linked tasks', err);
                 if (current()) setGroupError('Unable to load linked tasks right now.');
@@ -436,24 +443,35 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                 if (current()) setGroupLoading(false);
             }
         },
-        [task],
+        [task, assignmentNavigation],
     );
 
-    const fetchTask = async (fresh = requireFresh) => {
+    // The assignment navigator already loaded complete, authorized task records.
+    // Reconcile confirmed changes without remounting the editor or clearing drafts.
+    useEffect(() => {
+        if (!assignmentNavigation) return;
+        setGroupTasks(assignmentNavigation.assignments);
+        const current = assignmentNavigation.assignments.find(member => member.id === taskId);
+        if (current) setTask(current);
+    }, [assignmentNavigation?.assignments, taskId]);
+
+    const fetchTask = async (fresh = requireFresh, useAuthorizedInitial = false) => {
         const sequence = ++taskFetchSequence.current;
         const groupSequence = ++groupFetchSequence.current;
         const scope = taskScope.current;
         const current = () => detailMounted.current && sequence === taskFetchSequence.current && scope === taskScope.current && isOpen;
         setLoading((previous) => (task ? previous : true));
         setError(null);
-        setGroupLoading(true);
+        setGroupLoading(!assignmentNavigation);
         try {
-            const fetchedTask = await api.getTask(taskId, { fresh });
+            const fetchedTask = useAuthorizedInitial && initialTask ? initialTask : await api.getTask(taskId, { fresh });
             if (!current()) return;
             setTask(fetchedTask);
+            if (assignmentNavigation && !useAuthorizedInitial) onTaskUpdated?.(fetchedTask);
             setLoading(false);
+            const commentSequence = ++commentsFetchSequence.current;
             const [groupResult, commentsResult] = await Promise.allSettled([
-                api.getTaskGroup(fetchedTask.id, { fresh: true }),
+                assignmentNavigation ? Promise.resolve(assignmentNavigation.assignments) : api.getTaskGroup(fetchedTask.id, { fresh: true }),
                 api.getComments(taskId),
             ]);
             if (!current()) return;
@@ -466,9 +484,9 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                     setGroupError('Unable to load linked tasks right now.');
                 }
             }
-            if (commentsResult.status === 'fulfilled') {
+            if (commentsResult.status === 'fulfilled' && commentSequence === commentsFetchSequence.current) {
                 setComments(commentsResult.value);
-            } else {
+            } else if (commentsResult.status === 'rejected') {
                 console.error('Failed to load comments', commentsResult.reason);
             }
         } catch (err) {
@@ -495,6 +513,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
     const refreshTaskAndTimer = async () => { await fetchTask(); };
     useEffect(() => {
         if (!isOpen || !user) return;
+        if (assignmentNavigation) return; // The navigator batches and scopes realtime refreshes.
         let timer: ReturnType<typeof setTimeout> | null = null;
         let needsTask = false;
         const queueRefresh = (full: boolean) => {
@@ -531,7 +550,35 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
             window.removeEventListener(TASK_REALTIME_EVENT, realtime);
             window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, notificationsChanged);
         };
-    }, [isOpen, taskId, user?.id, user?.tenantId]);
+    }, [isOpen, taskId, user?.id, user?.tenantId, !!assignmentNavigation]);
+    useEffect(() => {
+        if (!assignmentNavigation || !isOpen || !user) return;
+        const abort = new AbortController();
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const refreshComments = () => {
+            if (timer) return;
+            timer = setTimeout(async () => {
+                timer = undefined;
+                const request = ++commentsFetchSequence.current;
+                try {
+                    const fresh = await api.getComments(taskId, { fresh: true, signal: abort.signal });
+                    if (!abort.signal.aborted && request === commentsFetchSequence.current) setComments(fresh);
+                } catch { if (!abort.signal.aborted && request === commentsFetchSequence.current) setComments([]); }
+            }, 150);
+        };
+        const realtime = (event: Event) => {
+            const notice = (event as CustomEvent<TaskRealtimeNotice>).detail;
+            if (notice?.userId !== user.id || notice.tenantId !== (user.tenantId ?? null)) return;
+            if (String(notice.payload?.type || '').startsWith('comment.') && (notice.payload.task_id ?? notice.payload.taskId) === taskId) refreshComments();
+        };
+        const notification = (event: Event) => {
+            const notice = (event as CustomEvent<{ userId: string; tenantId: string | null }>).detail;
+            if (notice?.userId === user.id && notice.tenantId === (user.tenantId ?? null)) refreshComments();
+        };
+        window.addEventListener(TASK_REALTIME_EVENT, realtime);
+        window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, notification);
+        return () => { abort.abort(); if (timer) clearTimeout(timer); window.removeEventListener(TASK_REALTIME_EVENT, realtime); window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, notification); };
+    }, [isOpen, taskId, user?.id, user?.tenantId, !!assignmentNavigation]);
     const [isUpdatingTask, setIsUpdatingTask] = useState(false);
     useEffect(() => { setIsUpdatingTask(false); }, [isOpen, taskId, user?.id, user?.tenantId]);
     const handleUpdateTask = async (updates: Partial<Task>) => {
@@ -546,13 +593,13 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
             setTask(updatedTask);
             setGroupTasks(previous => previous.map(member => member.id === updatedTask.id ? updatedTask : member));
             onTaskUpdated?.(updatedTask);
-            await fetchGroupTasks(updatedTask);
+            if (!assignmentNavigation) await fetchGroupTasks(updatedTask);
             notify('Task updated successfully.');
             return true;
         } catch (err) {
             if (detailMounted.current && scope === taskScope.current) {
                 notify(err instanceof Error ? err.message : 'Unable to update task.', 'error');
-                await fetchGroupTasks(task);
+                if (!assignmentNavigation) await fetchGroupTasks(task);
             }
             return false;
         } finally {
@@ -561,6 +608,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
     };
 
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
+    useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
     const debouncedUpdateTask = useCallback((updates: Partial<Task>) => {
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
@@ -708,7 +756,8 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                 userId: user?.id || '',
                 content: newComment,
             });
-            setComments([...comments, comment]);
+            ++commentsFetchSequence.current;
+            setComments(previous => [...previous.filter(item => item.id !== comment.id), comment]);
             setNewComment('');
         } catch (err) {
             console.error('Failed to post comment');
@@ -1122,10 +1171,21 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
         if ((Object.keys(draft.pendingUpdates).length > 0 || draft.isEditingCore || draft.newComment.trim()) && !window.confirm('Discard unsaved changes and open this member assignment?')) return;
         onOpenAssignment(id);
     }, [taskId, statusSelectId, onOpenAssignment]);
+    const navigationBusy = isUpdatingTask || isAssigningUser || isCommenting || isTransferProcessing || completionBusy || !!subtaskBusyId || !!reviewBusyId;
+    const navigate = (action: () => void) => {
+        if (assignmentNavigation) {
+            if (navigationBusy) return;
+            const draft = partyDraft.current;
+            if ((Object.keys(draft.pendingUpdates).length > 0 || draft.isEditingCore || draft.newComment.trim()) && !window.confirm('Discard unsaved changes?')) return;
+        }
+        action();
+    };
     if (!isOpen) return null;
     return (
-        <Dialog open={isOpen} onClose={onClose} aria-label="Quest details" className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 px-4 pb-6 pt-20 sm:pt-16">
-            <DialogPanel className="relative flex h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-black/60 backdrop-blur">
+        <Dialog open={isOpen} onClose={() => navigate(onClose)} aria-label="Quest details" data-flow-exiting={assignmentNavigation?.exiting || undefined} className={`fixed inset-0 z-50 flex items-start justify-center bg-black/80 px-4 pb-6 pt-20 sm:pt-16 ${assignmentNavigation ? 'assignment-detail-flow' : ''}`}>
+            <DialogPanel data-assignment-task-id={taskId} transition={!!assignmentNavigation} className="relative flex h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-black/60 backdrop-blur">
+            {assignmentNavigation && <header className="assignment-detail-header">{assignmentNavigation.onBack && <button type="button" className="assignment-close" disabled={navigationBusy} onClick={() => navigate(assignmentNavigation.onBack!)}><ArrowLeft size={18} aria-hidden="true" /> Back to assignments</button>}<span>{assignmentNavigation.onBack ? 'Assignment details' : 'Quest details'}</span><button type="button" className="assignment-close" disabled={navigationBusy} onClick={() => navigate(onClose)}>Close</button></header>}
+            {!assignmentNavigation &&
             <button
                 onClick={() => {
                     onClose();
@@ -1136,7 +1196,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-            </button>
+            </button>}
             {loading ? (
                 <div className="flex flex-1 items-center justify-center text-sm text-white/70">
                     Loading zea.play quest intel...
@@ -2041,10 +2101,10 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                                     )}
                                 </div>
                             )}
-                            <QuestParty assignments={groupTasks} usersMap={usersMap} currentUser={user} currentTaskId={task.id}
+                            {!assignmentNavigation && <QuestParty assignments={groupTasks} usersMap={usersMap} currentUser={user} currentTaskId={task.id}
                                 loading={groupLoading} error={groupError} onRetry={retryParty}
                                 busy={isUpdatingTask || isAssigningUser || isCommenting || isTransferProcessing || completionBusy || !!subtaskBusyId || !!reviewBusyId}
-                                onOpenAssignment={openPartyAssignment} />
+                                onOpenAssignment={openPartyAssignment} />}
                             <div className="mt-6 space-y-3 rounded-3xl border border-white/10 bg-white/5 p-4 text-xs text-white/70">
                                 <div className="flex items-center justify-between">
                                     <span>Project</span>
@@ -2109,7 +2169,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
             {journeyOpen && user && <React.Suspense fallback={<span role="status" className="sr-only">Loading task journey...</span>}>
                 <TaskJourneyModal taskId={taskId} usersMap={usersMap} onClose={() => setJourneyOpen(false)} />
             </React.Suspense>}
-            <Dialog open={isSameTaskLogModalOpen} onClose={() => setIsSameTaskLogModalOpen(false)} aria-label="Shared task log">
+            <Dialog open={isSameTaskLogModalOpen} onClose={() => setIsSameTaskLogModalOpen(false)} aria-label="Shared task log" className={assignmentNavigation ? 'relative z-[100]' : undefined}>
               <DialogPanel>
               <SameTaskLogModal
                 isOpen={isSameTaskLogModalOpen}
@@ -2117,7 +2177,10 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                 taskId={taskId}
                 usersMap={usersMap}
                 groupTasks={groupTasks}
-                onRefreshGroup={fetchGroupTasks}
+                onRefreshGroup={members => {
+                    if (assignmentNavigation) { setGroupTasks(members); assignmentNavigation.onAssignmentsChanged(members); }
+                    else void fetchGroupTasks();
+                }}
               />
               </DialogPanel>
             </Dialog>

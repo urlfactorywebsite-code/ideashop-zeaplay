@@ -5,7 +5,7 @@ import { http } from '../services/mockApi';
 import { configurationStorageKey, STATUS_CONFIGURATION_EVENT } from '../utils/kanbanConfiguration';
 import { createStatusLabels, type StatusLabelEntry } from '../utils/taskStatusLabels';
 
-const defaults = { label: createStatusLabels(), entries: [] as StatusLabelEntry[] };
+const defaults = { label: createStatusLabels(), entries: [] as StatusLabelEntry[], loading: false, unavailable: false };
 const StatusLabels = createContext(defaults);
 export const useTaskStatusLabels = () => useContext(StatusLabels);
 
@@ -32,8 +32,8 @@ export function TaskStatusLabelsProvider({ children }: { children: React.ReactNo
   }, [client, user?.tenantId, user?.id]);
   const value = useMemo(() => {
     const entries = user ? query.data || [] : [];
-    return { label: createStatusLabels(entries), entries };
-  }, [query.data, user?.tenantId, user?.id]);
+    return { label: createStatusLabels(entries), entries, loading: query.isPending, unavailable: query.isError };
+  }, [query.data, query.isPending, query.isError, user?.tenantId, user?.id]);
   return <StatusLabels.Provider value={value}>{children}</StatusLabels.Provider>;
 }
 

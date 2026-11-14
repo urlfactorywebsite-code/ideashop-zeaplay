@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import api from '../services/mockApi';
-import { TaskPageResponse } from '../types';
+import { Task, TaskPageResponse } from '../types';
 import { buildTaskListKey, getTaskCaches, TaskListCacheParams } from './useTaskCache';
 
 type UseTaskListOptions = {
@@ -14,6 +14,7 @@ type UseTaskListResult = {
   loading: boolean;
   error: string | null;
   refresh: () => void;
+  updateItems: (update: (items: Task[]) => Task[]) => void;
 };
 
 export const useTaskList = ({ params, enabled = true }: UseTaskListOptions): UseTaskListResult => {
@@ -29,6 +30,21 @@ export const useTaskList = ({ params, enabled = true }: UseTaskListOptions): Use
   const refresh = useCallback(() => {
     setRefreshTick((prev) => prev + 1);
   }, []);
+  const updateItems = useCallback((update: (items: Task[]) => Task[]) => {
+    const reconcile = (previous: TaskPageResponse) => {
+      const items = update(previous.items);
+      const total = Math.max(0, previous.total + items.length - previous.items.length);
+      return { ...previous, items, total, totalPages: Math.max(1, Math.ceil(total / previous.pageSize)) };
+    };
+    listCache.updateMatching(key => {
+      try { return !!params.accountScope && JSON.parse(key.slice('tasks:list:'.length)).accountScope === params.accountScope; }
+      catch { return false; }
+    }, reconcile);
+    setData(previous => {
+      if (!previous) return previous;
+      return reconcile(previous);
+    });
+  }, [listCache, params.accountScope]);
 
   useEffect(() => {
     if (!enabled) {
@@ -97,5 +113,5 @@ export const useTaskList = ({ params, enabled = true }: UseTaskListOptions): Use
     };
   }, [cacheKey, enabled, inflightControllers, listCache, params, refreshTick, ttlMs]);
 
-  return { data, loading, error, refresh };
+  return { data, loading, error, refresh, updateItems };
 };

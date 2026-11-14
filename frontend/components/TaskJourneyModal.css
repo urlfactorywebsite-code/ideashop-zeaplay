@@ -39,7 +39,16 @@
 .journey-metrics > div:nth-child(4) { border-top: 2px solid #a78bfa; }
 .journey-totals { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; font-size: 12px; margin: 16px 0 0; color: var(--color-text-secondary, #a6afb9); }
 .journey-totals strong { color: var(--color-text-primary, #e5e7eb); font-variant-numeric: tabular-nums; }
-.journey-roadmap { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 0; margin: 0; list-style: none; gap: 20px 0; }
+.journey-roadmap { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); padding: 0; margin: 0; list-style: none; gap: 24px 0; }
+.journey-workflow-note { color: var(--color-text-secondary, #a6afb9); font-size: 12px; margin: -8px 0 24px; }
+.journey-metrics small { display: block; font-size: 11px; line-height: 1.5; margin-top: 8px; color: var(--color-text-secondary, #a6afb9); }
+.journey-stage .journey-stage-time { margin-top: 8px; font-size: 11px; font-variant-numeric: tabular-nums; color: var(--color-text-primary, #e5e7eb); }
+.journey-transition-times { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--color-border-color, #48515c); border-radius: 6px; background: var(--color-surface, #20262c); }
+.journey-transition-times dt { font-size: 11px; }
+.journey-transition-times dd { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.journey-current-stay { display: flex; align-items: flex-start; gap: 8px; color: var(--journey-accent); }
+.journey-current-stay strong { display: inline-block; margin-left: 10px; color: var(--color-text-primary, #e5e7eb); }
+.journey-current-stay small { display: block; color: var(--color-text-secondary, #a6afb9); margin-top: 6px; font-size: 11px; }
 .journey-stage { position: relative; display: flex; align-items: flex-start; gap: 9px; padding: 0 12px 0 0; font-size: 12px; z-index: 0; }
 .journey-stage::before { content: ''; position: absolute; top: 12px; height: 1px; left: 24px; right: 0; background: var(--color-border-color, #48515c); z-index: -1; }
 .journey-stage:last-child::before { display: none; }

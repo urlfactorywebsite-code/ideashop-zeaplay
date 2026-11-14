@@ -5,6 +5,29 @@ import { loadPointsConfig } from './pointsConfigStorage';
 export const visibleAssignments = (task: Task): Task[] => task.groupAssignments ?? [task];
 export const assignmentIds = (task: Task): string[] => visibleAssignments(task).map(member => member.id);
 
+// Reconcile by assignment ID only. Never add a row that was not in this authorized group.
+export const replaceAssignment = (tasks: Task[], updated: Task): Task[] => tasks.map(task => {
+  if (!task.groupAssignments) return task.id === updated.id ? updated : task;
+  if (!task.groupAssignments.some(member => member.id === updated.id)) return task;
+  return { ...(task.id === updated.id ? updated : task),
+    groupAssignments: task.groupAssignments.map(member => member.id === updated.id ? updated : member) };
+});
+
+export const logicalTaskKey = (task: Task): string => JSON.stringify([
+  !!task.taskGroupId, task.taskGroupId || task.id, task.projectId ?? null, task.projectId ? '' : task.createdBy,
+]);
+
+export const replaceVisibleGroup = (tasks: Task[], reference: Task, assignments: Task[]): Task[] => tasks.flatMap(task => {
+  if (logicalTaskKey(task) !== logicalTaskKey(reference)) return [task];
+  if (!assignments.length) return [];
+  return [{ ...(assignments.find(member => member.id === task.id) ?? assignments[0]), groupAssignments: assignments }];
+});
+
+export const formatAssignmentTime = (seconds = 0): string => {
+  const minutes = Math.floor(Math.max(0, seconds) / 60);
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+};
+
 // The API owns authorization; this only names a server-filtered personal view.
 export const isOwnAssignmentView = (assignments: Task[], user?: User | null): boolean =>
   !!user && assignments.length === 1 && assignments[0].createdBy !== user.id &&
@@ -26,6 +49,13 @@ export const assignmentMember = (task: Task, usersMap?: ReadonlyMap<string, User
     avatarUrl: profile ? profile.avatarUrl ?? null : snapshot?.avatarUrl ?? null };
 };
 
+// Membership comes only from the server-filtered assignments, never the directory.
+export const assignmentMembers = (task: Task, usersMap?: ReadonlyMap<string, User>) =>
+  [...new Map(visibleAssignments(task).flatMap(assignment => {
+    const member = assignmentMember(assignment, usersMap);
+    return member ? [[member.id, member] as const] : [];
+  })).values()];
+
 // Display-only aggregation. XP awards, timers and mutations continue to use assignment IDs.
 export const taskGroupSummary = (task: Task, now = new Date(), usersMap?: ReadonlyMap<string, User>) => {
   const assignments = visibleAssignments(task);
@@ -38,10 +68,7 @@ export const taskGroupSummary = (task: Task, now = new Date(), usersMap?: Readon
     awarded: points.reduce((sum, item) => sum + item.totalAwarded, 0),
     potential: points.reduce((sum, item) => sum + (item.isCompleted || item.status === 'failed' ? 0 : summarizeTaskPoints(item).value), 0),
     mixed: new Set(assignments.map(member => member.customStatusId || member.status)).size > 1,
-    members: [...new Map(assignments.flatMap(assignment => {
-      const member = assignmentMember(assignment, usersMap);
-      return member ? [[member.id, member] as const] : [];
-    })).values()],
+    members: assignmentMembers(task, usersMap),
   };
 };
 

@@ -99,8 +99,9 @@ def test_eight_assignments_are_one_logical_task_without_merging_titles_or_scopes
     kanban = data.client.get("/api/tasks/kanban", params={"project_id": data.projects[0].id})
     assert kanban.status_code == 200, kanban.text
     columns = kanban.json()["columns"]
-    assert sum(column["count"] for column in columns) == 9
-    assert {item["id"] for column in columns for item in column["items"]} == {row.id for row in data.rows} | {data.unrelated.id}
+    assert sum(column["count"] for column in columns) == 3
+    assert {member["id"] for column in columns for item in column["items"]
+            for member in item["group_assignments"]} == {row.id for row in data.rows} | {data.unrelated.id}
     detail = data.client.get(f"/api/tasks/{data.rows[0].id}/group")
     assert {row["id"] for row in detail.json()} == {row.id for row in data.rows}
 
@@ -221,7 +222,7 @@ def test_create_eight_move_one_and_keep_grouped_summary_synchronized(grouped):
     assert result["total"] == 1 and len(result["items"][0]["group_assignments"]) == 8
     assert sum(member["status"] == "IN_PROGRESS" for member in result["items"][0]["group_assignments"]) == 1
     kanban = data.client.get("/api/tasks/kanban", params={"search": "Eight-person"}).json()
-    assert sum(column["count"] for column in kanban["columns"]) == 8
+    assert sum(column["count"] for column in kanban["columns"]) == 2
     assert sum(member["status"] == "IN_PROGRESS" for column in kanban["columns"] for member in column["items"]) == 1
     with data.factory() as db:
         assert points == {user.id: user.points for user in db.scalars(select(models.User))}

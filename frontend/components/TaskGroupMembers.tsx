@@ -24,24 +24,38 @@ export function GroupQuestStatus({ task }: { task: Task }) {
   </span>;
 }
 
+export function TaskAssigneeRoster({ members, compact = false, label, showSingleName = false }: {
+  members: AvatarPerson[]; compact?: boolean; label?: string; showSingleName?: boolean;
+}) {
+  const limit = compact ? 4 : 6;
+  return <div className={`quest-party-roster task-assignee-roster${compact ? ' task-assignee-roster--compact' : ''}`}>
+    {members.length > 0 && <div className="quest-avatar-stack" role="group" aria-label="Assigned members">
+      {members.slice(0, limit).map((member, index) => <span key={member.id} className={!compact && index >= 4 ? 'quest-avatar-extra' : undefined}>
+        <MemberAvatar member={member} size={compact ? 28 : 32} />
+      </span>)}
+      {members.length > limit && <span role="img" className={`quest-avatar-overflow${compact ? '' : ' quest-avatar-overflow--wide'}`}
+        aria-label={`${members.length - limit} more members`}>+{members.length - limit}</span>}
+      {!compact && members.length > 4 && <span role="img" className="quest-avatar-overflow quest-avatar-overflow--compact"
+        aria-label={`${members.length - 4} more members`}>+{members.length - 4}</span>}
+    </div>}
+    <span className="quest-member-count">{label || (members.length === 0 ? 'Unassigned'
+      : showSingleName && members.length === 1 ? <MemberName member={members[0]} />
+      : `${members.length} assigned ${members.length === 1 ? 'member' : 'members'}`)}</span>
+  </div>;
+}
+
+function MemberName({ member }: { member: AvatarPerson }) {
+  const { person } = useAvatarIdentity(member);
+  return <>{person?.name || 'Assigned member'}</>;
+}
+
 function TaskGroupMembers({ task, onOpenAssignment, usersMap, currentUser, compact = false }: {
   task: Task; onOpenAssignment: (id: string) => void; usersMap?: Map<string, User>; currentUser?: User | null; compact?: boolean;
 }) {
   const summary = taskGroupSummary(task, undefined, usersMap);
   const ownView = isOwnAssignmentView(summary.assignments, currentUser);
   return <div className={`quest-group-members ${compact ? 'quest-group-members--compact' : ''}`} onClick={event => event.stopPropagation()}>
-    <div className="quest-party-roster">
-      <div className="quest-avatar-stack" role="group" aria-label="Assigned members">
-        {summary.members.slice(0, 6).map((member, index) => <span key={member.id} className={index >= 4 ? 'quest-avatar-extra' : undefined}>
-          <MemberAvatar member={member} />
-        </span>)}
-        {summary.members.length > 6 && <span role="img" className="quest-avatar-overflow quest-avatar-overflow--wide"
-          aria-label={`${summary.members.length - 6} more members`}>+{summary.members.length - 6}</span>}
-        {summary.members.length > 4 && <span role="img" className="quest-avatar-overflow quest-avatar-overflow--compact"
-          aria-label={`${summary.members.length - 4} more members`}>+{summary.members.length - 4}</span>}
-      </div>
-      <span className="quest-member-count">{ownView ? 'Your assignment' : `${summary.members.length} assigned ${summary.members.length === 1 ? 'member' : 'members'}`}</span>
-    </div>
+    <TaskAssigneeRoster members={summary.members} label={ownView ? 'Your assignment' : undefined} />
     <div className="quest-progress-heading"><span>{ownView ? 'Your progress' : 'Quest progress'}</span><span>{summary.progress}% ({summary.complete}/{summary.total} complete)</span></div>
     <progress className="quest-progress" max={Math.max(1, summary.total)} value={summary.complete}
       aria-label={`${ownView ? 'Your' : 'Overall'} progress for ${task.title}`} aria-valuetext={`${summary.complete} of ${summary.total} assignments complete (${summary.progress}%)`} />
@@ -58,10 +72,10 @@ function TaskGroupMembers({ task, onOpenAssignment, usersMap, currentUser, compa
   </div>;
 }
 
-function MemberAvatar({ member }: { member: AvatarPerson }) {
+function MemberAvatar({ member, size = 32 }: { member: AvatarPerson; size?: number }) {
   const { person } = useAvatarIdentity(member);
   return <Tooltip text={person?.name || 'Assigned member'} dismissOnEscape constrainToViewport hoverable className="quest-member-tooltip" triggerClassName="rounded-full">
-    <Avatar user={person} size={32} />
+    <Avatar user={person} size={size} />
   </Tooltip>;
 }
 

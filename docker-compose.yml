@@ -35,6 +35,7 @@ services:
     volumes:
       - avatar_media_data:/app/media/.avatars
       - chat_media_data:/app/media/chat
+      - uploads_media_data:/app/media/uploads
     ports:
       - "6311:6311"
     depends_on:
@@ -77,3 +78,4 @@ volumes:
   postgres_data:
   avatar_media_data:
   chat_media_data:
+  uploads_media_data:

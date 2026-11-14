@@ -2,6 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TaskStatusLabelsProvider } from '../hooks/useTaskStatusLabels';
+import { storeTokens } from '../services/tokenStorage';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
 import TaskJourneyModal from '../components/TaskJourneyModal';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -37,4 +40,7 @@ function Fixture() {
     {open && <TaskJourneyModal taskId={taskId} usersMap={users} onClose={() => setOpen(false)} />}</>;
 }
 
-createRoot(document.getElementById('root')!).render(<BrowserRouter><AuthProvider><Fixture /></AuthProvider></BrowserRouter>);
+storeTokens('synthetic-local-test-token', 'synthetic-local-refresh-token');
+createRoot(document.getElementById('root')!).render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+  <BrowserRouter><AuthProvider><TaskStatusLabelsProvider><Fixture /></TaskStatusLabelsProvider></AuthProvider></BrowserRouter>
+</QueryClientProvider>);

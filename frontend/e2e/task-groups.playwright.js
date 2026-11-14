@@ -1,5 +1,7 @@
 // Actual Tasks page, API mapper, caches, modal and Kanban with synthetic loopback-only data.
 async (page) => {
+  await page.goto('about:blank');
+  await page.unrouteAll({behavior:'wait'});
   const base = 'http://127.0.0.1:6337';
   const manifest = await (await page.request.get(base + '/e2e/navigation-manifest.json')).json();
   const cases = [], errors = [], queries = [], partyQueries = [];
@@ -92,77 +94,26 @@ async (page) => {
   const go = (extra = '') => page.goto(base + '/__task-groups?multiAssignee=1&networkTaskPage=1&rows=8&run=' + (++run) + extra + '#/tasks');
   await go();
   await page.locator('[data-task-card-id]').first().waitFor();
+  await page.getByRole('button', { name: /List/i, exact: true }).click();
   check(await page.locator('[data-task-card-id]').count() === 1, 'List renders one logical task for eight members');
   check(queries.every(query => query.grouped === 'true'), 'List API opts in to server grouping');
   const card = page.locator('[data-task-card-id]');
-  check(await card.getByText('8 assigned members', { exact: true }).count() === 1, 'List shows member count');
+  check(await card.getByText('8 assignments', { exact: true }).count() === 1, 'List shows assignment count');
   check((await card.boundingBox()).height <= 260, 'Desktop grouped list stays compact');
-  await card.screenshot({ path: '.tmp/group-quest-list.png' });
-  check(await card.locator('[role="img"][aria-label$="avatar"]').count() === 6 && await card.getByLabel('2 more members').count() === 1, 'Six avatars plus +2 overflow');
-  check(await card.getByText('25% (2/8 complete)', { exact: true }).count() === 1, 'Overall progress reflects all member assignments');
-  await card.getByText('View 8 assignments', { exact: true }).click();
-  check(await card.getByRole('button', { name: /^Open assignment for Member/ }).count() === 8, 'Every member assignment is individually accessible');
-  await card.getByRole('button', { name: 'Open assignment for Member 3', exact: true }).focus();
-  await page.keyboard.press('Enter');
-  await page.getByRole('button', { name: 'Delete Task', exact: true }).waitFor();
-  await wait(() => page.evaluate(() => window.taskNavigationAudit.calls.some(call => call.method === 'getTask' && call.args[0] === 'task-3')));
-  check(true, 'Keyboard activation opens the original member assignment ID');
-  const party = page.getByRole('region', { name: 'Quest Party', exact: true });
-  await party.locator('[data-party-assignment-id]').first().waitFor();
-  check(await party.locator('[data-party-assignment-id]').count() === 8, 'Quest Party exposes eight original member assignments');
-  check(await party.getByText(/^XP estimate:/).count() === 8, 'Each party member retains an independent XP presentation');
-  await page.waitForTimeout(400);
-  await page.evaluate(() => { window.questPointsReads = 0; const original = Storage.prototype.getItem; Storage.prototype.getItem = function(key) { if (key === 'task-points-config') window.questPointsReads++; return original.call(this, key); }; });
-  const callsBeforeDraft = await page.evaluate(() => window.taskNavigationAudit.calls.length);
-  await page.getByLabel('Task comment', { exact: true }).fill('An unsaved comment');
-  check(await page.evaluate(() => window.questPointsReads) === 0, 'Comment typing does not recalculate the unchanged party rewards');
-  check(await page.evaluate(() => window.taskNavigationAudit.calls.length) === callsBeforeDraft, 'Comment typing does not issue task or party requests');
-  await page.getByLabel('Task comment', { exact: true }).fill('');
-  await party.getByRole('heading', { name: 'Quest Party', exact: true }).scrollIntoViewIfNeeded();
-  await page.getByRole('dialog', { name: 'Quest details', exact: true }).locator('main').evaluate(element => { element.scrollTop = 0; });
-  await page.screenshot({ path: '.tmp/group-quest-details.png' });
-
-  await page.getByRole('button', { name: '8 users', exact: true }).click();
-  const sharedLog = page.getByRole('dialog', { name: 'Shared task log', exact: true });
-  await sharedLog.getByRole('heading', { name: 'Shared Task Group', exact: true }).waitFor();
-  await sharedLog.getByRole('button', { name: 'Refresh', exact: true }).click();
-  await sharedLog.getByRole('button', { name: 'Close modal', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Quest details', exact: true }).waitFor();
-  check(true, 'Existing shared-task log refresh and close actions remain usable inside quest details');
-
-  await party.getByRole('button', { name: 'Manage assignment for Member 4', exact: true }).click();
-  const status = page.getByLabel('Status', { exact: true });
-  await status.waitFor();
-  await wait(() => page.evaluate(() => window.taskNavigationAudit.calls.some(call => call.method === 'getTask' && call.args[0] === 'task-4')));
-  await status.selectOption('TODO');
-  await page.getByRole('button', { name: 'Update Task', exact: true }).click();
-  await wait(() => page.evaluate(() => window.taskNavigationAudit.calls.some(call => call.method === 'updateTask' && call.args[0] === 'task-4' && call.args[1].status === 'TODO')));
-  const member4 = party.locator('[data-party-assignment-id="task-4"]');
-  await wait(async () => (await member4.innerText()).includes('Case Filed'));
-  check((await member4.innerText()).includes('XP estimate: Potential points: +10'), 'Assignment XP matches the task data used by the grouped card');
-  check((await party.locator('[data-party-assignment-id="task-5"]').innerText()).includes('In Progress'), 'Confirmed update refreshes the chosen member while sibling status remains independent');
-  await page.evaluate(() => window.taskNavigationAudit.rejectNextUpdate());
-  await status.selectOption('IN_REVIEW');
-  await page.getByRole('button', { name: 'Update Task', exact: true }).click();
-  await page.getByText('Synthetic transition rejected', { exact: true }).waitFor();
-  check((await member4.innerText()).includes('Case Filed'), 'Rejected mutation never displays an unconfirmed member status');
-  await page.evaluate(() => window.taskNavigationAudit.moveMember('task-5', 'ON_HOLD'));
-  await wait(async () => (await party.locator('[data-party-assignment-id="task-5"]').innerText()).includes('On Hold'));
-  check(true, 'Realtime changes to another visible member refresh the Quest Party');
-  page.once('dialog', dialog => dialog.dismiss());
-  await party.getByRole('button', { name: 'Manage assignment for Member 6', exact: true }).click();
-  check((await member4.innerText()).includes('Current assignment'), 'Switching member assignments protects unsaved status changes');
-  page.once('dialog', dialog => dialog.accept());
-  await party.getByRole('button', { name: 'Manage assignment for Member 6', exact: true }).click();
-  await wait(async () => (await party.locator('[data-party-assignment-id="task-6"]').innerText()).includes('Current assignment'));
-  await wait(() => status.evaluate(element => element === document.activeElement));
-  check(true, 'Accepted member switch focuses the canonical status control');
-  await page.getByRole('dialog', { name: 'Quest details', exact: true }).getByRole('button', { name: 'Close modal', exact: true }).focus();
-  await page.keyboard.press('Shift+Tab');
-  check(await page.evaluate(() => !!document.activeElement.closest('[role="dialog"]')), 'Keyboard focus stays inside quest details');
-
-  await party.locator('[data-party-assignment-id="task-4"]').screenshot({ path: '.tmp/group-quest-party-member.png' });
-
+  check(await card.getByText('25% complete', { exact: true }).count() === 1, 'Progress reflects independent assignments');
+  await card.getByRole('button', { name: 'Shared mission', exact: true }).click();
+  const assignmentList = page.getByRole('list', { name: 'Task assignments' });
+  await assignmentList.waitFor();
+  check(await assignmentList.getByRole('button').count() === 8, 'Card opens all authorized assignment rows');
+  await assignmentList.locator('[data-assignment-id="task-3"] button').press('Enter');
+  const detail = page.getByRole('dialog', { name: 'Quest details' });
+  await detail.waitFor();
+  check(await detail.locator('[data-assignment-task-id="task-3"]').count() === 1, 'Keyboard activation opens its original assignment ID');
+  check(await detail.locator('.quest-party-panel').count() === 0, 'List and Grid details omit the assigned-members sidebar');
+  await detail.getByRole('button', { name: 'Back to assignments', exact: true }).click();
+  await assignmentList.waitFor();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.getByRole('dialog').waitFor({ state: 'hidden' });
   await go(); await page.locator('[data-task-card-id]').first().waitFor();
 
   await page.evaluate(() => { window.questPointsReads = 0; const original = Storage.prototype.getItem; Storage.prototype.getItem = function(key) { if (key === 'task-points-config') window.questPointsReads++; return original.call(this, key); }; });
@@ -171,7 +122,7 @@ async (page) => {
   check(await page.getByRole('button', { name: 'Delete Selected (8)', exact: true }).count() === 1, 'Group selection retains all eight assignment IDs');
   assignments.push({ ...assignments[7], id: 'extra-task', assigned_to_id: 'extra-member', assigned_member: { id: 'extra-member', name: 'Extra member', avatar_url: null } });
   await page.evaluate(() => window.taskNavigationAudit.changed());
-  await card.getByText('9 assigned members', { exact: true }).waitFor();
+  await card.getByText('9 assignments', { exact: true }).waitFor();
   check(await card.getByRole('checkbox').evaluate(element => element.indeterminate), 'New party membership exposes a mixed selection to assistive technology');
   await card.getByRole('checkbox').click();
   check(await page.getByRole('button', { name: 'Delete Selected (9)', exact: true }).count() === 1, 'Selecting a mixed group adds only its newly visible assignment');
@@ -181,193 +132,29 @@ async (page) => {
 
   await page.getByRole('button', { name: /Grid/i, exact: true }).click();
   await wait(async () => await page.locator('[data-task-card-id]').count() === 1);
-  check(await card.getByText('8 assigned members', { exact: true }).count() === 1, 'Grid renders one card with all members');
+  check(await card.getByText('8 assignments', { exact: true }).count() === 1, 'Grid renders one card with all members');
   check(await card.getByText('Group Quest', { exact: true }).count() === 1 && await card.getByLabel('Overall status: Mixed statuses').count() === 1, 'Group card shows party identity and an honest aggregate status');
-  const avatarTrigger = card.locator('.quest-avatar-stack [tabindex="0"]').first();
-  await avatarTrigger.focus();
-  await page.getByRole('tooltip', { name: 'Member 0', exact: true }).waitFor();
-  check(true, 'Member-name tooltip is keyboard accessible');
-  await page.evaluate(async () => { const { publishProfile } = await import('/services/profileEvents.ts'); publishProfile({ id: 'member-0', tenantId: 'task-fixture', name: 'Live renamed member', role: 'user', avatarUrl: null }); });
-  await page.getByRole('tooltip', { name: 'Live renamed member', exact: true }).waitFor();
-  check(await card.getByLabel("Live renamed member's avatar").count() === 1, 'Profile events keep the avatar and member tooltip names synchronized');
-  await card.getByText('View 8 assignments', { exact: true }).click();
-  check(await card.getByRole('button', { name: 'Open assignment for Live renamed member', exact: true }).count() === 1, 'Live profile names also update member actions');
-  await card.getByText('View 8 assignments', { exact: true }).click();
-  await page.evaluate(async () => { const { publishProfile } = await import('/services/profileEvents.ts'); publishProfile({ id: 'member-0', tenantId: 'task-fixture', name: 'Member 0', role: 'user', avatarUrl: null }); });
-  await avatarTrigger.evaluate(element => element.blur());
-  await avatarTrigger.hover();
-  await page.getByRole('tooltip', { name: 'Member 0', exact: true }).hover();
-  await page.waitForTimeout(200);
-  check(await page.getByRole('tooltip', { name: 'Member 0', exact: true }).isVisible(), 'Member tooltips remain readable when hovered');
-
-  await page.keyboard.press('Escape');
-  await wait(async () => await page.getByRole('tooltip').count() === 0);
-  check(await card.evaluate(element => getComputedStyle(element).transitionDuration.split(',').every(duration => Number.parseFloat(duration) === 0)), 'Group card respects reduced motion');
-  await card.screenshot({ path: '.tmp/group-quest-grid.png' });
-  await page.setViewportSize({ width: 768, height: 1024 });
-  check((await card.boundingBox()).width <= 768 && await card.evaluate(element => element.scrollWidth <= element.clientWidth), 'Group card fits tablet viewport without overflow');
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await card.scrollIntoViewIfNeeded();
-  const box = await card.boundingBox();
-  check(box.width <= 390, 'Grouped card fits compact viewport');
-  check(await card.locator('.quest-avatar-stack [role="img"][aria-label$="avatar"]:visible').count() === 4 && await card.getByLabel('4 more members').isVisible(), 'Compact avatars show four members and accurate overflow');
-  check(await card.evaluate(element => element.scrollWidth <= element.clientWidth), 'Compact card has no internal horizontal overflow');
-  await card.screenshot({ path: '.tmp/group-quest-mobile.png' });
-
-  check(await card.getByRole('progressbar').getAttribute('aria-label') === 'Overall progress for Shared mission', 'Progress has an accessible name');
-  assignments.forEach(item => { item.title = 'Long mission ' + 'x'.repeat(220); });
-  assignments[0].assigned_member.name = '<script>' + 'x'.repeat(200);
-  await go('&longPartyName=1'); await page.locator('[data-task-card-id]').first().waitFor();
-  await card.scrollIntoViewIfNeeded();
-  check((await card.boundingBox()).width <= 390, 'Long logical titles remain inside compact cards');
-  await card.locator('.quest-avatar-stack [tabindex="0"]').first().focus();
-  const longTooltip = page.getByRole('tooltip', { name: /^<script>/ });
-  await longTooltip.waitFor();
-  await wait(async () => { const bounds = await longTooltip.boundingBox(); return bounds && bounds.x >= 0 && bounds.x + bounds.width <= 390; });
-  check(true, 'Long member-name tooltips remain inside the compact viewport');
-  await page.keyboard.press('Escape');
-
-  await card.getByText('View 8 assignments', { exact: true }).click();
-  check(await card.getByRole('button', { name: /^Open assignment for <script>/ }).count() === 1,
-    'Long member names remain escaped and accessible');
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.getByRole('tab', { name: 'Kanban Board', exact: true }).click();
-  await page.locator('[draggable="true"]').first().waitFor();
-  check(await page.locator('[draggable="true"]').count() === 8, 'Kanban retains eight independent assignment cards');
-  const before = await page.evaluate(() => window.taskNavigationAudit.calls.filter(call => call.method === 'getTasksPage').length);
-  const moving = page.locator('[data-task-status="IN_PROGRESS"] [draggable="true"]').first();
-  await page.locator('.kanban-board-scroll').evaluate(element => { element.scrollLeft = 0; });
-  await moving.dragTo(page.locator('[data-task-status="TODO"]'), { targetPosition: { x: 100, y: 120 } });
-  await wait(() => page.evaluate(() => window.taskNavigationAudit.calls.some(call => call.method === 'moveTaskToKanbanStatus' && call.args[0] === 'task-2' && call.args[1] === 'fixture-status-TODO')));
-  check(await page.locator('[draggable="true"]').count() === 8, 'Kanban drag moves one assignment without grouping or losing cards');
-  check(await page.evaluate(() => window.taskNavigationAudit.calls.filter(call => call.method === 'getTasksPage').length) === before, 'Kanban never requests grouped task retrieval');
-
-  assignments.forEach(item => { item.title = 'Shared mission'; });
-  assignments[0].assigned_member.name = 'Member 0';
-  await go('&readOnlyParty=1'); await page.locator('[data-task-card-id]').first().waitFor();
-  await card.getByRole('button', { name: 'Shared mission', exact: true }).click();
-  await party.locator('[data-party-assignment-id]').first().waitFor();
-  check(await party.getByRole('button', { name: /^Manage assignment/ }).count() === 0 && await party.getByRole('button', { name: /^View assignment/ }).count() === 8, 'Server read-only permissions suppress all member management actions');
-  check(await page.getByLabel('Status', { exact: true }).isDisabled(), 'Read-only member status editor remains disabled');
-  await go('&memberPermissions=1'); await card.first().waitFor();
-  await card.getByRole('button', { name: 'Shared mission', exact: true }).click();
-  await party.locator('[data-party-assignment-id]').first().waitFor();
-  check(await party.getByRole('button', { name: /^Manage assignment/ }).count() === 1 && await party.getByRole('button', { name: /^View assignment/ }).count() === 7, 'Each member uses its own backend edit capability');
-  await party.getByRole('button', { name: 'Manage assignment for Member 3', exact: true }).click();
-  await wait(async () => !await page.getByLabel('Status', { exact: true }).isDisabled());
-  check(true, 'Permitted member opens an enabled editor independently of the representative permission');
-
-  await go('&partyError=1'); await page.locator('[data-task-card-id]').first().waitFor();
-  await card.getByRole('button', { name: 'Shared mission', exact: true }).click();
-  await party.getByRole('alert').waitFor();
-  check(await party.getByRole('button', { name: 'Retry party', exact: true }).count() === 1, 'Quest Party failures have an accessible retry action');
-  await go('&emptyParty=1'); await page.locator('[data-task-card-id]').first().waitFor();
-  await card.getByRole('button', { name: 'Shared mission', exact: true }).click();
-  await party.getByText('No visible member assignments.', { exact: true }).waitFor();
-  check(true, 'Empty Quest Party is explicit');
-  await go('&partyDelay=1'); await page.locator('[data-task-card-id]').first().waitFor();
-  await card.getByRole('button', { name: 'Shared mission', exact: true }).click();
-  await party.getByRole('status').waitFor();
-  check(true, 'Quest Party announces loading');
-  await wait(async () => await party.locator('[data-party-assignment-id]').count() === 8);
-  await page.setViewportSize({ width: 390, height: 844 });
-  check(await party.evaluate(element => element.scrollWidth <= element.clientWidth), 'Quest Party fits the compact details sidebar');
-  await page.setViewportSize({ width: 1440, height: 1000 });
-
-  await go('&networkParty=1'); await page.locator('[data-task-card-id]').first().waitFor();
-  await page.evaluate(() => window.taskNavigationAudit.rawTaskGroup('task-7'));
-  const beforeParty = partyQueries.length;
-  assignments[5].status = 'ON_HOLD';
-  await card.getByRole('button', { name: 'Shared mission', exact: true }).click();
-  await wait(async () => await party.locator('[data-party-assignment-id]').count() === 8);
-  check(partyQueries.length > beforeParty && (await party.locator('[data-party-assignment-id="task-5"]').innerText()).includes('On Hold'), 'Party loading bypasses a populated stale group cache using the real API mapper');
-  restrictedParty = true;
-  await page.getByRole('button', { name: '8 users', exact: true }).click();
-  const restrictedLog = page.getByRole('dialog', { name: 'Shared task log', exact: true });
-  await restrictedLog.getByText(/1 users/).waitFor();
-  check(!(await restrictedLog.innerText()).match(/Member [0-6]/), 'Shared task log bypasses a cached group after permissions narrow');
-  restrictedParty = false;
-  await restrictedLog.getByRole('button', { name: 'Refresh', exact: true }).click();
-  await restrictedLog.getByText(/8 users/).waitFor();
-  check(true, 'Shared task log refresh rechecks current grants');
-  await restrictedLog.getByRole('button', { name: 'Close modal', exact: true }).click();
-  await page.waitForTimeout(500);
-  const beforeDetailReads = await page.evaluate(() => window.taskNavigationAudit.calls.filter(call => ['getTask', 'getComments'].includes(call.method)).length);
-  const beforeRealtime = partyQueries.length;
-  const beforeListRefresh = queries.length;
-  await page.getByLabel('Status', { exact: true }).selectOption('IN_REVIEW');
-  assignments[5].status = 'TODO';
-  await page.evaluate(() => window.taskNavigationAudit.moveMember('task-5', 'TODO'));
-  await wait(async () => partyQueries.length > beforeRealtime && (await party.locator('[data-party-assignment-id="task-5"]').innerText()).includes('Case Filed'));
-  check(true, 'Realtime party refresh bypasses cached group data');
-  await page.waitForTimeout(400);
-  check(await page.evaluate(() => window.taskNavigationAudit.calls.filter(call => ['getTask', 'getComments'].includes(call.method)).length) === beforeDetailReads, 'Another member update refreshes the group without rereading the open task and comments');
-
-  await wait(() => queries.length > beforeListRefresh);
-  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-  check(await page.getByLabel('Status', { exact: true }).inputValue() === 'IN_REVIEW', 'Background list refresh preserves an unsaved assignment status draft');
-  const beforeDeferred = partyQueries.length;
-  deferParty = true;
-  assignments[5].status = 'ON_HOLD';
-  await page.evaluate(() => window.taskNavigationAudit.moveMember('task-5', 'ON_HOLD'));
-  await wait(() => releaseParty !== null);
-  assignments[5].status = 'TODO';
-  await page.evaluate(() => window.taskNavigationAudit.moveMember('task-5', 'TODO'));
-  await wait(async () => partyQueries.length >= beforeDeferred + 2 && await party.getAttribute('aria-busy') === 'false' && (await party.locator('[data-party-assignment-id="task-5"]').innerText()).includes('Case Filed'));
-  await releaseParty(); releaseParty = null;
-  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-  check((await party.locator('[data-party-assignment-id="task-5"]').innerText()).includes('Case Filed'), 'Late party responses cannot overwrite a newer member status');
-  await page.waitForTimeout(500);
-  const beforeForeign = partyQueries.length;
-  await page.evaluate(() => window.dispatchEvent(new CustomEvent('zea:task-realtime', { detail: { userId: 'other-user', tenantId: 'other-tenant', payload: { task_id: 'task-5' } } })));
-  await page.waitForTimeout(350);
-  check(partyQueries.length === beforeForeign, 'Another tenant or account realtime notice cannot refresh this party');
-
-  assignments[5].status = 'IN_PROGRESS';
-
-
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  check(await card.evaluate(el => getComputedStyle(el).transitionDuration.split(',').every(value => Number.parseFloat(value) === 0)), 'Group cards respect reduced motion');
   for (const theme of ['light', 'colorful']) {
     await page.evaluate(theme => localStorage.setItem('zenith-task-theme', theme), theme);
-    await go(); await page.locator('[data-task-card-id]').first().waitFor();
+    await go(); await card.first().waitFor();
     await page.getByRole('button', { name: /Grid/i, exact: true }).click();
-    await card.getByText('Group Quest', { exact: true }).waitFor();
-    check(await page.evaluate(theme => document.documentElement.classList.contains('theme-' + theme), theme) && await card.evaluate(element => element.scrollWidth <= element.clientWidth), 'Group card inherits the existing ' + theme + ' theme without overflow');
-
-    const contrast = await card.locator('.quest-avatar-stack [role="img"][aria-label$="avatar"]').first().evaluate(element => {
-      const style = getComputedStyle(element);
-      const luminance = color => color.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => value / 255).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4).reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
+    check(await card.evaluate(el => el.scrollWidth <= el.clientWidth), theme + ' grouped cards have no horizontal overflow');
+    await card.getByRole('button', { name: 'Shared mission', exact: true }).click();
+    await assignmentList.waitFor();
+    const avatar = assignmentList.locator('[role="img"]').first();
+    const contrast = await avatar.evaluate(el => {
+      const style = getComputedStyle(el);
+      const luminance = color => color.match(/[\d.]+/g).slice(0, 3).map(Number).map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
       const text = luminance(style.color), background = luminance(style.backgroundColor);
       return (Math.max(text, background) + .05) / (Math.min(text, background) + .05);
     });
-    check(contrast >= 4.5, 'Avatar initials meet normal-text contrast in ' + theme + ' theme');
-    await card.screenshot({ path: '.tmp/group-quest-' + theme + '.png' });
+    check(contrast >= 4.5, 'Assignment avatar initials meet normal-text contrast in ' + theme);
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
   }
   await page.evaluate(() => localStorage.setItem('zenith-task-theme', 'dark'));
-
-  const fullParty = assignments.slice();
-  for (const size of [1, 4, 5, 6]) {
-    assignments.splice(0, assignments.length, ...fullParty.slice(0, size));
-    await page.setViewportSize({ width: 390, height: 844 });
-    await go(); await card.first().waitFor();
-    check(await card.locator('.quest-avatar-stack [role="img"][aria-label$="avatar"]:visible').count() === Math.min(size, 4)
-      && (size <= 4 || await card.getByLabel((size - 4) + ' more members').isVisible()), 'Compact avatar boundary is accurate for ' + size + ' members');
-  }
-  assignments.splice(0, assignments.length, ...fullParty);
-  const memberSnapshot = assignments[0].assigned_member;
-  assignments[0].assigned_member = null;
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await go(); await card.first().waitFor();
-  check(await card.getByText('8 assigned members', { exact: true }).count() === 1, 'Missing snapshot metadata cannot reduce actual membership');
-  await card.locator('.quest-avatar-stack [tabindex="0"]').first().focus();
-  await page.getByRole('tooltip', { name: 'Member 0', exact: true }).waitFor();
-  check(true, 'Directory fallback uses the same member name for tooltip and avatar');
-  await page.keyboard.press('Escape');
-  assignments[0].assigned_member = { ...memberSnapshot, name: 'Outdated name' };
-  await go(); await card.first().waitFor();
-  await card.getByText('View 8 assignments', { exact: true }).click();
-  check(await card.getByRole('button', { name: 'Open assignment for Member 0', exact: true }).count() === 1, 'Current directory names replace stale snapshot names in member actions');
-  assignments[0].assigned_member = memberSnapshot;
   secondProject = true;
   await go(); await wait(async () => await card.count() === 2);
   check(new Set(await card.evaluateAll(elements => elements.map(element => element.dataset.taskCardId))).size === 2, 'Identical titles in different projects remain distinct logical task cards');
@@ -389,7 +176,7 @@ async (page) => {
   await options.getByRole('option', { name: 'Conquered', exact: true }).click();
   await wait(() => queries.at(-1).status === 'DONE');
   await wait(async () => await card.count() === 2);
-  check(await card.first().getByText('8 assigned members', { exact: true }).count() === 1, 'Status filtering retains all visible members of each matching logical quest');
+  check(await card.first().getByText('8 assignments', { exact: true }).count() === 1, 'Status filtering retains all visible members of each matching logical quest');
   check(await page.getByRole('button', { name: 'Conquered', exact: true }).evaluate(element => element === document.activeElement), 'Filter selection returns focus to the trigger');
   const projectFilter = page.getByRole('button', { name: 'All Projects', exact: true });
   await projectFilter.click();
@@ -407,7 +194,7 @@ async (page) => {
   await page.getByRole('button', { name: 'Next page', exact: true }).click();
   await page.getByText('Page 2 of 2', { exact: true }).waitFor();
   await wait(async () => await page.locator('[data-task-card-id]').count() === 1);
-  check(await card.getByText('8 assigned members', { exact: true }).count() === 1, 'Prefetched second page retains one logical card and all member assignments');
+  check(await card.getByText('8 assignments', { exact: true }).count() === 1, 'Prefetched second page retains one logical card and all member assignments');
   paginationMode = false;
   await go(); await page.locator('[data-task-card-id]').first().waitFor();
   deniedDeletes.add('task-3');
@@ -424,7 +211,7 @@ async (page) => {
   check(deleteCalls.length === beforeDeletes + 4, 'Bulk deletion limits in-flight assignment requests to four');
   releaseDeletes(); deleteBarrier = null;
   await page.getByRole('alert').filter({ hasText: 'Synthetic assignment forbidden' }).waitFor();
-  await wait(async () => await card.getByText('1 assigned member', { exact: true }).count() === 1);
+  await wait(async () => await card.getByText('1 task', { exact: true }).count() === 1);
   check(await page.getByRole('button', { name: 'Delete Selected (1)', exact: true }).count() === 1,
     'Partial deletion removes successful assignments and retains denied assignment selection');
   deniedDeletes.clear();
@@ -448,19 +235,15 @@ async (page) => {
   await card.first().waitFor();
   for (const view of ['List', 'Grid']) {
     await page.getByRole('button', { name: new RegExp(view, 'i'), exact: true }).click();
-    await card.getByText('Your assignment', { exact: true }).waitFor();
-    check(await card.count() === 1, `${view} keeps one personal quest card`);
-    check(await card.getByText('Your progress', { exact: true }).count() === 1, `${view} labels personal progress`);
-    await card.getByText('View 1 assignment', { exact: true }).click();
-    check(await card.getByRole('button', { name: /^Open assignment for Member/ }).count() === 1, `${view} exposes only one assignment action`);
-    check(!(await card.innerText()).match(/Member [0134567]|2\/8|8 assigned members/), `${view} contains no hidden identities or group totals`);
+    await card.getByText('1 task', { exact: true }).waitFor();
+    check(await card.count() === 1, view + ' keeps one authorized personal card');
+    await card.getByRole('button', { name: 'Shared mission', exact: true }).click();
+    await detail.waitFor();
+    check(await page.getByRole('list', { name: 'Task assignments' }).count() === 0 && await detail.getByRole('button', { name: 'Back to assignments', exact: true }).count() === 0, view + ' opens the authorized solo assignment directly');
+    check(!(await detail.innerText()).match(/Member [0134567]/), view + ' contains no restricted sibling identities');
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
   }
-  await card.getByRole('button', { name: 'Open assignment for Member 2', exact: true }).click();
-  const personalParty = page.getByRole('region', { name: 'Quest progress', exact: true });
-  await personalParty.locator('[data-party-assignment-id="task-2"]').waitFor();
-  check(await personalParty.locator('[data-party-assignment-id]').count() === 1, 'Assignee details expose only their own assignment');
-  check(!(await personalParty.innerText()).match(/Member [0134567]/), 'Personal details contain no sibling identities');
-  check(await personalParty.getByRole('button', { name: 'Manage assignment for Member 2', exact: true }).count() === 1, 'Own permitted assignment actions remain available');
   await page.goto(base + '/__group-preview-review');
   await page.getByRole('heading', { name: 'Private cached assignment', exact: true }).waitFor();
   check(true, 'Authorized creator preview still opens normally');

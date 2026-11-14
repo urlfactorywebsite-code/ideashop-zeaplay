@@ -1,0 +1,90 @@
+.workflow-journey {
+  --wf-bg: #f2f7ff; --wf-panel: #fff; --wf-text: #142542; --wf-muted: #536580; --wf-border: #c8d8ec;
+  --wf-blue: #0068c5; --wf-green: #087432; --wf-amber: #955600; --wf-purple: #7934bf; --wf-cyan: #08768b;
+  --wf-red: #bc2441; --wf-route: #aebfd7; --wf-mountain: #dce9fa; --wf-mountain-front: #d0e2f6;
+  position: relative; isolation: isolate; width: 100%; min-width: 0; overflow: hidden; border-radius: 18px;
+  border: 1px solid var(--wf-border); background: var(--wf-bg); color: var(--wf-text); font-size: 13px; line-height: 1.45;
+  box-shadow: 0 8px 28px rgb(14 52 103 / 7%);
+}
+.dark .workflow-journey, [data-theme="dark"] .workflow-journey {
+  --wf-bg: #060d20; --wf-panel: #0b1733; --wf-text: #f4f7ff; --wf-muted: #a8b8d5; --wf-border: #263c60;
+  --wf-blue: #39a6ff; --wf-green: #39ff63; --wf-amber: #ffb020; --wf-purple: #c080ff; --wf-cyan: #23d9ff;
+  --wf-red: #ff6576; --wf-route: #354666; --wf-mountain: #10254a; --wf-mountain-front: #0d1d3a;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 15%);
+}
+.workflow-journey *, .workflow-journey *::before, .workflow-journey *::after { box-sizing: border-box; }
+.workflow-journey .wf-header { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 22px; background: var(--wf-panel); border-bottom: 1px solid var(--wf-border); }
+.wf-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.wf-brand-icon { display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; border: 1px solid color-mix(in srgb, var(--wf-blue) 40%, var(--wf-border)); border-radius: 14px; color: var(--wf-blue); background: color-mix(in srgb, var(--wf-blue) 9%, var(--wf-panel)); }
+.workflow-journey .wf-header h3 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.3px; }
+.workflow-journey .wf-header p { margin: 4px 0 0; font-size: 12px; color: var(--wf-muted); }
+.wf-header-tools { display: grid; grid-template-columns: auto minmax(200px, 240px); align-items: center; gap: 20px; }
+.wf-flow-controls { display: flex; gap: 3px; padding: 4px; border: 1px solid var(--wf-border); border-radius: 10px; background: var(--wf-bg); }
+.workflow-journey .wf-flow-controls button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 10px; min-height: 34px; border: 1px solid transparent; border-radius: 7px; background: transparent; font-size: 11px; font-weight: 650; color: var(--wf-muted); white-space: nowrap; transition: background .16s, border-color .16s; }
+.workflow-journey .wf-flow-controls button[aria-pressed="true"] { color: var(--wf-blue); border-color: color-mix(in srgb, var(--wf-blue) 40%, var(--wf-border)); background: color-mix(in srgb, var(--wf-blue) 10%, var(--wf-panel)); }
+.wf-progress { min-width: 0; }
+.wf-progress-caption { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 8px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.wf-progress-caption > span { display: flex; align-items: center; gap: 6px; color: var(--wf-muted); }
+.wf-progress-caption svg { color: var(--wf-amber); }
+.wf-progress-caption strong { color: var(--wf-green); font-size: 14px; }
+.wf-progress-rail { height: 7px; overflow: hidden; border-radius: 8px; background: color-mix(in srgb, var(--wf-blue) 14%, var(--wf-bg)); border: 1px solid var(--wf-border); }
+.wf-progress-rail > div { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--wf-blue), var(--wf-green)); }
+.wf-track { position: relative; min-width: 0; border-bottom: 1px solid var(--wf-border); box-shadow: inset 3px 0 transparent; transition: box-shadow .18s; }
+.wf-track-focused { box-shadow: inset 3px 0 var(--wf-blue); }
+.wf-track-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 22px 0; position: relative; z-index: 1; }
+.workflow-journey .wf-track-heading h4 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--wf-blue); }
+.wf-track-heading > span { font-size: 10px; color: var(--wf-muted); }
+.wf-track-navigation { display: flex; gap: 4px; margin-left: auto; }
+.workflow-journey .wf-track-navigation button { display: grid; place-items: center; width: 28px; height: 28px; min-width: 28px; padding: 0; border: 1px solid var(--wf-border); border-radius: 7px; background: var(--wf-panel); color: var(--wf-muted); }
+.wf-track-viewport { max-width: 100%; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: var(--wf-route) transparent; scroll-padding: 30px; }
+.wf-track-canvas { width: 100%; height: 234px; position: relative; background-image: radial-gradient(circle, color-mix(in srgb, var(--wf-blue) 28%, transparent) .8px, transparent 1.3px), radial-gradient(circle, color-mix(in srgb, var(--wf-muted) 30%, transparent) .7px, transparent 1.1px); background-size: 107px 71px, 157px 103px; background-position: 20px 6px, 68px 30px; }
+.wf-landscape { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .65; }
+.wf-mountain-back { fill: var(--wf-mountain); opacity: .7; }.wf-mountain-front { fill: var(--wf-mountain-front); opacity: .7; }
+.wf-moon { fill: var(--wf-blue); opacity: .08; }.wf-moon-halo { fill: var(--wf-blue); opacity: .025; }
+.wf-route { position: absolute; top: 0; left: 0; width: 100%; height: 190px; pointer-events: none; overflow: visible; }
+.wf-route path { fill: none; vector-effect: non-scaling-stroke; stroke-width: 2; }
+.wf-route-pending { stroke: var(--wf-route); stroke-dasharray: 5 6; }
+.wf-route-completed { stroke: var(--wf-green); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--wf-green) 30%, transparent)); }
+.wf-checkpoints { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; }
+.wf-checkpoint { position: absolute; width: 126px; transform: translateX(-50%); text-align: center; --wf-stage: var(--wf-blue); }
+.wf-icon-bug { --wf-stage: var(--wf-purple); }.wf-icon-crown { --wf-stage: var(--wf-amber); }.wf-icon-pause { --wf-stage: var(--wf-cyan); }.wf-icon-warning { --wf-stage: var(--wf-red); }.wf-icon-grave { --wf-stage: var(--wf-muted); }
+.workflow-journey .wf-checkpoint-button { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 0 3px 5px; border: 0; border-radius: 9px; background: transparent; color: var(--wf-text); font: inherit; cursor: pointer; }
+.workflow-journey .wf-checkpoint-button:hover { background: transparent; border-color: transparent; }
+.workflow-journey .wf-checkpoint-button .wf-checkpoint-ring { position: relative; display: grid; place-items: center; flex: 0 0 46px; width: 46px; height: 46px; border-radius: 50%; color: var(--wf-stage); background: var(--wf-panel); border: 1.5px solid var(--wf-route); box-shadow: 0 0 0 5px color-mix(in srgb, var(--wf-stage) 5%, transparent); animation: none; transition: border-color .16s, box-shadow .16s; }
+.workflow-journey .wf-completed .wf-checkpoint-ring { color: var(--wf-green); border-color: var(--wf-green); background: color-mix(in srgb, var(--wf-green) 10%, var(--wf-panel)); box-shadow: 0 0 0 5px color-mix(in srgb, var(--wf-green) 7%, transparent), 0 0 14px color-mix(in srgb, var(--wf-green) 14%, transparent); }
+.workflow-journey .wf-current .wf-checkpoint-ring { color: var(--wf-amber); border-color: var(--wf-amber); background: color-mix(in srgb, var(--wf-amber) 10%, var(--wf-panel)); animation: wf-pulse 2.8s ease-in-out infinite; }
+.workflow-journey .wf-checkpoint-button[aria-pressed="true"] .wf-checkpoint-ring { outline: 1px solid var(--wf-stage); outline-offset: 7px; }
+.workflow-journey .wf-current .wf-checkpoint-button[aria-pressed="true"] .wf-checkpoint-ring { outline-color: var(--wf-amber); }
+.wf-stage-label { display: block; width: 100%; margin-top: 14px; font-weight: 650; font-size: 12px; overflow-wrap: anywhere; line-height: 1.35; }
+.wf-badge { display: inline-block; margin-top: 6px; padding: 2px 7px; border-radius: 5px; font-size: 9px; font-weight: 600; color: var(--wf-muted); border: 1px solid var(--wf-border); background: var(--wf-panel); }
+.wf-badge-current { color: var(--wf-amber); border-color: color-mix(in srgb, var(--wf-amber) 50%, var(--wf-border)); background: color-mix(in srgb, var(--wf-amber) 8%, var(--wf-panel)); }
+.wf-badge-completed { color: var(--wf-green); border-color: color-mix(in srgb, var(--wf-green) 40%, var(--wf-border)); }
+.wf-stage-caption { font-size: 10px; margin-top: 5px; color: var(--wf-muted); font-variant-numeric: tabular-nums; }
+.wf-rocket-position { position: absolute; z-index: 2; width: 38px; height: 38px; margin-left: -19px; pointer-events: none; color: var(--wf-amber); }
+.wf-rocket { position: relative; display: block; filter: drop-shadow(0 0 7px color-mix(in srgb, var(--wf-amber) 30%, transparent)); }
+.wf-rocket-flame { position: absolute; top: 22px; left: -2px; transform: rotate(35deg); color: var(--wf-amber); animation: wf-flame .8s ease-in-out infinite alternate; }
+.wf-tooltip { position: fixed; z-index: 5; width: 200px; max-width: calc(100vw - 20px); padding: 9px 11px; border: 1px solid var(--wf-border); border-radius: 9px; background: var(--wf-panel); box-shadow: 0 6px 20px rgb(0 0 0 / 16%); color: var(--wf-text); font-size: 10px; text-align: left; pointer-events: none; }
+.wf-tooltip > * { display: block; overflow-wrap: anywhere; }.wf-tooltip > span { margin-top: 3px; color: var(--wf-muted); }.wf-tooltip time { font-size: 9px; margin-top: 5px; color: var(--wf-muted); }
+.wf-footer { padding: 15px 22px; background: var(--wf-panel); }
+.wf-details-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.wf-details-heading > span:first-child { display: flex; align-items: center; gap: 5px; font-size: 10px; text-transform: uppercase; letter-spacing: .6px; color: var(--wf-blue); }
+.wf-details-heading > strong { overflow-wrap: anywhere; font-size: 12px; }
+.wf-detail-state { color: var(--wf-muted); font-size: 10px; }.wf-detail-current { color: var(--wf-amber); }
+.wf-detail-facts { display: flex; flex-wrap: wrap; gap: 12px 30px; margin: 12px 0 16px; }
+.wf-detail-facts > div { min-width: 0; max-width: 100%; }
+.workflow-journey .wf-detail-facts dt { display: flex; align-items: center; gap: 5px; color: var(--wf-muted); font-size: 10px; }
+.workflow-journey .wf-detail-facts dd { margin: 4px 0 0; color: var(--wf-text); font-size: 11px; font-weight: 550; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.wf-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; border-top: 1px solid var(--wf-border); padding-top: 12px; font-size: 10px; color: var(--wf-muted); }
+.wf-legend > span { display: inline-flex; align-items: center; gap: 6px; }.wf-legend i { width: 7px; height: 7px; border-radius: 50%; background: var(--wf-route); }.wf-legend .wf-legend-completed { background: var(--wf-green); }.wf-legend .wf-legend-current { background: var(--wf-amber); }
+.wf-readonly { margin-left: auto; }.workflow-journey .wf-history-note { margin: 9px 0 0; color: var(--wf-muted); font-size: 10px; line-height: 1.6; }
+.workflow-journey .wf-empty { margin: 0; padding: 25px 22px; color: var(--wf-muted); font-size: 12px; }
+.workflow-journey button:focus-visible { outline: 2px solid var(--wf-blue); outline-offset: 4px; }
+@keyframes wf-pulse { 0%, 100% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--wf-amber) 8%, transparent); } 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--wf-amber) 12%, transparent), 0 0 15px color-mix(in srgb, var(--wf-amber) 18%, transparent); } }
+@keyframes wf-flame { from { opacity: .55; scale: .85; } to { opacity: 1; scale: 1.1; } }
+@media (max-width: 1080px) { .wf-header-tools { grid-template-columns: 1fr; gap: 10px; }.workflow-journey .wf-header { gap: 16px; }.wf-progress { width: 100%; } }
+@media (max-width: 760px) {
+  .workflow-journey .wf-header { padding: 17px; }.workflow-journey .wf-header h3 { font-size: 17px; }.wf-brand-icon { width: 40px; height: 40px; border-radius: 11px; }
+  .wf-header-tools { width: 100%; grid-template-columns: 1fr; }.wf-flow-controls > button { flex: 1; }.wf-track-heading { padding: 14px 16px 0; gap: 7px; }
+  .wf-track-heading > span { flex-basis: calc(100% - 68px); order: 3; }.wf-track-navigation { margin-left: auto; }.wf-footer { padding: 15px 16px; }.wf-readonly { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .workflow-journey *, .workflow-journey *::before, .workflow-journey *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

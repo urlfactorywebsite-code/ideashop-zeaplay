@@ -12,7 +12,7 @@ interface SameTaskLogModalProps {
   taskId: string;
   usersMap: Map<string, User>;
   groupTasks?: Task[];
-  onRefreshGroup?: () => void;
+  onRefreshGroup?: (assignments: Task[]) => void;
 }
 
 const SameTaskLogModal: React.FC<SameTaskLogModalProps> = ({ isOpen, onClose, taskId, usersMap, groupTasks, onRefreshGroup }) => {
@@ -40,7 +40,7 @@ const SameTaskLogModal: React.FC<SameTaskLogModalProps> = ({ isOpen, onClose, ta
       const grouped = await api.getTaskGroup(taskId, { fresh: true });
       if (sequence !== requestSequence.current) return;
       setTasks(grouped);
-      refreshGroupRef.current?.();
+      refreshGroupRef.current?.(grouped);
     } catch (err) {
       if (sequence !== requestSequence.current) return;
       console.error('Failed to fetch same tasks:', err);
