@@ -7,12 +7,14 @@ import { AuthProvider, ThemeProvider } from '../hooks/useAuth';
 import { ToastProvider } from '../hooks/useToast';
 import { ActiveWorkProvider } from '../hooks/useActiveWork';
 import TaskDetailModal from '../components/TaskDetailModal';
+import CreateTaskModal from '../components/CreateTaskModal';
 import api from '../services/mockApi';
 import { storeTokens } from '../services/tokenStorage';
 import { Role, UserStatus, TaskStatus, TaskPriority, TaskCategory, RecurrenceRule, type Task, type User } from '../types';
 
 const readOnly = new URLSearchParams(location.search).has('readOnly');
 const viewer = { id: 'reviewer', tenantId: 'subtask-fixture', name: 'Reviewer', email: 'reviewer@example.test',
+  timezone: 'Asia/Kolkata',
   role: Role.OWNER, status: UserStatus.ACTIVE, department: 'Engineering', points: 0,
   claimedRewardIds: [], unlockedAchievementIds: [], clarityScores: [] } as User;
 const task: Task = { id: 'subtask-parent', title: 'Subtask editor review', description: 'Synthetic task',
@@ -26,17 +28,21 @@ const overrides: Record<string, (...args: any[]) => unknown> = {
   getCurrentUser: () => viewer,
   getTask: () => task,
   getTaskGroup: () => [task],
+  getUsers: () => [viewer],
+  getProjects: () => ({ items: [{ id: 'project-1', name: 'Due date project', status: 'ACTIVE', members: [] }], page: 1, totalPages: 1, total: 1 }),
   getComments: () => [],
-  getKanbanColumns: () => [],
+  getKanbanColumns: () => Object.values(TaskStatus).map((id, order) => ({ id, title: id, order, isActive: true })),
   getActiveWork: () => ({ items: [], running_count: 0, limit: 5, next_offset: null,
     server_time: new Date().toISOString(), user_id: viewer.id, tenant_id: viewer.tenantId }),
 };
 for (const [name, method] of Object.entries(api)) {
-  if (typeof method !== 'function' || ['createSubtask', 'updateSubtask', 'clearBrowserMemory', 'invalidateNotificationCaches'].includes(name)) continue;
+  if (typeof method !== 'function' || ['getTask', 'createTask', 'createSubtask', 'updateSubtask', 'clearBrowserMemory', 'invalidateNotificationCaches'].includes(name)) continue;
   (api as any)[name] = async (...args: unknown[]) => overrides[name] ? overrides[name](...args) : [];
 }
 createRoot(document.getElementById('root')!).render(<MemoryRouter><QueryClientProvider client={new QueryClient({
   defaultOptions: { queries: { retry: false } },
 })}><AuthProvider><ThemeProvider><ToastProvider><ActiveWorkProvider>
-  <TaskDetailModal taskId={task.id} initialTask={task} isOpen onClose={() => {}} usersMap={new Map([[viewer.id, viewer]])} />
+  {new URLSearchParams(location.search).has('create')
+    ? <CreateTaskModal isOpen onClose={() => {}} onTaskCreated={() => {}} />
+    : <TaskDetailModal taskId={task.id} initialTask={task} isOpen onClose={() => {}} usersMap={new Map([[viewer.id, viewer]])} />}
 </ActiveWorkProvider></ToastProvider></ThemeProvider></AuthProvider></QueryClientProvider></MemoryRouter>);

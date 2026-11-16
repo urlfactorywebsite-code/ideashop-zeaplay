@@ -1,6 +1,7 @@
-import React, { createContext, useCallback, useContext, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { updateTaskFilter } from '../utils/taskNavigation';
+import { useTaskStatusLabels } from './useTaskStatusLabels';
 
 export const TaskViewActive = createContext(true);
 export const useTaskViewActive = () => useContext(TaskViewActive);
@@ -11,6 +12,7 @@ const Filters = createContext<{ search: string; set: (key: string, value: string
 export function TaskFiltersProvider({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { activeEntries, ready } = useTaskStatusLabels();
   const pendingSearch = useRef(location.search);
   pendingSearch.current = location.search;
   const set = useCallback((key: string, value: string) => {
@@ -18,6 +20,10 @@ export function TaskFiltersProvider({ children }: { children: React.ReactNode })
     pendingSearch.current = updateTaskFilter(pendingSearch.current, key, value);
     navigate({ pathname: location.pathname, search: pendingSearch.current }, { replace: true, state: location.state });
   }, [location.pathname, location.state, navigate]);
+  useEffect(() => {
+    const selected = new URLSearchParams(location.search).get('status');
+    if (ready && selected && !activeEntries.some(entry => entry.id === selected)) set('status', '');
+  }, [activeEntries, ready, location.search, set]);
   return <Filters.Provider value={{ search: location.search, set }}>{children}</Filters.Provider>;
 }
 

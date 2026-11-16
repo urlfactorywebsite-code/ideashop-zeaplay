@@ -11,6 +11,7 @@ import { currentStageStart, customStatusTransitions, duration, elapsedSeconds, e
 import './TaskJourneyModal.css';
 import { linkedPause } from '../utils/taskReport';
 import WorkflowJourney from './workflow/WorkflowJourney';
+import SubtaskDueDateBadge from './SubtaskDueDateBadge';
 import { buildWorkflowJourney } from '../utils/workflowJourney';
 
 const TaskExecutionReport = React.lazy(() => import('./TaskExecutionReport'));
@@ -130,6 +131,8 @@ function SessionHistory({ entries, events, now, asOf, users }: {
 }
 
 interface ChildJourneyView {
+  dueDate?: string | null;
+  completed?: boolean;
   id: string;
   title: string;
   assignee: string | null;
@@ -152,6 +155,7 @@ const ChildJourney = React.memo(function ChildJourney({ row, users, now, asOf, o
     if (event.target === event.currentTarget) onToggle(row.id, event.currentTarget.open);
   }}>
     <summary><span>{row.title}<small>{row.assignee || 'Not recorded'}</small></span>
+      <SubtaskDueDateBadge subtask={{ dueDate: row.dueDate, completed: Boolean(row.completed), status: row.status as SubtaskStatus }} />
       <span className="journey-status">{row.status ? label(row.status) : 'Removed'}</span>
       <span className="journey-mono">{duration(row.time?.at(now).person_seconds ?? null)}</span></summary>
     {open && <div className="journey-child-body">
@@ -234,6 +238,7 @@ export function TaskJourneyContent({ data, users, now, clockStale, busy, loadMor
     const stopped = ordered.filter(row => row.stoppedAt && timestamp(row.stoppedAt) !== null);
     const last = stopped.reduce<TimeEntry | null>((previous, row) => !previous || timestamp(row.stoppedAt)! > timestamp(previous.stoppedAt)! ? row : previous, null);
     return { id, title: subtask?.title || `${current ? 'Subtask' : 'Removed subtask'} ${id}`,
+      dueDate: subtask?.dueDate, completed: subtask?.completed,
       assignee: subtask?.assignedToId ? subtask.assignedUser?.name || person(subtask.assignedToId, users) : current && subtask ? 'Unassigned' : null,
       status: current?.status ?? null, changes, entries: bucket.sessions,
       timerEvents: bucket.events.filter(event => event.event_type.startsWith('timer.')),

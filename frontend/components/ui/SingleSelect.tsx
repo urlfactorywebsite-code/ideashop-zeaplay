@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 interface Option {
   id: string;
@@ -14,6 +14,7 @@ interface SingleSelectProps {
   className?: string;
   id?: string;
   disabled?: boolean;
+  avoidClipping?: boolean;
 }
 
 const SingleSelect: React.FC<SingleSelectProps> = ({
@@ -25,11 +26,14 @@ const SingleSelect: React.FC<SingleSelectProps> = ({
   className = "",
   id,
   disabled = false,
+  avoidClipping = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [dropUp, setDropUp] = useState(false);
   const [menuMaxHeight, setMenuMaxHeight] = useState(192);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -51,17 +55,31 @@ const SingleSelect: React.FC<SingleSelectProps> = ({
   useLayoutEffect(() => {
     if (!isOpen || !containerRef.current) return;
 
+    const position = () => {
+    if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const viewportPadding = 20;
     const preferredHeight = 224;
-    const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
-    const spaceAbove = rect.top - viewportPadding;
+    let top = viewportPadding, bottom = window.innerHeight - viewportPadding;
+    if (avoidClipping) for (let parent = containerRef.current.parentElement; parent; parent = parent.parentElement) {
+      if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(parent).overflowY)) {
+        const bounds = parent.getBoundingClientRect();
+        top = Math.max(top, bounds.top + 8); bottom = Math.min(bottom, bounds.bottom - 8);
+      }
+    }
+    const spaceBelow = bottom - rect.bottom - 8;
+    const spaceAbove = rect.top - top - 8;
     const shouldDropUp = spaceBelow < preferredHeight && spaceAbove > spaceBelow;
     const availableSpace = shouldDropUp ? spaceAbove : spaceBelow;
 
     setDropUp(shouldDropUp);
-    setMenuMaxHeight(Math.max(144, Math.min(224, availableSpace)));
-  }, [isOpen, options.length]);
+    setMenuMaxHeight(Math.max(avoidClipping ? 0 : 144, Math.min(224, availableSpace)));
+    };
+    position();
+    window.addEventListener('resize', position);
+    document.addEventListener('scroll', position, true);
+    return () => { window.removeEventListener('resize', position); document.removeEventListener('scroll', position, true); };
+  }, [isOpen, options.length, avoidClipping]);
 
   const selectedOption = options.find((opt) => opt.id === value);
 
@@ -73,17 +91,39 @@ const SingleSelect: React.FC<SingleSelectProps> = ({
   const handleSelect = (optionId: string) => {
     onChange(optionId);
     setIsOpen(false);
+    triggerRef.current?.focus();
   };
 
   const label = selectedOption?.name ?? "";
 
   return (
-    <div ref={containerRef} className={`relative ${isOpen ? "z-[80]" : "z-0"} ${className}`}>
+    <div ref={containerRef} className={`relative ${isOpen ? "z-[80]" : "z-0"} ${className}`}
+      onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setIsOpen(false); }}
+      onKeyDown={event => {
+        if (disabled) return;
+        if (isOpen && event.key === 'Escape') {
+          event.preventDefault(); event.stopPropagation(); setIsOpen(false); triggerRef.current?.focus();
+        } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+          event.preventDefault();
+          const wasOpen = isOpen;
+          setIsOpen(true);
+          window.requestAnimationFrame(() => {
+            const items = Array.from(containerRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') || []);
+            let index = items.indexOf(document.activeElement as HTMLButtonElement);
+            index = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+              : !wasOpen ? Math.max(0, options.findIndex(option => option.id === value))
+              : Math.max(0, Math.min(items.length - 1, index + (event.key === 'ArrowUp' ? -1 : 1)));
+            items[index]?.focus();
+          });
+        }
+      }}>
       <button
+        ref={triggerRef}
         type="button"
         id={id}
         onClick={handleToggle}
         disabled={disabled}
+        aria-haspopup="listbox" aria-expanded={isOpen} aria-controls={isOpen ? menuId : undefined}
         className={`modal-input flex w-full items-center justify-between gap-3 border text-left text-sm transition duration-150 ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
       >
         <span style={{ color: label ? "inherit" : "var(--modal-placeholder)" }}>
@@ -102,6 +142,7 @@ const SingleSelect: React.FC<SingleSelectProps> = ({
 
       {isOpen && (
         <div
+          id={menuId} role="listbox" aria-labelledby={id}
           className={`modal-dropdown-panel absolute left-0 z-[90] w-full overflow-y-auto ${
             dropUp ? "bottom-full mb-2" : "top-full mt-2"
           }`}
@@ -113,6 +154,7 @@ const SingleSelect: React.FC<SingleSelectProps> = ({
               <button
                 key={opt.id}
                 type="button"
+                role="option" aria-selected={isSelected} tabIndex={-1}
                 onClick={() => handleSelect(opt.id)}
                 className={`modal-dropdown-item ${isSelected ? "is-selected" : ""}`}
               >

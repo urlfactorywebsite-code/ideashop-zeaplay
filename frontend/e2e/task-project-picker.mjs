@@ -40,6 +40,9 @@ await context.route('**/*', async route => {
   if (url.pathname === '/api/tasks' && request.method() === 'POST') {
     writes.push(request.postDataJSON()); return route.fulfill({ json: [] });
   }
+  if (url.pathname === '/api/kanban-columns') return route.fulfill({ json: [
+    { id: 'WAITING_FOR_REQUIREMENT', title: 'New Task', order: 0, is_active: true },
+  ] });
   if (url.pathname === '/api/clients') return route.fulfill({ json: { items: [], page: 1, page_size: 10, total: 0, total_pages: 1 } });
   if (url.pathname.startsWith('/api/')) return route.fulfill({ json: [] });
   return route.continue();
@@ -67,7 +70,7 @@ try {
   await search().press('Enter'); await expect(trigger()).toContainText('Project 120'); await expect(search()).toHaveCount(0);
   pass('Case-insensitive client search finds projects beyond the former first 100; single selection closes and retains the project');
   await trigger().click(); await search().fill('no-match'); await expect(page.getByText('No projects match your search.')).toBeVisible();
-  await search().press('Enter'); await expect(page.getByRole('heading', { name: 'Create Task', exact: true })).toBeVisible();
+  await search().press('Enter'); await expect(page.getByRole('heading', { name: 'Create task', exact: true })).toBeVisible();
   await expect(trigger()).toContainText('Project 120');
   await search().fill('failure'); await expect(page.getByRole('alert')).toContainText('Project search unavailable');
   await expect(trigger()).toContainText('Project 120'); await search().press('Escape'); await expect(trigger()).toBeFocused();
@@ -82,7 +85,7 @@ try {
   await expect(trigger()).toContainText('Project 121 - Company 121'); await expect(assignees).toContainText('0 selected');
   pass('Empty/error searches preserve selected metadata; changing project still enforces project membership');
   await page.locator('#title').fill('Project picker browser verification');
-  await page.getByRole('button', { name: 'Create quest', exact: true }).click();
+  await page.getByRole('button', { name: 'Create task', exact: true }).click();
   await expect.poll(() => writes.length).toBe(1); assert.equal(writes[0].project_id, 'project-121');
   assert.equal(writes[0].subtask_approval_required, null);
   pass('Task creation saves the selected project through the unchanged API contract');
@@ -91,7 +94,7 @@ try {
   await page.setViewportSize({ width: 390, height: 844 }); await trigger().click(); await expect(option('Project 000')).toBeVisible();
   const box = await list().locator('..').boundingBox(); assert.ok(box.x >= 0 && box.x + box.width <= 391 && box.y >= 0 && box.y + box.height <= 845);
   await page.screenshot({ path: new URL('mobile.png', output).pathname.replace(/^\/([A-Za-z]:)/, '$1') });
-  await page.getByRole('heading', { name: 'Create Task', exact: true }).click(); await expect(search()).toHaveCount(0);
+  await page.getByRole('heading', { name: 'Create task', exact: true }).click(); await expect(search()).toHaveCount(0);
   pass('Only-project preselection, mobile layout and outside-click dismissal');
   assert.ok(calls.every(call => call.page_size === '25' && call.status === 'ACTIVE')); assert.deepEqual(errors, []);
   await writeFile(new URL('results.json', output), JSON.stringify({ results, calls, writes, errors }, null, 2));

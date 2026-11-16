@@ -57,6 +57,8 @@ let sessionsPaginated = false;
 let longText = false;
 let taskStatus = 'IN_PROGRESS';
 let childCount = 1;
+let childDueDate = null;
+let childCompleted = false;
 let sessionBatch = false;
 let invalidClock = false;
 let mismatchedStatus = false;
@@ -136,7 +138,8 @@ await page.route('**/*', async route => {
   if (capturedMode === 'unavailable') return route.fulfill({ status: 503, json: { detail: 'missing migration' } });
   const taskId = url.pathname.split('/')[3];
   const isB = taskId === 'task-b';
-  const child = { id: 'child-a', title: 'Validate release package', assigned_to_id: 'worker', completed: false, status: 'IN_PROGRESS' };
+  const child = { id: 'child-a', title: 'Validate release package', assigned_to_id: 'worker', due_date: childDueDate,
+    completed: childCompleted, status: childCompleted ? 'DONE' : 'IN_PROGRESS' };
   const children = [child, ...Array.from({ length: childCount - 1 }, (_, index) => ({ ...child,
     id: `child-${index}`, title: `Subtask ${index} ` + 'lengthy-unbroken-title'.repeat(4), status: 'TODO', assigned_to_id: null }))];
   const task = { id: taskId, title: isB ? 'Second authorized task' : 'Release review: acceptance and delivery',
@@ -239,6 +242,31 @@ async function checkIndicatorContrast() {
   });
 }
 try {
+  await run('subtask due dates: today, upcoming, overdue, completed, clearing and refresh', async () => {
+    await page.clock.setFixedTime(new Date('2026-11-16T12:00:00Z'));
+    childDueDate = '2026-11-16';
+    await open();
+    const summary = page.locator('.journey-child summary').first();
+    await summary.getByText('Due today', { exact: true }).waitFor();
+    await summary.getByText('Nov 16, 2026', { exact: true }).waitFor();
+    for (const [date, state] of [['2026-11-17', 'Upcoming'], ['2026-11-15', 'Overdue']]) {
+      childDueDate = date;
+      await page.getByRole('button', { name: 'Refresh task journey' }).click();
+      await summary.getByText(state, { exact: true }).waitFor();
+    }
+    childCompleted = true;
+    await page.getByRole('button', { name: 'Refresh task journey' }).click();
+    await summary.getByText('Done', { exact: true }).waitFor();
+    await summary.getByText('Nov 15, 2026', { exact: true }).waitFor();
+    assert.equal(await summary.getByText('Overdue', { exact: true }).count(), 0);
+    childDueDate = null;
+    await page.getByRole('button', { name: 'Refresh task journey' }).click();
+    await summary.getByText('No due date', { exact: true }).waitFor();
+    childCompleted = false;
+    await open();
+    await summary.getByText('No due date', { exact: true }).waitFor();
+    await page.clock.setFixedTime(new Date());
+  });
   await run('rocket workflow: live stages, read-only checkpoint details, tooltips and keyboard navigation', async () => {
     await open();
     const map = page.locator('.workflow-journey');

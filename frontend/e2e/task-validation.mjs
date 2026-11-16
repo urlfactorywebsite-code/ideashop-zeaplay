@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { pickTime } from './subtask-date-helpers.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { navigationDocument } from './navigation-fixture.mjs';
@@ -181,12 +182,13 @@ try {
     await actor.page.getByRole('button', { name: 'Month', exact: true }).click();
     await actor.page.locator('[data-calendar-date="2026-10-22"]').click();
     await actor.page.getByRole('button', { name: 'Add task', exact: true }).click();
-    await expect(actor.page.locator('#dueDate')).toHaveValue('2026-10-22');
-    await actor.page.getByPlaceholder('Name your quest...', { exact: true }).fill('Zoned calendar task');
+    await actor.page.locator('#taskDueToggle').click();
+    await expect(actor.page.locator('#dueDate')).toContainText('Oct 22, 2026');
+    await actor.page.locator('#title').fill('Zoned calendar task');
     await actor.page.locator('#projectId').click();
     await actor.page.getByText('Verification project', { exact: true }).last().click();
-    await actor.page.locator('#dueTime').fill('00:30');
-    await actor.page.getByRole('button', { name: 'Create quest', exact: true }).click();
+    await pickTime(actor.page, actor.page.locator('#dueTime'), '00:30');
+    await actor.page.getByRole('button', { name: 'Create task', exact: true }).click();
     await expect.poll(async () => (await actor.calls()).filter(call => call.method === 'createTask').length).toBe(1);
     const created = (await actor.calls()).find(call => call.method === 'createTask').args[0];
     assert.equal(created.dueAt, options.zone === 'Asia/Tokyo' ? '2026-10-21T15:30:00.000Z' : '2026-10-21T19:00:00.000Z');

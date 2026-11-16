@@ -1,6 +1,7 @@
 import { workTimezone } from '../utils/activeWork';
 import { calendarToday, taskInstant } from '../utils/taskDates';
 import { useTaskFilter, useTaskViewActive } from '../hooks/useTaskView';
+import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import React, { useState, useEffect, useCallback, useMemo, useRef, useId } from 'react';
 import ReactDOM from 'react-dom';
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle, DialogDescription } from '@headlessui/react';
@@ -338,6 +339,7 @@ const FilterDropdown: React.FC<{
 };
 
 const KanbanBoard: React.FC = () => {
+  const { activeEntries: configuredStatuses } = useTaskStatusLabels();
   const queryClient = useQueryClient();
   const active = useTaskViewActive();
   const [moveError, setMoveError] = useState('');
@@ -493,14 +495,6 @@ const KanbanBoard: React.FC = () => {
       color: column.color,
       icon: column.icon,
     })), [kanbanQuery.data]);
-
-  useEffect(() => {
-    if (!statusFilter || !kanbanQuery.data || kanbanQuery.isPlaceholderData) return;
-    if (![...kanbanQuery.data.columns, ...(kanbanQuery.data.outsideColumns || [])].some(column => column.status === statusFilter)) {
-      setStatusFilter('');
-      setFilterMessage('The selected status is no longer available. Showing all statuses; reassigned quests may be on another page.');
-    }
-  }, [statusFilter, kanbanQuery.data, kanbanQuery.isPlaceholderData, setStatusFilter]);
 
   useEffect(() => {
     if (!usersQuery.data) return;
@@ -812,9 +806,8 @@ const KanbanBoard: React.FC = () => {
         ? 'border-indigo-200/80 bg-white/86 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50'
         : 'border-white/16 bg-white/5 text-white/80 hover:border-cyan-300/42 hover:bg-white/10';
   const statusOptions = useMemo(
-    () => [{ value: '', label: 'All Statuses' }, ...columns.map(column => ({ value: column.id, label: column.title })),
-      ...(kanbanQuery.data?.outsideColumns || []).map(column => ({ value: column.status, label: `${column.title} (${column.outsideReason})` }))],
-    [columns, kanbanQuery.data?.outsideColumns],
+    () => [{ value: '', label: 'All Statuses' }, ...configuredStatuses.map(column => ({ value: column.id, label: column.title }))],
+    [configuredStatuses],
   );
   const priorityOptions = useMemo(
     () => [

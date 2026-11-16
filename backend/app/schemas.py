@@ -993,6 +993,7 @@ class ProjectTaskStatusOverride(BaseModel):
 
 class SubtaskBase(BaseModel):
     title: str
+    due_date: Optional[date] = None
     completed: bool = False
     assigned_to_id: Optional[str] = None
     status: Optional[SubtaskStatusEnum] = None
@@ -1005,6 +1006,7 @@ class SubtaskInput(SubtaskBase):
 
 class SubtaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
+    due_date: Optional[date] = None
     assigned_to_id: Optional[str] = None
 
     @field_validator("title", mode="before")
@@ -1015,6 +1017,7 @@ class SubtaskCreate(BaseModel):
 
 class SubtaskUpdate(BaseModel):
     title: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    due_date: Optional[date] = None
     completed: Optional[bool] = None
     assigned_to_id: Optional[str] = None
     status: Optional[SubtaskStatusEnum] = None
@@ -1374,6 +1377,7 @@ class TaskListResponse(BaseModel):
     total: int
     total_pages: int
     status_counts: Dict[str, int] = Field(default_factory=dict)
+    configured_status_counts: Dict[str, int] = Field(default_factory=dict)
     next_cursor: Optional[str] = None
     has_more: bool = False
 

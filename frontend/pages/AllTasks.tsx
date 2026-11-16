@@ -45,7 +45,8 @@ function TaskPanels() {
     window.addEventListener(TASK_REALTIME_EVENT, changed);
     return () => { window.clearTimeout(timer); window.removeEventListener(TASK_REALTIME_EVENT, changed); };
   }, [queryClient, user?.id, user?.tenantId]);
-  const visible = navigation.decorate(TASK_SECTIONS.map(section => ({ ...section, icon: icons[section.key] })));
+  const visible = navigation.decorate(TASK_SECTIONS.map(section => ({ ...section, icon: icons[section.key] })))
+    .sort((a, b) => Number(b.key === 'list') - Number(a.key === 'list'));
   return <div className="tasks-hub min-w-0 space-y-6 pb-8">
     <header className="rounded-2xl border border-border-color bg-surface p-4 shadow-sm sm:p-6">
       <div className="flex items-center gap-3">

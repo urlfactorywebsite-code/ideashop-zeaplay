@@ -1418,6 +1418,7 @@ export interface UserProgressRead {
 
 
 export interface Subtask {
+    dueDate?: string | null;
     id: string;
     title: string;
     completed: boolean;
@@ -1633,6 +1634,7 @@ export interface TaskPageResponse {
   total: number;
   totalPages: number;
   statusCounts: Record<TaskStatus, number>;
+  configuredStatusCounts?: Record<string, number>;
   nextCursor?: string | null;
   hasMore?: boolean;
 }
@@ -1808,6 +1810,7 @@ export interface Pipeline {
 }
 
 export interface KanbanColumn {
+  isActive?: boolean;
   workflowBehavior?: string;
   holdReasonRequired?: boolean;
   statusId?: string;

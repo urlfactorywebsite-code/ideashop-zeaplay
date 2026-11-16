@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import List, Optional
 
 from sqlalchemy import (
@@ -14,6 +14,7 @@ from sqlalchemy import (
     Column,
     Computed,
     DateTime,
+    Date,
     Enum as SAEnum,
     Float,
     ForeignKeyConstraint,
@@ -1092,6 +1093,7 @@ class Subtask(Base):
         String(36), ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
+    due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     assigned_to_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True

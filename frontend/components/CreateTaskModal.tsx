@@ -2,22 +2,30 @@ import SearchableMultiSelect from './ui/SearchableMultiSelect';
 import Avatar from './Avatar';
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { createPortal } from 'react-dom';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/dist/style.css';
 import api from '../services/mockApi';
-import { TaskPriority, User, UserStatus, RecurrenceRule, KanbanColumn, TaskStatus, Subtask, SubtaskStatus, CUSTOM_STATUS_NAMES, Project, ProjectStatus, Role } from '../types';
+import { TaskPriority, User, UserStatus, RecurrenceRule, KanbanColumn, TaskStatus, Subtask, SubtaskStatus, Project, ProjectStatus, Role } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { formatRecurrenceRule, formatTaskStatus } from '../utils';
-import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
-import { PlusIcon, XMarkIcon, SparklesIcon } from './icons';
+import { configurationStorageKey, STATUS_CONFIGURATION_EVENT } from '../utils/kanbanConfiguration';
+import { PlusIcon, SparklesIcon } from './icons';
 import GenerateTaskWithAIModal from './GenerateTaskWithAIModal';
 import SingleSelect from './ui/SingleSelect';
 import { taskDateTimeInstant } from '../utils/taskDates';
+import SubtaskDueDateField from './SubtaskDueDateField';
+import TaskAttachments from './TaskAttachments';
+import DatePicker from './ui/DatePicker';
+import TimePicker from './ui/TimePicker';
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
+import { CalendarDays, ChevronDown, Settings2, Upload, X } from 'lucide-react';
+import './CreateTaskModal.css';
 
 type ThemeMode = 'dark' | 'colorful' | 'light';
 
 type SubtaskDraft = {
+    draftId?: string;
+    dueDate?: string | null;
+    hasDueDate?: boolean;
     title: string;
     completed: boolean;
     assignedToId: string | null;
@@ -160,13 +168,7 @@ const resolveDefaultDueDateTime = (now = new Date()) => {
     };
 };
 
-const TIME_OPTIONS = Array.from({ length: 24 }, (_, i) => {
-    const hour = i.toString().padStart(2, '0');
-    return [`${hour}:00`, `${hour}:30`];
-}).flat();
-
 const TAG_SUGGESTIONS = ['Urgent', 'Client', 'Follow-up', 'QA', 'Research', 'Blocked', 'Launch'];
-let cachedActiveAssignees: User[] = [];
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -217,10 +219,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
     // Enhancements
     const [subtasks, setSubtasks] = useState<SubtaskDraft[]>([]);
-    const [currentSubtask, setCurrentSubtask] = useState('');
     const [attachments, setAttachments] = useState<string[]>([]);
+    const [attachmentFiles, setAttachmentFiles] = useState<Record<string, File>>({});
     const [currentAttachment, setCurrentAttachment] = useState('');
-    const [attachmentProgress, setAttachmentProgress] = useState<Record<string, number>>({});
     const [estimatedHours, setEstimatedHours] = useState<number | ''>('');
     const [estimatedMinutes, setEstimatedMinutes] = useState<number | ''>('');
     const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule>(RecurrenceRule.NONE);
@@ -242,38 +243,43 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     const [projects, setProjects] = useState<Project[]>([]);
     const [isProjectsLoading, setIsProjectsLoading] = useState(false);
     const [columns, setColumns] = useState<KanbanColumn[]>([]);
+    const [isStatusesLoading, setIsStatusesLoading] = useState(true);
+    const [statusError, setStatusError] = useState('');
+    const [statusRetry, setStatusRetry] = useState(0);
     const [isAssigneesLoading, setIsAssigneesLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const submittingRef = useRef(false);
+    const formRef = useRef<HTMLFormElement>(null);
+    const titleRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const additionalRef = useRef<HTMLDivElement>(null);
+    const addSubtaskRef = useRef<HTMLButtonElement>(null);
+    const aiTriggerRef = useRef<HTMLButtonElement>(null);
+    const errorRef = useRef<HTMLParagraphElement>(null);
+    const [additionalOpen, setAdditionalOpen] = useState(false);
+    const [dateOptionsOpen, setDateOptionsOpen] = useState(false);
+    const [uploads, setUploads] = useState<Array<{ id: string; file: File; progress: number; error?: string }>>([]);
+    const uploadControllers = useRef(new Map<string, AbortController>());
+    const uploadGeneration = useRef(0);
     const [error, setError] = useState('');
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
-    const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
-    const [showTimePicker, setShowTimePicker] = useState(false);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+    const closeAiModal = () => {
+        setIsAiModalOpen(false);
+        window.requestAnimationFrame(() => aiTriggerRef.current?.focus());
+    };
+    const themeMode: ThemeMode = 'dark';
     useEffect(() => {
         if (!isOpen || !initialDueDate) return;
         const date = new Date(initialDueDate);
         if (Number.isNaN(date.getTime())) return;
         setDueDate(formatDateInput(date));
         setDueTime(date.toTimeString().slice(0, 5));
-        setSelectedDate(date);
     }, [isOpen, initialDueDate]);
-    const [activeAssignmentsSelectId, setActiveAssignmentsSelectId] = useState<string | null>(null);
     const [assigneeSearch, setAssigneeSearch] = useState('');
     const [followerSearch, setFollowerSearch] = useState('');
     const primaryTaskAssigneeId = assignedTo[0] ?? null;
 
-    const { label: taskStatusLabel } = useTaskStatusLabels();
-    const statusOptions = (columns.length > 0
-        ? columns.map((column) => ({ id: column.id, name: taskStatusLabel(column.id, undefined, column.title) }))
-        : Object.values(TaskStatus).map((taskStatus) => {
-            const typedStatus = taskStatus as TaskStatus;
-            return {
-                id: typedStatus,
-                name: taskStatusLabel(typedStatus),
-            };
-        })
-    );
+    const statusOptions = columns.map(column => ({ id: column.id, name: column.title }));
 
     const allowedPriorities = useMemo(
         () => Object.values(TaskPriority),
@@ -363,26 +369,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         if (!isOpen || !currentUser) return;
 
         let isCancelled = false;
-        const immediateUsers = cachedActiveAssignees.length > 0
-            ? cachedActiveAssignees
-            : [currentUser];
+        const immediateUsers = [currentUser];
 
         // Paint assignees immediately, then refresh the full team list in the background.
         setUsers(immediateUsers);
-        setIsAssigneesLoading(cachedActiveAssignees.length === 0);
+        setIsAssigneesLoading(true);
         setTeam(currentUser.department);
 
-        const resolvedColumns: KanbanColumn[] = Object.values(TaskStatus).map((taskStatus, index) => ({
-            id: taskStatus,
-            title: CUSTOM_STATUS_NAMES[taskStatus]?.name || taskStatus,
-            order: index,
-            pipelineId: 'default',
-        }));
-        setColumns(resolvedColumns);
-        api.getKanbanColumns().then(configured => {
-            if (!isCancelled && configured.length) setColumns(configured);
-        }).catch(() => { /* Keep the built-in workflow available during a configuration read failure. */ });
-        setStatus(TaskStatus.WAITING_FOR_REQUIREMENT); setHoldReason('');
+        setHoldReason('');
         setProjectId('');
         setProjects([]);
         setProjectSearch('');
@@ -396,7 +390,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     ? allUsers.filter((u) => u.status === 'ACTIVE')
                     : [];
                 const nextUsers = activeUsers.length > 0 ? activeUsers : [currentUser];
-                cachedActiveAssignees = nextUsers;
                 setUsers(nextUsers);
             })
             .catch((err) => {
@@ -418,6 +411,52 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             isCancelled = true;
         };
     }, [isOpen, currentUser, isTicketMode]);
+
+    useEffect(() => {
+        if (!isOpen || !currentUser) return;
+        let stopped = false;
+        let requestId = 0;
+        setColumns([]);
+        setStatus('');
+        const load = async () => {
+            const request = ++requestId;
+            setIsStatusesLoading(true);
+            setStatusError('');
+            try {
+                const configured = await api.getKanbanColumns();
+                if (stopped || request !== requestId) return;
+                const active = configured.filter(column => column.isActive !== false).sort((a, b) => a.order - b.order);
+                setColumns(active);
+                setStatus(current => active.some(column => column.id === current) ? current
+                    : active.find(column => column.id === TaskStatus.WAITING_FOR_REQUIREMENT)?.id ?? active[0]?.id ?? '');
+                if (!active.length) setStatusError('No active task statuses are available. Contact your workspace owner.');
+            } catch {
+                if (stopped || request !== requestId) return;
+                setColumns([]);
+                setStatus('');
+                setStatusError('Unable to load active task statuses. Please retry.');
+            } finally {
+                if (!stopped && request === requestId) setIsStatusesLoading(false);
+            }
+        };
+        const changed = (event: Event) => {
+            if ((event as CustomEvent).detail?.tenantId === currentUser.tenantId) void load();
+        };
+        const stored = (event: StorageEvent) => {
+            if (currentUser.tenantId && event.key === configurationStorageKey(currentUser.tenantId)) void load();
+        };
+        const focused = () => { void load(); };
+        void load();
+        window.addEventListener(STATUS_CONFIGURATION_EVENT, changed);
+        window.addEventListener('storage', stored);
+        window.addEventListener('focus', focused);
+        return () => {
+            stopped = true;
+            window.removeEventListener(STATUS_CONFIGURATION_EVENT, changed);
+            window.removeEventListener('storage', stored);
+            window.removeEventListener('focus', focused);
+        };
+    }, [isOpen, currentUser?.id, currentUser?.tenantId, statusRetry]);
 
     useEffect(() => {
         if (!isOpen || !currentUser || isTicketMode) return;
@@ -455,13 +494,19 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     }, [isOpen, isTicketMode, ticketTitle, ticketDescription]);
 
     const resetForm = () => {
+        ++uploadGeneration.current;
+        uploadControllers.current.forEach(controller => controller.abort());
+        uploadControllers.current.clear();
+        setUploads([]);
+        setAdditionalOpen(false);
+        setDateOptionsOpen(false);
         setTitle(ticketTitle ?? '');
         setDescription(ticketDescription ?? '');
         setAssignedTo([]);
         setFollowerIds([]);
         setPriority(TaskPriority.LOW);
         // Use column id as status so it aligns with how TaskDetailModal and the API expect statuses
-        setStatus(TaskStatus.WAITING_FOR_REQUIREMENT); setHoldReason('');
+        setStatus(''); setHoldReason('');
         // Initialize dueDate and dueTime from initialDueDate if provided
         if (initialDueDate) {
             const date = new Date(initialDueDate);
@@ -476,10 +521,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         setIsSubmitting(false);
         if (currentUser) setTeam(currentUser.department);
         setSubtasks([]);
-        setCurrentSubtask('');
         setAttachments([]);
+        setAttachmentFiles({});
         setCurrentAttachment('');
-        setAttachmentProgress({});
         setEstimatedHours('');
         setEstimatedMinutes('');
         setRecurrenceRule(RecurrenceRule.NONE);
@@ -495,25 +539,30 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     };
 
     const handleClose = () => {
+        if (submittingRef.current) return;
         resetForm();
         onClose();
     };
 
     const handleAddSubtask = () => {
-        if (currentSubtask.trim()) {
+            const index = subtasks.length;
             setSubtasks([
                 ...subtasks,
                 {
-                    title: currentSubtask.trim(),
+                    draftId: crypto.randomUUID(),
+                    title: '',
                     completed: false,
                     assignedToId: primaryTaskAssigneeId,
                     status: SubtaskStatus.TODO,
                     assigneeTouched: false,
                 },
             ]);
-            setCurrentSubtask('');
-        }
-    };
+            window.requestAnimationFrame(() => {
+                const field = formRef.current?.querySelector<HTMLElement>(`[data-subtask-index="${index}"] [data-subtask-field="title"]`);
+                field?.focus();
+                field?.scrollIntoView({ block: 'nearest' });
+            });
+        };
     const handleToggleSubtask = (index: number) => {
         setSubtasks((current) => current.map((subtask, itemIndex) => {
             if (itemIndex !== index) return subtask;
@@ -527,6 +576,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     };
     const handleRemoveSubtask = (index: number) => {
         setSubtasks(subtasks.filter((_, i) => i !== index));
+        window.requestAnimationFrame(() => {
+            const nextIndex = Math.min(index, subtasks.length - 2);
+            const next = formRef.current?.querySelector<HTMLElement>(`[data-subtask-index="${nextIndex}"] [data-subtask-field="title"]`);
+            (next ?? addSubtaskRef.current)?.focus();
+        });
     };
     const updateSubtaskDraft = (index: number, updates: Partial<SubtaskDraft>) => {
         setSubtasks((current) => current.map((subtask, itemIndex) => {
@@ -545,18 +599,52 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             setCurrentAttachment('');
         }
     };
-    const handleRemoveAttachment = (index: number) => setAttachments(attachments.filter((_, i) => i !== index));
+    const handleRemoveAttachment = (index: number) => {
+        const removed = attachments[index];
+        const remaining = attachments.filter((_, i) => i !== index);
+        setAttachments(remaining);
+        if (removed && !remaining.includes(removed)) setAttachmentFiles(current => {
+            const next = { ...current }; delete next[removed]; return next;
+        });
+    };
 
+    const uploadFile = async (id: string, file: File) => {
+        const generation = uploadGeneration.current;
+        const controller = new AbortController();
+        uploadControllers.current.set(id, controller);
+        setUploads(current => [...current.filter(item => item.id !== id), { id, file, progress: 0 }]);
+        try {
+            const uploaded = await api.uploadTaskAttachment(file, progress => {
+                if (generation === uploadGeneration.current && !controller.signal.aborted) {
+                    setUploads(current => current.map(item => item.id === id ? { ...item, progress } : item));
+                }
+            }, controller.signal);
+            if (generation !== uploadGeneration.current || controller.signal.aborted) return;
+            setAttachments(current => [...current, uploaded.url]);
+            setAttachmentFiles(current => ({ ...current, [uploaded.url]: file }));
+            setUploads(current => current.filter(item => item.id !== id));
+        } catch (error) {
+            if (generation !== uploadGeneration.current || controller.signal.aborted) return;
+            setUploads(current => current.map(item => item.id === id ? { ...item,
+                error: error instanceof Error ? error.message : 'Unable to upload this file.' } : item));
+        } finally {
+            uploadControllers.current.delete(id);
+        }
+    };
     const handleAttachmentFiles = (files: FileList | File[]) => {
-        const nextFiles = Array.from(files);
-        if (!nextFiles.length) return;
-        const labels = nextFiles.map((file) => file.name);
-        setAttachments((current) => [...current, ...labels]);
-        labels.forEach((label) => {
-            setAttachmentProgress((current) => ({ ...current, [label]: 45 }));
-            window.setTimeout(() => {
-                setAttachmentProgress((current) => ({ ...current, [label]: 100 }));
-            }, 450);
+        Array.from(files).forEach(file => { void uploadFile(crypto.randomUUID(), file); });
+    };
+    useEffect(() => () => {
+        ++uploadGeneration.current;
+        uploadControllers.current.forEach(controller => controller.abort());
+    }, []);
+
+    const focusField = (field: HTMLElement) => {
+        if (additionalRef.current?.contains(field)) setAdditionalOpen(true);
+        if (field.closest('#task-due-options')) setDateOptionsOpen(true);
+        window.requestAnimationFrame(() => {
+            field.focus();
+            field.scrollIntoView({ block: 'nearest' });
         });
     };
 
@@ -574,18 +662,53 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (submittingRef.current) return;
+        const invalid = formRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input:invalid, textarea:invalid, select:invalid');
+        if (invalid) {
+            setError(`${invalid.labels?.[0]?.textContent || invalid.getAttribute('aria-label') || 'Field'}: ${invalid.validationMessage}`);
+            focusField(invalid);
+            return;
+        }
+        const emptySubtask = subtasks.findIndex(subtask => !subtask.title.trim());
+        if (emptySubtask >= 0) {
+            setError(`Subtask ${emptySubtask + 1}: Enter a title.`);
+            const field = formRef.current?.querySelector<HTMLElement>(`[data-subtask-index="${emptySubtask}"] [data-subtask-field="title"]`);
+            if (field) focusField(field);
+            return;
+        }
+        if (uploadControllers.current.size || uploads.some(item => item.error)) {
+            setError('Wait for attachments to finish uploading, or retry or remove failed uploads.');
+            return;
+        }
         if (!currentUser) {
             setError('You must be logged in to create a task.');
             return;
         }
+        if (!isTicketMode && (isStatusesLoading || !columns.some(column => column.id === status))) {
+            setError(statusError || 'Select an active task status before creating the task.');
+            const field = document.getElementById('status');
+            if (field) focusField(field);
+            return;
+        }
         if (!dueDate || !dueTime) {
             setError('Due date and due time are required.');
+            const field = document.getElementById(!dueDate ? 'dueDate' : 'dueTime');
+            if (field) focusField(field);
             return;
         }
         if (!isTicketMode && !projectId) {
             setError('Select a project before creating the task.');
+            const project = document.getElementById('projectId');
+            if (project) focusField(project);
             return;
         }
+        if (isTicketMode && approvalRequired && !approverId) {
+            setError('Select an approver for approval-required tasks.');
+            const approver = document.getElementById('taskApprover');
+            if (approver) focusField(approver);
+            return;
+        }
+        submittingRef.current = true;
         setIsSubmitting(true);
         setError('');
         try {
@@ -593,11 +716,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 ? taskDateTimeInstant(dueDate, dueTime, dueTimezone)
                 : `${dueDate}T${dueTime}:00`;
             if (ticketId) {
-                if (approvalRequired && !approverId) {
-                    setError('Select an approver for approval-required tasks.');
-                    setIsSubmitting(false);
-                    return;
-                }
             await api.createTicketTask(ticketId, {
                 dueAt,
                 priority,
@@ -605,15 +723,17 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 approverId: approvalRequired ? approverId : null,
             });
             onTaskCreated();
+            submittingRef.current = false;
             handleClose();
             notify('Task added to ticket.');
             return;
         }
             const finalSubtasks: Subtask[] = subtasks.map((subtask, index) => ({
                 id: `sub-${Date.now()}-${Math.random()}`,
-                title: subtask.title,
+                title: subtask.title.trim(),
                 completed: subtask.completed || subtask.status === SubtaskStatus.DONE,
                 assignedToId: subtask.assignedToId,
+                dueDate: subtask.hasDueDate ? subtask.dueDate ?? null : null,
                 status: subtask.status,
                 sortOrder: index,
             }));
@@ -661,11 +781,39 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             currentUser.id,
         );
         onTaskCreated();
+        submittingRef.current = false;
         handleClose();
         notify('Task created successfully.');
         } catch (err: any) {
             setError(err.message || 'Failed to create task. Please try again.');
+            const message = String(err.message || '').toLowerCase();
+            const validationTargets: Record<string, string> = {
+                estimated_hours: 'estimatedHours', team: 'team', tags: 'taskTags', follower_ids: 'followers',
+                recurrence_rule: 'recurrence', subtask_approval_required: 'subtaskApprovalOverride',
+                approver_id: 'taskApprover', approval_required: 'taskApprover', project_id: 'projectId',
+                title: 'title', description: 'description', due_at: 'dueDate', assigned_to_ids: 'assignedTo',
+                status: 'status', priority: 'priority',
+            };
+            const validationFields: string[] = Array.isArray(err.validationFields) ? err.validationFields : [];
+            const subtaskPath = validationFields.map(path => path.match(/(?:^|\.)subtasks\.(\d+)\.(\w+)/)).find(Boolean);
+            const subtaskRow = subtaskPath && formRef.current?.querySelector<HTMLElement>(`[data-subtask-index="${subtaskPath[1]}"]`);
+            const subtaskField = subtaskRow?.querySelector<HTMLElement>(`[data-subtask-field="${subtaskPath?.[2]}"]`)
+                ?? (subtaskPath?.[2] === 'due_date' ? subtaskRow?.querySelector<HTMLElement>('input[type="date"], .space-y-2 input[type="checkbox"]') : null);
+            const validationTarget = validationFields.filter(path => !/(?:^|\.)subtasks\./.test(path)).map(path => path.split('.').find(key => validationTargets[key]))
+                .find(Boolean);
+            const advancedField = [['estimated', 'estimatedHours'], ['minute', 'estimatedMinutes'], ['hour', 'estimatedHours'],
+                ['team', 'team'], ['tag', 'taskTags'], ['recurrence', 'recurrence'], ['follower', 'followers'], ['approv', isTicketMode ? 'taskApprover' : 'subtaskApprovalOverride']]
+                .find(([term]) => message.includes(term));
+            const targetId = validationTarget ? validationTargets[validationTarget] : advancedField?.[1];
+            const field = targetId && document.getElementById(targetId);
+            if (subtaskField) focusField(subtaskField);
+            else if (field) focusField(field);
+            else window.requestAnimationFrame(() => {
+                errorRef.current?.focus();
+                errorRef.current?.scrollIntoView({ block: 'nearest' });
+            });
         } finally {
+            submittingRef.current = false;
             setIsSubmitting(false);
         }
     };
@@ -679,6 +827,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             setSubtasks(data.subtasks
                 .filter((item) => item.trim().length > 0)
                 .map((item) => ({
+                    draftId: crypto.randomUUID(),
                     title: item.trim(),
                     completed: false,
                     assignedToId: primaryTaskAssigneeId,
@@ -689,20 +838,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     };
 
     const fieldClass = 'modal-input w-full text-sm';
-    const areaClass = 'modal-input modal-textarea w-full text-sm';
-    const chipButtonClass = 'modal-chip-button inline-flex items-center justify-center gap-2 text-sm font-semibold';
-    const removeButtonClass = 'modal-remove-button';
-    const labelClass = 'modal-label text-xs uppercase tracking-[0.25em]';
-    const sectionClass = 'modal-section flex h-full flex-col rounded-3xl border p-4 backdrop-blur-xl transition duration-200';
-    const compactSectionClass = 'modal-section flex flex-col rounded-3xl border p-4 backdrop-blur-xl transition duration-200';
-    const missionSectionClass = 'modal-section flex flex-col rounded-3xl border p-3 backdrop-blur-xl transition duration-200';
-    const assignmentsSectionClass = [
-        sectionClass,
-        'xl:col-start-2 xl:row-span-3 xl:row-start-1',
-        activeAssignmentsSelectId ? 'is-raised' : '',
-    ].filter(Boolean).join(' ');
-    const lockedFieldClass = isTicketMode ? 'opacity-70 cursor-not-allowed' : '';
-
     const handleApplyQuickDate = (offset: number) => {
         const base = new Date();
         base.setHours(0, 0, 0, 0);
@@ -719,18 +854,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             setTags([...tags, tag]);
         }
     };
-
-    const handleAssignmentsSelectOpen = useCallback((open: boolean, selectId?: string) => {
-        if (!selectId) {
-            setActiveAssignmentsSelectId(open ? 'assignments' : null);
-            return;
-        }
-
-        setActiveAssignmentsSelectId((current) => {
-            if (open) return selectId;
-            return current === selectId ? null : current;
-        });
-    }, []);
 
     const toggleAssignee = useCallback((userId: string) => {
         setAssignedTo((current) => (
@@ -759,14 +882,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     );
 
     const assignableUsers = useMemo(() => {
-        if (!selectedProject || projectMemberIds.size === 0) {
+        if (!selectedProject) {
             return users;
         }
         return users.filter((member) => projectMemberIds.has(member.id));
     }, [projectMemberIds, selectedProject, users]);
 
     useEffect(() => {
-        if (!selectedProject || projectMemberIds.size === 0) {
+        if (!selectedProject) {
             return;
         }
         setAssignedTo((current) => current.filter((userId) => projectMemberIds.has(userId)));
@@ -823,29 +946,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
     const formatRoleLabel = useCallback((role: Role) => role.charAt(0).toUpperCase() + role.slice(1), []);
 
-    const assignedUsers = useMemo(
-        () => users.filter((user) => assignedTo.includes(user.id)),
-        [users, assignedTo]
-    );
-
     const approverCandidates = useMemo(
         () => users.filter((candidate) => candidate.status === UserStatus.ACTIVE),
         [users],
-    );
-
-    const priorityLabel = useMemo(
-        () => priorityOptions.find((option) => option.id === priority)?.name || 'Medium',
-        [priorityOptions, priority]
-    );
-
-    const statusLabel = useMemo(
-        () => statusOptions.find((option) => option.id === status)?.name || 'Select status',
-        [statusOptions, status]
-    );
-
-    const recurrenceLabel = useMemo(
-        () => recurrenceOptions.find((option) => option.id === recurrenceRule)?.name || 'None',
-        [recurrenceOptions, recurrenceRule]
     );
 
     const dueDateDisplay = useMemo(() => {
@@ -858,24 +961,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         });
         return formatter.format(scheduled);
     }, [dueDate, dueTime]);
-
-    const readinessScore = useMemo(() => {
-        let score = 20;
-        if (title.trim()) score += 15;
-        if (description.trim()) score += 10;
-        if (assignedTo.length > 0) score += 20;
-        if (dueDate) score += 15;
-        if (subtasks.length > 0) score += 10;
-        if (tags.length > 0) score += 5;
-        if (estimatedHours) score += 5;
-        return Math.min(100, score);
-    }, [title, description, assignedTo.length, dueDate, subtasks.length, tags.length, estimatedHours]);
-
-    const readinessLabel = readinessScore >= 85
-        ? 'Mission-ready'
-        : readinessScore >= 60
-            ? 'Needs final prep'
-            : 'Draft in progress';
 
     const filteredTagSuggestions = useMemo(
         () => TAG_SUGGESTIONS.filter((tag) => !tags.includes(tag)),
@@ -921,825 +1006,221 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         return `Custom repeat every ${interval} cycle(s) at ${time}${end}`;
     }, [dueDate, dueTime, recurrenceRule, repeatEndDate, repeatInterval]);
 
-    const summaryStats = useMemo(
-        () => [
-            { label: 'Status', value: statusLabel, icon: '🚦' },
-            { label: 'Priority', value: priorityLabel, icon: '⚡' },
-            { label: 'Team', value: team || 'Unassigned', icon: '🛡️' },
-            { label: 'Recurrence', value: recurrencePreview, icon: '🔁' },
-            { label: 'Due', value: dueDateDisplay, icon: '📅' },
-            { label: 'Estimated Hours', value: workloadLabel, icon: '⏱️' },
-        ],
-        [statusLabel, priorityLabel, team, recurrencePreview, dueDateDisplay, workloadLabel]
-    );
-
-    const summaryNotes = useMemo(() => {
-        const notes: string[] = [];
-        if (!assignedTo.length) notes.push('Assign at least one teammate to kick off the mission.');
-        if (!dueDate) notes.push('Set a due date to keep momentum and unlock time-based rewards.');
-        if (subtasks.length === 0) notes.push('Add subtasks so the squad can track progress.');
-        if (!description.trim()) notes.push('Provide more mission intel in the description.');
-        return notes;
-    }, [assignedTo.length, dueDate, subtasks.length, description]);
-
     if (!isOpen) return null;
 
     return createPortal(
-        <>
-            <div role="dialog" aria-modal="true" aria-labelledby="create-task-modal-title"
-                className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-slate-950/25 px-3 py-3 backdrop-blur-sm sm:px-5 sm:py-5">
-                <div
-                    className="task-modal relative flex max-h-[90vh] w-full max-w-[94rem] flex-col overflow-hidden rounded-3xl border backdrop-blur-xl transition duration-300 max-sm:h-full max-sm:max-h-none max-sm:rounded-2xl"
-                    style={modalStyle}
-                    data-theme={themeMode}
-                >
-                    <div
-                        className="pointer-events-none absolute -right-16 top-0 h-64 w-64 rounded-full blur-3xl"
-                        style={{ background: theme.glowOne }}
-                    />
-                    <div
-                        className="pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full blur-3xl"
-                        style={{ background: theme.glowTwo }}
-                    />
+        <Dialog open={isOpen} initialFocus={titleRef} onClose={() => {
+            if (isAiModalOpen) closeAiModal();
+            else handleClose();
+        }} className="create-task-dialog" aria-describedby="create-task-subtitle">
+            <DialogBackdrop className="create-task-backdrop" />
+            <div className="create-task-position">
+                <DialogPanel className="task-modal create-task-modal" style={modalStyle} data-theme={themeMode}>
+                    <form ref={formRef} onSubmit={handleSubmit} onChange={() => { if (error) setError(''); }} noValidate aria-label="Create task" aria-busy={isSubmitting}>
+                        <header className="create-task-header">
+                            <div className="create-task-heading">
+                                <DialogTitle className="create-task-title">Create task</DialogTitle>
+                                <p id="create-task-subtitle">Add the essentials. Customize when needed.</p>
+                                {isTicketMode && <p className="create-task-ticket">Linked to ticket #{ticketId?.slice(-6)}</p>}
+                            </div>
+                            <button ref={aiTriggerRef} type="button" onClick={() => setIsAiModalOpen(true)} className="modal-chip-button create-task-ai" disabled={isSubmitting}>
+                                <SparklesIcon className="h-4 w-4" aria-hidden="true" /><span>Generate with AI</span>
+                            </button>
+                            <button type="button" onClick={handleClose} disabled={isSubmitting} className="create-task-close" aria-label="Close create task">
+                                <X size={19} aria-hidden="true" />
+                            </button>
+                        </header>
 
-                    <header className="relative shrink-0 border-b px-4 py-4 transition-colors duration-200 sm:px-5" style={{ borderColor: 'var(--modal-border)' }}>
-                        <button
-                            type="button"
-                            onClick={handleClose}
-                            className="modal-secondary-button absolute right-6 top-5 px-4 py-2 text-sm font-semibold"
-                        >
-                            Close
-                        </button>
-                        <div className="flex flex-col gap-4 pr-24 lg:flex-row lg:items-center lg:justify-between lg:pr-32">
-                            <div className="space-y-2">
-                                <p className="hidden text-xs font-semibold uppercase tracking-[0.35em] modal-muted sm:block">New quest</p>
-                                <h2 id="create-task-modal-title" className="text-2xl font-bold tracking-tight sm:text-3xl">Create Task</h2>
-                                <p className="hidden max-w-xl text-sm modal-muted sm:block">
-                                    Shape a mission with clear objectives, allies, and loot so the squad can execute flawlessly.
-                                </p>
-                                {isTicketMode && (
-                                    <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.25em]">
-                                        Linked to ticket #{ticketId?.slice(-6)}
+                        <div className="create-task-body custom-scrollbar">
+                            {error && <p ref={errorRef} role="alert" tabIndex={-1} className="create-task-error">{error}</p>}
+                            <div className="create-task-field">
+                                <label htmlFor="title">Task title <span aria-hidden="true">*</span></label>
+                                <input ref={titleRef} id="title" required readOnly={isTicketMode} value={title} onChange={event => setTitle(event.target.value)}
+                                    className={fieldClass} placeholder="Enter a task title..." />
+                            </div>
+                            <div className="create-task-field">
+                                <label htmlFor="description">Description</label>
+                                <textarea id="description" rows={3} readOnly={isTicketMode} value={description} onChange={event => setDescription(event.target.value)}
+                                    className={`${fieldClass} modal-textarea`} placeholder="Add a short description..." />
+                            </div>
+                            {!isTicketMode && <div className="create-task-field">
+                                <label htmlFor="projectId">Project <span aria-hidden="true">*</span></label>
+                                <SearchableMultiSelect id="projectId" label="Project" selectionMode="single" avoidClipping
+                                    options={projectOptions} selectedOptions={selectedProject ? [{ id: selectedProject.id,
+                                        name: selectedProject.client?.companyName ? `${selectedProject.name} - ${selectedProject.client.companyName}` : selectedProject.name,
+                                        active: true, statusLabel: selectedProject.status }] : []}
+                                    value={projectId ? [projectId] : []} onToggle={setProjectId}
+                                    search={projectSearch} onSearchChange={next => {
+                                        setProjectSearch(next); setProjectPage(1); setProjectResults([]); setProjectHasMore(false); setIsProjectsLoading(true);
+                                    }} placeholder="Search projects..." searchPlaceholder="Search by project or client name..."
+                                    emptyMessage="No projects match your search." loadingMessage="Loading projects..." loading={isProjectsLoading} error={projectError}
+                                    onRetry={() => setProjectRetry(current => current + 1)} hasMore={projectHasMore}
+                                    onLoadMore={() => { setIsProjectsLoading(true); setProjectPage(current => current + 1); }} selectedStatusLabel="Selected"
+                                    renderAvatar={(option, size) => <Avatar user={{ name: projects.find(project => project.id === option.id)?.name || option.name, avatarUrl: null }} size={size} />} />
+                            </div>}
+                            <div className="create-task-pair">
+                                <div className="create-task-field">
+                                    <label htmlFor="assignedTo">Assignees</label>
+                                    <SearchableMultiSelect id="assignedTo" label="Assignees" avoidClipping
+                                        options={filteredAssignees.map(member => ({ id: member.id, name: member.name,
+                                            description: `${member.role} · ${member.department || 'No team'}`, active: member.status === UserStatus.ACTIVE,
+                                            statusLabel: member.status === UserStatus.ACTIVE ? 'Online' : 'Offline' }))}
+                                        selectedOptions={selectedUsers.map(member => ({ id: member.id, name: member.name, active: member.status === UserStatus.ACTIVE, statusLabel: '' }))}
+                                        value={assignedTo} onToggle={toggleAssignee} search={assigneeSearch} onSearchChange={setAssigneeSearch}
+                                        placeholder="Search assignees..." searchPlaceholder="Search by name, role, email, team..."
+                                        emptyMessage="No users found." loadingMessage="Loading assignees..." loading={isAssigneesLoading} selectedStatusLabel="Added"
+                                        renderAvatar={(option, size) => <Avatar user={assignableUsers.find(member => member.id === option.id)!} size={size} />} />
+                                </div>
+                                <div className="create-task-field">
+                                    <label htmlFor="status">Status <span aria-hidden="true">*</span></label>
+                                    <SingleSelect id="status" options={statusOptions} value={status} onChange={value => { setStatus(value); setHoldReason(''); }}
+                                        placeholder={isStatusesLoading ? 'Loading statuses…' : 'Select status...'} disabled={isStatusesLoading || !statusOptions.length} avoidClipping />
+                                    {statusError && <p role="alert" className="create-task-hint">{statusError}{' '}
+                                        <button type="button" onClick={() => setStatusRetry(current => current + 1)} className="underline">Retry loading statuses</button>
+                                    </p>}
+                                    {(status === TaskStatus.ON_HOLD || columns.find(column => column.id === status)?.workflowBehavior === 'HOLD') &&
+                                        <label className="create-task-hold">Hold reason
+                                            <textarea aria-label="New task hold reason" maxLength={500} required={columns.find(column => column.id === status)?.holdReasonRequired}
+                                                value={holdReason} onChange={event => setHoldReason(event.target.value)} className={`${fieldClass} modal-textarea`} rows={2} />
+                                        </label>}
+                                </div>
+                            </div>
+                            <div className="create-task-pair">
+                                <div className="create-task-field">
+                                    <label htmlFor="priority">Priority</label>
+                                    <SingleSelect id="priority" options={priorityOptions} value={priority} onChange={value => setPriority(value as TaskPriority)}
+                                        placeholder="Select priority..." avoidClipping />
+                                </div>
+                                <div className="create-task-field">
+                                    <label htmlFor="taskDueToggle">Due date &amp; time <span aria-hidden="true">*</span></label>
+                                    <button id="taskDueToggle" type="button" className="modal-input create-task-due-toggle" aria-expanded={dateOptionsOpen}
+                                        aria-controls="task-due-options" onClick={() => setDateOptionsOpen(current => !current)}>
+                                        <CalendarDays size={17} aria-hidden="true" /><span>{dueDateDisplay}</span><ChevronDown size={16} aria-hidden="true" />
+                                    </button>
+                                    <div id="task-due-options" hidden={!dateOptionsOpen} className="create-task-date-options" onKeyDown={event => {
+                                        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setDateOptionsOpen(false); document.getElementById('taskDueToggle')?.focus(); }
+                                    }}>
+                                        <div className="create-task-date-inputs">
+                                            <div><label htmlFor="dueDate">Due date</label><DatePicker id="dueDate" value={dueDate} onChange={value => setDueDate(value ?? '')}
+                                                allowClear={false} timezone={dueTimezone} disabled={isSubmitting} className={fieldClass} /></div>
+                                            <div><label htmlFor="dueTime">Due time</label><TimePicker id="dueTime" value={dueTime} onChange={setDueTime} disabled={isSubmitting} className={fieldClass} /></div>
+                                        </div>
+                                        <div className="create-task-presets">{QUICK_DATE_PRESETS.map(preset => <button key={preset.label} type="button" onClick={() => handleApplyQuickDate(preset.offset)}>{preset.label}</button>)}</div>
+                                        <div className="create-task-presets">{QUICK_TIME_PRESETS.map(preset => <button key={preset.label} type="button" onClick={() => handleApplyQuickTime(preset.value)}>{preset.label}</button>)}</div>
+                                        {dueTimezone && <p className="create-task-hint">Timezone: {dueTimezone}</p>}
                                     </div>
-                                )}
+                                </div>
                             </div>
-                            <div className="flex flex-wrap items-center gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAiModalOpen(true)}
-                                    className="modal-chip-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold"
-                                >
-                                    <SparklesIcon className="h-4 w-4" />
-                                    <span className="hidden sm:inline">Generate with AI</span>
-                                    <span className="sm:hidden">Write AI</span>
-                                </button>
-                            </div>
+
+                            <section className="create-task-section" aria-labelledby="create-subtasks-title">
+                                <div className="create-task-section-heading"><h3 id="create-subtasks-title">Subtasks</h3>
+                                    <button ref={addSubtaskRef} type="button" className="modal-chip-button" onClick={handleAddSubtask}><PlusIcon className="h-4 w-4" aria-hidden="true" />Add subtask</button>
+                                </div>
+                                {subtasks.length > 0 && <ul className="create-task-subtasks">{subtasks.map((sub, index) => <li key={sub.draftId || `generated-${index}`} data-subtask-index={index} className="create-task-subtask modal-plain-card">
+                                    <div className="create-task-subtask-main">
+                                        <input type="checkbox" aria-label={`Mark subtask ${index + 1} complete`} checked={sub.completed} onChange={() => handleToggleSubtask(index)} title="Mark complete" />
+                                        <input type="text" data-subtask-field="title" aria-label={`Subtask ${index + 1} title`} placeholder="Subtask title" required value={sub.title}
+                                            onChange={event => updateSubtaskDraft(index, { title: event.target.value })} className={`${fieldClass} create-task-subtask-title`} />
+                                        <select data-subtask-field="assigned_to_id" aria-label={`Subtask ${index + 1} assignee`} value={sub.assignedToId ?? ''} className={fieldClass}
+                                            onChange={event => updateSubtaskDraft(index, { assignedToId: event.target.value || null, assigneeTouched: true })}>
+                                            <option value="">Unassigned</option>{assignableUsers.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+                                        </select>
+                                        <select data-subtask-field="status" aria-label={`Subtask ${index + 1} status`} value={sub.status} className={fieldClass} onChange={event => updateSubtaskDraft(index, { status: event.target.value as SubtaskStatus })}>
+                                            {Object.values(SubtaskStatus).map(value => <option key={value} value={value}>{formatTaskStatus(value)}</option>)}
+                                        </select>
+                                        <SubtaskDueDateField enabled={Boolean(sub.hasDueDate)} value={sub.dueDate ?? null}
+                                        onChange={(hasDueDate, dueDate) => updateSubtaskDraft(index, { hasDueDate, dueDate })} inputClassName={fieldClass} />
+                                        <button type="button" onClick={() => handleRemoveSubtask(index)} className="create-task-icon-button" aria-label={`Remove subtask ${index + 1}`}><X size={16} aria-hidden="true" /></button>
+                                    </div>
+                                </li>)}</ul>}
+                            </section>
+
+                            <section className="create-task-section" aria-labelledby="create-attachments-title">
+                                <h3 id="create-attachments-title">Attachments</h3>
+                                <div className="create-task-upload" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); handleAttachmentFiles(event.dataTransfer.files); }}>
+                                    <input ref={fileInputRef} type="file" multiple hidden aria-label="Upload attachments" onChange={event => {
+                                        if (event.target.files) handleAttachmentFiles(event.target.files); event.target.value = '';
+                                    }} />
+                                    <button type="button" onClick={() => fileInputRef.current?.click()}><Upload size={18} aria-hidden="true" />Drop files here or click to upload</button>
+                                </div>
+                                <div className="create-task-attachment-link"><input type="url" aria-label="Attachment link" value={currentAttachment} onChange={event => setCurrentAttachment(event.target.value)}
+                                    onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); if (event.currentTarget.validity.valid) handleAddAttachment(); } }}
+                                    className={fieldClass} placeholder="Or paste an attachment link..." />
+                                    <button type="button" className="modal-secondary-button" onClick={() => {
+                                        const input = formRef.current?.querySelector<HTMLInputElement>('[aria-label="Attachment link"]');
+                                        if (input?.reportValidity()) handleAddAttachment();
+                                    }} disabled={!currentAttachment.trim()}>Add link</button></div>
+                                {attachments.length > 0 && <TaskAttachments attachments={attachments} files={attachmentFiles} onRemove={handleRemoveAttachment} disabled={isSubmitting} />}
+                                {uploads.length > 0 && <ul className="create-task-attachments">
+                                    {uploads.map(item => <li key={item.id} className="create-task-upload-progress"><span>{item.file.name}</span>
+                                        {item.error ? <><span role="alert">{item.error}</span><button type="button" onClick={() => void uploadFile(item.id, item.file)}>Retry upload</button></>
+                                            : <progress aria-label={`Uploading ${item.file.name}`} value={item.progress} max={100} />}
+                                        <button type="button" className="create-task-icon-button" onClick={() => { uploadControllers.current.get(item.id)?.abort(); uploadControllers.current.delete(item.id); setUploads(current => current.filter(upload => upload.id !== item.id)); }} aria-label={`Remove upload ${item.file.name}`}><X size={16} aria-hidden="true" /></button>
+                                    </li>)}
+                                </ul>}
+                            </section>
+
+                            <section className="create-task-additional">
+                                <button type="button" id="additional-options-toggle" className="create-task-additional-toggle" aria-expanded={additionalOpen} aria-controls="additional-options-panel"
+                                    onClick={() => setAdditionalOpen(current => !current)}><Settings2 size={20} aria-hidden="true" /><span><strong>Additional options</strong><small>Team, estimates, recurrence, tags, followers &amp; approval</small></span>
+                                    <ChevronDown size={19} className={additionalOpen ? 'is-expanded' : ''} aria-hidden="true" /></button>
+                                <div ref={additionalRef} id="additional-options-panel" role="region" aria-labelledby="additional-options-toggle" hidden={!additionalOpen} className="create-task-additional-body">
+                                    <div className="create-task-pair">
+                                        <div className="create-task-field"><label htmlFor="team">Team selector</label>
+                                            {teamOptions.length ? <SingleSelect id="team" options={teamOptions} value={team} onChange={setTeam} placeholder="Select team..." avoidClipping />
+                                                : <input id="team" className={fieldClass} value={team} onChange={event => setTeam(event.target.value)} placeholder="Select a team" />}
+                                        </div>
+                                        <fieldset className="create-task-field"><legend>Estimated workload</legend><div className="create-task-date-inputs">
+                                            <label htmlFor="estimatedHours" className="create-task-hint">Hours<input id="estimatedHours" type="number" min="0" value={estimatedHours} onChange={event => setEstimatedHours(event.target.value ? Number(event.target.value) : '')} className={fieldClass} placeholder="Hours" /></label>
+                                            <label htmlFor="estimatedMinutes" className="create-task-hint">Minutes<input id="estimatedMinutes" type="number" min="0" max="59" step="5" value={estimatedMinutes} onChange={event => setEstimatedMinutes(event.target.value ? Number(event.target.value) : '')} className={fieldClass} placeholder="Minutes" /></label>
+                                        </div><p className="create-task-hint">{workloadLabel}</p></fieldset>
+                                    </div>
+                                    <div className="create-task-field"><label htmlFor="recurrence">Recurrence</label><SingleSelect id="recurrence" options={recurrenceOptions} value={recurrenceRule} onChange={value => setRecurrenceRule(value as RecurrenceRule)} placeholder="Does not repeat" avoidClipping /></div>
+                                    {recurrenceRule !== RecurrenceRule.NONE && <div className="create-task-repeat-settings">
+                                        <label>Repeat interval<input type="number" min="1" value={repeatInterval} onChange={event => setRepeatInterval(Math.max(1, Number(event.target.value) || 1))} className={fieldClass} /></label>
+                                        <label>Repeat end date<input type="date" value={repeatEndDate} onChange={event => setRepeatEndDate(event.target.value)} className={fieldClass} /></label>
+                                        <label>Recurrence timezone<input type="text" value={recurrenceTimezone} onChange={event => setRecurrenceTimezone(event.target.value)} className={fieldClass} /></label>
+                                        <p className="create-task-hint">{recurrencePreview} · {recurrenceTimezone}</p>
+                                    </div>}
+                                    <div className="create-task-field"><label htmlFor="taskTags">Tags</label>
+                                        <div className="create-task-tags">{tags.map((tag, index) => <span key={tag} className="modal-chip">{tag}<button type="button" onClick={() => handleRemoveTag(index)} aria-label={`Remove tag ${tag}`}><X size={13} aria-hidden="true" /></button></span>)}
+                                            <input id="taskTags" type="text" value={currentTag} onChange={event => setCurrentTag(event.target.value)} onKeyDown={handleTagInput} placeholder="Add tags and press Enter" className={fieldClass} /></div>
+                                        <div className="create-task-presets">{filteredTagSuggestions.map(tag => <button key={tag} type="button" onClick={() => handleAddTagSuggestion(tag)}>{tag}</button>)}</div>
+                                    </div>
+                                    <div className="create-task-pair">
+                                        <div className="create-task-field"><label htmlFor="followers">Followers</label>
+                                            <SearchableMultiSelect id="followers" label="Followers" avoidClipping options={filteredFollowers.map(member => ({ id: member.id, name: member.name,
+                                                description: formatRoleLabel(member.role), active: member.status === UserStatus.ACTIVE, statusLabel: followerIds.includes(member.id) ? 'Added' : 'Add' }))}
+                                                selectedOptions={selectedFollowers.map(member => ({ id: member.id, name: member.name, active: true, statusLabel: 'Added' }))}
+                                                value={followerIds} onToggle={toggleFollower} search={followerSearch} onSearchChange={setFollowerSearch}
+                                                placeholder="Search followers..." searchPlaceholder="Search followers..." emptyMessage="No followers available." loadingMessage="Loading followers..." loading={isAssigneesLoading}
+                                                renderAvatar={(option, size) => <Avatar user={users.find(member => member.id === option.id)!} size={size} />} />
+                                        </div>
+                                        {!isTicketMode ? <div className="create-task-field"><label htmlFor="subtaskApprovalOverride">Subtask completion approval</label>
+                                            <select id="subtaskApprovalOverride" value={subtaskApprovalOverride} onChange={event => setSubtaskApprovalOverride(event.target.value as 'inherit' | 'required' | 'not_required')} className={fieldClass}>
+                                                <option value="inherit">Use project default</option><option value="required">Require approval</option><option value="not_required">Complete without approval</option>
+                                            </select>
+                                        </div> : <div className="create-task-field"><label className="create-task-approval"><input type="checkbox" checked={approvalRequired} onChange={event => { setApprovalRequired(event.target.checked); if (!event.target.checked) setApproverId(null); }} />Require approval</label>
+                                            <label htmlFor="taskApprover">Approver</label><select id="taskApprover" value={approverId ?? ''} disabled={!approvalRequired} onChange={event => setApproverId(event.target.value || null)} className={fieldClass}>
+                                                <option value="">Select approver...</option>{approverCandidates.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}</select>
+                                        </div>}
+                                    </div>
+                                </div>
+                            </section>
                         </div>
-                    </header>
 
-                    <div className="relative min-h-0 flex-1 overflow-y-auto px-4 py-4 custom-scrollbar sm:px-5">
-                        <form onSubmit={handleSubmit} className="grid min-h-full gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_330px] 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_370px]">
-                            <div className="space-y-5 xl:contents">
-                                <section className={[missionSectionClass, 'self-start xl:col-start-1 xl:row-start-1'].join(' ')}>
-                                    <p className="section-heading">Mission overview</p>
-                                    <div className="mt-1.5 space-y-2">
-                                        <div>
-                                            <label htmlFor="title" className={labelClass}>Title</label>
-                                            <input
-                                                id="title"
-                                                type="text"
-                                                value={title}
-                                                onChange={(e) => setTitle(e.target.value)}
-                                                required
-                                                readOnly={isTicketMode}
-                                                className={[fieldClass, 'mt-1 min-h-10 py-2', lockedFieldClass].join(' ')}
-                                                placeholder="Name your quest..."
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="description" className={labelClass}>Description</label>
-                                            <textarea
-                                                id="description"
-                                                value={description}
-                                                onChange={(e) => setDescription(e.target.value)}
-                                                readOnly={isTicketMode}
-                                                rows={3}
-                                                className={[areaClass, 'mt-1 min-h-24 py-2', lockedFieldClass].join(' ')}
-                                                placeholder="Tell the squad what success looks like..."
-                                            />
-                                        </div>
-                                    </div>
-                                </section>
-
-                                <section className={assignmentsSectionClass}>
-                                    <p className="section-heading">Assignments</p>
-                                    <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                                        {!isTicketMode && (
-                                            <div className="md:col-span-2 xl:col-span-1 2xl:col-span-2">
-                                                <label htmlFor="projectId" className={labelClass}>Project *</label>
-                                                <SearchableMultiSelect
-                                                    id="projectId" label="Project" selectionMode="single" avoidClipping
-                                                    options={projectOptions}
-                                                    selectedOptions={selectedProject ? [{ id: selectedProject.id,
-                                                        name: selectedProject.client?.companyName ? `${selectedProject.name} - ${selectedProject.client.companyName}` : selectedProject.name,
-                                                        active: true, statusLabel: selectedProject.status }] : []}
-                                                    value={projectId ? [projectId] : []}
-                                                    onToggle={setProjectId}
-                                                    onOpenChange={handleAssignmentsSelectOpen}
-                                                    search={projectSearch} onSearchChange={next => {
-                                                        setProjectSearch(next); setProjectPage(1); setProjectResults([]);
-                                                        setProjectHasMore(false); setIsProjectsLoading(true);
-                                                    }}
-                                                    placeholder="Search and select a project..."
-                                                    searchPlaceholder="Search by project or client name..."
-                                                    emptyMessage="No projects match your search." loadingMessage="Loading projects..."
-                                                    loading={isProjectsLoading} error={projectError}
-                                                    onRetry={() => setProjectRetry(current => current + 1)}
-                                                    hasMore={projectHasMore} onLoadMore={() => { setIsProjectsLoading(true); setProjectPage(current => current + 1); }}
-                                                    selectedStatusLabel="Selected"
-                                                    renderAvatar={(option, size) => <Avatar user={{ name: projects.find(project => project.id === option.id)?.name || option.name, avatarUrl: null }} size={size} />}
-                                                />
-                                            </div>
-                                        )}
-                                        <div>
-                                            <label htmlFor="assignedTo" className={labelClass}>Assignees</label>
-                                            <SearchableMultiSelect
-                                                id="assignedTo" label="Assignees"
-                                                options={filteredAssignees.map(member => ({ id: member.id, name: member.name,
-                                                    description: `${member.role} · ${member.department || 'No team'}`,
-                                                    active: member.status === UserStatus.ACTIVE,
-                                                    statusLabel: member.status === UserStatus.ACTIVE ? 'Online' : 'Offline' }))}
-                                                selectedOptions={selectedUsers.map(member => ({ id: member.id, name: member.name,
-                                                    active: member.status === UserStatus.ACTIVE, statusLabel: '' }))}
-                                                value={assignedTo} onToggle={toggleAssignee}
-                                                search={assigneeSearch} onSearchChange={setAssigneeSearch}
-                                                placeholder="Search and select assignees..."
-                                                searchPlaceholder="Search by name, role, email, team..."
-                                                emptyMessage="No users found." loadingMessage="Loading assignees..."
-                                                loading={isAssigneesLoading} selectedStatusLabel="Added"
-                                                renderAvatar={(option, size) => <Avatar user={assignableUsers.find(member => member.id === option.id)!} size={size} />}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="status" className={labelClass}>Status</label>
-                                            <SingleSelect
-                                                id="status"
-                                                options={statusOptions}
-                                                value={status}
-                                                onChange={value=>{setStatus(value);setHoldReason('');}}
-                                                onOpenChange={handleAssignmentsSelectOpen}
-                                                placeholder="Select status..."
-                                                className="mt-2"
-                                            />
-                                            {(status===TaskStatus.ON_HOLD || columns.find(column=>column.id===status)?.workflowBehavior==='HOLD') && <label className="mt-3 block text-sm">Hold reason
-                                              <textarea aria-label="New task hold reason" maxLength={500} required={columns.find(column=>column.id===status)?.holdReasonRequired} value={holdReason}
-                                                onChange={event=>setHoldReason(event.target.value)} className="mt-2 w-full rounded-lg border border-border-color bg-background p-2" />
-                                            </label>}
-                                        </div>
-                                        <div>
-                                            <label htmlFor="priority" className={labelClass}>Priority</label>
-                                            <SingleSelect
-                                                id="priority"
-                                                options={priorityOptions}
-                                                value={priority}
-                                                onChange={(value) => setPriority(value as TaskPriority)}
-                                                onOpenChange={handleAssignmentsSelectOpen}
-                                                placeholder="Select priority..."
-                                                className="mt-2"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="dueDate" className={labelClass}>Due date *</label>
-                                            {dueTimezone && <p className="mt-1 text-xs">Timezone: {dueTimezone}</p>}
-                                            <div className="mt-2 space-y-2">
-                                                <div className="relative flex gap-2">
-                                                    <input
-                                                        id="dueDate"
-                                                        type="date"
-                                                        value={dueDate}
-                                                        onChange={(e) => setDueDate(e.target.value)}
-                                                        className={fieldClass}
-                                                        required
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowDatePicker(!showDatePicker)}
-                                                        className="modal-chip-button px-3 py-2 text-sm"
-                                                    >
-                                                        📅
-                                                    </button>
-                                                    {showDatePicker && (
-                                                        <div className="modal-datepicker absolute left-0 top-full mt-2 z-50">
-                                                            <DayPicker
-                                                                mode="single"
-                                                                selected={selectedDate}
-                                                                onSelect={(date) => {
-                                                                    if (date) {
-                                                                        setSelectedDate(date);
-                                                                        setDueDate(formatDateInput(date));
-                                                                        setShowDatePicker(false);
-                                                                    }
-                                                                }}
-                                                                className="rounded-lg border p-3"
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="modal-quick-actions">
-                                                    {QUICK_DATE_PRESETS.map((preset) => (
-                                                        <button
-                                                            key={preset.label}
-                                                            type="button"
-                                                            onClick={() => handleApplyQuickDate(preset.offset)}
-                                                            className="modal-quick-action"
-                                                        >
-                                                            {preset.label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label htmlFor="dueTime" className={labelClass}>Due time *</label>
-                                            <div className="mt-2 space-y-2">
-                                                <div className="flex gap-2">
-                                                    <input
-                                                        id="dueTime"
-                                                        type="time"
-                                                        value={dueTime}
-                                                        onChange={(e) => setDueTime(e.target.value)}
-                                                        className={fieldClass}
-                                                        required
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setShowTimePicker(!showTimePicker)}
-                                                        className="modal-chip-button px-3 py-2 text-sm"
-                                                    >
-                                                        ⏰
-                                                    </button>
-                                                </div>
-                                                {showTimePicker && (
-                                                    <div className="modal-timepicker">
-                                                        <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
-                                                            {TIME_OPTIONS.map((time) => (
-                                                                <button
-                                                                    key={time}
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setDueTime(time);
-                                                                        setShowTimePicker(false);
-                                                                    }}
-                                                                    className="modal-quick-action text-xs"
-                                                                >
-                                                                    {time}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                <div className="modal-quick-actions">
-                                                    {QUICK_TIME_PRESETS.map((preset) => (
-                                                        <button
-                                                            key={preset.label}
-                                                            type="button"
-                                                            onClick={() => handleApplyQuickTime(preset.value)}
-                                                            className="modal-quick-action"
-                                                        >
-                                                            {preset.label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {isTicketMode && (
-                                            <div className="md:col-span-2 xl:col-span-1 2xl:col-span-2">
-                                                <label className={labelClass}>Approval</label>
-                                                <div className="mt-2 grid gap-3 md:grid-cols-2">
-                                                    <label className="flex items-center gap-2 text-sm">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={approvalRequired}
-                                                            onChange={(e) => {
-                                                                const checked = e.target.checked;
-                                                                setApprovalRequired(checked);
-                                                                if (!checked) {
-                                                                    setApproverId(null);
-                                                                }
-                                                            }}
-                                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                        />
-                                                        Require approval
-                                                    </label>
-                                                    <select
-                                                        value={approverId ?? ''}
-                                                        onChange={(e) => setApproverId(e.target.value || null)}
-                                                        className={[fieldClass, 'text-sm'].join(' ')}
-                                                        disabled={!approvalRequired}
-                                                    >
-                                                        <option value="">Select approver...</option>
-                                                        {approverCandidates.map((candidate) => (
-                                                            <option key={candidate.id} value={candidate.id}>
-                                                                {candidate.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {!isTicketMode && (
-                                            <div>
-                                                <label htmlFor="subtaskApprovalOverride" className={labelClass}>Subtask completion approval</label>
-                                                <select
-                                                    id="subtaskApprovalOverride"
-                                                    value={subtaskApprovalOverride}
-                                                    onChange={(event) => setSubtaskApprovalOverride(event.target.value as 'inherit' | 'required' | 'not_required')}
-                                                    className={[fieldClass, 'mt-2 text-sm'].join(' ')}
-                                                >
-                                                    <option value="inherit">Use project default</option>
-                                                    <option value="required">Require approval</option>
-                                                    <option value="not_required">Complete without approval</option>
-                                                </select>
-                                            </div>
-                                        )}
-                                        <div>
-                                            <label htmlFor="team" className={labelClass}>Team selector</label>
-                                            {teamOptions.length > 0 ? (
-                                                <SingleSelect
-                                                    id="team"
-                                                    options={teamOptions}
-                                                    value={team}
-                                                    onChange={setTeam}
-                                                    onOpenChange={handleAssignmentsSelectOpen}
-                                                    placeholder="Select team..."
-                                                    className="mt-2"
-                                                />
-                                            ) : (
-                                                <input
-                                                id="team"
-                                                type="text"
-                                                value={team}
-                                                onChange={(e) => setTeam(e.target.value)}
-                                                className={[fieldClass, 'mt-2'].join(' ')}
-                                                placeholder="Which crew owns this?"
-                                                />
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label className={labelClass}>Estimated workload</label>
-                                            <div className="mt-2 grid grid-cols-2 gap-2">
-                                                <input
-                                                    id="estimatedHours"
-                                                    type="number"
-                                                    min="0"
-                                                    value={estimatedHours}
-                                                    onChange={(e) => setEstimatedHours(e.target.value ? Number(e.target.value) : '')}
-                                                    className={fieldClass}
-                                                    placeholder="Hours"
-                                                />
-                                                <input
-                                                    id="estimatedMinutes"
-                                                    type="number"
-                                                    min="0"
-                                                    max="59"
-                                                    step="5"
-                                                    value={estimatedMinutes}
-                                                    onChange={(e) => setEstimatedMinutes(e.target.value ? Number(e.target.value) : '')}
-                                                    className={fieldClass}
-                                                    placeholder="Minutes"
-                                                />
-                                            </div>
-                                            <p className="mt-2 text-xs font-semibold text-cyan-100/80">{workloadLabel}</p>
-                                        </div>
-                                        <div>
-                                            <label htmlFor="recurrence" className={labelClass}>Recurrence</label>
-                                            <SingleSelect
-                                                id="recurrence"
-                                                options={recurrenceOptions}
-                                                value={recurrenceRule}
-                                                onChange={(value) => setRecurrenceRule(value as RecurrenceRule)}
-                                                onOpenChange={handleAssignmentsSelectOpen}
-                                                placeholder="Select recurrence..."
-                                                className="mt-2"
-                                            />
-                                        </div>
-                                        {recurrenceRule !== RecurrenceRule.NONE && (
-                                            <div className="md:col-span-2 xl:col-span-1 2xl:col-span-2">
-                                                <label className={labelClass}>Task repeat settings</label>
-                                                <div className="mt-2 grid gap-2 md:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        value={repeatInterval}
-                                                        onChange={(e) => setRepeatInterval(Math.max(1, Number(e.target.value) || 1))}
-                                                        className={fieldClass}
-                                                        placeholder="Interval"
-                                                    />
-                                                    <input
-                                                        type="date"
-                                                        value={repeatEndDate}
-                                                        onChange={(e) => setRepeatEndDate(e.target.value)}
-                                                        className={fieldClass}
-                                                    />
-                                                    <input
-                                                        type="text"
-                                                        value={recurrenceTimezone}
-                                                        onChange={(e) => setRecurrenceTimezone(e.target.value)}
-                                                        className={fieldClass}
-                                                        placeholder="Timezone"
-                                                    />
-                                                </div>
-                                                <p className="mt-2 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100">
-                                                    {recurrencePreview} · {recurrenceTimezone}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </section>
-
-                                <section className={[sectionClass, 'xl:col-start-1 xl:row-start-2'].join(' ')}>
-                                    <p className="section-heading">Subtasks</p>
-                                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                                        <input
-                                            type="text"
-                                            value={currentSubtask}
-                                            onChange={(e) => setCurrentSubtask(e.target.value)}
-                                            placeholder="Add a subtask..."
-                                            className={[fieldClass, 'flex-1'].join(' ')}
-                                        />
-                                        <button type="button" onClick={handleAddSubtask} className={chipButtonClass}>
-                                            <PlusIcon className="h-4 w-4" />
-                                            Add
-                                        </button>
-                                    </div>
-                                    <ul className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1 text-sm custom-scrollbar">
-                                        {subtasks.length === 0 ? (
-                                            <li className="modal-plain-card muted">
-                                                No subtasks yet.
-                                            </li>
-                                        ) : (
-                                            subtasks.map((sub, index) => (
-                                                <li
-                                                    key={sub.title + '-' + index}
-                                                    className="modal-plain-card flex flex-col gap-3"
-                                                >
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <label className="flex min-w-0 flex-1 items-center gap-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={sub.completed}
-                                                                onChange={() => handleToggleSubtask(index)}
-                                                                className="h-4 w-4 rounded border-white/20 bg-black/30 text-cyan-400 focus:ring-cyan-400"
-                                                            />
-                                                            <span className={`truncate ${sub.completed ? 'line-through opacity-60' : ''}`}>{sub.title}</span>
-                                                        </label>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveSubtask(index)}
-                                                            className={removeButtonClass}
-                                                            aria-label="Remove subtask"
-                                                        >
-                                                            <XMarkIcon className="h-4 w-4" />
-                                                        </button>
-                                                    </div>
-                                                    <div className="grid gap-2 sm:grid-cols-2">
-                                                        <select
-                                                            value={sub.assignedToId ?? ''}
-                                                            onChange={(event) => updateSubtaskDraft(index, {
-                                                                assignedToId: event.target.value || null,
-                                                                assigneeTouched: true,
-                                                            })}
-                                                            className="modal-input text-xs"
-                                                            aria-label="Subtask assignee"
-                                                        >
-                                                            <option value="">Unassigned</option>
-                                                            {assignableUsers.map((member) => (
-                                                                <option key={member.id} value={member.id}>{member.name}</option>
-                                                            ))}
-                                                        </select>
-                                                        <select
-                                                            value={sub.status}
-                                                            onChange={(event) => updateSubtaskDraft(index, { status: event.target.value as SubtaskStatus })}
-                                                            className="modal-input text-xs"
-                                                            aria-label="Subtask status"
-                                                        >
-                                                            {Object.values(SubtaskStatus).map((subtaskStatus) => (
-                                                                <option key={subtaskStatus} value={subtaskStatus}>
-                                                                    {formatTaskStatus(subtaskStatus)}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                </li>
-                                            ))
-                                        )}
-                                    </ul>
-                                </section>
-
-                                <section className={[sectionClass, 'xl:col-start-1 xl:row-start-3'].join(' ')}>
-                                    <p className="section-heading">Attachments</p>
-                                    <div
-                                        className="mt-3 rounded-2xl border border-dashed border-cyan-300/30 bg-cyan-300/5 p-3 text-xs text-cyan-100/70 transition hover:border-cyan-200/60 hover:bg-cyan-300/10"
-                                        onDragOver={(event) => event.preventDefault()}
-                                        onDrop={(event) => {
-                                            event.preventDefault();
-                                            handleAttachmentFiles(event.dataTransfer.files);
-                                        }}
-                                    >
-                                        Drop files here or add a link below.
-                                    </div>
-                                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                                        <input
-                                            type="url"
-                                            value={currentAttachment}
-                                            onChange={(e) => setCurrentAttachment(e.target.value)}
-                                            placeholder="https://..."
-                                            className={[fieldClass, 'flex-1'].join(' ')}
-                                        />
-                                        <button type="button" onClick={handleAddAttachment} className={chipButtonClass}>
-                                            <PlusIcon className="h-4 w-4" />
-                                            Add
-                                        </button>
-                                    </div>
-                                    <ul className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1 text-sm custom-scrollbar">
-                                        {attachments.length === 0 ? (
-                                            <li className="modal-plain-card muted">
-                                                No attachments linked.
-                                            </li>
-                                        ) : (
-                                            attachments.map((att, index) => (
-                                                <li
-                                                    key={att + '-' + index}
-                                                    className="modal-plain-card flex items-center justify-between gap-3"
-                                                >
-                                                    <span className="flex-1 break-words">{att}</span>
-                                                    {attachmentProgress[att] !== undefined && attachmentProgress[att] < 100 && (
-                                                        <span className="w-20 rounded-full bg-white/10">
-                                                            <span className="block h-1.5 rounded-full bg-cyan-300 transition-all" style={{ width: `${attachmentProgress[att]}%` }} />
-                                                        </span>
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveAttachment(index)}
-                                                        className={removeButtonClass}
-                                                        aria-label="Remove attachment"
-                                                    >
-                                                        <XMarkIcon className="h-4 w-4" />
-                                                    </button>
-                                                </li>
-                                            ))
-                                        )}
-                                    </ul>
-                                </section>
-
-                                <section className={[sectionClass, 'xl:col-start-2 xl:row-start-4'].join(' ')}>
-                                    <p className="section-heading">Tags</p>
-                                    <div className="mt-3 space-y-3">
-                                        <div className="flex flex-col gap-2 sm:flex-row">
-                                            <input
-                                                type="text"
-                                                value={currentTag}
-                                                onChange={(e) => setCurrentTag(e.target.value)}
-                                                onKeyDown={handleTagInput}
-                                                placeholder="Add tags and press Enter"
-                                                className={[fieldClass, 'sm:flex-1'].join(' ')}
-                                            />
-                                        </div>
-                                        {filteredTagSuggestions.length > 0 && (
-                                            <div className="modal-quick-actions">
-                                                {filteredTagSuggestions.map((tag) => (
-                                                    <button
-                                                        key={tag}
-                                                        type="button"
-                                                        className="modal-quick-action"
-                                                        onClick={() => handleAddTagSuggestion(tag)}
-                                                    >
-                                                        {tag}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                        <div className="flex flex-wrap gap-2">
-                                            {tags.length === 0 ? (
-                                                <span className="modal-plain-card muted text-xs">No tags yet.</span>
-                                            ) : (
-                                                tags.map((tag, index) => (
-                                                    <span
-                                                        key={tag + '-' + index}
-                                                        className={`modal-chip text-xs ${index % 3 === 1 ? 'border-pink-300/50 bg-pink-400/10 text-pink-100' : index % 3 === 2 ? 'border-emerald-300/50 bg-emerald-400/10 text-emerald-100' : ''}`}
-                                                    >
-                                                        {tag}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveTag(index)}
-                                                            aria-label={'Remove ' + tag}
-                                                        >
-                                                            <XMarkIcon className="h-3 w-3" />
-                                                        </button>
-                                                    </span>
-                                                ))
-                                            )}
-                                        </div>
-                                    </div>
-                                </section>
-
-                                <section className={[compactSectionClass, 'xl:col-start-2 xl:row-start-5'].join(' ')}>
-                                    <div className="flex flex-wrap items-center justify-between gap-3">
-                                        <p className="section-heading">Followers</p>
-                                        <span className="text-xs uppercase tracking-[0.2em] modal-muted">{selectedFollowers.length} watching</span>
-                                    </div>
-                                    <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                                        <div className="space-y-2">
-                                            <input
-                                                type="text"
-                                                value={followerSearch}
-                                                onChange={(event) => setFollowerSearch(event.target.value)}
-                                                placeholder="Search followers..."
-                                                className={fieldClass}
-                                            />
-                                            <div className="max-h-28 space-y-1 overflow-y-auto pr-1 custom-scrollbar">
-                                                {isAssigneesLoading && filteredFollowers.length === 0 ? (
-                                                    <div className="modal-plain-card muted text-xs">Loading followers...</div>
-                                                ) : filteredFollowers.length === 0 ? (
-                                                    <div className="modal-plain-card muted text-xs">No followers available.</div>
-                                                ) : (
-                                                    filteredFollowers.map((member) => {
-                                                        const isSelected = followerIds.includes(member.id);
-
-                                                        return (
-                                                            <button
-                                                                key={member.id}
-                                                                type="button"
-                                                                onClick={() => toggleFollower(member.id)}
-                                                                className={`flex w-full items-center gap-2 rounded-xl border px-2 py-1.5 text-left text-xs transition ${
-                                                                    isSelected
-                                                                        ? 'border-cyan-300/50 bg-cyan-300/10 text-cyan-100'
-                                                                        : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
-                                                                }`}
-                                                            >
-                                                                <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-black/40">
-                                                                    <Avatar user={member} size={28} />
-                                                                </span>
-                                                                <span className="min-w-0 flex-1">
-                                                                    <span className="block truncate font-semibold">{member.name}</span>
-                                                                    <span className="block truncate text-white/40">{formatRoleLabel(member.role)}</span>
-                                                                </span>
-                                                                <span className="text-[10px] uppercase tracking-[0.18em]">{isSelected ? 'Added' : 'Add'}</span>
-                                                            </button>
-                                                        );
-                                                    })
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                                            <p className="text-xs uppercase tracking-[0.2em] modal-muted">Selected followers</p>
-                                            <div className="mt-2 flex max-h-28 flex-wrap gap-2 overflow-y-auto pr-1 custom-scrollbar">
-                                                {selectedFollowers.length === 0 ? (
-                                                    <span className="modal-plain-card muted text-xs">No followers added.</span>
-                                                ) : (
-                                                    selectedFollowers.map((member) => (
-                                                        <span key={member.id} className="modal-chip inline-flex items-center gap-2 text-xs">
-                                                            <span className="truncate">{member.name}</span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => toggleFollower(member.id)}
-                                                                aria-label={'Remove ' + member.name}
-                                                            >
-                                                                <XMarkIcon className="h-3 w-3" />
-                                                            </button>
-                                                        </span>
-                                                    ))
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {error && (
-                                    <p className="text-sm font-semibold xl:col-span-2" style={{ color: '#f87171' }}>
-                                        {error}
-                                    </p>
-                                )}
-
-                                <div className={[compactSectionClass, 'items-end justify-center xl:col-span-2 xl:row-start-6'].join(' ')}>
-                                    <div className="flex w-full flex-wrap items-center justify-end gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={handleClose}
-                                        className="modal-secondary-button"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="modal-primary-button"
-                                    >
-                                        {isSubmitting ? 'Creating...' : 'Create quest'}
-                                    </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <aside className={[sectionClass, 'order-last', 'max-h-[calc(90vh-9rem)]', 'space-y-4', 'overflow-y-auto', 'custom-scrollbar', 'xl:sticky', 'xl:top-0', 'xl:col-start-3', 'xl:row-span-6', 'xl:row-start-1', 'xl:order-none'].join(' ')}>
-                                <div>
-                                    <p className="section-heading">Live mission preview</p>
-                                    <h3 className="mt-3 text-xl font-semibold">
-                                        {title.trim() || 'Untitled quest'}
-                                    </h3>
-                                    <p className="mt-2 whitespace-pre-line text-sm modal-muted">
-                                        {description.trim() || 'Add a description to brief the team.'}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm font-semibold">{readinessLabel}</span>
-                                        <span className="text-sm font-semibold">{readinessScore}%</span>
-                                    </div>
-                                    <div className="modal-progress-track mt-2">
-                                        <div
-                                            className="modal-progress-fill"
-                                            style={{ width: readinessScore + '%' }}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    {summaryStats.map((stat) => (
-                                        <div key={stat.label} className="summary-stat">
-                                            <span className="text-lg">{stat.icon}</span>
-                                            <div>
-                                                <p className="text-xs uppercase tracking-[0.2em] modal-muted">{stat.label}</p>
-                                                <p className="text-sm font-medium">{stat.value}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div>
-                                    <p className="text-xs uppercase tracking-[0.2em] modal-muted">Crew</p>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {assignedUsers.length === 0 ? (
-                                            <span className="modal-plain-card muted text-xs">No assignees yet</span>
-                                        ) : (
-                                            assignedUsers.map((member) => {
-
-                                                return (
-                                                    <div key={member.id} className="flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm dark:bg-slate-800/70 dark:text-slate-200">
-                                                        <span className="h-7 w-7 overflow-hidden rounded-full border border-slate-200 dark:border-slate-600">
-                                                            <Avatar user={member} size={28} />
-                                                        </span>
-                                                        <span>{member.name}</span>
-                                                        <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{formatRoleLabel(member.role)}</span>
-                                                    </div>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <p className="text-xs uppercase tracking-[0.2em] modal-muted">Tags</p>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {tags.length === 0 ? (
-                                            <span className="modal-plain-card muted text-xs">No tags assigned</span>
-                                        ) : (
-                                            tags.map((tag) => (
-                                                <span key={'summary-' + tag} className="modal-chip text-xs">{tag}</span>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-
-                                {summaryNotes.length > 0 && (
-                                    <div>
-                                        <p className="text-xs uppercase tracking-[0.2em] modal-muted">Next suggestions</p>
-                                        <ul className="mt-2 space-y-2 text-sm">
-                                            {summaryNotes.map((note, index) => (
-                                                <li key={'note-' + index} className="modal-plain-card muted">
-                                                    {note}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </aside>
-                        </form>
-                    </div>
-                </div>
+                        <footer className="create-task-footer">
+                            {uploads.some(item => !item.error) && <span role="status">Uploading attachments…</span>}
+                            <button type="button" className="modal-secondary-button" onClick={handleClose} disabled={isSubmitting}>Cancel</button>
+                            <button type="submit" className="modal-primary-button" disabled={isSubmitting || uploads.some(item => !item.error) || (!isTicketMode && (isStatusesLoading || !statusOptions.length))}>{isSubmitting ? 'Creating…' : 'Create task'}</button>
+                        </footer>
+                    </form>
+                    {isAiModalOpen && <Dialog open onClose={closeAiModal} className="create-task-ai-dialog" aria-label="Generate Task with AI">
+                        <DialogPanel><GenerateTaskWithAIModal isOpen onClose={closeAiModal} onTaskGenerated={handleTaskGenerated} /></DialogPanel>
+                    </Dialog>}
+                </DialogPanel>
             </div>
-
-            {isAiModalOpen && (
-                <div className="relative z-[100]">
-                    <GenerateTaskWithAIModal
-                        isOpen={isAiModalOpen}
-                        onClose={() => setIsAiModalOpen(false)}
-                        onTaskGenerated={handleTaskGenerated}
-                    />
-                </div>
-            )}
-        </>, document.body
+        </Dialog>, document.body
     );
 };
 

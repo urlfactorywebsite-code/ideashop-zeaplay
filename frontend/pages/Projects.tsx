@@ -332,7 +332,8 @@ const ProjectFormModal: React.FC<ProjectFormProps> = ({ project, clients, users,
 };
 
 const Projects: React.FC = () => {
-  const { label: taskStatusLabel } = useTaskStatusLabels();
+  const { label: taskStatusLabel, activeEntries, ready: statusesReady } = useTaskStatusLabels();
+  const taskFilterStatuses = useMemo(() => activeEntries.filter(entry => !entry.custom_status_id && Object.values(TaskStatus).includes(entry.id as TaskStatus)), [activeEntries]);
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const linkedProjectId = searchParams.get('projectId');
@@ -367,6 +368,11 @@ const Projects: React.FC = () => {
     priority: TaskPriority | '';
     memberId: string;
   }>({ page: 1, pageSize: 10, q: '', status: '', priority: '', memberId: '' });
+  useEffect(() => {
+    if (statusesReady && dashboardFilters.status && !taskFilterStatuses.some(entry => entry.id === dashboardFilters.status)) {
+      setDashboardFilters(previous => ({ ...previous, status: '', page: 1 }));
+    }
+  }, [statusesReady, taskFilterStatuses, dashboardFilters.status]);
   const [statusOverrideBusy, setStatusOverrideBusy] = useState(false);
 
   const canManage = user?.role === Role.OWNER || user?.role === Role.ADMIN || user?.role === Role.MANAGER;
@@ -715,7 +721,7 @@ const Projects: React.FC = () => {
                         className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
                       >
                         <option value="">All task statuses</option>
-                        {Object.values(TaskStatus).map((status) => <option key={status} value={status}>{taskStatusLabel(status)}</option>)}
+                        {taskFilterStatuses.map((status) => <option key={status.id} value={status.id}>{status.title}</option>)}
                       </select>
                       <select
                         value={dashboardFilters.priority}

@@ -76,7 +76,7 @@ const overrides: Record<string, (...args: any[]) => unknown> = {
   getFeatureFlags: () => [{ key: 'tasks.create', label: 'Task Creation', group: 'Tasks', description: 'Create tasks', enabled: true }],
   getProjects: () => ({ ...emptyPage, items: [{ id: 'project-0', name: 'Verification project', status: 'ACTIVE',
     createdBy: user.id, assignedTo: [user.id], memberIds: [user.id], createdAt: now.toISOString() }], total: 1 }), getClients: () => emptyPage,
-  getTasksPage: options => params.has('networkTaskPage') ? rawTaskPage(options) : page(options), getTasks: () => tasks, getTask: id => tasks.find(task => task.id === id) || tasks[0],
+  getTasksPage: options => params.has('networkTaskPage') ? rawTaskPage(options) : page(options), getTasks: () => params.has('networkStatusFilters') ? rawTasks(user.id, user.role) : tasks, getTask: id => tasks.find(task => task.id === id) || tasks[0],
   getTaskGroup: async (id, options) => {
     if (params.has('networkParty')) return rawTaskGroup(id, options);
     if (params.has('partyDelay')) await new Promise(resolve => setTimeout(resolve, 700));
@@ -84,7 +84,7 @@ const overrides: Record<string, (...args: any[]) => unknown> = {
     if (params.has('emptyParty')) return [];
     return tasks.filter(task => params.has('multiAssignee') ? task.taskGroupId === tasks.find(item => item.id === id)?.taskGroupId : task.id === id);
   },
-  getKanbanColumns: () => params.has('multiAssignee') ? Object.values(TaskStatus).map((status, order) => ({ id: status, title: status, order, workflowBehavior: status === TaskStatus.ON_HOLD ? 'HOLD' : 'ACTIVE' })) : [],
+  getKanbanColumns: () => Object.values(TaskStatus).map((status, order) => ({ id: status, title: status, order, isActive: true, workflowBehavior: status === TaskStatus.ON_HOLD ? 'HOLD' : 'ACTIVE' })),
   deleteTask: id => params.has('networkTaskPage') ? rawDeleteTask(id) : [],
   getTaskCalendarSummary: summary, getTaskCalendarTasks: calendarTasks,
   moveTaskToKanbanStatus: (id, statusId) => {

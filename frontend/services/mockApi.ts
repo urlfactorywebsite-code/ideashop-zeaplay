@@ -742,6 +742,7 @@ type ApiTask = {
   subtask_approval_required?: boolean | null;
   subtasks: Array<{
     id: string;
+    due_date?: string | null;
     title: string;
     completed: boolean;
     assigned_to_id?: string | null;
@@ -774,6 +775,7 @@ type ApiTaskPageResponse = {
   total: number;
   total_pages: number;
   status_counts: Record<string, number>;
+  configured_status_counts?: Record<string, number>;
   next_cursor?: string | null;
   has_more?: boolean;
 };
@@ -1101,6 +1103,7 @@ type ApiDepartment = {
 };
 
 type ApiKanbanColumn = {
+  is_active?: boolean;
   workflow_behavior?: string;
   hold_reason_required?: boolean;
   id: string;
@@ -1999,7 +2002,9 @@ function mapAxiosError(err: unknown): never {
     const responseData = err.response?.data as any;
     const detail = responseData?.detail ?? responseData?.message;
     if (Array.isArray(detail)) {
-      throw new Error(detail.map((item) => item.msg ?? String(item)).join(', '));
+      const error = new Error(detail.map((item) => item.msg ?? String(item)).join(', ')) as Error & { validationFields: string[] };
+      error.validationFields = detail.flatMap(item => Array.isArray(item.loc) ? [item.loc.join('.')] : []);
+      throw error;
     }
     throw new Error(typeof detail === 'string' ? detail : typeof detail?.message === 'string' ? detail.message : err.message);
   }
@@ -2448,6 +2453,7 @@ function mapSubtask(subtask: ApiTask['subtasks'][number]): Subtask {
   return {
     id: subtask.id,
     title: subtask.title,
+    dueDate: subtask.due_date ?? null,
     completed: subtask.completed,
     assignedToId: subtask.assigned_to_id ?? null,
     assignedUser: subtask.assigned_user ?? null,
@@ -2808,6 +2814,7 @@ function mapDepartment(department: ApiDepartment): Department {
 
 function mapKanbanColumn(column: ApiKanbanColumn): KanbanColumn {
   return {
+    isActive: column.is_active,
     id: column.custom_status_id || column.id,
     workflowBehavior:column.workflow_behavior, holdReasonRequired:column.hold_reason_required,
     title: column.title,
@@ -4745,6 +4752,7 @@ const api = {
         subtask_approval_required: taskData.subtaskApprovalRequired ?? null,
         subtasks: taskData.subtasks.map((sub, index) => ({
           title: sub.title,
+          due_date: sub.dueDate ?? null,
           completed: sub.completed,
           assigned_to_id: sub.assignedToId ?? null,
           status: sub.status ?? (sub.completed ? SubtaskStatus.DONE : SubtaskStatus.TODO),
@@ -4797,6 +4805,7 @@ const api = {
       if (updates.subtasks !== undefined) {
         body.subtasks = updates.subtasks.map((sub) => ({
           id: sub.id,
+          ...(sub.dueDate !== undefined ? { due_date: sub.dueDate } : {}),
           title: sub.title,
           completed: sub.completed,
           assigned_to_id: sub.assignedToId ?? null,
@@ -4872,10 +4881,11 @@ const api = {
     }
   },
 
-  async createSubtask(taskId: string, input: { title: string; assignedToId: string | null }): Promise<Task> {
+  async createSubtask(taskId: string, input: { title: string; assignedToId: string | null; dueDate?: string | null }): Promise<Task> {
     try {
       const { data } = await http.post<ApiTask>(`/tasks/${taskId}/subtasks`, {
         title: input.title, assigned_to_id: input.assignedToId,
+        due_date: input.dueDate ?? null,
       });
       invalidateCache('tasks');
       invalidateCache('task:');
@@ -4891,6 +4901,7 @@ const api = {
     try {
       const body: Record<string, unknown> = {};
       if (updates.title !== undefined) body.title = updates.title;
+      if (updates.dueDate !== undefined) body.due_date = updates.dueDate;
       if (updates.completed !== undefined) body.completed = updates.completed;
       if (updates.assignedToId !== undefined) body.assigned_to_id = updates.assignedToId;
       if (updates.status !== undefined) body.status = updates.status;
@@ -6413,6 +6424,7 @@ const api = {
           total: data.total,
           totalPages: data.total_pages,
           statusCounts,
+          configuredStatusCounts: data.configured_status_counts,
           nextCursor: data.next_cursor ?? null,
           hasMore: data.has_more ?? false,
         };
@@ -7715,6 +7727,23 @@ const api = {
       });
       setCached(cacheKey, data);
       return data;
+    } catch (error) {
+      mapAxiosError(error);
+    }
+  },
+
+  async uploadTaskAttachment(file: File, onProgress: (progress: number) => void, signal?: AbortSignal): Promise<{ url: string }> {
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const { data } = await http.post<{ public_url: string }>('/media/upload', body, {
+        signal,
+        onUploadProgress: event => onProgress(event.total ? Math.min(99, Math.round(event.loaded * 100 / event.total)) : 0),
+      });
+      if (!data.public_url) throw new Error('The uploaded file did not return an attachment URL.');
+      invalidateCache('media-list');
+      invalidateCache('media:');
+      return { url: data.public_url };
     } catch (error) {
       mapAxiosError(error);
     }

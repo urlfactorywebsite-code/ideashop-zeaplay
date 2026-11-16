@@ -1,0 +1,53 @@
+.task-picker-trigger { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; text-align: left; cursor: pointer; }
+.task-picker-trigger svg { flex-shrink: 0; color: #a8b7ce; }
+.task-picker-trigger:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+.task-picker-trigger:disabled { cursor: not-allowed; opacity: .6; }
+.task-picker-popover {
+  --task-picker-accent: var(--color-primary, #38bdf8);
+  z-index: 160; width: min(296px, calc(100vw - 24px)); max-height: calc(100dvh - 24px);
+  box-sizing: border-box; overflow: auto; overscroll-behavior: contain; padding: 12px;
+  border: 1px solid rgb(125 211 252 / 26%); border-radius: 14px;
+  background: #101a2c; color: #e8eef8; color-scheme: dark; font-size: 13px;
+  box-shadow: 0 18px 55px rgb(2 6 23 / 48%), 0 0 0 1px rgb(255 255 255 / 3%) inset;
+  transform-origin: top left; transition: opacity 160ms ease-out, transform 160ms ease-out;
+}
+.task-picker-popover[data-closed] { opacity: 0; transform: translateY(-4px) scale(.98); }
+.task-picker-calendar {
+  --rdp-accent-color: var(--task-picker-accent); --rdp-accent-background-color: rgb(56 189 248 / 12%);
+  --rdp-day-width: 38px; --rdp-day-height: 36px;
+  --rdp-day_button-width: 34px; --rdp-day_button-height: 34px; --rdp-day_button-border-radius: 8px;
+  --rdp-nav_button-width: 30px; --rdp-nav_button-height: 30px; --rdp-nav-height: 38px;
+  --rdp-animation_duration: 160ms; --rdp-animation_timing: ease-out;
+  margin: 0; font: inherit;
+}
+.task-picker-calendar .rdp-months { justify-content: center; }
+.task-picker-calendar .rdp-month_caption { height: 38px; font-size: 14px; font-weight: 600; }
+.task-picker-calendar .rdp-caption_label { padding-right: 64px; }
+.task-picker-calendar .rdp-weekday { color: #a4b3ca; font-size: 11px; font-weight: 500; }
+.task-picker-calendar .rdp-day_button, .task-picker-calendar .rdp-button_previous, .task-picker-calendar .rdp-button_next { transition: background-color 120ms ease, color 120ms ease; }
+.task-picker-calendar .rdp-day_button:hover, .task-picker-calendar .rdp-button_previous:hover, .task-picker-calendar .rdp-button_next:hover { border-radius: 8px; background: rgb(125 211 252 / 12%); }
+.task-picker-calendar .rdp-selected .rdp-day_button { background: var(--task-picker-accent); border-color: var(--task-picker-accent); color: #071320; font-weight: 700; }
+.task-picker-calendar .rdp-today:not(.rdp-selected) .rdp-day_button { border: 1px solid rgb(125 211 252 / 50%); }
+.task-picker-calendar .rdp-outside { opacity: .4; }
+.task-picker-popover button { cursor: pointer; }
+.task-picker-popover button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+.task-picker-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgb(148 163 184 / 18%); }
+.task-picker-actions button { border: 0; border-radius: 7px; background: transparent; padding: 6px 8px; font-size: 12px; font-weight: 600; color: #a5ddfa; }
+.task-picker-actions button:hover { background: rgb(125 211 252 / 10%); }
+.task-picker-actions button:disabled { cursor: not-allowed; opacity: .4; }
+.task-time-title { margin: 0; font-size: 14px; font-weight: 600; }
+.task-time-hint { margin: 5px 0 14px; color: #a4b3ca; font-size: 12px; }
+.task-time-inputs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: 10px; }
+.task-time-inputs label { display: flex; flex-direction: column; gap: 7px; min-width: 0; color: #cbd8ea; font-size: 12px; }
+.task-time-inputs input { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px; border: 1px solid #52647c; border-radius: 8px; background: #0b1424; color: #e8eef8; font-size: 18px; text-align: center; color-scheme: dark; }
+.task-time-inputs input:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+.task-time-inputs input[aria-invalid="true"] { border-color: #fb7185; }
+.task-time-inputs > span { align-self: end; padding-bottom: 12px; font-size: 18px; }
+.task-time-error { color: #ffb9c5; font-size: 12px; margin: 12px 0 0; }
+.task-time-footer { margin-top: 16px; }
+.task-picker-actions .task-time-apply { border: 1px solid rgb(125 211 252 / 40%); background: rgb(56 189 248 / 16%); padding: 8px 12px; }
+@media (max-width: 340px) { .task-picker-calendar { --rdp-day-width: 36px; } }
+@media (prefers-reduced-motion: reduce) {
+  .task-picker-popover, .task-picker-popover * { transition: none !important; animation: none !important; }
+  .task-picker-calendar { --rdp-animation_duration: 0s; }
+}

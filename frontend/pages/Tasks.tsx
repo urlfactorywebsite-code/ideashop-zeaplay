@@ -116,20 +116,6 @@ const activeStatuses = new Set<TaskStatus>([
     TaskStatus.IN_REVIEW,
 ]);
 
-const STATUS_ORDER: TaskStatus[] = [
-    TaskStatus.WAITING_FOR_REQUIREMENT,
-    TaskStatus.TODO,
-    TaskStatus.IN_PROGRESS,
-    TaskStatus.BUG_FIXING,
-    TaskStatus.BLOCKED,
-    TaskStatus.IN_REVIEW,
-    TaskStatus.ON_HOLD,
-    TaskStatus.DONE,
-    TaskStatus.DEPLOYED,
-    TaskStatus.FAILED,
-    TaskStatus.GRAVEYARD,
-];
-
 type LightTaskStatusStyle = {
     background: string;
     borderColor: string;
@@ -424,7 +410,7 @@ const FilterDropdown: React.FC<{
 
 
 const Tasks: React.FC = () => {
-    const { label: taskStatusLabel } = useTaskStatusLabels();
+    const { label: taskStatusLabel, activeEntries: configuredStatuses } = useTaskStatusLabels();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
     const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
@@ -432,6 +418,7 @@ const Tasks: React.FC = () => {
     const [totalTasks, setTotalTasks] = useState(0);
     const [taskCountsReady, setTaskCountsReady] = useState(false);
     const [statusCounts, setStatusCounts] = useState<Partial<Record<TaskStatus, number>>>({});
+    const [configuredCounts, setConfiguredCounts] = useState<Record<string, number>>({});
     const { user } = useAuth();
     const zone = workTimezone(user?.timezone);
     const queryClient = useQueryClient();
@@ -735,6 +722,7 @@ const Tasks: React.FC = () => {
         setTotalPages(pageResult.totalPages);
         setTotalTasks(pageResult.total);
         setStatusCounts(pageResult.statusCounts ?? {});
+        setConfiguredCounts(pageResult.configuredStatusCounts ?? pageResult.statusCounts ?? {});
         setTaskCountsReady(true);
     }, [pageResult]);
 
@@ -1024,12 +1012,12 @@ const Tasks: React.FC = () => {
     const overdueCount = filteredTasks.filter((task) => isTaskOverdue(task)).length;
     const statusSummary = useMemo(
         () =>
-            STATUS_ORDER.map((status) => ({
-                status,
-                label: taskStatusLabel(status),
-                count: statusCounts[status] ?? 0,
+            configuredStatuses.map((status) => ({
+                status: status.id,
+                label: status.title,
+                count: configuredCounts[status.id] ?? 0,
             })),
-        [statusCounts, taskStatusLabel],
+        [configuredCounts, configuredStatuses],
     );
     const newsItems = useMemo(() => {
         if (tasks.length === 0) {
@@ -1347,12 +1335,12 @@ const Tasks: React.FC = () => {
     const statusOptions = useMemo(
         () => [
             { value: '', label: 'All Statuses' },
-            ...STATUS_ORDER.map((status) => ({
-                value: String(status),
-                label: taskStatusLabel(status),
+            ...configuredStatuses.map((status) => ({
+                value: status.id,
+                label: status.title,
             })),
         ],
-        [taskStatusLabel],
+        [configuredStatuses],
     );
     const priorityOptions = useMemo(
         () => [

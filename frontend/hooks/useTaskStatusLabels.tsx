@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './useAuth';
 import { http } from '../services/mockApi';
 import { configurationStorageKey, STATUS_CONFIGURATION_EVENT } from '../utils/kanbanConfiguration';
-import { createStatusLabels, type StatusLabelEntry } from '../utils/taskStatusLabels';
+import { activeTaskStatuses, createStatusLabels, type StatusLabelEntry } from '../utils/taskStatusLabels';
 
-const defaults = { label: createStatusLabels(), entries: [] as StatusLabelEntry[], loading: false, unavailable: false };
+const defaults = { label: createStatusLabels(), entries: [] as StatusLabelEntry[], activeEntries: [] as StatusLabelEntry[], ready: false, loading: false, unavailable: false };
 const StatusLabels = createContext(defaults);
 export const useTaskStatusLabels = () => useContext(StatusLabels);
 
@@ -32,8 +32,8 @@ export function TaskStatusLabelsProvider({ children }: { children: React.ReactNo
   }, [client, user?.tenantId, user?.id]);
   const value = useMemo(() => {
     const entries = user ? query.data || [] : [];
-    return { label: createStatusLabels(entries), entries, loading: query.isPending, unavailable: query.isError };
-  }, [query.data, query.isPending, query.isError, user?.tenantId, user?.id]);
+    return { label: createStatusLabels(entries), entries, activeEntries: activeTaskStatuses(entries), ready: !!user && query.isSuccess, loading: query.isPending, unavailable: query.isError };
+  }, [query.data, query.isSuccess, query.isPending, query.isError, user?.tenantId, user?.id]);
   return <StatusLabels.Provider value={value}>{children}</StatusLabels.Provider>;
 }
 

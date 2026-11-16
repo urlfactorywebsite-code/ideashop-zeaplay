@@ -303,7 +303,8 @@ function DetailPanel({ target, query, onClose, onExplore }: { target: { section:
 }
 
 export default function Reports() {
-  const { label: statusLabel } = useTaskStatusLabels();
+  const { activeEntries, ready: statusesReady } = useTaskStatusLabels();
+  const taskFilterStatuses = useMemo(() => activeEntries.filter(entry => !entry.custom_status_id && Object.values(TaskStatus).includes(entry.id as TaskStatus)), [activeEntries]);
   const { user } = useAuth();
   const [url, setUrl] = useSearchParams();
   const timezone = reportTimezone(user?.timezone);
@@ -318,6 +319,13 @@ export default function Reports() {
   const groupBy = ['employee', 'task', 'subtask', 'project', 'daily'].includes(url.get('group_by') || '') ? url.get('group_by') as ReportingQuery['group_by'] : 'employee';
   const [draft, setDraft] = useState<ReportingFilters>(filters);
   const [draftPreset, setDraftPreset] = useState<ReportPreset>(preset);
+  useEffect(() => {
+    if (!statusesReady) return;
+    if (draft.status && !taskFilterStatuses.some(entry => entry.id === draft.status)) setDraft(previous => ({ ...previous, status: undefined }));
+    if (filters.status && !taskFilterStatuses.some(entry => entry.id === filters.status)) {
+      setUrl(previous => { const next = new URLSearchParams(previous); next.delete('status'); next.delete('page'); return next; }, { replace: true });
+    }
+  }, [statusesReady, taskFilterStatuses, draft.status, filters.status, setUrl]);
   const [validation, setValidation] = useState<string | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [projectSearch, setProjectSearch] = useState('');
@@ -390,7 +398,7 @@ export default function Reports() {
         <label>From<input aria-label="From" type="date" value={draft.from} onChange={event => { setDraftPreset('custom'); setDraft({ ...draft, from: event.target.value }); }} /></label>
         <label>Through<input aria-label="Through" type="date" value={draft.to} onChange={event => { setDraftPreset('custom'); setDraft({ ...draft, to: event.target.value }); }} /></label>
         <label>Parent task status<select aria-label="Parent task status" value={draft.status || ''} onChange={event => setDraft({ ...draft, status: event.target.value as TaskStatus || undefined })}>
-          <option value="">All persisted statuses</option>{(employeeOptions.data?.statuses || Object.values(TaskStatus)).map(status => <option key={status} value={status}>{statusLabel(status)}</option>)}
+          <option value="">All statuses</option>{taskFilterStatuses.map(status => <option key={status.id} value={status.id}>{status.title}</option>)}
         </select></label>
         <SearchPicker label="Employees" selected={draft.employee_id} onChange={id => setDraft({ ...draft, employee_id: id || undefined })}
           options={employeeList} total={employeeOptions.data?.employees_total || 0} busy={employeeOptions.busy} search={employeeSearch} setSearch={setEmployeeSearch} page={employeePage} setPage={setEmployeePage} />

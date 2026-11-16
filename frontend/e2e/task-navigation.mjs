@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { pickDate, pickTime } from './subtask-date-helpers.mjs';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -30,6 +31,9 @@ async function setup(role = 'owner', width = 1440, rules = {}) {
       return route.fulfill({ response, body: (await response.text()).replace(/src="\/index\.tsx[^"]*"/, 'src="/e2e/taskNavigationFixture.tsx"') });
     }
     if (url.pathname === '/api/navigation') return route.fulfill({ json: navigationDocument(role, rules) });
+    if (url.pathname === '/api/kanban-columns') return route.fulfill({ json:
+      ['WAITING_FOR_REQUIREMENT', 'TODO', 'IN_PROGRESS', 'BUG_FIXING', 'BLOCKED', 'IN_REVIEW', 'ON_HOLD', 'DONE', 'DEPLOYED', 'FAILED', 'GRAVEYARD']
+        .map((id, order) => ({ id, title: id.replaceAll('_', ' '), order, is_active: true, kanban_visible: true })) });
     if (url.pathname.startsWith('/api/')) return route.fulfill(url.pathname.endsWith('/notifications/stream')
       ? { contentType: 'text/event-stream', body: '' } : { json: url.pathname.endsWith('/websocket-ticket') ? { access_token: 'synthetic-ticket' } : [] });
     return route.continue();
@@ -82,7 +86,7 @@ try {
   await tabs.getByRole('tab', { name: 'All Tasks', exact: true }).click();
   await expect(page).toHaveURL(/#\/tasks\?priority=HIGH&status=TODO$/);
   await expect(page.getByText('Navigation task 0', { exact: true }).first()).toBeVisible();
-  assert.ok((await owner.calls()).some(call => call.method === 'getTasksPage' && call.args[0].status === 'TODO' && call.args[0].priority === 'HIGH'));
+  await expect.poll(async () => (await owner.calls()).some(call => call.method === 'getTasksPage' && call.args[0].status === 'TODO' && call.args[0].priority === 'HIGH')).toBe(true);
   check('legacy redirects and shared filter URL/query preservation');
   await owner.go('/tasks/gantt');
   await expect(page.getByRole('heading', { name: 'Gantt Raid Map' })).toBeVisible();
@@ -130,12 +134,13 @@ try {
   check('Calendar date/task selection opens existing Task Details and task editing works');
   await tabs.getByRole('tab', { name: 'All Tasks', exact: true }).click();
   await page.getByRole('button', { name: '+ Create Task', exact: true }).click();
-  await page.getByPlaceholder('Name your quest...', { exact: true }).fill('Created navigation task');
+  await page.locator('#title').fill('Created navigation task');
   await page.locator('#projectId').click();
   await page.getByText('Verification project', { exact: true }).last().click();
-  await page.locator('#dueDate').fill(tomorrow.toISOString().slice(0, 10));
-  await page.locator('#dueTime').fill('12:00');
-  await page.getByRole('button', { name: 'Create quest', exact: true }).click();
+  await page.locator('#taskDueToggle').click();
+  await pickDate(page, page.locator('#dueDate'), tomorrow.toISOString().slice(0, 10));
+  await pickTime(page, page.locator('#dueTime'), '12:00');
+  await page.getByRole('button', { name: 'Create task', exact: true }).click();
   await expect.poll(async () => (await owner.calls()).filter(call => call.method === 'createTask').length).toBe(1);
   await expect(page.getByText('Created navigation task', { exact: true }).first()).toBeVisible();
   check('existing task creation controls and service payload remain functional');

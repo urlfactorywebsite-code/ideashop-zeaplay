@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { TaskPriority } from '../types';
 import { withGeminiKey } from '../utils/geminiClient';
@@ -46,6 +46,12 @@ const GenerateTaskWithAIModal: React.FC<GenerateTaskWithAIModalProps> = ({ isOpe
     const [answers, setAnswers] = useState<Record<number, string>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const requestGeneration = useRef(0);
+    // A dismissed dialog must not write a late response into the task draft.
+    useEffect(() => {
+        if (!isOpen) setIsLoading(false);
+        return () => { requestGeneration.current += 1; };
+    }, [isOpen]);
 
     const activePrompt = useMemo(() => PROMPT_MODES[promptMode], [promptMode]);
     const isQuestionStep = askQuestions && questions.length > 0;
@@ -81,6 +87,7 @@ const GenerateTaskWithAIModal: React.FC<GenerateTaskWithAIModalProps> = ({ isOpe
     };
 
     const handleGenerateQuestions = async () => {
+        const generation = requestGeneration.current;
         setIsLoading(true);
         setError('');
 
@@ -110,6 +117,7 @@ const GenerateTaskWithAIModal: React.FC<GenerateTaskWithAIModalProps> = ({ isOpe
                 });
             });
 
+            if (generation !== requestGeneration.current) return;
             const resultJson = JSON.parse(response.text);
             const nextQuestions = normalizeQuestions(resultJson.questions);
             if (nextQuestions.length < MIN_QUESTION_COUNT) {
@@ -118,6 +126,7 @@ const GenerateTaskWithAIModal: React.FC<GenerateTaskWithAIModalProps> = ({ isOpe
             setQuestions(nextQuestions);
             setAnswers({});
         } catch (err) {
+            if (generation !== requestGeneration.current) return;
             console.error('Error generating questions with AI:', err);
             const message = err instanceof Error ? err.message : 'Failed to generate questions. Please try again.';
             const displayMessage =
@@ -126,11 +135,12 @@ const GenerateTaskWithAIModal: React.FC<GenerateTaskWithAIModalProps> = ({ isOpe
                     : 'Failed to generate questions. Please try again.';
             setError(displayMessage);
         } finally {
-            setIsLoading(false);
+            if (generation === requestGeneration.current) setIsLoading(false);
         }
     };
 
     const handleGenerateTask = async () => {
+        const generation = requestGeneration.current;
         setIsLoading(true);
         setError('');
 
@@ -176,6 +186,7 @@ const GenerateTaskWithAIModal: React.FC<GenerateTaskWithAIModalProps> = ({ isOpe
                 });
             });
 
+            if (generation !== requestGeneration.current) return;
             const resultJson = JSON.parse(response.text);
 
             const validPriorities = Object.values(TaskPriority);
@@ -194,6 +205,7 @@ const GenerateTaskWithAIModal: React.FC<GenerateTaskWithAIModalProps> = ({ isOpe
             });
             onClose();
         } catch (err) {
+            if (generation !== requestGeneration.current) return;
             console.error('Error generating task with AI:', err);
             const message = err instanceof Error ? err.message : 'Failed to generate task. Please check the prompt or your API key.';
             const displayMessage =
@@ -202,7 +214,7 @@ const GenerateTaskWithAIModal: React.FC<GenerateTaskWithAIModalProps> = ({ isOpe
                     : 'Failed to generate task. Please check the prompt or your API key.';
             setError(displayMessage);
         } finally {
-            setIsLoading(false);
+            if (generation === requestGeneration.current) setIsLoading(false);
         }
     };
 

@@ -232,7 +232,7 @@ const getRangeForView = (mode: ViewMode, reference: Date) => {
 const createLightweightId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 const CalendarView: React.FC = () => {
-    const { label: getStatusLabel } = useTaskStatusLabels();
+    const { label: getStatusLabel, activeEntries: configuredStatuses } = useTaskStatusLabels();
     const { user } = useAuth() as { user: User | null };
     const queryClient = useQueryClient();
     const zone = workTimezone(user?.timezone);
@@ -1403,9 +1403,9 @@ const CalendarView: React.FC = () => {
                 className={`min-w-0 max-w-full rounded-xl border px-4 py-2 text-sm focus:outline-none focus:ring-2 ${fieldClass}`}
             >
                 <option value="ALL">All statuses</option>
-                {Object.values(TaskStatus).map((status) => (
-                    <option key={status} value={status}>
-                        {getStatusLabel(status)}
+                {configuredStatuses.map((status) => (
+                    <option key={status.id} value={status.id}>
+                        {status.title}
                     </option>
                 ))}
             </select>

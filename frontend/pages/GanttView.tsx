@@ -24,7 +24,7 @@ import PageLoader from '../components/loading/PageLoader';
  */
 
 type RangeFilter = '30' | '60' | '90' | 'ALL';
-type StatusFilter = TaskStatus | 'ALL';
+type StatusFilter = string;
 
 type StatusTheme = {
   title: string;
@@ -191,7 +191,7 @@ const PaginationBar: React.FC<{
 );
 
 const GanttRaidMapPage: React.FC = () => {
-  const { label: formatTaskStatus } = useTaskStatusLabels();
+  const { label: formatTaskStatus, activeEntries: configuredStatuses } = useTaskStatusLabels();
   const { user } = useAuth();
   const zone = workTimezone(user?.timezone);
   const active = useTaskViewActive();
@@ -259,7 +259,7 @@ const GanttRaidMapPage: React.FC = () => {
 
     return tasks
       .filter((task) => {
-        if (statusFilter !== 'ALL' && task.status !== statusFilter) return false;
+        if (statusFilter !== 'ALL' && (task.customStatusId || task.status) !== statusFilter) return false;
         if (assigneeFilter !== 'ALL') {
           if (assigneeFilter === UNASSIGNED_FILTER_VALUE) {
             if (task.assignedTo && task.assignedTo.length > 0) return false;
@@ -372,9 +372,9 @@ const GanttRaidMapPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex max-w-full flex-wrap gap-2">
               <Chip active={statusFilter === 'ALL'} onClick={() => setStatusFilter('ALL')}>All Lanes</Chip>
-              {Object.values(TaskStatus).map((s) => (
-                <Chip key={s} active={statusFilter === s} onClick={() => setStatusFilter(s)}>
-                  {formatTaskStatus(s)}
+              {configuredStatuses.map((s) => (
+                <Chip key={s.id} active={statusFilter === s.id} onClick={() => setStatusFilter(s.id)}>
+                  {s.title}
                 </Chip>
               ))}
             </div>

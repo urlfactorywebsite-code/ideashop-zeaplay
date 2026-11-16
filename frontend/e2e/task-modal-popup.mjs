@@ -39,15 +39,15 @@ try {
     const page = await context.newPage(); page.on('pageerror', error => errors.push({ theme, message: error.message }));
     await page.goto(base + '/__task-popup?role=owner&rows=60#/tasks', { waitUntil: 'domcontentloaded' });
     const open = page.getByRole('button', { name: /^\+?\s*Create Task$/ });
-    const dialog = page.getByRole('dialog', { name: 'Create Task', exact: true });
-    const close = dialog.getByRole('button', { name: 'Close', exact: true });
-    const title = dialog.getByRole('heading', { name: 'Create Task', exact: true });
+    const dialog = page.getByRole('dialog', { name: 'Create task', exact: true });
+    const close = dialog.getByRole('button', { name: 'Close create task', exact: true });
+    const title = dialog.getByRole('heading', { name: 'Create task', exact: true });
     await expect(open).toBeVisible();
     for (const [width, height] of [[1440, 900], [1366, 768], [1280, 600], [390, 640]]) {
       await page.setViewportSize({ width, height }); await open.click(); await expect(dialog).toBeVisible();
       const geometry = await dialog.evaluate(el => {
         const box = el.getBoundingClientRect();
-        return { position: getComputedStyle(el).position, directBodyChild: el.parentElement === document.body,
+        return { position: getComputedStyle(el).position, directBodyChild: el.closest('#headlessui-portal-root')?.parentElement === document.body,
           x: box.x, y: box.y, width: box.width, height: box.height };
       });
       assert.deepEqual(geometry, { position: 'fixed', directBodyChild: true, x: 0, y: 0, width, height });
@@ -69,7 +69,7 @@ try {
         await expect(aiTitle).toBeVisible(); assert.ok(await onTop(aiTitle));
         await aiTitle.locator('..').getByRole('button', { name: 'Cancel', exact: true }).click(); await expect(aiTitle).toHaveCount(0);
       }
-      const submit = dialog.getByRole('button', { name: 'Create quest', exact: true });
+      const submit = dialog.getByRole('button', { name: 'Create task', exact: true });
       await submit.scrollIntoViewIfNeeded(); await expect(submit).toBeInViewport({ ratio: 1 });
       assert.ok(await onTop(submit)); await expect(close).toBeInViewport({ ratio: 1 });
       await close.click(); await expect(dialog).toHaveCount(0);
@@ -79,7 +79,7 @@ try {
     }
     await open.click(); await dialog.locator('#title').fill(`${theme} popup verification`);
     await expect(dialog.getByRole('button', { name: 'Project', exact: true })).toContainText('Verification project');
-    await dialog.getByRole('button', { name: 'Create quest', exact: true }).click(); await expect(dialog).toHaveCount(0);
+    await dialog.getByRole('button', { name: 'Create task', exact: true }).click(); await expect(dialog).toHaveCount(0);
     const calls = await page.evaluate(() => window.taskNavigationAudit.calls);
     assert.equal(calls.find(call => call.method === 'createTask').args[0].projectId, 'project-0');
     console.log(`PASS: ${theme}: creation saves selected project and closes the popup`);

@@ -794,6 +794,9 @@ uploads_directory.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(uploads_directory)), name="media-uploads")
 
 def initialize_schema() -> None:
+    from .subtask_due_date_schema import ensure_subtask_due_date_column
+    with engine.begin() as connection:
+        ensure_subtask_due_date_column(connection)
     ensure_pg_trgm_extension()
     ensure_composite_fk_reference_constraints()
     ensure_notification_table_schema()

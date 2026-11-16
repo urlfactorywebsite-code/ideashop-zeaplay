@@ -9,6 +9,9 @@ import { STATUS_CONFIGURATION_EVENT, configurationStorageKey } from '../utils/ka
 import { useTaskStatusLabels } from '../hooks/useTaskStatusLabels';
 import { Task, User, TaskPriority, Comment, UserStatus, KanbanColumn, TaskStatus, SubtaskStatus, Role, CUSTOM_STATUS_NAMES, TaskTransferWorkflowRead, CompletionSubmissionStatus, Subtask } from '../types';
 import { formatDate, timeAgo, formatRecurrenceRule, formatTaskStatus } from '../utils';
+import SubtaskDueDateField from './SubtaskDueDateField';
+import SubtaskDueDateBadge from './SubtaskDueDateBadge';
+import TaskAttachments from './TaskAttachments';
 import { loadPointsConfig, POINTS_CONFIG_UPDATED_EVENT } from '../utils/pointsConfigStorage';
 import { augmentTaskWithPoints, summarizeTaskPoints, formatPointsValue, TaskPointsTone } from '../utils/taskPoints';
 import { getUserAvatarUrl } from '../utils/userAvatar';
@@ -275,7 +278,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
     const [completionBusy, setCompletionBusy] = useState(false);
     const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
     const [subtaskBusyId, setSubtaskBusyId] = useState<string | null>(null);
-    const [subtaskDraft, setSubtaskDraft] = useState<{ id?: string; title: string; assignedToId: string | null } | null>(null);
+    const [subtaskDraft, setSubtaskDraft] = useState<{ id?: string; title: string; assignedToId: string | null; dueDate: string | null; hasDueDate: boolean } | null>(null);
     const [subtaskEditorError, setSubtaskEditorError] = useState<string | null>(null);
     const subtaskEditorId = React.useId();
     const subtaskMutation = useRef(false);
@@ -633,12 +636,14 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
         const scope = taskScope.current;
         try {
             const existing = task.subtasks.find(sub => sub.id === subtaskDraft.id);
+            const dueDate = subtaskDraft.hasDueDate ? subtaskDraft.dueDate : null;
             const updatedTask = subtaskDraft.id
                 ? await api.updateSubtask(task.id, subtaskDraft.id, {
                     title,
+                    ...((existing?.dueDate ?? null) !== dueDate ? { dueDate } : {}),
                     ...(existing?.assignedToId !== subtaskDraft.assignedToId ? { assignedToId: subtaskDraft.assignedToId } : {}),
                 })
-                : await api.createSubtask(task.id, { title, assignedToId: subtaskDraft.assignedToId });
+                : await api.createSubtask(task.id, { title, assignedToId: subtaskDraft.assignedToId, dueDate });
             if (!detailMounted.current || scope !== taskScope.current) return;
             ++taskFetchSequence.current;
             setTask(updatedTask);
@@ -1343,7 +1348,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                                             <button type="button" aria-label="Add subtask" title="Add subtask"
                                                 aria-expanded={Boolean(subtaskDraft && !subtaskDraft.id)} aria-controls={subtaskEditorId}
                                                 disabled={Boolean(subtaskBusyId) || completionBusy || Boolean(subtaskDraft)}
-                                                onClick={() => { setSubtaskDraft({ title: '', assignedToId: task.assignedTo?.[0] ?? null }); setSubtaskEditorError(null); }}
+                                                onClick={() => { setSubtaskDraft({ title: '', assignedToId: task.assignedTo?.[0] ?? null, dueDate: null, hasDueDate: false }); setSubtaskEditorError(null); }}
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white disabled:opacity-50">
                                                 <Plus className="h-4 w-4" aria-hidden="true" />
                                             </button>
@@ -1366,6 +1371,9 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                                             {Array.from(usersMap.values()).filter(candidate => candidate.status === UserStatus.ACTIVE || candidate.id === subtaskDraft.assignedToId)
                                                 .map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
                                         </select>
+                                        <SubtaskDueDateField enabled={subtaskDraft.hasDueDate} value={subtaskDraft.dueDate}
+                                            disabled={Boolean(subtaskBusyId)} inputClassName={selectFieldClass} labelClassName="text-sm text-white/80"
+                                            onChange={(hasDueDate, dueDate) => setSubtaskDraft({ ...subtaskDraft, hasDueDate, dueDate })} />
                                         {subtaskEditorError && <p role="alert" className="text-sm text-rose-200">{subtaskEditorError}</p>}
                                         <div className="flex flex-wrap gap-2">
                                             <button type="submit" disabled={Boolean(subtaskBusyId) || completionBusy || !subtaskDraft.title.trim()}
@@ -1408,7 +1416,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                                                                 <span className="break-words text-sm text-white/80">{sub.title}</span>
                                                                 {canManageSubtasks && <button type="button" aria-label={`Edit subtask: ${sub.title}`} title="Edit subtask"
                                                                     disabled={Boolean(subtaskBusyId) || completionBusy || Boolean(subtaskDraft)}
-                                                                    onClick={() => { setSubtaskDraft({ id: sub.id, title: sub.title, assignedToId: sub.assignedToId ?? null }); setSubtaskEditorError(null); }}
+                                                                    onClick={() => { setSubtaskDraft({ id: sub.id, title: sub.title, assignedToId: sub.assignedToId ?? null, dueDate: sub.dueDate ?? null, hasDueDate: Boolean(sub.dueDate) }); setSubtaskEditorError(null); }}
                                                                     className="shrink-0 rounded-full p-1 text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-50">
                                                                     <Pencil className="h-4 w-4" aria-hidden="true" />
                                                                 </button>}
@@ -1422,6 +1430,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                                                                 <span>{sub.assignedToId ? usersMap.get(sub.assignedToId)?.name ?? 'Assigned user' : 'Unassigned'}</span>
                                                                 <span>{formatTrackedTime(sub.totalTrackedSeconds ?? 0)} tracked</span>
                                                             </div>
+                                                            <div className="mt-2 text-white/70"><SubtaskDueDateBadge subtask={sub} /></div>
                                                         </div>
                                                     </div>
                                                     <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1576,20 +1585,7 @@ const TaskDetailContent: React.FC<TaskDetailModalProps & { onOpenAssignment: (id
                                     Attachments
                                 </h3>
                                 {attachmentsCount > 0 ? (
-                                    <ul className="mt-4 space-y-2 text-sm">
-                                        {task.attachments.map((url, index) => (
-                                            <li key={index} className="overflow-hidden rounded-2xl border border-white/10 bg-black/30">
-                                                <a
-                                                    href={url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="block truncate px-4 py-2 text-white/80 transition hover:bg-white/10 hover:text-white"
-                                                >
-                                                    {url}
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    <div className="mt-4"><TaskAttachments attachments={task.attachments} /></div>
                                 ) : (
                                     <p className="mt-2 text-sm text-white/70">No attachments yet.</p>
                                 )}

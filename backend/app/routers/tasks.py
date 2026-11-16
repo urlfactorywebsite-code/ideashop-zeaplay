@@ -164,6 +164,7 @@ def _serialize_subtask(
     return schemas.SubtaskRead(
         id=subtask.id,
         title=subtask.title,
+        due_date=subtask.due_date,
         completed=subtask.completed,
         assigned_to_id=subtask.assigned_to_id,
         assigned_user=schemas.UserRead.model_validate(subtask.assigned_user) if subtask.assigned_user else None,
@@ -707,7 +708,7 @@ def _hash_params(params: dict[str, Any]) -> str:
 
 def _list_cache_key(*, tenant_id: str, user_id: str, params: dict[str, Any]) -> str:
     fingerprint = _hash_params(params)
-    return f"{settings.cache_prefix}:tasks:list:tenant:{tenant_id}:user:{user_id}:assignment-v2:q:{fingerprint}"
+    return f"{settings.cache_prefix}:tasks:list:tenant:{tenant_id}:user:{user_id}:assignment-v3:q:{fingerprint}"
 
 
 def _kanban_cache_key(*, tenant_id: str, user_id: str, params: dict[str, Any]) -> str:
@@ -717,7 +718,7 @@ def _kanban_cache_key(*, tenant_id: str, user_id: str, params: dict[str, Any]) -
 
 def _calendar_cache_key(*, tenant_id: str, user_id: str, params: dict[str, Any]) -> str:
     fingerprint = _hash_params(params)
-    return f"{settings.cache_prefix}:tasks:calendar:tenant:{tenant_id}:user:{user_id}:assignment-v2:q:{fingerprint}"
+    return f"{settings.cache_prefix}:tasks:calendar:tenant:{tenant_id}:user:{user_id}:assignment-v3:q:{fingerprint}"
 
 
 def _lean_task_stmt() -> select:
@@ -732,7 +733,7 @@ def _apply_task_filters(
     current_user: models.User,
     *,
     search: Optional[str] = None,
-    status_filter: Optional[models.TaskStatusEnum] = None,
+    status_filter: Optional[str] = None,
     priority: Optional[models.TaskPriorityEnum] = None,
     assignee_id: Optional[str] = None,
     project_id: Optional[str] = None,
@@ -763,7 +764,19 @@ def _apply_task_filters(
                     )
                 )
     if status_filter:
-        stmt = stmt.where(models.Task.status == status_filter)
+        try:
+            native_status = models.TaskStatusEnum(status_filter)
+        except ValueError:
+            configured = db.scalar(select(models.TaskStatus).where(
+                models.TaskStatus.tenant_id == current_user.tenant_id,
+                models.TaskStatus.is_system.is_(False),
+                or_(models.TaskStatus.id == status_filter, models.TaskStatus.legacy_column_id == status_filter),
+            ))
+            if configured is None:
+                raise HTTPException(422, 'Invalid task status')
+            stmt = stmt.where(models.Task.custom_status_id == configured.id)
+        else:
+            stmt = stmt.where(models.Task.status == native_status, models.Task.custom_status_id.is_(None))
     if priority:
         stmt = stmt.where(models.Task.priority == priority)
     if assignee_id:
@@ -1302,6 +1315,17 @@ def act_on_transfer_request(
     return schemas.TaskTransferWorkflowRead.model_validate(transfer_request)
 
 
+def _status_count_maps(rows):
+    """Keep legacy totals compatible while exposing exact configured status counts."""
+    legacy, configured = {}, {}
+    for native, custom_id, count in rows:
+        native = native.value if hasattr(native, 'value') else str(native)
+        legacy[native] = legacy.get(native, 0) + count
+        key = custom_id or native
+        configured[key] = configured.get(key, 0) + count
+    return legacy, configured
+
+
 def _grouped_page(db, current_user, stmt, *, page, page_size, sort_by, sort_order, cursor):
     """Page logical tasks before loading visible assignments in bounded batched queries.
 
@@ -1318,8 +1342,9 @@ def _grouped_page(db, current_user, stmt, *, page, page_size, sort_by, sort_orde
     representatives = select(ranked.c.id).where(ranked.c.group_rank == 1)
     grouped = _lean_task_stmt().where(models.Task.id.in_(representatives))
     total = db.scalar(select(func.count()).select_from(representatives.subquery()))
-    status_rows = db.execute(select(models.Task.status, func.count()).where(
-        models.Task.id.in_(representatives)).group_by(models.Task.status)).all()
+    status_rows = db.execute(select(models.Task.status, models.Task.custom_status_id, func.count()).where(
+        models.Task.id.in_(representatives)).group_by(models.Task.status, models.Task.custom_status_id)).all()
+    status_counts, configured_counts = _status_count_maps(status_rows)
     grouped, sort_column = _resolve_sort_column(grouped, sort_by)
     grouped = grouped.order_by(*((sort_column.asc().nullslast(), models.Task.id.asc()) if sort_order == "asc" else (
         sort_column.desc().nullslast(), models.Task.id.desc())))
@@ -1365,7 +1390,7 @@ def _grouped_page(db, current_user, stmt, *, page, page_size, sort_by, sort_orde
     return schemas.TaskListResponse(
         items=items, page=page, page_size=page_size, total=total,
         total_pages=max(1, (total + page_size - 1) // page_size),
-        status_counts={row[0].value: row[1] for row in status_rows},
+        status_counts=status_counts, configured_status_counts=configured_counts,
         next_cursor=_encode_task_cursor(records[-1], sort_by) if has_more and records else None,
         has_more=has_more,
     )
@@ -1379,7 +1404,7 @@ def list_tasks_page(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
     search: Optional[str] = Query(default=None, description="Search title, description, team, or assignee name."),
-    status: Optional[models.TaskStatusEnum] = Query(default=None),
+    status: Optional[str] = Query(default=None, max_length=36),
     priority: Optional[models.TaskPriorityEnum] = Query(default=None),
     assignee_id: Optional[str] = Query(default=None),
     project_id: Optional[str] = Query(default=None),
@@ -1404,7 +1429,7 @@ def list_tasks_page(
         "page_size": page_size,
         "cursor": cursor,
         "search": search,
-        "status": status.value if status else None,
+        "status": status or None,
         "priority": priority.value if priority else None,
         "assignee_id": assignee_id,
         "project_id": project_id,
@@ -1458,11 +1483,11 @@ def list_tasks_page(
     base_subquery = base_stmt.order_by(None).subquery()
     total = db.execute(select(func.count()).select_from(base_subquery)).scalar_one()
     status_rows = db.execute(
-        select(base_subquery.c.status, func.count())
+        select(base_subquery.c.status, base_subquery.c.custom_status_id, func.count())
         .select_from(base_subquery)
-        .group_by(base_subquery.c.status)
+        .group_by(base_subquery.c.status, base_subquery.c.custom_status_id)
     ).all()
-    status_counts = {row[0].value if hasattr(row[0], "value") else str(row[0]): row[1] for row in status_rows}
+    status_counts, configured_counts = _status_count_maps(status_rows)
     total_pages = max(1, (total + page_size - 1) // page_size)
 
     page_stmt = base_stmt
@@ -1490,6 +1515,7 @@ def list_tasks_page(
         total=total,
         total_pages=total_pages,
         status_counts=status_counts,
+        configured_status_counts=configured_counts,
         next_cursor=next_cursor,
         has_more=has_more,
     )
@@ -1729,7 +1755,7 @@ def get_calendar_summary(
     start_date: str = Query(..., description="Visible range start date, YYYY-MM-DD."),
     end_date: str = Query(..., description="Visible range end date, YYYY-MM-DD."),
     search: Optional[str] = Query(default=None),
-    status_filter: Optional[models.TaskStatusEnum] = Query(default=None, alias="status"),
+    status_filter: Optional[str] = Query(default=None, alias="status", max_length=36),
     priority: Optional[models.TaskPriorityEnum] = Query(default=None),
     assignee_id: Optional[str] = Query(default=None),
     project_id: Optional[str] = Query(default=None),
@@ -1756,7 +1782,7 @@ def get_calendar_summary(
         "timezone": zone.key,
         "end_date": end.isoformat(),
         "search": search,
-        "status": status_filter.value if status_filter else None,
+        "status": status_filter or None,
         "priority": priority.value if priority else None,
         "assignee_id": assignee_id,
         "project_id": project_id,
@@ -1837,7 +1863,7 @@ def get_calendar_tasks(
     start_date: str = Query(...),
     end_date: Optional[str] = Query(default=None),
     search: Optional[str] = Query(default=None),
-    status_filter: Optional[models.TaskStatusEnum] = Query(default=None, alias="status"),
+    status_filter: Optional[str] = Query(default=None, alias="status", max_length=36),
     priority: Optional[models.TaskPriorityEnum] = Query(default=None),
     assignee_id: Optional[str] = Query(default=None),
     project_id: Optional[str] = Query(default=None),
@@ -2037,6 +2063,7 @@ def create_task(
             task.subtasks.append(
                 models.Subtask(
                     title=subtask_input.title,
+                    due_date=subtask_input.due_date,
                     completed=subtask_completed,
                     assigned_to_id=subtask_assignee_id,
                     status=subtask_status,
@@ -2132,6 +2159,7 @@ def create_task(
                 {
                     "id": subtask.id,
                     "title": subtask.title,
+                    "due_date": subtask.due_date,
                     "completed": subtask.completed,
                     "assigned_to_id": subtask.assigned_to_id,
                     "status": subtask.status,
@@ -2279,6 +2307,7 @@ def create_task(
                     models.Subtask(
                         id=subtask_snapshot["id"],
                         title=subtask_snapshot["title"],
+                        due_date=subtask_snapshot["due_date"],
                         completed=subtask_snapshot["completed"],
                         assigned_to_id=subtask_snapshot["assigned_to_id"],
                         status=subtask_snapshot["status"],
@@ -2969,6 +2998,9 @@ def update_task(
                 ):
                     _ensure_subtask_workflow_write(task, current_user)
                 subtask.title = subtask_input.title
+                if "due_date" in subtask_input.model_fields_set:
+                    _ensure_subtask_workflow_write(task, current_user)
+                    subtask.due_date = subtask_input.due_date
                 if "completed" in subtask_input.model_fields_set or "status" in subtask_input.model_fields_set:
                     next_status = subtask_workflow.status_from_completed(
                         completed=subtask_input.completed,
@@ -3022,6 +3054,7 @@ def update_task(
                     models.Subtask(
                         id=subtask_input.id,
                         title=subtask_input.title,
+                        due_date=subtask_input.due_date,
                         completed=subtask_completed,
                         assigned_to_id=subtask_input.assigned_to_id,
                         status=subtask_status,
@@ -3778,6 +3811,7 @@ def create_subtask(
     children = db.scalars(select(models.Subtask).where(models.Subtask.task_id == task_id)).all()
     subtask = models.Subtask(
         title=payload.title,
+        due_date=payload.due_date,
         assigned_to_id=payload.assigned_to_id,
         status=models.SubtaskStatusEnum.TODO,
         completed=False,
@@ -3819,8 +3853,10 @@ def update_subtask(
     previous_assignee_id = subtask.assigned_to_id
     update_data = payload.model_dump(exclude_unset=True)
     workflow_result = subtask_workflow.WorkflowResult()
-    if any(field in update_data for field in ("title", "assigned_to_id", "sort_order")):
+    if any(field in update_data for field in ("title", "assigned_to_id", "sort_order", "due_date")):
         _ensure_subtask_workflow_write(task, current_user)
+    if "due_date" in update_data:
+        subtask.due_date = update_data["due_date"]
     if "title" in update_data:
         subtask.title = update_data["title"]
     if "assigned_to_id" in update_data:

@@ -1,7 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStatusLabels } from '../utils/taskStatusLabels';
+import { activeTaskStatuses, createStatusLabels } from '../utils/taskStatusLabels';
 import { CUSTOM_STATUS_NAMES, TaskStatus } from '../types';
+
+test('active catalogs respect configuration order and custom identity independently of board visibility', () => {
+  const entries = [
+    { id: 'IN_PROGRESS', title: 'Working', order: 3, is_active: true },
+    { id: 'BUG_FIXING', title: 'Old quality', order: 0, is_active: false },
+    { id: 'legacy-column', custom_status_id: 'custom-id', title: 'Review', order: 1, is_active: true, kanban_visible: false },
+    { id: 'UNCONFIRMED', title: 'No activation metadata', order: 0 },
+  ];
+  const snapshot = structuredClone(entries);
+  assert.deepEqual(activeTaskStatuses(entries).map(entry => [entry.id, entry.title]), [['custom-id', 'Review'], ['IN_PROGRESS', 'Working']]);
+  assert.deepEqual(entries, snapshot);
+  assert.deepEqual(activeTaskStatuses([]), []);
+  assert.equal(createStatusLabels(entries)('BUG_FIXING'), 'Old quality');
+});
 
 test('renamed core display names resolve from immutable native keys', () => {
   const entries = [{ id: 'WAITING_FOR_REQUIREMENT', title: 'Ready Quests', order: 0 },

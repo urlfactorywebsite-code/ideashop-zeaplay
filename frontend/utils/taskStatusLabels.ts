@@ -6,6 +6,13 @@ export type StatusLabelEntry = {
   workflow_behavior?: string;
 };
 
+/** Selectable statuses are separate from historical labels. Board visibility is independent. */
+export function activeTaskStatuses(entries: StatusLabelEntry[]) {
+  return entries.filter(entry => entry.is_active === true)
+    .map(entry => ({ ...entry, id: entry.custom_status_id || entry.id }))
+    .sort((a, b) => a.order - b.order);
+}
+
 export function createStatusLabels(entries: StatusLabelEntry[] = []) {
   const names = new Map<string, string>();
   for (const entry of entries) {
